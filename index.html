@@ -1,1 +1,387 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>คู่มือและระบบแจ้งซ่อมแม่พิมพ์ (Mold Maintenance System)</title>
+<style>
+    @page {
+        size: A4;
+        margin: 15mm 12mm;
+        background-color: #f8fafc;
+    }
+    
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
 
+    body {
+        font-family: 'Sarabun', 'Helvetica Neue', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #1e293b;
+        font-size: 10pt;
+        line-height: 1.5;
+    }
+
+    /* Header Banner */
+    .header-banner {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: #ffffff;
+        padding: 20px 25px;
+        margin: -15mm -12mm 20mm -12mm;
+        border-bottom: 4px solid #3b82f6;
+    }
+
+    .header-title {
+        font-size: 18pt;
+        font-weight: bold;
+        margin: 0 0 6px 0;
+        color: #f8fafc;
+    }
+
+    .header-subtitle {
+        font-size: 11pt;
+        color: #94a3b8;
+        margin: 0;
+    }
+
+    /* Section Styling */
+    h2 {
+        font-size: 13pt;
+        color: #0f172a;
+        border-left: 4px solid #2563eb;
+        padding-left: 10px;
+        margin-top: 22px;
+        margin-bottom: 12px;
+        page-break-after: avoid;
+    }
+
+    h3 {
+        font-size: 11pt;
+        color: #1e40af;
+        margin-top: 14px;
+        margin-bottom: 6px;
+        page-break-after: avoid;
+    }
+
+    p {
+        margin-top: 0;
+        margin-bottom: 10px;
+    }
+
+    /* Code Block Styling */
+    pre {
+        background-color: #0f172a;
+        color: #e2e8f0;
+        padding: 12px 15px;
+        border-radius: 6px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 8.5pt;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-break: break-all;
+        margin: 10px 0 15px 0;
+        border: 1px solid #334155;
+    }
+
+    code {
+        font-family: 'Courier New', Courier, monospace;
+        background-color: #e2e8f0;
+        color: #0f172a;
+        padding: 2px 5px;
+        border-radius: 4px;
+        font-size: 9pt;
+    }
+
+    /* Tables */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0 18px 0;
+        font-size: 9.5pt;
+        background-color: #ffffff;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+        padding: 9px 12px;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+        background-color: #1e293b;
+        color: #ffffff;
+        font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+
+    /* Feature Box / Callout */
+    .callout {
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-left: 4px solid #3b82f6;
+        padding: 12px 15px;
+        border-radius: 6px;
+        margin: 12px 0 16px 0;
+    }
+
+    .callout-title {
+        font-weight: bold;
+        color: #1e40af;
+        margin-bottom: 4px;
+    }
+
+    /* Badge Tags */
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 8pt;
+        font-weight: bold;
+        color: white;
+    }
+    .badge-pm { background-color: #2563eb; }
+    .badge-breakdown { background-color: #dc2626; }
+
+    ul, ol {
+        margin-top: 0;
+        margin-bottom: 12px;
+        padding-left: 20px;
+    }
+
+    li {
+        margin-bottom: 4px;
+    }
+</style>
+</head>
+<body>
+
+<div class="header-banner">
+    <div class="header-title">ระบบแจ้งซ่อมและจัดการแม่พิมพ์ (Mold Maintenance System)</div>
+    <div class="header-subtitle">Architecture Implementation & Ready-to-Use Code Guide (GitHub + Apps Script + Dashboard)</div>
+</div>
+
+<p>เอกสารฉบับนี้รวบรวม **Code สำหรับการติดตั้งระบบแจ้งซ่อมแม่พิมพ์ (PM & Breakdown)** ผ่านมือถือ โดยเชื่อมต่อระหว่าง **Google Forms / Google Apps Script**, **GitHub API (Issue & Project)** และ **Looker Studio Dashboard** ครบถ้วนพร้อมใช้งาน</p>
+
+<h2>1. โครงสร้างระบบและการทำงาน (System Architecture)</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>องค์ประกอบ</th>
+            <th>เทคโนโลยีที่ใช้</th>
+            <th>หน้าที่การทำงาน</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>1. Frontend (Mobile)</strong></td>
+            <td>Google Forms / QR Code</td>
+            <td>รับข้อมูลการแจ้งซ่อม <span class="badge badge-pm">PM</span> หรือ <span class="badge badge-breakdown">Breakdown</span> จากหน้างานด้วยมือถือ</td>
+        </tr>
+        <tr>
+            <td><strong>2. Middleware Integration</strong></td>
+            <td>Google Apps Script</td>
+            <td>แปลงข้อมูลจาก Google Form เป็น JSON และยิงผ่าน GitHub API เพื่อสร้าง Issue อัตโนมัติ</td>
+        </tr>
+        <tr>
+            <td><strong>3. Backend & Tracking</strong></td>
+            <td>GitHub Issues & Projects</td>
+            <td>เก็บบันทึกประวัติการซ่อม ติดตามสถานะ (Kanban) มอบหมายช่าง และคอมเมนต์รูปภาพ/อะไหล่</td>
+        </tr>
+        <tr>
+            <td><strong>4. Analytics & Dashboard</strong></td>
+            <td>Looker Studio / BigQuery</td>
+            <td>ดึงข้อมูลประวัติการซ่อมมาประมวลผลเป็น KPI (MTTR, Breakdown Rate, Top Repeat Defects)</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>2. โครงสร้าง Issue Templates บน GitHub</h2>
+<p>สร้างไฟล์ Template สองไฟล์ไว้ที่ไดเรกทอรี <code>.github/ISSUE_TEMPLATE/</code> ใน GitHub Repository ของคุณ เพื่อกำหนดโครงสร้างข้อมูลมาตรฐาน</p>
+
+<h3>📄 2.1 ไฟล์ <code>breakdown_template.md</code> (สำหรับแจ้งซ่อมฉุกเฉิน)</h3>
+<pre>---
+name: '🔴 แจ้งซ่อม Breakdown (เครื่องหยุด/งาน NG)'
+about: 'ใช้สำหรับแจ้งซ่อมแม่พิมพ์ชำรุดเสียหายกะทันหันระหว่างการผลิต'
+title: '[Breakdown] MOLD-XXX : '
+labels: 'type: breakdown, priority: high'
+assignees: ''
+---
+
+### 📌 ข้อมูลทั่วไป
+- **รหัสแม่พิมพ์ (Mold Code):** 
+- **ชื่อชิ้นงาน (Part Name):** 
+- **ไลน์ผลิต / หมายเลขเครื่องฉีด:** 
+
+### 🛠️ รายละเอียดการชำรุด
+- **อาการที่พบ:** 
+- **ประเภทความเสียหาย:** [ ] สลักหัก [ ] หน้าโมลด์เป็นรอย [ ] ท่อน้ำอุดตัน [ ] ระบบไฟฟ้า [ ] อื่นๆ
+- **สถานะการผลิต:** [ ] 🔴 สั่งหยุดไลน์การผลิตทันที (Line Stop) [ ] 🟡 จบล็อตนี้แล้วส่งซ่อม
+
+### 📸 รูปภาพหน้างาน / ชิ้นงาน NG
+*(ลากรูปมาวางในช่องนี้ผ่านแอป GitHub บนมือถือ)*
+</pre>
+
+<h3>📄 2.2 ไฟล์ <code>pm_template.md</code> (สำหรับบำรุงรักษาตามรอบ)</h3>
+<pre>---
+name: '🔵 บันทึกการทำ PM (Preventive Maintenance)'
+about: 'ใช้สำหรับลงบันทึกการบำรุงรักษาแม่พิมพ์ตามรอบระยะเวลา/จำนวน Shot'
+title: '[PM] MOLD-XXX : '
+labels: 'type: pm'
+assignees: ''
+---
+
+### 📌 ข้อมูลการทำ PM
+- **รหัสแม่พิมพ์ (Mold Code):** 
+- **รอบการทำ PM:** [ ] PM ประจำสัปดาห์ [ ] PM ครบ 50,000 Shot [ ] PM ประจำปี
+
+### ✅ รายการตรวจสอบ (Checklist)
+- [ ] ทำความสะอาดหน้าโมลด์ คราบน้ำมัน และท่อน้ำ cooling
+- [ ] ตรวจสอบสภาพสลักปลด (Ejector Pins) และสปริง
+- [ ] อัดจาระบีทนความร้อนจุดเคลื่อนที่
+- [ ] ตรวจสอบเซ็นเซอร์และระบบสายไฟ
+- [ ] ทดสอบการสไลด์เปิด-ปิดโมลด์
+</pre>
+
+<h2>3. Google Apps Script Code (เชื่อมต่อ Google Form เข้า GitHub)</h2>
+<p>นำซอร์สโค้ดด้านล่างนี้ไปใส่ใน <strong>Google Form ➔ Extensions ➔ Apps Script</strong> เพื่อส่งข้อมูลเข้า GitHub Issues โดยอัตโนมัติเมื่อพนักงานกด Submit Form</p>
+
+<pre>// ===== CONFIGURATION =====
+const GITHUB_TOKEN = "ghp_YOUR_PERSONAL_ACCESS_TOKEN_HERE"; // แทนที่ด้วย Personal Access Token ของคุณ
+const REPO_OWNER = "YOUR_GITHUB_USERNAME_OR_ORG";            // ชื่อ User หรือ Organization ใน GitHub
+const REPO_NAME = "YOUR_REPO_NAME";                           // ชื่อ Repository เช่น mold-maintenance
+
+function onFormSubmit(e) {
+  const itemResponses = e.response.getItemResponses();
+  
+  let workType = "";
+  let moldCode = "";
+  let partName = "";
+  let details = "";
+  let lineStop = "";
+  let reporter = e.response.getRespondentEmail() || "ผู้แจ้งหน้างาน";
+
+  // วนลูปอ่านค่าตามชื่อหัวข้อใน Google Form
+  for (let i = 0; i < itemResponses.length; i++) {
+    const title = itemResponses[i].getItem().getTitle();
+    const response = itemResponses[i].getResponse();
+
+    if (title.includes("ประเภทงาน")) workType = response; // PM หรือ Breakdown
+    if (title.includes("รหัสแม่พิมพ์")) moldCode = response;
+    if (title.includes("ชื่อชิ้นงาน")) partName = response;
+    if (title.includes("รายละเอียด")) details = response;
+    if (title.includes("หยุดการผลิต")) lineStop = response;
+  }
+
+  // กำหนด Title และ Labels ตามประเภทงาน
+  let issueTitle = "";
+  let labels = [];
+  
+  if (workType.includes("Breakdown")) {
+    issueTitle = `[Breakdown] ${moldCode} - ${details.substring(0, 30)}`;
+    labels = ["type: breakdown"];
+    if (lineStop.includes("ใช่") || lineStop.includes("หยุดไลน์")) {
+      labels.push("priority: line-stop");
+    }
+  } else {
+    issueTitle = `[PM] ${moldCode} - บำรุงรักษาตามรอบ`;
+    labels = ["type: pm"];
+  }
+
+  // สร้าง Body เนื้อหาใน Issue
+  let bodyMarkdown = `## 📌 รายงานการแจ้งงาน (${workType})\n`;
+  bodyMarkdown += `* **รหัสแม่พิมพ์:** ${moldCode}\n`;
+  bodyMarkdown += `* **ชื่อชิ้นงาน:** ${partName}\n`;
+  bodyMarkdown += `* **ผู้แจ้งเรื่อง:** ${reporter}\n`;
+  bodyMarkdown += `* **รายละเอียด/อาการ:**\n${details}\n\n`;
+  bodyMarkdown += `---\n*แจ้งเรื่องผ่านระบบ Mobile Form*`;
+
+  // เรียกใช้ GitHub API
+  createGitHubIssue(issueTitle, bodyMarkdown, labels);
+}
+
+function createGitHubIssue(title, body, labels) {
+  const url = `https://script.google.com/macros/s/AKfycbzQBXdSHpcCXa5hM2asS-9w1xEwXVoPuuRUHCsjNR1k9zEKCdILqT8OslxxWsJsLVV0/exec`;
+  
+  const payload = {
+    "title": title,
+    "body": body,
+    "labels": labels
+  };
+
+  const options = {
+    "method": "post",
+    "contentType": "application/json",
+    "headers": {
+      "Authorization": "token " + GITHUB_TOKEN,
+      "Accept": "application/vnd.github.v3+json"
+    },
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  Logger.log("GitHub API Response: " + response.getContentText());
+}
+</pre>
+
+<div class="callout">
+    <div class="callout-title">💡 วิธีตั้งค่า Trigger ใน Google Apps Script</div>
+    <ol>
+        <li>ไปที่แถบเมนูด้านซ้าย เลือกไอคอนรูปนาฬิกา (Triggers)</li>
+        <li>กด <strong>+ Add Trigger</strong></li>
+        <li>เลือกฟังก์ชัน: <code>onFormSubmit</code></li>
+        <li>เลือก Event type: <strong>On form submit</strong> แล้วกด Save</li>
+    </ol>
+</div>
+
+<h2>4. การออกแบบ Looker Studio Dashboard (PM vs Breakdown Analysis)</h2>
+<p>เพื่อนำข้อมูลมาแสดงวิเคราะห์ผ่าน Dashboard ให้เชื่อมต่อ GitHub Data เข้ากับ Looker Studio (ผ่าน GitHub REST API / Google Sheets Sync)</p>
+
+<h3>📊 รายการ metrics และวิทเจ็ตที่แนะนำสำหรับ Dashboard</h3>
+<table>
+    <thead>
+        <tr>
+            <th>องค์ประกอบ Dashboard</th>
+            <th>รูปแบบที่แนะนำ</th>
+            <th>สูตรคำนวณ / ฟิลด์ข้อมูล</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>1. Ratio PM vs Breakdown</strong></td>
+            <td>Donut Chart</td>
+            <td>เปรียบเทียบสัดส่วนระหว่าง Label <code>type: pm</code> และ <code>type: breakdown</code> (เป้าหมาย PM ≥ 70%)</td>
+        </tr>
+        <tr>
+            <td><strong>2. MTTR (Mean Time To Repair)</strong></td>
+            <td>Scorecard Metric</td>
+            <td><code>AVG(Closed Date - Created Date)</code> สำหรับงาน Breakdown</td>
+        </tr>
+        <tr>
+            <td><strong>3. Top 5 Repeat Defects</strong></td>
+            <td>Bar Chart</td>
+            <td>นับจำนวน Issue แยกรายแม่พิมพ์ (ช่วยกรองหาแม่พิมพ์ที่มีปัญหาบ่อย)</td>
+        </tr>
+        <tr>
+            <td><strong>4. Line-Stop Incidents</strong></td>
+            <td>KPI Card (Red Highlight)</td>
+            <td>นับจำนวน Issue ที่มี Label <code>priority: line-stop</code></td>
+        </tr>
+        <tr>
+            <td><strong>5. Live Work Tracking</strong></td>
+            <td>Table with Status Badges</td>
+            <td>ตารางสรุปงานปัจจุบัน: <code>Mold Code | Issue Title | Assignee | Status (Open/In Progress/Closed)</code></td>
+        </tr>
+    </tbody>
+</table>
+
+</body>
+</html>
