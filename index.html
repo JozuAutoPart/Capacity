@@ -2,212 +2,155 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>คู่มือและระบบแจ้งซ่อมแม่พิมพ์ (Mold Maintenance System)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>รวม โค้ดระบบแจ้งซ่อมแม่พิมพ์ (Mold Maintenance System Code)</title>
 <style>
-    @page {
-        size: A4;
-        margin: 15mm 12mm;
-        background-color: #f8fafc;
-    }
-    
-    *, *::before, *::after {
-        box-sizing: border-box;
+    :root {
+        --primary-color: #0f172a;
+        --accent-blue: #2563eb;
+        --accent-red: #dc2626;
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --text-color: #1e293b;
+        --code-bg: #0f172a;
     }
 
     body {
-        font-family: 'Sarabun', 'Helvetica Neue', Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        line-height: 1.6;
         margin: 0;
-        padding: 0;
-        color: #1e293b;
-        font-size: 10pt;
-        line-height: 1.5;
+        padding: 20px;
     }
 
-    /* Header Banner */
-    .header-banner {
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .header {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         color: #ffffff;
-        padding: 20px 25px;
-        margin: -15mm -12mm 20mm -12mm;
-        border-bottom: 4px solid #3b82f6;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-bottom: 4px solid var(--accent-blue);
     }
 
-    .header-title {
-        font-size: 18pt;
-        font-weight: bold;
-        margin: 0 0 6px 0;
-        color: #f8fafc;
+    .header h1 {
+        margin: 0 0 10px 0;
+        font-size: 24px;
     }
 
-    .header-subtitle {
-        font-size: 11pt;
-        color: #94a3b8;
+    .header p {
         margin: 0;
+        color: #94a3b8;
+        font-size: 14px;
     }
 
-    /* Section Styling */
+    .card {
+        background: var(--card-bg);
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 25px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+    }
+
     h2 {
-        font-size: 13pt;
-        color: #0f172a;
-        border-left: 4px solid #2563eb;
-        padding-left: 10px;
-        margin-top: 22px;
-        margin-bottom: 12px;
-        page-break-after: avoid;
+        color: var(--primary-color);
+        font-size: 18px;
+        margin-top: 0;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 10px;
     }
 
     h3 {
-        font-size: 11pt;
-        color: #1e40af;
-        margin-top: 14px;
-        margin-bottom: 6px;
-        page-break-after: avoid;
-    }
-
-    p {
-        margin-top: 0;
+        font-size: 15px;
+        color: #334155;
+        margin-top: 20px;
         margin-bottom: 10px;
     }
 
-    /* Code Block Styling */
+    .code-wrapper {
+        position: relative;
+        margin-top: 10px;
+    }
+
     pre {
-        background-color: #0f172a;
+        background-color: var(--code-bg);
         color: #e2e8f0;
-        padding: 12px 15px;
-        border-radius: 6px;
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 8.5pt;
-        line-height: 1.4;
-        white-space: pre-wrap;
-        word-break: break-all;
-        margin: 10px 0 15px 0;
-        border: 1px solid #334155;
+        padding: 16px;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-family: "Fira Code", "Courier New", Courier, monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 0;
     }
 
-    code {
-        font-family: 'Courier New', Courier, monospace;
-        background-color: #e2e8f0;
-        color: #0f172a;
-        padding: 2px 5px;
-        border-radius: 4px;
-        font-size: 9pt;
-    }
-
-    /* Tables */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 12px 0 18px 0;
-        font-size: 9.5pt;
-        background-color: #ffffff;
-        border-radius: 6px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    th, td {
-        padding: 9px 12px;
-        text-align: left;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    th {
-        background-color: #1e293b;
+    .copy-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #334155;
         color: #ffffff;
-        font-weight: 600;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
     }
 
-    tr:nth-child(even) {
-        background-color: #f8fafc;
+    .copy-btn:hover {
+        background: var(--accent-blue);
     }
 
-    /* Feature Box / Callout */
-    .callout {
-        background-color: #eff6ff;
-        border: 1px solid #bfdbfe;
-        border-left: 4px solid #3b82f6;
-        padding: 12px 15px;
-        border-radius: 6px;
-        margin: 12px 0 16px 0;
-    }
-
-    .callout-title {
-        font-weight: bold;
-        color: #1e40af;
-        margin-bottom: 4px;
-    }
-
-    /* Badge Tags */
     .badge {
         display: inline-block;
         padding: 2px 8px;
         border-radius: 4px;
-        font-size: 8pt;
+        font-size: 12px;
         font-weight: bold;
         color: white;
     }
-    .badge-pm { background-color: #2563eb; }
-    .badge-breakdown { background-color: #dc2626; }
+    .badge-red { background-color: var(--accent-red); }
+    .badge-blue { background-color: var(--accent-blue); }
 
-    ul, ol {
-        margin-top: 0;
-        margin-bottom: 12px;
-        padding-left: 20px;
-    }
-
-    li {
-        margin-bottom: 4px;
+    .note-box {
+        background-color: #eff6ff;
+        border-left: 4px solid var(--accent-blue);
+        padding: 12px 16px;
+        border-radius: 4px;
+        margin-top: 15px;
+        font-size: 13px;
     }
 </style>
 </head>
 <body>
 
-<div class="header-banner">
-    <div class="header-title">ระบบแจ้งซ่อมและจัดการแม่พิมพ์ (Mold Maintenance System)</div>
-    <div class="header-subtitle">Architecture Implementation & Ready-to-Use Code Guide (GitHub + Apps Script + Dashboard)</div>
-</div>
+<div class="container">
 
-<p>เอกสารฉบับนี้รวบรวม **Code สำหรับการติดตั้งระบบแจ้งซ่อมแม่พิมพ์ (PM & Breakdown)** ผ่านมือถือ โดยเชื่อมต่อระหว่าง **Google Forms / Google Apps Script**, **GitHub API (Issue & Project)** และ **Looker Studio Dashboard** ครบถ้วนพร้อมใช้งาน</p>
+    <div class="header">
+        <h1>🛠️ ซอร์สโค้ดระบบแจ้งซ่อมแม่พิมพ์ (Mold Maintenance System)</h1>
+        <p>ชุดโค้ดรวมสำหรับ GitHub Issues Templates และ Google Apps Script (Form Automation)</p>
+    </div>
 
-<h2>1. โครงสร้างระบบและการทำงาน (System Architecture)</h2>
-
-<table>
-    <thead>
-        <tr>
-            <th>องค์ประกอบ</th>
-            <th>เทคโนโลยีที่ใช้</th>
-            <th>หน้าที่การทำงาน</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td><strong>1. Frontend (Mobile)</strong></td>
-            <td>Google Forms / QR Code</td>
-            <td>รับข้อมูลการแจ้งซ่อม <span class="badge badge-pm">PM</span> หรือ <span class="badge badge-breakdown">Breakdown</span> จากหน้างานด้วยมือถือ</td>
-        </tr>
-        <tr>
-            <td><strong>2. Middleware Integration</strong></td>
-            <td>Google Apps Script</td>
-            <td>แปลงข้อมูลจาก Google Form เป็น JSON และยิงผ่าน GitHub API เพื่อสร้าง Issue อัตโนมัติ</td>
-        </tr>
-        <tr>
-            <td><strong>3. Backend & Tracking</strong></td>
-            <td>GitHub Issues & Projects</td>
-            <td>เก็บบันทึกประวัติการซ่อม ติดตามสถานะ (Kanban) มอบหมายช่าง และคอมเมนต์รูปภาพ/อะไหล่</td>
-        </tr>
-        <tr>
-            <td><strong>4. Analytics & Dashboard</strong></td>
-            <td>Looker Studio / BigQuery</td>
-            <td>ดึงข้อมูลประวัติการซ่อมมาประมวลผลเป็น KPI (MTTR, Breakdown Rate, Top Repeat Defects)</td>
-        </tr>
-    </tbody>
-</table>
-
-<h2>2. โครงสร้าง Issue Templates บน GitHub</h2>
-<p>สร้างไฟล์ Template สองไฟล์ไว้ที่ไดเรกทอรี <code>.github/ISSUE_TEMPLATE/</code> ใน GitHub Repository ของคุณ เพื่อกำหนดโครงสร้างข้อมูลมาตรฐาน</p>
-
-<h3>📄 2.1 ไฟล์ <code>breakdown_template.md</code> (สำหรับแจ้งซ่อมฉุกเฉิน)</h3>
-<pre>---
+    <!-- SECTION 1: BREAKDOWN TEMPLATE -->
+    <div class="card">
+        <h2>📂 1. GitHub Issue Template: <span class="badge badge-red">Breakdown (แจ้งซ่อมฉุกเฉิน)</span></h2>
+        <p>สร้างไฟล์ชื่อ <code>breakdown_template.md</code> เก็บไว้ที่โฟลเดอร์ <code>.github/ISSUE_TEMPLATE/</code> ใน GitHub Repository</p>
+        
+        <div class="code-wrapper">
+            <button class="copy-btn" onclick="copyCode('code-breakdown')">📋 Copy Code</button>
+            <pre><code id="code-breakdown">---
 name: '🔴 แจ้งซ่อม Breakdown (เครื่องหยุด/งาน NG)'
 about: 'ใช้สำหรับแจ้งซ่อมแม่พิมพ์ชำรุดเสียหายกะทันหันระหว่างการผลิต'
 title: '[Breakdown] MOLD-XXX : '
@@ -226,11 +169,18 @@ assignees: ''
 - **สถานะการผลิต:** [ ] 🔴 สั่งหยุดไลน์การผลิตทันที (Line Stop) [ ] 🟡 จบล็อตนี้แล้วส่งซ่อม
 
 ### 📸 รูปภาพหน้างาน / ชิ้นงาน NG
-*(ลากรูปมาวางในช่องนี้ผ่านแอป GitHub บนมือถือ)*
-</pre>
+*(ลากรูปมาวางในช่องนี้ผ่านแอป GitHub บนมือถือ)*</code></pre>
+        </div>
+    </div>
 
-<h3>📄 2.2 ไฟล์ <code>pm_template.md</code> (สำหรับบำรุงรักษาตามรอบ)</h3>
-<pre>---
+    <!-- SECTION 2: PM TEMPLATE -->
+    <div class="card">
+        <h2>📂 2. GitHub Issue Template: <span class="badge badge-blue">PM (บำรุงรักษาตามรอบ)</span></h2>
+        <p>สร้างไฟล์ชื่อ <code>pm_template.md</code> เก็บไว้ที่โฟลเดอร์ <code>.github/ISSUE_TEMPLATE/</code> ใน GitHub Repository</p>
+        
+        <div class="code-wrapper">
+            <button class="copy-btn" onclick="copyCode('code-pm')">📋 Copy Code</button>
+            <pre><code id="code-pm">---
 name: '🔵 บันทึกการทำ PM (Preventive Maintenance)'
 about: 'ใช้สำหรับลงบันทึกการบำรุงรักษาแม่พิมพ์ตามรอบระยะเวลา/จำนวน Shot'
 title: '[PM] MOLD-XXX : '
@@ -247,18 +197,33 @@ assignees: ''
 - [ ] ตรวจสอบสภาพสลักปลด (Ejector Pins) และสปริง
 - [ ] อัดจาระบีทนความร้อนจุดเคลื่อนที่
 - [ ] ตรวจสอบเซ็นเซอร์และระบบสายไฟ
-- [ ] ทดสอบการสไลด์เปิด-ปิดโมลด์
-</pre>
+- [ ] ทดสอบการสไลด์เปิด-ปิดโมลด์</code></pre>
+        </div>
+    </div>
 
-<h2>3. Google Apps Script Code (เชื่อมต่อ Google Form เข้า GitHub)</h2>
-<p>นำซอร์สโค้ดด้านล่างนี้ไปใส่ใน <strong>Google Form ➔ Extensions ➔ Apps Script</strong> เพื่อส่งข้อมูลเข้า GitHub Issues โดยอัตโนมัติเมื่อพนักงานกด Submit Form</p>
-
-<pre>// ===== CONFIGURATION =====
-const GITHUB_TOKEN = "ghp_YOUR_PERSONAL_ACCESS_TOKEN_HERE"; // แทนที่ด้วย Personal Access Token ของคุณ
-const REPO_OWNER = "YOUR_GITHUB_USERNAME_OR_ORG";            // ชื่อ User หรือ Organization ใน GitHub
+    <!-- SECTION 3: GOOGLE APPS SCRIPT -->
+    <div class="card">
+        <h2>⚡ 3. Google Apps Script Code (เชื่อม Google Form เข้า GitHub API)</h2>
+        <p>นำโค้ดนี้ไปวางใน <strong>Google Form ➔ Extensions ➔ Apps Script</strong></p>
+        
+        <div class="code-wrapper">
+            <button class="copy-btn" onclick="copyCode('code-gas')">📋 Copy Code</button>
+            <pre><code id="code-gas">// ==========================================
+// CONFIGURATION (ตั้งค่าข้อมูล GitHub ของคุณที่นี่)
+// ==========================================
+const GITHUB_TOKEN = "ghp_YOUR_PERSONAL_ACCESS_TOKEN_HERE"; // แทนที่ด้วย Personal Access Token
+const REPO_OWNER = "YOUR_GITHUB_USERNAME_OR_ORG";            // ชื่อ Username หรือ Organization
 const REPO_NAME = "YOUR_REPO_NAME";                           // ชื่อ Repository เช่น mold-maintenance
 
+// ==========================================
+// MAIN FUNCTION (ทำงานอัตโนมัติเมื่อกดส่ง Form)
+// ==========================================
 function onFormSubmit(e) {
+  if (!e || !e.response) {
+    Logger.log("ไม่มีข้อมูลส่งมาจาก Form");
+    return;
+  }
+
   const itemResponses = e.response.getItemResponses();
   
   let workType = "";
@@ -268,7 +233,7 @@ function onFormSubmit(e) {
   let lineStop = "";
   let reporter = e.response.getRespondentEmail() || "ผู้แจ้งหน้างาน";
 
-  // วนลูปอ่านค่าตามชื่อหัวข้อใน Google Form
+  // ดึงข้อมูลคำตอบจากแต่ละหัวข้อใน Google Form
   for (let i = 0; i < itemResponses.length; i++) {
     const title = itemResponses[i].getItem().getTitle();
     const response = itemResponses[i].getResponse();
@@ -280,7 +245,7 @@ function onFormSubmit(e) {
     if (title.includes("หยุดการผลิต")) lineStop = response;
   }
 
-  // กำหนด Title และ Labels ตามประเภทงาน
+  // จัดการ Title และ Labels แยกตาม PM / Breakdown
   let issueTitle = "";
   let labels = [];
   
@@ -295,7 +260,7 @@ function onFormSubmit(e) {
     labels = ["type: pm"];
   }
 
-  // สร้าง Body เนื้อหาใน Issue
+  // สร้างเนื้อหาใน Issue แบบ Markdown
   let bodyMarkdown = `## 📌 รายงานการแจ้งงาน (${workType})\n`;
   bodyMarkdown += `* **รหัสแม่พิมพ์:** ${moldCode}\n`;
   bodyMarkdown += `* **ชื่อชิ้นงาน:** ${partName}\n`;
@@ -303,12 +268,15 @@ function onFormSubmit(e) {
   bodyMarkdown += `* **รายละเอียด/อาการ:**\n${details}\n\n`;
   bodyMarkdown += `---\n*แจ้งเรื่องผ่านระบบ Mobile Form*`;
 
-  // เรียกใช้ GitHub API
+  // ส่งข้อมูลเข้า GitHub Issue
   createGitHubIssue(issueTitle, bodyMarkdown, labels);
 }
 
+// ==========================================
+// API HELPER FUNCTION (ยิง API ไป GitHub)
+// ==========================================
 function createGitHubIssue(title, body, labels) {
-  const url = `https://script.google.com/macros/s/AKfycbzQBXdSHpcCXa5hM2asS-9w1xEwXVoPuuRUHCsjNR1k9zEKCdILqT8OslxxWsJsLVV0/exec`;
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues`;
   
   const payload = {
     "title": title,
@@ -329,59 +297,29 @@ function createGitHubIssue(title, body, labels) {
 
   const response = UrlFetchApp.fetch(url, options);
   Logger.log("GitHub API Response: " + response.getContentText());
-}
-</pre>
+}</code></pre>
+        </div>
 
-<div class="callout">
-    <div class="callout-title">💡 วิธีตั้งค่า Trigger ใน Google Apps Script</div>
-    <ol>
-        <li>ไปที่แถบเมนูด้านซ้าย เลือกไอคอนรูปนาฬิกา (Triggers)</li>
-        <li>กด <strong>+ Add Trigger</strong></li>
-        <li>เลือกฟังก์ชัน: <code>onFormSubmit</code></li>
-        <li>เลือก Event type: <strong>On form submit</strong> แล้วกด Save</li>
-    </ol>
+        <div class="note-box">
+            💡 <strong>อย่าลืมตั้งค่า Trigger ใน Apps Script:</strong><br>
+            ไปที่ไอคอนรูปนาฬิกา (Triggers) ➔ เลือก <strong>+ Add Trigger</strong> ➔ เลือกฟังก์ชัน <code>onFormSubmit</code> ➔ เลือก Select event type: <strong>On form submit</strong> แล้วกด Save
+        </div>
+    </div>
+
 </div>
 
-<h2>4. การออกแบบ Looker Studio Dashboard (PM vs Breakdown Analysis)</h2>
-<p>เพื่อนำข้อมูลมาแสดงวิเคราะห์ผ่าน Dashboard ให้เชื่อมต่อ GitHub Data เข้ากับ Looker Studio (ผ่าน GitHub REST API / Google Sheets Sync)</p>
-
-<h3>📊 รายการ metrics และวิทเจ็ตที่แนะนำสำหรับ Dashboard</h3>
-<table>
-    <thead>
-        <tr>
-            <th>องค์ประกอบ Dashboard</th>
-            <th>รูปแบบที่แนะนำ</th>
-            <th>สูตรคำนวณ / ฟิลด์ข้อมูล</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td><strong>1. Ratio PM vs Breakdown</strong></td>
-            <td>Donut Chart</td>
-            <td>เปรียบเทียบสัดส่วนระหว่าง Label <code>type: pm</code> และ <code>type: breakdown</code> (เป้าหมาย PM ≥ 70%)</td>
-        </tr>
-        <tr>
-            <td><strong>2. MTTR (Mean Time To Repair)</strong></td>
-            <td>Scorecard Metric</td>
-            <td><code>AVG(Closed Date - Created Date)</code> สำหรับงาน Breakdown</td>
-        </tr>
-        <tr>
-            <td><strong>3. Top 5 Repeat Defects</strong></td>
-            <td>Bar Chart</td>
-            <td>นับจำนวน Issue แยกรายแม่พิมพ์ (ช่วยกรองหาแม่พิมพ์ที่มีปัญหาบ่อย)</td>
-        </tr>
-        <tr>
-            <td><strong>4. Line-Stop Incidents</strong></td>
-            <td>KPI Card (Red Highlight)</td>
-            <td>นับจำนวน Issue ที่มี Label <code>priority: line-stop</code></td>
-        </tr>
-        <tr>
-            <td><strong>5. Live Work Tracking</strong></td>
-            <td>Table with Status Badges</td>
-            <td>ตารางสรุปงานปัจจุบัน: <code>Mold Code | Issue Title | Assignee | Status (Open/In Progress/Closed)</code></td>
-        </tr>
-    </tbody>
-</table>
+<script>
+function copyCode(elementId) {
+    const codeElement = document.getElementById(elementId);
+    const textToCopy = codeElement.innerText;
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        alert("ก๊อปปี้โค้ดเรียบร้อยแล้ว!");
+    }).catch(err => {
+        console.error("Copy failed: ", err);
+    });
+}
+</script>
 
 </body>
 </html>
