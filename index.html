@@ -61,8 +61,8 @@
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#die-tab-pane" type="button">
-                    <i class="fas fa-tools me-2"></i>Die Maintenance
+                <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#die-tab-pane" type="button" onclick="renderDie()">
+                    <i class="fas fa-tools me-2"></i>Die Maintenance & PM
                 </button>
             </li>
         </ul>
@@ -166,7 +166,7 @@
                 </div>
             </div>
 
-            <!-- 3. PLANNING TAB (ตัด Machine No. ออก) -->
+            <!-- 3. PLANNING TAB -->
             <div class="tab-pane fade" id="plan-tab-pane" role="tabpanel">
                 <div class="row">
                     <div class="col-md-4 mb-3">
@@ -195,8 +195,8 @@
                                         </select>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Part No.</label>
-                                        <input type="text" class="form-control" id="planPartNo" placeholder="เช่น PART-A01" required>
+                                        <label class="form-label text-info fw-bold">Part No.</label>
+                                        <input type="text" class="form-control border-info" id="planPartNo" placeholder="เช่น PART-A01" required>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Lot No.</label>
@@ -278,15 +278,15 @@
                                     </div>
 
                                     <div class="mb-3">
-                                        <label class="form-label text-info fw-bold">Part No. (อ้างอิงจากแผน)</label>
-                                        <select class="form-select" id="actualPartNo" onchange="onActualPartChange()" required disabled>
+                                        <label class="form-label text-info fw-bold">Part No. (เลือกจากแผน)</label>
+                                        <select class="form-select border-info" id="actualPartNo" onchange="onActualPartChange()" required disabled>
                                             <option value="">-- เลือก Part No. จากแผน --</option>
                                         </select>
                                     </div>
 
                                     <div class="mb-3">
-                                        <label class="form-label">Lot No. (ดึงจากแผนอัตโนมัติ)</label>
-                                        <input type="text" class="form-control" id="actualLotNo" readonly placeholder="จะแสดงเมื่อเลือก Part No.">
+                                        <label class="form-label">Lot No.</label>
+                                        <input type="text" class="form-control" id="actualLotNo" readonly placeholder="ดึงอัตโนมัติ">
                                     </div>
 
                                     <div class="row g-2 mb-3">
@@ -324,7 +324,8 @@
                                                 <th>Date</th>
                                                 <th>OP Name</th>
                                                 <th>Line/MC</th>
-                                                <th>Part / Lot No.</th>
+                                                <th>Part No.</th>
+                                                <th>Lot No.</th>
                                                 <th>OK Qty</th>
                                                 <th>NG Qty</th>
                                                 <th>Remark</th>
@@ -363,8 +364,73 @@
                 </div>
             </div>
 
-            <!-- 6. DIE MAINTENANCE TAB -->
+            <!-- 6. DIE MAINTENANCE TAB (อ้างอิง PM ตาม Part No.) -->
             <div class="tab-pane fade" id="die-tab-pane" role="tabpanel">
+                
+                <!-- PM Alert Summary Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card p-3 border-danger">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted small">Part No. ถึงกำหนด PM (≥ 40,000 ชิ้น)</span>
+                                    <h3 class="fw-bold text-danger m-0" id="diePmDueCount">0</h3>
+                                </div>
+                                <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3 border-warning">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted small">ใกล้ถึงกำหนด PM (≥ 32,000 ชิ้น / 80%)</span>
+                                    <h3 class="fw-bold text-warning m-0" id="diePmNearCount">0</h3>
+                                </div>
+                                <i class="fas fa-bell fa-2x text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3 border-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-muted small">เกณฑ์รอบการทำ Die PM</span>
+                                    <h3 class="fw-bold text-info m-0">40,000 <small class="fs-6">ชิ้น</small></h3>
+                                </div>
+                                <i class="fas fa-wrench fa-2x text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Die PM Status Table (อ้างอิงตาม Part No.) -->
+                <div class="card mb-4">
+                    <div class="card-header border-secondary fw-bold text-warning d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-tools me-2"></i>ตารางติดตามยอดผลิตสะสมแม่พิมพ์ (อ้างอิง Part No.)</span>
+                        <small class="text-muted">*คำนวณสะสมจากยอดผลิตจริง (OK Qty)</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover m-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Part No.</th>
+                                        <th>Line ล่าสุด</th>
+                                        <th>ยอดผลิตสะสม (Stroke/Qty)</th>
+                                        <th>PM Target</th>
+                                        <th>PM Progress</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="diePmTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BM/PM Repair Log -->
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <div class="card">
@@ -386,21 +452,21 @@
                                         </select>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">รหัสแม่พิมพ์ (Die Code)</label>
-                                        <input type="text" class="form-control" id="bmDieCode" placeholder="เช่น DIE-A01" required>
+                                        <label class="form-label text-info fw-bold">Part No.</label>
+                                        <input type="text" class="form-control border-info" id="bmPartNo" placeholder="เช่น PART-A01" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">อาการเสีย / รายละเอียดการซ่อม</label>
+                                        <label class="form-label">อาการเสีย / รายละเอียดการซ่อม / PM</label>
                                         <textarea class="form-control" id="bmProblem" rows="3" required></textarea>
                                     </div>
-                                    <button type="submit" class="btn btn-warning w-100 fw-bold">บันทึกการแจ้งซ่อม</button>
+                                    <button type="submit" class="btn btn-warning w-100 fw-bold">บันทึกการแจ้งซ่อม/PM</button>
                                 </form>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-8">
                         <div class="card">
-                            <div class="card-header border-secondary fw-bold">ประวัติการแจ้งซ่อมแม่พิมพ์</div>
+                            <div class="card-header border-secondary fw-bold">ประวัติการแจ้งซ่อมและทำ PM แม่พิมพ์</div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-dark table-hover m-0 align-middle">
@@ -408,8 +474,8 @@
                                             <tr>
                                                 <th>Date</th>
                                                 <th>Line</th>
-                                                <th>Die Code</th>
-                                                <th>Problem / Detail</th>
+                                                <th>Part No.</th>
+                                                <th>Problem / Maintenance Detail</th>
                                             </tr>
                                         </thead>
                                         <tbody id="dieTableBody"></tbody>
@@ -419,6 +485,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
 
         </div>
@@ -444,10 +511,11 @@
     </div>
 
     <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         const DEFAULT_MAX_CAPACITY = 10000;
+        const DIE_PM_LIMIT = 40000; // รอบการทำ PM แม่พิมพ์ที่ 40,000 ชิ้น
 
         let db = {
             plans: JSON.parse(localStorage.getItem('db_plans')) || [],
@@ -518,7 +586,7 @@
                     <td>${plan.planDate}</td>
                     <td class="text-info">${plan.planFinishDate || '-'}</td>
                     <td><span class="badge bg-secondary">${plan.planLine}</span></td>
-                    <td class="fw-bold">${plan.planPartNo}</td>
+                    <td class="fw-bold text-info">${plan.planPartNo}</td>
                     <td>${plan.planLotNo}</td>
                     <td>${pQty.toLocaleString()}</td>
                     <td class="text-success fw-bold">${actQty.toLocaleString()}</td>
@@ -630,7 +698,7 @@
                     <td>${p.planDate}</td>
                     <td class="text-info">${p.planFinishDate || '-'}</td>
                     <td><span class="badge bg-secondary">${p.planLine}</span></td>
-                    <td class="fw-bold">${p.planPartNo}</td>
+                    <td class="fw-bold text-info">${p.planPartNo}</td>
                     <td>${p.planLotNo}</td>
                     <td>${Number(p.planQty).toLocaleString()}</td>
                 `;
@@ -649,7 +717,6 @@
             partSelect.innerHTML = '';
             document.getElementById('actualLotNo').value = '';
 
-            // ดึงแผนทั้งหมดตาม Line
             const matchedPlans = db.plans.filter(p => p.planLine === selectedLine);
 
             if (matchedPlans.length === 0) {
@@ -717,7 +784,8 @@
                     <td>${a.actualDate}</td>
                     <td class="fw-bold">${a.actualOperator || '-'}</td>
                     <td><span class="badge bg-secondary">${a.actualLine}</span> <small class="text-info">${a.actualMcNo ? '(' + a.actualMcNo + ')' : ''}</small></td>
-                    <td><b>${a.actualPartNo}</b><br><small class="text-muted">Lot: ${a.actualLotNo}</small></td>
+                    <td class="fw-bold text-info">${a.actualPartNo}</td>
+                    <td><small class="text-muted">${a.actualLotNo}</small></td>
                     <td class="text-success fw-bold">${Number(a.actualQty).toLocaleString()}</td>
                     <td class="text-danger">${Number(a.actualNgQty || 0).toLocaleString()}</td>
                     <td class="small text-muted">${a.actualRemark || '-'}</td>
@@ -754,7 +822,7 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="fw-bold">${partNo}</td>
+                    <td class="fw-bold text-info">${partNo}</td>
                     <td>${data.plan.toLocaleString()}</td>
                     <td class="text-success fw-bold">${data.actual.toLocaleString()}</td>
                     <td class="text-danger">${data.ng.toLocaleString()}</td>
@@ -765,13 +833,34 @@
             });
         }
 
-        // --- DIE MAINTENANCE ---
+        // --- DIE MAINTENANCE & PM (อ้างอิง Part No.) ---
+        function resetDiePmCounter(partNo) {
+            if (confirm(`คุณต้องการล้างยอดสะสมเพื่อเริ่มรอบ PM แม่พิมพ์ใหม่สำหรับ Part No. [${partNo}] ใช่หรือไม่?`)) {
+                const today = new Date().toISOString().split('T')[0];
+                db.dies.push({
+                    bmDate: today,
+                    bmLine: 'N/A',
+                    bmPartNo: partNo,
+                    bmProblem: `[PM RESET] ทำการบำรุงรักษา PM ครบรอบ และเริ่มนับสโตรกรอบใหม่`
+                });
+                
+                // สลับชื่อ Part No. ในประวัติผลิตเก่าเพื่อรีเซ็ทยอดสะสมของ Part No. ปัจจุบัน
+                db.actuals.forEach(a => {
+                    if (a.actualPartNo === partNo) {
+                        a.actualPartNo = `${partNo}_PM_DONE`;
+                    }
+                });
+
+                saveData();
+            }
+        }
+
         function submitDieBm(e) {
             e.preventDefault();
             const newDie = {
                 bmDate: document.getElementById('bmDate').value,
                 bmLine: document.getElementById('bmLine').value,
-                bmDieCode: document.getElementById('bmDieCode').value.trim(),
+                bmPartNo: document.getElementById('bmPartNo').value.trim(),
                 bmProblem: document.getElementById('bmProblem').value.trim()
             };
             db.dies.push(newDie);
@@ -781,18 +870,102 @@
         }
 
         function renderDie() {
-            const tbody = document.getElementById('dieTableBody');
-            tbody.innerHTML = '';
+            // 1. Render Log การแจ้งซ่อม/PM
+            const tbodyLog = document.getElementById('dieTableBody');
+            tbodyLog.innerHTML = '';
             db.dies.forEach(d => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${d.bmDate}</td>
                     <td><span class="badge bg-secondary">${d.bmLine}</span></td>
-                    <td class="fw-bold text-warning">${d.bmDieCode}</td>
+                    <td class="fw-bold text-info">${d.bmPartNo || '-'}</td>
                     <td>${d.bmProblem}</td>
                 `;
-                tbody.appendChild(tr);
+                tbodyLog.appendChild(tr);
             });
+
+            // 2. คำนวณและ Render ตาราง Die PM Status แยกตาม Part No.
+            const tbodyPm = document.getElementById('diePmTableBody');
+            tbodyPm.innerHTML = '';
+
+            const partMap = {};
+
+            // ดึง Part No. จากแผน
+            db.plans.forEach(p => {
+                if (p.planPartNo) {
+                    if (!partMap[p.planPartNo]) {
+                        partMap[p.planPartNo] = { line: p.planLine, accumQty: 0 };
+                    }
+                }
+            });
+
+            // สะสมยอด Actual OK Qty แยกราย Part No.
+            db.actuals.forEach(a => {
+                if (a.actualPartNo) {
+                    if (!partMap[a.actualPartNo]) {
+                        partMap[a.actualPartNo] = { line: a.actualLine, accumQty: 0 };
+                    }
+                    partMap[a.actualPartNo].accumQty += Number(a.actualQty || 0);
+                    partMap[a.actualPartNo].line = a.actualLine;
+                }
+            });
+
+            const partKeys = Object.keys(partMap);
+
+            if (partKeys.length === 0) {
+                tbodyPm.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-3">ยังไม่มีข้อมูล Part No. ในระบบ</td></tr>';
+                document.getElementById('diePmDueCount').innerText = 0;
+                document.getElementById('diePmNearCount').innerText = 0;
+                return;
+            }
+
+            let dueCount = 0;
+            let nearCount = 0;
+
+            partKeys.forEach(partNo => {
+                const item = partMap[partNo];
+                const accum = item.accumQty;
+                const percent = Math.min(Math.round((accum / DIE_PM_LIMIT) * 100), 100);
+
+                let statusBadge = '<span class="badge bg-success">Normal</span>';
+                let progressColor = 'bg-info';
+
+                if (accum >= DIE_PM_LIMIT) {
+                    statusBadge = '<span class="badge bg-danger text-white"><i class="fas fa-bell me-1"></i>Due for PM</span>';
+                    progressColor = 'bg-danger';
+                    dueCount++;
+                } else if (accum >= DIE_PM_LIMIT * 0.8) {
+                    statusBadge = '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i>Near PM</span>';
+                    progressColor = 'bg-warning';
+                    nearCount++;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-info">${partNo}</td>
+                    <td><span class="badge bg-secondary">${item.line}</span></td>
+                    <td class="fw-bold ${accum >= DIE_PM_LIMIT ? 'text-danger' : 'text-success'}">${accum.toLocaleString()} ชิ้น</td>
+                    <td>${DIE_PM_LIMIT.toLocaleString()} ชิ้น</td>
+                    <td style="min-width: 150px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height: 10px;">
+                                <div class="progress-bar ${progressColor}" style="width: ${percent}%"></div>
+                            </div>
+                            <span class="small">${percent}%</span>
+                        </div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" onclick="resetDiePmCounter('${partNo}')" title="ล้างยอดเพื่อเริ่มรอบ PM ใหม่">
+                            <i class="fas fa-sync-alt me-1"></i> Reset PM
+                        </button>
+                    </td>
+                `;
+                tbodyPm.appendChild(tr);
+            });
+
+            document.getElementById('diePmDueCount').innerText = dueCount;
+            document.getElementById('diePmNearCount').innerText = nearCount;
         }
 
         // --- RESET DATA ---
