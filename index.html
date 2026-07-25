@@ -1,325 +1,81 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>รวม โค้ดระบบแจ้งซ่อมแม่พิมพ์ (Mold Maintenance System Code)</title>
-<style>
-    :root {
-        --primary-color: #0f172a;
-        --accent-blue: #2563eb;
-        --accent-red: #dc2626;
-        --bg-color: #f8fafc;
-        --card-bg: #ffffff;
-        --text-color: #1e293b;
-        --code-bg: #0f172a;
-    }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        line-height: 1.6;
-        margin: 0;
-        padding: 20px;
-    }
-
-    .container {
-        max-width: 900px;
-        margin: 0 auto;
-    }
-
-    .header {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        color: #ffffff;
-        padding: 30px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border-bottom: 4px solid var(--accent-blue);
-    }
-
-    .header h1 {
-        margin: 0 0 10px 0;
-        font-size: 24px;
-    }
-
-    .header p {
-        margin: 0;
-        color: #94a3b8;
-        font-size: 14px;
-    }
-
-    .card {
-        background: var(--card-bg);
-        border-radius: 10px;
-        padding: 24px;
-        margin-bottom: 25px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        border: 1px solid #e2e8f0;
-    }
-
-    h2 {
-        color: var(--primary-color);
-        font-size: 18px;
-        margin-top: 0;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        border-bottom: 2px solid #f1f5f9;
-        padding-bottom: 10px;
-    }
-
-    h3 {
-        font-size: 15px;
-        color: #334155;
-        margin-top: 20px;
-        margin-bottom: 10px;
-    }
-
-    .code-wrapper {
-        position: relative;
-        margin-top: 10px;
-    }
-
-    pre {
-        background-color: var(--code-bg);
-        color: #e2e8f0;
-        padding: 16px;
-        border-radius: 8px;
-        overflow-x: auto;
-        font-family: "Fira Code", "Courier New", Courier, monospace;
-        font-size: 13px;
-        line-height: 1.5;
-        margin: 0;
-    }
-
-    .copy-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: #334155;
-        color: #ffffff;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-
-    .copy-btn:hover {
-        background: var(--accent-blue);
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        color: white;
-    }
-    .badge-red { background-color: var(--accent-red); }
-    .badge-blue { background-color: var(--accent-blue); }
-
-    .note-box {
-        background-color: #eff6ff;
-        border-left: 4px solid var(--accent-blue);
-        padding: 12px 16px;
-        border-radius: 4px;
-        margin-top: 15px;
-        font-size: 13px;
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Capacity Dashboard</title>
+    <!-- ใช้ Tailwind CSS เพื่อความสวยงามและจัดวางง่าย -->
+    <script src="https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec>
 </head>
-<body>
+<body class="bg-gray-100 font-sans">
 
-<div class="container">
+    <div class="container mx-auto p-6">
+        <!-- หัวข้อหน้าเว็บ -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">📊 ระบบบริหารจัดการกำลังการผลิตเครื่องจักร (Machine Capacity)</h1>
+            <p class="text-gray-600">แสดงสถานะภาระงานและความสามารถในการผลิตแยกตามรายเครื่อง</p>
+        </header>
 
-    <div class="header">
-        <h1>🛠️ ซอร์สโค้ดระบบแจ้งซ่อมแม่พิมพ์ (Mold Maintenance System)</h1>
-        <p>ชุดโค้ดรวมสำหรับ GitHub Issues Templates และ Google Apps Script (Form Automation)</p>
-    </div>
-
-    <!-- SECTION 1: BREAKDOWN TEMPLATE -->
-    <div class="card">
-        <h2>📂 1. GitHub Issue Template: <span class="badge badge-red">Breakdown (แจ้งซ่อมฉุกเฉิน)</span></h2>
-        <p>สร้างไฟล์ชื่อ <code>breakdown_template.md</code> เก็บไว้ที่โฟลเดอร์ <code>.github/ISSUE_TEMPLATE/</code> ใน GitHub Repository</p>
-        
-        <div class="code-wrapper">
-            <button class="copy-btn" onclick="copyCode('code-breakdown')">📋 Copy Code</button>
-            <pre><code id="code-breakdown">---
-name: '🔴 แจ้งซ่อม Breakdown (เครื่องหยุด/งาน NG)'
-about: 'ใช้สำหรับแจ้งซ่อมแม่พิมพ์ชำรุดเสียหายกะทันหันระหว่างการผลิต'
-title: '[Breakdown] MOLD-XXX : '
-labels: 'type: breakdown, priority: high'
-assignees: ''
----
-
-### 📌 ข้อมูลทั่วไป
-- **รหัสแม่พิมพ์ (Mold Code):** 
-- **ชื่อชิ้นงาน (Part Name):** 
-- **ไลน์ผลิต / หมายเลขเครื่องฉีด:** 
-
-### 🛠️ รายละเอียดการชำรุด
-- **อาการที่พบ:** 
-- **ประเภทความเสียหาย:** [ ] สลักหัก [ ] หน้าโมลด์เป็นรอย [ ] ท่อน้ำอุดตัน [ ] ระบบไฟฟ้า [ ] อื่นๆ
-- **สถานะการผลิต:** [ ] 🔴 สั่งหยุดไลน์การผลิตทันที (Line Stop) [ ] 🟡 จบล็อตนี้แล้วส่งซ่อม
-
-### 📸 รูปภาพหน้างาน / ชิ้นงาน NG
-*(ลากรูปมาวางในช่องนี้ผ่านแอป GitHub บนมือถือ)*</code></pre>
-        </div>
-    </div>
-
-    <!-- SECTION 2: PM TEMPLATE -->
-    <div class="card">
-        <h2>📂 2. GitHub Issue Template: <span class="badge badge-blue">PM (บำรุงรักษาตามรอบ)</span></h2>
-        <p>สร้างไฟล์ชื่อ <code>pm_template.md</code> เก็บไว้ที่โฟลเดอร์ <code>.github/ISSUE_TEMPLATE/</code> ใน GitHub Repository</p>
-        
-        <div class="code-wrapper">
-            <button class="copy-btn" onclick="copyCode('code-pm')">📋 Copy Code</button>
-            <pre><code id="code-pm">---
-name: '🔵 บันทึกการทำ PM (Preventive Maintenance)'
-about: 'ใช้สำหรับลงบันทึกการบำรุงรักษาแม่พิมพ์ตามรอบระยะเวลา/จำนวน Shot'
-title: '[PM] MOLD-XXX : '
-labels: 'type: pm'
-assignees: ''
----
-
-### 📌 ข้อมูลการทำ PM
-- **รหัสแม่พิมพ์ (Mold Code):** 
-- **รอบการทำ PM:** [ ] PM ประจำสัปดาห์ [ ] PM ครบ 50,000 Shot [ ] PM ประจำปี
-
-### ✅ รายการตรวจสอบ (Checklist)
-- [ ] ทำความสะอาดหน้าโมลด์ คราบน้ำมัน และท่อน้ำ cooling
-- [ ] ตรวจสอบสภาพสลักปลด (Ejector Pins) และสปริง
-- [ ] อัดจาระบีทนความร้อนจุดเคลื่อนที่
-- [ ] ตรวจสอบเซ็นเซอร์และระบบสายไฟ
-- [ ] ทดสอบการสไลด์เปิด-ปิดโมลด์</code></pre>
-        </div>
-    </div>
-
-    <!-- SECTION 3: GOOGLE APPS SCRIPT -->
-    <div class="card">
-        <h2>⚡ 3. Google Apps Script Code (เชื่อม Google Form เข้า GitHub API)</h2>
-        <p>นำโค้ดนี้ไปวางใน <strong>Google Form ➔ Extensions ➔ Apps Script</strong></p>
-        
-        <div class="code-wrapper">
-            <button class="copy-btn" onclick="copyCode('code-gas')">📋 Copy Code</button>
-            <pre><code id="code-gas">// ==========================================
-// CONFIGURATION (ตั้งค่าข้อมูล GitHub ของคุณที่นี่)
-// ==========================================
-const GITHUB_TOKEN = "ghp_YOUR_PERSONAL_ACCESS_TOKEN_HERE"; // แทนที่ด้วย Personal Access Token
-const REPO_OWNER = "YOUR_GITHUB_USERNAME_OR_ORG";            // ชื่อ Username หรือ Organization
-const REPO_NAME = "YOUR_REPO_NAME";                           // ชื่อ Repository เช่น mold-maintenance
-
-// ==========================================
-// MAIN FUNCTION (ทำงานอัตโนมัติเมื่อกดส่ง Form)
-// ==========================================
-function onFormSubmit(e) {
-  if (!e || !e.response) {
-    Logger.log("ไม่มีข้อมูลส่งมาจาก Form");
-    return;
-  }
-
-  const itemResponses = e.response.getItemResponses();
-  
-  let workType = "";
-  let moldCode = "";
-  let partName = "";
-  let details = "";
-  let lineStop = "";
-  let reporter = e.response.getRespondentEmail() || "ผู้แจ้งหน้างาน";
-
-  // ดึงข้อมูลคำตอบจากแต่ละหัวข้อใน Google Form
-  for (let i = 0; i < itemResponses.length; i++) {
-    const title = itemResponses[i].getItem().getTitle();
-    const response = itemResponses[i].getResponse();
-
-    if (title.includes("ประเภทงาน")) workType = response; // PM หรือ Breakdown
-    if (title.includes("รหัสแม่พิมพ์")) moldCode = response;
-    if (title.includes("ชื่อชิ้นงาน")) partName = response;
-    if (title.includes("รายละเอียด")) details = response;
-    if (title.includes("หยุดการผลิต")) lineStop = response;
-  }
-
-  // จัดการ Title และ Labels แยกตาม PM / Breakdown
-  let issueTitle = "";
-  let labels = [];
-  
-  if (workType.includes("Breakdown")) {
-    issueTitle = `[Breakdown] ${moldCode} - ${details.substring(0, 30)}`;
-    labels = ["type: breakdown"];
-    if (lineStop.includes("ใช่") || lineStop.includes("หยุดไลน์")) {
-      labels.push("priority: line-stop");
-    }
-  } else {
-    issueTitle = `[PM] ${moldCode} - บำรุงรักษาตามรอบ`;
-    labels = ["type: pm"];
-  }
-
-  // สร้างเนื้อหาใน Issue แบบ Markdown
-  let bodyMarkdown = `## 📌 รายงานการแจ้งงาน (${workType})\n`;
-  bodyMarkdown += `* **รหัสแม่พิมพ์:** ${moldCode}\n`;
-  bodyMarkdown += `* **ชื่อชิ้นงาน:** ${partName}\n`;
-  bodyMarkdown += `* **ผู้แจ้งเรื่อง:** ${reporter}\n`;
-  bodyMarkdown += `* **รายละเอียด/อาการ:**\n${details}\n\n`;
-  bodyMarkdown += `---\n*แจ้งเรื่องผ่านระบบ Mobile Form*`;
-
-  // ส่งข้อมูลเข้า GitHub Issue
-  createGitHubIssue(issueTitle, bodyMarkdown, labels);
-}
-
-// ==========================================
-// API HELPER FUNCTION (ยิง API ไป GitHub)
-// ==========================================
-function createGitHubIssue(title, body, labels) {
-  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues`;
-  
-  const payload = {
-    "title": title,
-    "body": body,
-    "labels": labels
-  };
-
-  const options = {
-    "method": "post",
-    "contentType": "application/json",
-    "headers": {
-      "Authorization": "token " + GITHUB_TOKEN,
-      "Accept": "application/vnd.github.v3+json"
-    },
-    "payload": JSON.stringify(payload),
-    "muteHttpExceptions": true
-  };
-
-  const response = UrlFetchApp.fetch(url, options);
-  Logger.log("GitHub API Response: " + response.getContentText());
-}</code></pre>
+        <!-- ส่วนแสดงผลภาพรวม (Cards) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                <h3 class="text-gray-500 font-medium">เครื่องจักรทั้งหมด</h3>
+                <p class="text-2xl font-bold text-gray-800" id="total-machines">2 เครื่อง</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                <h3 class="text-gray-500 font-medium">สถานะปกติ (Normal)</h3>
+                <p class="text-2xl font-bold text-green-600" id="normal-machines">1 เครื่อง</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+                <h3 class="text-gray-500 font-medium">ภาระงานล้น (Overload)</h3>
+                <p class="text-2xl font-bold text-red-600" id="overload-machines">1 เครื่อง</p>
+            </div>
         </div>
 
-        <div class="note-box">
-            💡 <strong>อย่าลืมตั้งค่า Trigger ใน Apps Script:</strong><br>
-            ไปที่ไอคอนรูปนาฬิกา (Triggers) ➔ เลือก <strong>+ Add Trigger</strong> ➔ เลือกฟังก์ชัน <code>onFormSubmit</code> ➔ เลือก Select event type: <strong>On form submit</strong> แล้วกด Save
+        <!-- ตารางแสดงรายละเอียดแยกตามรายเครื่อง (Machine Table) -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-700">รายชื่อเครื่องจักรและสถานะ Capacity</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm">
+                            <th class="py-3 px-6">รหัสเครื่องจักร</th>
+                            <th class="py-3 px-6">ชื่อเครื่องจักร</th>
+                            <th class="py-3 px-6">Available (ชม.)</th>
+                            <th class="py-3 px-6">Required (ชม.)</th>
+                            <th class="py-3 px-6">Load (%)</th>
+                            <th class="py-3 px-6">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-700 text-sm divide-y divide-gray-200" id="machine-table-body">
+                        <!-- ข้อมูลตัวอย่าง (สามารถเขียน JavaScript ดึงจาก API มาใส่แทนส่วนนี้ได้) -->
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-4 px-6 font-medium">MC-001</td>
+                            <td class="py-4 px-6">CNC Machine 1</td>
+                            <td class="py-4 px-6">5.95 ชม.</td>
+                            <td class="py-4 px-6">4.50 ชม.</td>
+                            <td class="py-4 px-6">75.63%</td>
+                            <td class="py-4 px-6">
+                                <span class="bg-green-100 text-green-700 py-1 px-3 rounded-full text-xs font-semibold">Normal</span>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-4 px-6 font-medium">MC-002</td>
+                            <td class="py-4 px-6">Injection Molding 2</td>
+                            <td class="py-4 px-6">11.20 ชม.</td>
+                            <td class="py-4 px-6">13.50 ชม.</td>
+                            <td class="py-4 px-6">120.54%</td>
+                            <td class="py-4 px-6">
+                                <span class="bg-red-100 text-red-700 py-1 px-3 rounded-full text-xs font-semibold">Overload</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-
-</div>
-
-<script>
-function copyCode(elementId) {
-    const codeElement = document.getElementById(elementId);
-    const textToCopy = codeElement.innerText;
-    
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        alert("ก๊อปปี้โค้ดเรียบร้อยแล้ว!");
-    }).catch(err => {
-        console.error("Copy failed: ", err);
-    });
-}
-</script>
 
 </body>
 </html>
