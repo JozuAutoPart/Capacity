@@ -142,7 +142,7 @@
                     <div class="col-md-8">
                         <div class="card h-100 bg-dark border-secondary">
                             <div class="card-header border-secondary fw-bold text-white">
-                                <i class="fas fa-industry me-2 text-warning"></i>Capacity Status by Machine
+                                <i class="fas fa-industry me-2 text-warning"></i>Capacity Status by Machine No.
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
@@ -151,7 +151,8 @@
                                             <tr>
                                                 <th>Line</th>
                                                 <th>Machine No.</th>
-                                                <th>Plan Qty (Pcs)</th>
+                                                <th>Plan Qty</th>
+                                                <th>Actual Qty</th>
                                                 <th>Max Capacity</th>
                                                 <th>Utilization (%)</th>
                                                 <th>Status</th>
@@ -180,7 +181,7 @@
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Line เครื่องจักร</label>
-                                        <select class="form-select" id="planLine" onchange="onPlanLineChange()" required>
+                                        <select class="form-select" id="planLine" required>
                                             <option value="Line A">Line A</option>
                                             <option value="Line Q">Line Q</option>
                                             <option value="Line C1">Line C1</option>
@@ -190,7 +191,7 @@
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Machine No.</label>
-                                        <select class="form-select" id="planMcNo" required></select>
+                                        <input type="text" class="form-control" id="planMcNo" placeholder="เช่น MC-01" required>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Part No.</label>
@@ -234,7 +235,7 @@
                 </div>
             </div>
 
-            <!-- 4. ACTUAL PRODUCTION TAB (แบบละเอียดสำหรับพนักงาน) -->
+            <!-- 4. ACTUAL PRODUCTION TAB (ตรวจสอบแผนก่อนแสดงผล & อ้างอิง Lot No. จาก แผน) -->
             <div class="tab-pane fade" id="actual-tab-pane" role="tabpanel">
                 <div class="row">
                     <div class="col-md-4 mb-3">
@@ -243,22 +244,14 @@
                                 <i class="fas fa-edit me-2"></i>ฟอร์มบันทึกการผลิต (พนักงาน)
                             </div>
                             <div class="card-body">
-                                <div id="actualAlert" class="alert alert-warning d-none" role="alert">
-                                    <span id="actualAlertText"></span>
+                                <div id="actualAlert" class="alert alert-warning d-none p-2 small" role="alert">
+                                    <i class="fas fa-exclamation-circle me-1"></i><span id="actualAlertText"></span>
                                 </div>
+
                                 <form id="actualForm" onsubmit="submitActual(event)">
-                                    <div class="row g-2 mb-3">
-                                        <div class="col-md-7">
-                                            <label class="form-label">วันที่ผลิต</label>
-                                            <input type="date" class="form-control" id="actualDate" required>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="form-label">กะ (Shift)</label>
-                                            <select class="form-select" id="actualShift">
-                                                <option value="Day">กะเช้า (Day)</option>
-                                                <option value="Night">กะดึก (Night)</option>
-                                            </select>
-                                        </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">วันที่ผลิต</label>
+                                        <input type="date" class="form-control" id="actualDate" required>
                                     </div>
 
                                     <div class="mb-3">
@@ -269,7 +262,7 @@
                                     <div class="row g-2 mb-3">
                                         <div class="col-md-6">
                                             <label class="form-label">Line เครื่องจักร</label>
-                                            <select class="form-select" id="actualLine" onchange="onActualLineChange()" required>
+                                            <select class="form-select" id="actualLine" onchange="checkAndLoadPlans()" required>
                                                 <option value="Line A">Line A</option>
                                                 <option value="Line Q">Line Q</option>
                                                 <option value="Line C1">Line C1</option>
@@ -278,25 +271,27 @@
                                             </select>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Machine No.</label>
-                                            <select class="form-select" id="actualMcNo" onchange="updateActualFormState()" required></select>
+                                            <label class="form-label text-warning fw-bold">Machine No.</label>
+                                            <input type="text" class="form-control border-warning" id="actualMcNo" oninput="checkAndLoadPlans()" placeholder="พิมพ์ Machine No." required>
                                         </div>
                                     </div>
 
                                     <div class="mb-3">
-                                        <label class="form-label text-warning fw-bold">Part No. (เลือกจากแผนงาน)</label>
-                                        <select class="form-select" id="actualPartNo" onchange="onActualPartChange()" required></select>
+                                        <label class="form-label text-info fw-bold">Part No. (อ้างอิงจากแผน)</label>
+                                        <select class="form-select" id="actualPartNo" onchange="onActualPartChange()" required disabled>
+                                            <option value="">-- กรุณาระบุ Machine No. ที่มีในแผน --</option>
+                                        </select>
                                     </div>
 
                                     <div class="mb-3">
-                                        <label class="form-label">Lot No.</label>
-                                        <input type="text" class="form-control" id="actualLotNo" readonly placeholder="ดึงข้อมูลให้อัตโนมัติ">
+                                        <label class="form-label">Lot No. (ดึงจากแผนอัตโนมัติ)</label>
+                                        <input type="text" class="form-control" id="actualLotNo" readonly placeholder="จะแสดงเมื่อเลือก Part No.">
                                     </div>
 
                                     <div class="row g-2 mb-3">
                                         <div class="col-md-6">
                                             <label class="form-label text-success fw-bold">ยอดผลิตดี (OK Qty)</label>
-                                            <input type="number" class="form-control border-success" id="actualQty" min="0" placeholder="0" required>
+                                            <input type="number" class="form-control border-success" id="actualQty" min="1" placeholder="0" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label text-danger">งานเสีย (NG Qty)</label>
@@ -309,7 +304,7 @@
                                         <input type="text" class="form-control" id="actualRemark" placeholder="เช่น เปลี่ยนแม่พิมพ์ 15 นาที">
                                     </div>
 
-                                    <button type="submit" id="btnSubmitActual" class="btn btn-success w-100 fw-bold">
+                                    <button type="submit" id="btnSubmitActual" class="btn btn-success w-100 fw-bold" disabled>
                                         <i class="fas fa-save me-1"></i> ยืนยันบันทึกยอดผลิต
                                     </button>
                                 </form>
@@ -325,7 +320,7 @@
                                     <table class="table table-dark table-hover m-0 align-middle">
                                         <thead>
                                             <tr>
-                                                <th>Date/Shift</th>
+                                                <th>Date</th>
                                                 <th>OP Name</th>
                                                 <th>Line/MC</th>
                                                 <th>Part / Lot No.</th>
@@ -448,21 +443,11 @@
     </div>
 
     <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // รายการเครื่องจักรและกำลังการผลิตสูงสุด
-        const MACHINE_LIST = [
-            { line: "Line A",  mcNo: "MC-A01",  maxCap: 5000 },
-            { line: "Line A",  mcNo: "MC-A02",  maxCap: 5000 },
-            { line: "Line Q",  mcNo: "MC-Q01",  maxCap: 8000 },
-            { line: "Line C1", mcNo: "MC-C101", maxCap: 6000 },
-            { line: "Line C1", mcNo: "MC-C102", maxCap: 6000 },
-            { line: "Line C2", mcNo: "MC-C201", maxCap: 10000 },
-            { line: "Line C3", mcNo: "MC-C301", maxCap: 9000 }
-        ];
+        const DEFAULT_MAX_CAPACITY = 10000;
 
-        // Local Storage Database Mockup
         let db = {
             plans: JSON.parse(localStorage.getItem('db_plans')) || [],
             actuals: JSON.parse(localStorage.getItem('db_actuals')) || [],
@@ -493,8 +478,7 @@
             renderStock();
             renderDie();
             renderCapacity();
-            onPlanLineChange();
-            onActualLineChange();
+            checkAndLoadPlans();
         }
 
         // --- DASHBOARD ---
@@ -556,13 +540,39 @@
             if (!tbody) return;
             tbody.innerHTML = '';
 
+            const machineMap = {};
+
+            db.plans.forEach(p => {
+                const key = `${p.planLine}_${p.planMcNo}`;
+                if (!machineMap[key]) {
+                    machineMap[key] = { line: p.planLine, mcNo: p.planMcNo, planQty: 0, actualQty: 0 };
+                }
+                machineMap[key].planQty += Number(p.planQty || 0);
+            });
+
+            db.actuals.forEach(a => {
+                const key = `${a.actualLine}_${a.actualMcNo}`;
+                if (!machineMap[key]) {
+                    machineMap[key] = { line: a.actualLine, mcNo: a.actualMcNo, planQty: 0, actualQty: 0 };
+                }
+                machineMap[key].actualQty += Number(a.actualQty || 0);
+            });
+
+            const keys = Object.keys(machineMap);
+            if (keys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-3">ยังไม่มีข้อมูลเครื่องจักรในระบบ</td></tr>';
+                document.getElementById('overallUtilization').innerText = '0%';
+                return;
+            }
+
             let totalPlanAll = 0;
             let totalCapacityAll = 0;
 
-            MACHINE_LIST.forEach(mc => {
-                const maxCap = mc.maxCap;
-                const mcPlans = db.plans ? db.plans.filter(p => p.planLine === mc.line && p.planMcNo === mc.mcNo) : [];
-                const totalPlan = mcPlans.reduce((sum, p) => sum + Number(p.planQty || 0), 0);
+            keys.forEach(key => {
+                const item = machineMap[key];
+                const maxCap = DEFAULT_MAX_CAPACITY;
+                const totalPlan = item.planQty;
+                const totalActual = item.actualQty;
 
                 const utilization = maxCap > 0 ? ((totalPlan / maxCap) * 100).toFixed(1) : 0;
 
@@ -578,9 +588,10 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><span class="badge bg-secondary">${mc.line}</span></td>
-                    <td class="fw-bold text-info">${mc.mcNo}</td>
+                    <td><span class="badge bg-secondary">${item.line}</span></td>
+                    <td class="fw-bold text-info">${item.mcNo}</td>
                     <td>${totalPlan.toLocaleString()}</td>
+                    <td class="text-success fw-bold">${totalActual.toLocaleString()}</td>
                     <td>${maxCap.toLocaleString()}</td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
@@ -601,26 +612,12 @@
         }
 
         // --- PLANNING ---
-        function onPlanLineChange() {
-            const line = document.getElementById('planLine').value;
-            const mcSelect = document.getElementById('planMcNo');
-            mcSelect.innerHTML = '';
-            
-            const filteredMc = MACHINE_LIST.filter(m => m.line === line);
-            filteredMc.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.mcNo;
-                opt.textContent = m.mcNo;
-                mcSelect.appendChild(opt);
-            });
-        }
-
         function submitPlan(e) {
             e.preventDefault();
             const newPlan = {
                 planDate: document.getElementById('planDate').value,
                 planLine: document.getElementById('planLine').value,
-                planMcNo: document.getElementById('planMcNo').value,
+                planMcNo: document.getElementById('planMcNo').value.trim(),
                 planPartNo: document.getElementById('planPartNo').value.trim(),
                 planLotNo: document.getElementById('planLotNo').value.trim(),
                 planQty: document.getElementById('planQty').value
@@ -629,7 +626,6 @@
             saveData();
             document.getElementById('planForm').reset();
             setDefaultDates();
-            onPlanLineChange();
         }
 
         function renderPlanning() {
@@ -649,69 +645,54 @@
             });
         }
 
-        // --- ACTUAL PRODUCTION (WORKER SECTION) ---
-        function onActualLineChange() {
+        // --- ACTUAL PRODUCTION (เงื่อนไข 1, 2, 3) ---
+        function checkAndLoadPlans() {
             const selectedLine = document.getElementById('actualLine').value;
-            const mcSelect = document.getElementById('actualMcNo');
-            mcSelect.innerHTML = '';
-
-            const filteredMc = MACHINE_LIST.filter(m => m.line === selectedLine);
-            filteredMc.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.mcNo;
-                opt.textContent = m.mcNo;
-                mcSelect.appendChild(opt);
-            });
-
-            updateActualFormState();
-        }
-
-        function updateActualFormState() {
-            const selectedLine = document.getElementById('actualLine').value;
-            const selectedMc = document.getElementById('actualMcNo').value;
+            const mcNoInput = document.getElementById('actualMcNo').value.trim();
+            const partSelect = document.getElementById('actualPartNo');
             const alertBox = document.getElementById('actualAlert');
             const alertText = document.getElementById('actualAlertText');
             const btnSubmit = document.getElementById('btnSubmitActual');
-            const actualPartSelect = document.getElementById('actualPartNo');
 
-            const plannedItems = db.plans.filter(p => p.planLine === selectedLine && p.planMcNo === selectedMc);
-            
-            const activePlans = plannedItems.filter(p => {
-                const doneQty = db.actuals
-                    .filter(a => a.actualLine === selectedLine && a.actualMcNo === selectedMc && a.actualPartNo === p.planPartNo && a.actualLotNo === p.planLotNo)
-                    .reduce((sum, a) => sum + Number(a.actualQty || 0), 0);
-                return doneQty < Number(p.planQty);
-            });
+            partSelect.innerHTML = '';
+            document.getElementById('actualLotNo').value = '';
 
-            actualPartSelect.innerHTML = '';
-
-            if (plannedItems.length === 0) {
-                alertText.innerText = `ยังไม่มีแผนงานสำหรับเครื่อง ${selectedMc} (${selectedLine})`;
-                alertBox.classList.remove('d-none');
+            if (!mcNoInput) {
+                alertBox.classList.add('d-none');
+                partSelect.disabled = true;
                 btnSubmit.disabled = true;
-                actualPartSelect.innerHTML = '<option value="">-- ไม่มีแผนการผลิต --</option>';
-            } else if (activePlans.length === 0) {
-                alertText.innerText = `ผลิตครบตามแผนงานแล้วสำหรับเครื่อง ${selectedMc}`;
+                partSelect.innerHTML = '<option value="">-- กรุณาระบุ Machine No. --</option>';
+                return;
+            }
+
+            // ค้นหาแผนการผลิตที่ตรงกับ Line และ Machine No.
+            const matchedPlans = db.plans.filter(p => p.planLine === selectedLine && p.planMcNo.toLowerCase() === mcNoInput.toLowerCase());
+
+            if (matchedPlans.length === 0) {
+                // เงื่อนไข 2: ถ้าไม่มีแผนผลิต ไม่ให้ลงข้อมูลได้
+                alertText.innerText = `ไม่พบแผนการผลิตสำหรับเครื่อง ${mcNoInput} ใน ${selectedLine}`;
                 alertBox.classList.remove('d-none');
+                partSelect.disabled = true;
                 btnSubmit.disabled = true;
-                actualPartSelect.innerHTML = '<option value="">-- ผลิตครบตามแผนแล้ว --</option>';
+                partSelect.innerHTML = '<option value="">-- ไม่พบแผนการผลิต --</option>';
             } else {
                 alertBox.classList.add('d-none');
+                partSelect.disabled = false;
                 btnSubmit.disabled = false;
-                actualPartSelect.innerHTML = '<option value="">-- เลือก Part No. --</option>';
+                partSelect.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
 
-                activePlans.forEach(plan => {
+                matchedPlans.forEach(plan => {
                     const opt = document.createElement('option');
                     opt.value = plan.planPartNo;
-                    opt.textContent = `${plan.planPartNo} (Lot: ${plan.planLotNo})`;
-                    opt.dataset.lot = plan.planLotNo;
-                    actualPartSelect.appendChild(opt);
+                    opt.textContent = `${plan.planPartNo}`;
+                    opt.dataset.lot = plan.planLotNo; // ผูก Lot No. จากแผน
+                    partSelect.appendChild(opt);
                 });
             }
-            onActualPartChange();
         }
 
         function onActualPartChange() {
+            // เงื่อนไข 1: ดึง Lot No. อ้างอิงจากแผนการผลิต
             const select = document.getElementById('actualPartNo');
             const selectedOpt = select.options[select.selectedIndex];
             const lotInput = document.getElementById('actualLotNo');
@@ -727,12 +708,11 @@
             e.preventDefault();
             const newActual = {
                 actualDate: document.getElementById('actualDate').value,
-                actualShift: document.getElementById('actualShift').value,
                 actualOperator: document.getElementById('actualOperator').value.trim(),
                 actualLine: document.getElementById('actualLine').value,
-                actualMcNo: document.getElementById('actualMcNo').value,
-                actualPartNo: document.getElementById('actualPartNo').value,
-                actualLotNo: document.getElementById('actualLotNo').value,
+                actualMcNo: document.getElementById('actualMcNo').value.trim(),
+                actualPartNo: document.getElementById('actualPartNo').value.trim(),
+                actualLotNo: document.getElementById('actualLotNo').value.trim(),
                 actualQty: document.getElementById('actualQty').value,
                 actualNgQty: document.getElementById('actualNgQty').value || 0,
                 actualRemark: document.getElementById('actualRemark').value.trim()
@@ -740,7 +720,6 @@
             db.actuals.push(newActual);
             saveData();
             
-            // เคลียร์ค่าเฉพาะจำนวนเพื่อความสะดวกในการคีย์ต่อเนื่อง
             document.getElementById('actualQty').value = '';
             document.getElementById('actualNgQty').value = '0';
             document.getElementById('actualRemark').value = '';
@@ -753,7 +732,7 @@
             db.actuals.forEach(a => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${a.actualDate} <span class="badge bg-outline-info text-info border border-info">${a.actualShift || 'Day'}</span></td>
+                    <td>${a.actualDate}</td>
                     <td class="fw-bold">${a.actualOperator || '-'}</td>
                     <td><span class="badge bg-secondary">${a.actualLine}</span> <small class="text-info">${a.actualMcNo || ''}</small></td>
                     <td><b>${a.actualPartNo}</b><br><small class="text-muted">Lot: ${a.actualLotNo}</small></td>
