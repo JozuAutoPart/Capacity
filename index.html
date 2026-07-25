@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Machine Capacity Dashboard</title>
     <!-- ใช้ Tailwind CSS เพื่อความสวยงามและจัดวางง่าย -->
-    <script src="https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-100 font-sans">
 
@@ -88,10 +88,9 @@
         </div>
     </div>
 
-    <!-- โค้ด JavaScript สำหรับเชื่อมต่อ Google Apps Script -->
+    <!-- โค้ด JavaScript เชื่อมต่อ Google Apps Script -->
     <script>
-        const scriptURL = const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec";
-
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec';
 
         document.getElementById('capacityForm').addEventListener('submit', e => {
             e.preventDefault();
