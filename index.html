@@ -1024,3 +1024,47 @@
     </script>
 </body>
 </html>
+<!-- Capacity Tab -->
+<div class="tab-pane fade" id="capacity-tab-pane" role="tabpanel">
+    <div class="row g-3 mb-4">
+        <!-- การ์ดสรุป อัตราการใช้กำลังการผลิตรวม (Overall Utilization) -->
+        <div class="col-md-4">
+            <div class="card bg-dark text-white border-secondary h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Capacity Utilization</h6>
+                    <h2 class="display-5 fw-bold text-info" id="overallUtilization">0%</h2>
+                    <p class="small text-muted mb-0">ภาระงานเทียบกับกำลังการผลิตรวมทุกเครื่องจักร</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card bg-dark text-white border-secondary h-100">
+                <div class="card-header border-secondary fw-bold">
+                    <i class="fas fa-industry me-2 text-warning"></i>Capacity Status by Machine Line
+                </div>
+                <div class="card-body">
+                    <!-- ตารางเปรียบเทียบ Capacity แต่ละ Line -->
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Machine / Line</th>
+                                    <th>Plan Qty (Pcs)</th>
+                                    <th>Max Capacity (Pcs/Day)</th>
+                                    <th>Utilization (%)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="capacityTableBody">
+                                <!-- ข้อมูลจะถูกโหลดผ่าน JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+   };
+    </script>
+</body>
