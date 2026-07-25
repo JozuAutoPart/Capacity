@@ -1,81 +1,58 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Machine Capacity Dashboard</title>
-    <!-- ใช้ Tailwind CSS เพื่อความสวยงามและจัดวางง่าย -->
-    <script src="https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec>
-</head>
-<body class="bg-gray-100 font-sans">
-
-    <div class="container mx-auto p-6">
-        <!-- หัวข้อหน้าเว็บ -->
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">📊 ระบบบริหารจัดการกำลังการผลิตเครื่องจักร (Machine Capacity)</h1>
-            <p class="text-gray-600">แสดงสถานะภาระงานและความสามารถในการผลิตแยกตามรายเครื่อง</p>
-        </header>
-
-        <!-- ส่วนแสดงผลภาพรวม (Cards) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-                <h3 class="text-gray-500 font-medium">เครื่องจักรทั้งหมด</h3>
-                <p class="text-2xl font-bold text-gray-800" id="total-machines">2 เครื่อง</p>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-                <h3 class="text-gray-500 font-medium">สถานะปกติ (Normal)</h3>
-                <p class="text-2xl font-bold text-green-600" id="normal-machines">1 เครื่อง</p>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
-                <h3 class="text-gray-500 font-medium">ภาระงานล้น (Overload)</h3>
-                <p class="text-2xl font-bold text-red-600" id="overload-machines">1 เครื่อง</p>
-            </div>
+<div class="bg-white p-6 rounded-lg shadow-md mt-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">➕ เพิ่มข้อมูลคำนวณ Capacity เครื่องจักร</h2>
+    <form id="capacityForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-600">รหัสเครื่องจักร</label>
+            <input type="text" id="machineCode" required class="w-full border rounded p-2 mt-1" placeholder="เช่น MC-001">
         </div>
-
-        <!-- ตารางแสดงรายละเอียดแยกตามรายเครื่อง (Machine Table) -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-700">รายชื่อเครื่องจักรและสถานะ Capacity</h2>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm">
-                            <th class="py-3 px-6">รหัสเครื่องจักร</th>
-                            <th class="py-3 px-6">ชื่อเครื่องจักร</th>
-                            <th class="py-3 px-6">Available (ชม.)</th>
-                            <th class="py-3 px-6">Required (ชม.)</th>
-                            <th class="py-3 px-6">Load (%)</th>
-                            <th class="py-3 px-6">สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-gray-700 text-sm divide-y divide-gray-200" id="machine-table-body">
-                        <!-- ข้อมูลตัวอย่าง (สามารถเขียน JavaScript ดึงจาก API มาใส่แทนส่วนนี้ได้) -->
-                        <tr class="hover:bg-gray-50">
-                            <td class="py-4 px-6 font-medium">MC-001</td>
-                            <td class="py-4 px-6">CNC Machine 1</td>
-                            <td class="py-4 px-6">5.95 ชม.</td>
-                            <td class="py-4 px-6">4.50 ชม.</td>
-                            <td class="py-4 px-6">75.63%</td>
-                            <td class="py-4 px-6">
-                                <span class="bg-green-100 text-green-700 py-1 px-3 rounded-full text-xs font-semibold">Normal</span>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-gray-50">
-                            <td class="py-4 px-6 font-medium">MC-002</td>
-                            <td class="py-4 px-6">Injection Molding 2</td>
-                            <td class="py-4 px-6">11.20 ชม.</td>
-                            <td class="py-4 px-6">13.50 ชม.</td>
-                            <td class="py-4 px-6">120.54%</td>
-                            <td class="py-4 px-6">
-                                <span class="bg-red-100 text-red-700 py-1 px-3 rounded-full text-xs font-semibold">Overload</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-600">ชื่อเครื่องจักร</label>
+            <input type="text" id="machineName" required class="w-full border rounded p-2 mt-1" placeholder="เช่น CNC Machine 1">
         </div>
-    </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-600">เวลาทำงานต่อวัน (ชม.)</label>
+            <input type="number" step="0.1" id="dailyHours" value="8" required class="w-full border rounded p-2 mt-1">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-600">เวลาซ่อมบำรุง/หยุด (ชม.)</label>
+            <input type="number" step="0.1" id="downtime" value="1" required class="w-full border rounded p-2 mt-1">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-600">ประสิทธิภาพเครื่อง (เช่น 0.85 = 85%)</label>
+            <input type="number" step="0.01" id="efficiency" value="0.85" required class="w-full border rounded p-2 mt-1">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-600">จำนวนชิ้นงานที่ต้องผลิต (Target Qty)</label>
+            <input type="number" id="targetQty" required class="w-full border rounded p-2 mt-1" placeholder="เช่น 50">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-600">Cycle Time (นาที/ชิ้น)</label>
+            <input type="number" step="0.1" id="cycleTime" required class="w-full border rounded p-2 mt-1" placeholder="เช่น 5.0">
+        </div>
+        <div class="md:col-span-2">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">คำนวณและบันทึกลง Google Sheets</button>
+        </div>
+    </form>
+</div>
 
-</body>
-</html>
+<script>
+    const scriptURL = https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec
+
+    document.getElementById('capacityForm').addEventListener('submit', e => {
+        e.preventDefault();
+        
+        const data = {
+            machineCode: document.getElementById('machineCode').value,
+            machineName: document.getElementById('machineName').value,
+            dailyHours: document.getElementById('dailyHours').value,
+            downtime: document.getElementById('downtime').value,
+            efficiency: document.getElementById('efficiency').value,
+            targetQty: document.getElementById('targetQty').value,
+            cycleTime: document.getElementById('cycleTime').value
+        };
+
+        fetch(scriptURL, { method: 'POST', body: JSON.stringify(data) })
+            .then(response => alert('บันทึกข้อมูลเรียบร้อย!'))
+            .catch(error => alert('เกิดข้อผิดพลาด: ' + error.message));
+    });
+</script>
