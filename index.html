@@ -112,7 +112,8 @@
                             <table class="table table-dark table-hover m-0 align-middle">
                                 <thead>
                                     <tr>
-                                        <th>Date</th>
+                                        <th>Start Date</th>
+                                        <th>Finish Date</th>
                                         <th>Line</th>
                                         <th>Machine No.</th>
                                         <th>Part No.</th>
@@ -167,7 +168,7 @@
                 </div>
             </div>
 
-            <!-- 3. PLANNING TAB -->
+            <!-- 3. PLANNING TAB (เพิ่มวันที่ Finish) -->
             <div class="tab-pane fade" id="plan-tab-pane" role="tabpanel">
                 <div class="row">
                     <div class="col-md-4 mb-3">
@@ -175,9 +176,15 @@
                             <div class="card-header border-secondary fw-bold">เพิ่มแผนการผลิต</div>
                             <div class="card-body">
                                 <form id="planForm" onsubmit="submitPlan(event)">
-                                    <div class="mb-3">
-                                        <label class="form-label">วันที่</label>
-                                        <input type="date" class="form-control" id="planDate" required>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">วันที่เริ่ม (Start)</label>
+                                            <input type="date" class="form-control" id="planDate" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label text-info fw-bold">วันที่ Finish</label>
+                                            <input type="date" class="form-control border-info" id="planFinishDate" required>
+                                        </div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Line เครื่องจักร</label>
@@ -218,7 +225,8 @@
                                     <table class="table table-dark table-hover m-0 align-middle">
                                         <thead>
                                             <tr>
-                                                <th>Date</th>
+                                                <th>Start Date</th>
+                                                <th>Finish Date</th>
                                                 <th>Line</th>
                                                 <th>Machine No.</th>
                                                 <th>Part No.</th>
@@ -235,7 +243,7 @@
                 </div>
             </div>
 
-            <!-- 4. ACTUAL PRODUCTION TAB (ตรวจสอบแผนก่อนแสดงผล & อ้างอิง Lot No. จาก แผน) -->
+            <!-- 4. ACTUAL PRODUCTION TAB -->
             <div class="tab-pane fade" id="actual-tab-pane" role="tabpanel">
                 <div class="row">
                     <div class="col-md-4 mb-3">
@@ -272,14 +280,14 @@
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label text-warning fw-bold">Machine No.</label>
-                                            <input type="text" class="form-control border-warning" id="actualMcNo" oninput="checkAndLoadPlans()" placeholder="พิมพ์ Machine No." required>
+                                            <input type="text" class="form-control border-warning" id="actualMcNo" oninput="checkAndLoadPlans()" placeholder="พิมพ์ Machine No.">
                                         </div>
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label text-info fw-bold">Part No. (อ้างอิงจากแผน)</label>
                                         <select class="form-select" id="actualPartNo" onchange="onActualPartChange()" required disabled>
-                                            <option value="">-- กรุณาระบุ Machine No. ที่มีในแผน --</option>
+                                            <option value="">-- เลือก Part No. จากแผน --</option>
                                         </select>
                                     </div>
 
@@ -467,6 +475,7 @@
         function setDefaultDates() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('planDate').value = today;
+            document.getElementById('planFinishDate').value = today;
             document.getElementById('actualDate').value = today;
             document.getElementById('bmDate').value = today;
         }
@@ -514,6 +523,7 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${plan.planDate}</td>
+                    <td class="text-info">${plan.planFinishDate || '-'}</td>
                     <td><span class="badge bg-secondary">${plan.planLine}</span></td>
                     <td class="text-info fw-bold">${plan.planMcNo || '-'}</td>
                     <td class="fw-bold">${plan.planPartNo}</td>
@@ -611,11 +621,12 @@
             document.getElementById('overallUtilization').innerText = `${overallUtil}%`;
         }
 
-        // --- PLANNING ---
+        // --- PLANNING (บันทึก Finish Date) ---
         function submitPlan(e) {
             e.preventDefault();
             const newPlan = {
                 planDate: document.getElementById('planDate').value,
+                planFinishDate: document.getElementById('planFinishDate').value,
                 planLine: document.getElementById('planLine').value,
                 planMcNo: document.getElementById('planMcNo').value.trim(),
                 planPartNo: document.getElementById('planPartNo').value.trim(),
@@ -635,6 +646,7 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${p.planDate}</td>
+                    <td class="text-info">${p.planFinishDate || '-'}</td>
                     <td><span class="badge bg-secondary">${p.planLine}</span></td>
                     <td class="text-info fw-bold">${p.planMcNo || '-'}</td>
                     <td class="fw-bold">${p.planPartNo}</td>
@@ -645,7 +657,7 @@
             });
         }
 
-        // --- ACTUAL PRODUCTION (เงื่อนไข 1, 2, 3) ---
+        // --- ACTUAL PRODUCTION ---
         function checkAndLoadPlans() {
             const selectedLine = document.getElementById('actualLine').value;
             const mcNoInput = document.getElementById('actualMcNo').value.trim();
@@ -657,20 +669,18 @@
             partSelect.innerHTML = '';
             document.getElementById('actualLotNo').value = '';
 
-            if (!mcNoInput) {
-                alertBox.classList.add('d-none');
-                partSelect.disabled = true;
-                btnSubmit.disabled = true;
-                partSelect.innerHTML = '<option value="">-- กรุณาระบุ Machine No. --</option>';
-                return;
+            let matchedPlans = db.plans.filter(p => p.planLine === selectedLine);
+
+            if (mcNoInput !== '') {
+                matchedPlans = matchedPlans.filter(p => p.planMcNo.toLowerCase() === mcNoInput.toLowerCase());
             }
 
-            // ค้นหาแผนการผลิตที่ตรงกับ Line และ Machine No.
-            const matchedPlans = db.plans.filter(p => p.planLine === selectedLine && p.planMcNo.toLowerCase() === mcNoInput.toLowerCase());
-
             if (matchedPlans.length === 0) {
-                // เงื่อนไข 2: ถ้าไม่มีแผนผลิต ไม่ให้ลงข้อมูลได้
-                alertText.innerText = `ไม่พบแผนการผลิตสำหรับเครื่อง ${mcNoInput} ใน ${selectedLine}`;
+                if (mcNoInput !== '') {
+                    alertText.innerText = `ไม่พบแผนการผลิตสำหรับเครื่อง "${mcNoInput}" ใน ${selectedLine}`;
+                } else {
+                    alertText.innerText = `ยังไม่มีแผนการผลิตใน ${selectedLine}`;
+                }
                 alertBox.classList.remove('d-none');
                 partSelect.disabled = true;
                 btnSubmit.disabled = true;
@@ -684,21 +694,25 @@
                 matchedPlans.forEach(plan => {
                     const opt = document.createElement('option');
                     opt.value = plan.planPartNo;
-                    opt.textContent = `${plan.planPartNo}`;
-                    opt.dataset.lot = plan.planLotNo; // ผูก Lot No. จากแผน
+                    opt.textContent = `${plan.planPartNo} (เครื่อง: ${plan.planMcNo})`;
+                    opt.dataset.lot = plan.planLotNo;
+                    opt.dataset.mc = plan.planMcNo;
                     partSelect.appendChild(opt);
                 });
             }
         }
 
         function onActualPartChange() {
-            // เงื่อนไข 1: ดึง Lot No. อ้างอิงจากแผนการผลิต
             const select = document.getElementById('actualPartNo');
             const selectedOpt = select.options[select.selectedIndex];
             const lotInput = document.getElementById('actualLotNo');
+            const mcInput = document.getElementById('actualMcNo');
 
             if (selectedOpt && selectedOpt.dataset.lot) {
                 lotInput.value = selectedOpt.dataset.lot;
+                if (!mcInput.value.trim() && selectedOpt.dataset.mc) {
+                    mcInput.value = selectedOpt.dataset.mc;
+                }
             } else {
                 lotInput.value = '';
             }
