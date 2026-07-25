@@ -3,346 +3,1024 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Production & Die Maintenance System</title>
+    <title>Production, Stock & Die Maintenance System - Jozu Auto Part</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
-        body { background-color: #0f172a; color: #f8fafc; padding: 20px; }
-        
-        /* Header & Navbar */
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logo-title { display: flex; align-items: center; gap: 15px; }
-        .nav-tabs { display: flex; gap: 10px; background: #1e293b; padding: 5px; border-radius: 8px; margin-bottom: 20px; overflow-x: auto; }
-        .tab-btn { padding: 10px 20px; background: transparent; border: none; color: #94a3b8; cursor: pointer; border-radius: 6px; font-weight: bold; whitespace: nowrap; }
-        .tab-btn.active { background: #0284c7; color: white; }
-        
-        /* Page Views */
-        .page-view { display: none; }
-        .page-view.active { display: block; }
-
-        /* Layout Grid */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
-        
-        /* Card Containers */
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-        .card-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-        
-        /* Form Inputs */
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 5px; }
-        .form-control { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: white; }
-        .btn-submit { width: 100%; padding: 12px; background: #e11d48; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-submit:hover { background: #be123c; }
-        
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
-        th { color: #94a3b8; font-weight: 600; }
-        
-        /* Badges / Status */
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; display: inline-block; }
-        .badge-success { background: #16a34a; color: white; }
-        .badge-warning { background: #d97706; color: white; }
-        .badge-delay { background: #dc2626; color: white; animation: blink 1s infinite; }
-        
-        /* Progress Bar for Machine Capacity */
-        .progress-bg { background: #0f172a; border-radius: 10px; height: 15px; width: 100%; overflow: hidden; margin-top: 8px; }
-        .progress-fill { height: 100%; background: #0284c7; border-radius: 10px; transition: width 0.3s ease; }
-
-        @keyframes blink { 50% { opacity: 0.5; } }
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .form-control, .form-select {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            border-radius: 8px;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #0f172a;
+            border-color: #38bdf8;
+            color: #f8fafc;
+            box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25);
+        }
+        .form-control:read-only {
+            background-color: #1e293b;
+            color: #38bdf8;
+            border-color: #0284c7;
+            font-weight: bold;
+        }
+        .nav-pills .nav-link {
+            color: #94a3b8;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0284c7;
+            color: #ffffff;
+        }
+        .btn-primary {
+            background-color: #0284c7;
+            border-color: #0284c7;
+        }
+        .table-dark {
+            --bs-table-bg: #1e293b;
+            --bs-table-border-color: #334155;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .modal-content {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border: 1px solid #334155;
+        }
+        .logo-box {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 4px 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
-<body>
+<body class="p-3 p-md-4">
 
-    <!-- Header -->
-    <div class="header">
-        <div class="logo-title">
-            <h2>🏭 Production & Die Maintenance System</h2>
-        </div>
-        <div>
-            <button onclick="location.reload()" style="padding: 8px 15px; background: #334155; color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 รีเฟรช</button>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="spinner-border text-info" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="nav-tabs">
-        <button class="tab-btn" onclick="switchTab('dashboard')">📈 Dashboard</button>
-        <button class="tab-btn" onclick="switchTab('planning')">📅 วางแผน (Planning)</button>
-        <button class="tab-btn" onclick="switchTab('actual')">⚙️ บันทึกการผลิต (Actual)</button>
-        <button class="tab-btn" onclick="switchTab('capacity')">🏭 Machine Capacity</button>
-        <button class="tab-btn" onclick="switchTab('stock')">📦 Stock สะสม</button>
-        <button class="tab-btn active" onclick="switchTab('maintenance')">🔧 Die PM & Die BM</button>
-    </div>
-
-    <!-- PAGE 1: แท็บ Maintenance (หน้าหลักเดิม + เพิ่มเครื่องจักร) -->
-    <div id="maintenance-page" class="page-view active">
-        <div class="grid-2">
-            
-            <!-- ฝั่งซ้าย: ตารางสถานะ Die PM (รวมระบบเช็ก Delay) -->
-            <div class="card">
-                <div class="card-title" style="color: #38bdf8;">
-                    🔄 สถานะ Die PM (แผนการซ่อมบำรุง)
+    <div class="container-fluid max-width-lg">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center gap-3">
+                <div class="logo-box">
+                    <img src="Jozu.png" alt="Jozu Auto Part Logo" style="height: 48px; width: auto; object-fit: contain;">
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Part No.</th>
-                            <th>วันวางแผน (Target)</th>
-                            <th>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pm-status-table">
-                        <!-- โค้ด JS จะใส่อัตโนมัติ -->
-                    </tbody>
-                </table>
+                <div>
+                    <h3 class="fw-bold mb-0">Production & Die Maintenance System</h3>
+                    <p class="text-secondary small mb-0">Jozu Auto Part Co.,ltd. - ระบบวางแผน การผลิต สต็อก และจัดการแม่พิมพ์ (Die PM/BM)</p>
+                </div>
             </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadData()">
+                    <i class="fa-solid fa-rotate me-1"></i> รีเฟรช
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="openClearDataModal()">
+                    <i class="fa-solid fa-trash-can me-1"></i> ล้างข้อมูล
+                </button>
+            </div>
+        </div>
 
-            <!-- ฝั่งขวา: ฟอร์มบันทึกการซ่อมฉุกเฉิน (เพิ่มช่องเลือกเครื่องจักร) -->
-            <div class="card">
-                <div class="card-title" style="color: #f43f5e;">
-                    ⚠️ บันทึกแม่พิมพ์เสียฉุกเฉิน (Die BM)
-                </div>
-                <form id="bm-form" onsubmit="saveBMData(event)">
-                    <div style="display: flex; gap: 10px;">
-                        <div class="form-group" style="flex: 1;">
-                            <label>วันที่เกิดเหตุ</label>
-                            <input type="date" id="bm-date" class="form-control" required>
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label>เครื่องจักร (Machine)</label>
-                            <select id="bm-machine" class="form-control" required>
-                                <option value="">-- เลือกเครื่องจักร --</option>
-                                <option value="Press Machine #1 (100T)">Press Machine #1 (100T)</option>
-                                <option value="Press Machine #2 (200T)">Press Machine #2 (200T)</option>
-                                <option value="Press Machine #3 (300T)">Press Machine #3 (300T)</option>
-                                <option value="Press Machine #4 (500T)">Press Machine #4 (500T)</option>
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills nav-fill mb-4 p-1 card flex-row" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-dashboard" data-bs-toggle="pill" data-bs-target="#content-dashboard" type="button" role="tab">
+                    <i class="fa-solid fa-chart-line me-2"></i>Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-plan" data-bs-toggle="pill" data-bs-target="#content-plan" type="button" role="tab">
+                    <i class="fa-solid fa-pushpin me-2"></i>วางแผน (Planning)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-actual" data-bs-toggle="pill" data-bs-target="#content-actual" type="button" role="tab" onclick="updateActualFormState()">
+                    <i class="fa-solid fa-gear me-2"></i>บันทึกการผลิต (Actual)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-stock" data-bs-toggle="pill" data-bs-target="#content-stock" type="button" role="tab">
+                    <i class="fa-solid fa-warehouse me-2"></i>Stock สะสม
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-die" data-bs-toggle="pill" data-bs-target="#content-die" type="button" role="tab">
+                    <i class="fa-solid fa-wrench me-2 text-warning"></i>Die PM & Die BM
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Contents -->
+        <div class="tab-content" id="pills-tabContent">
+            
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="content-dashboard" role="tabpanel">
+                <div class="card p-3 mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small text-secondary">กรองสายการผลิต (Line)</label>
+                            <select id="filterLine" class="form-select" onchange="renderDashboard()">
+                                <option value="ALL">ทุกสายการผลิต (All Lines)</option>
+                                <option value="Line A">Line A</option>
+                                <option value="Line Q">Line Q</option>
+                                <option value="Line C1">Line C1</option>
+                                <option value="Line C2">Line C2</option>
+                                <option value="Line C3">Line C3</option>
                             </select>
                         </div>
                     </div>
+                </div>
+                <div id="lineDashboardContainer" class="row g-4"></div>
+            </div>
 
-                    <div class="form-group">
-                        <label>Part No. แม่พิมพ์</label>
-                        <select id="bm-part" class="form-control" required>
-                            <option value="">-- เลือก Part No. --</option>
-                            <option value="PART-A01">PART-A01</option>
-                            <option value="PART-B02">PART-B02</option>
-                            <option value="PART-C03">PART-C03</option>
+            <!-- Planning Tab -->
+            <div class="tab-pane fade" id="content-plan" role="tabpanel">
+                <div class="card p-4">
+                    <h5 class="fw-bold mb-4"><i class="fa-solid fa-thumbtack text-danger me-2"></i>ฟอร์มวางแผนการผลิต (Production Planning)</h5>
+                    <form id="planForm" onsubmit="submitPlan(event)">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label small text-secondary">สายการผลิต (Line)</label>
+                                <select id="planLine" class="form-select" required>
+                                    <option value="Line A">Line A</option>
+                                    <option value="Line Q">Line Q</option>
+                                    <option value="Line C1">Line C1</option>
+                                    <option value="Line C2">Line C2</option>
+                                    <option value="Line C3">Line C3</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">Part No.</label>
+                                <select id="planPartNo" class="form-select" required>
+                                    <option value="">-- โปรดเลือก Part No. --</option>
+                                    <option value="5678">5678</option>
+                                    <option value="J0701-17620-Z1T-8000-20">J0701-17620-Z1T-8000-20</option>
+                                    <option value="J0701-17620-Z1T-8000-21">J0701-17620-Z1T-8000-21</option>
+                                    <option value="J0701-17620-Z1T-8000-23">J0701-17620-Z1T-8000-23</option>
+                                    <option value="J0701-17620-Z1T-8000-25">J0701-17620-Z1T-8000-25</option>
+                                    <option value="J0802-17622-ZOT-8200">J0802-17622-ZOT-8200</option>
+                                    <option value="J0804-17625-Z4H-3000">J0804-17625-Z4H-3000</option>
+                                    <option value="J0804-17636-Z4H-0100">J0804-17636-Z4H-0100</option>
+                                    <option value="J0803-17620-899-8000-20">J0803-17620-899-8000-20</option>
+                                    <option value="J0803-17620-899-8000-21">J0803-17620-899-8000-21</option>
+                                    <option value="J0803-17620-899-8000-22">J0803-17620-899-8000-22</option>
+                                    <option value="J0803-17625-434-3000">J0803-17625-434-3000</option>
+                                    <option value="J0803-17620-899-8000-23">J0803-17620-899-8000-23</option>
+                                    <option value="J0804-17621-Z4H-3100">J0804-17621-Z4H-3100</option>
+                                    <option value="J1901-17622-Z4H-9100">J1901-17622-Z4H-9100</option>
+                                    <option value="J1701-17625-K59K-T110-Y1">J1701-17625-K59K-T110-Y1</option>
+                                    <option value="J1201-17628-K20-9010-Y1">J1201-17628-K20-9010-Y1</option>
+                                    <option value="J1201-17623-K20-A110-Y1">J1201-17623-K20-A110-Y1</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">Lot No.</label>
+                                <input type="text" id="planLotNo" class="form-control" placeholder="เช่น L6907-01" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">วันที่สั่งผลิต (Order Date)</label>
+                                <input type="date" id="planOrderDate" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">วันที่ต้องการสินค้า (Target Date)</label>
+                                <input type="date" id="planTargetDate" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">จำนวนแผน (Plan Qty / Pcs)</label>
+                                <input type="number" id="planQty" class="form-control" value="0" min="1" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">ชื่อผู้วางแผน (Planner Name)</label>
+                                <input type="text" id="plannerName" class="form-control" placeholder="ระบุชื่อผู้ตั้งแผน" required>
+                            </div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                                    <i class="fa-solid fa-pushpin me-2"></i>บันทึกแผนการผลิต (Save Plan)
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Actual Record Tab -->
+            <div class="tab-pane fade" id="content-actual" role="tabpanel">
+                <div class="card p-4">
+                    <h5 class="fw-bold mb-4"><i class="fa-solid fa-pen-to-square text-success me-2"></i>ฟอร์มบันทึกผลการผลิต (Production Actual)</h5>
+                    
+                    <!-- Alert กรณีไม่มีแผนการผลิต หรือ จบ Lot ไปหมดแล้ว -->
+                    <div id="noPlanAlert" class="alert alert-danger d-none align-items-center mb-4" role="alert">
+                        <i class="fa-solid fa-triangle-exclamation fa-lg me-2"></i>
+                        <div><span id="noPlanAlertText">ยังไม่มีการวางแผนการผลิตสำหรับสายการผลิตนี้</span></div>
+                    </div>
+
+                    <form id="actualForm" onsubmit="submitActual(event)">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">สายการผลิต (Line)</label>
+                                <select id="actualLine" class="form-select" onchange="updateActualFormState()" required>
+                                    <option value="Line A">Line A</option>
+                                    <option value="Line Q">Line Q</option>
+                                    <option value="Line C1">Line C1</option>
+                                    <option value="Line C2">Line C2</option>
+                                    <option value="Line C3">Line C3</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">วันที่บันทึก (Actual Date)</label>
+                                <input type="date" id="actualDate" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">Part No. (เลือกจากแผนที่ยังผลิตไม่ครบ)</label>
+                                <select id="actualPartNo" class="form-select" onchange="onActualPartChange()" required>
+                                    <option value="">-- เลือก Line ก่อน --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-secondary">Lot No. <span id="lotNoNotice" class="text-info small">(อ้างอิงจาก Plan อัตโนมัติ)</span></label>
+                                <input type="text" id="actualLotNo" class="form-control" placeholder="จะดึงจาก Plan อัตโนมัติ" readonly required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-secondary">จำนวนผลิตได้ (Actual Qty)</label>
+                                <input type="number" id="actualQty" class="form-control" value="0" min="1" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-secondary">จำนวนของเสีย (Defect Qty)</label>
+                                <input type="number" id="defectQty" class="form-control" value="0" min="0" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-secondary">ชื่อผู้บันทึก (Operator Name)</label>
+                                <input type="text" id="operatorName" class="form-control" placeholder="ระบุชื่อพนักงาน" required>
+                            </div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" id="btnSubmitActual" class="btn btn-success w-100 py-2 fw-bold">
+                                    <i class="fa-solid fa-floppy-disk me-2"></i>บันทึกผลการผลิต (Save Actual)
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Stock Tab -->
+            <div class="tab-pane fade" id="content-stock" role="tabpanel">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card p-3 border-start border-info border-4">
+                            <span class="text-secondary small">ยอดผลิตสะสมรวมทุก Part</span>
+                            <h3 class="fw-bold text-info mb-0" id="totalAccumulatedQty">0 Pcs</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card p-3 border-start border-success border-4">
+                            <span class="text-secondary small">จำนวน Part No. ที่มีการผลิตสะสม</span>
+                            <h3 class="fw-bold text-success mb-0" id="totalPartTypes">0 รายการ</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-4">
+                    <h5 class="fw-bold text-info mb-3"><i class="fa-solid fa-boxes-packing me-2"></i>ตาราง Stock ผลิตสะสมราย Part No.</h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle mb-0">
+                            <thead>
+                                <tr class="text-secondary">
+                                    <th>Part No.</th>
+                                    <th>ผลิตสะสมทั้งหมด (Total Actual)</th>
+                                    <th>วันที่ลงผลิตล่าสุด</th>
+                                    <th>สถานะ Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockTableBody">
+                                <tr><td colspan="4" class="text-center text-secondary py-3">ยังไม่มีข้อมูลการผลิตสะสม</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Die PM & Die BM Tab -->
+            <div class="tab-pane fade" id="content-die" role="tabpanel">
+                <div id="diePmAlertContainer" class="mb-4"></div>
+
+                <div class="row g-4">
+                    <!-- Die PM Status List -->
+                    <div class="col-lg-6">
+                        <div class="card p-4 h-100">
+                            <h5 class="fw-bold text-info mb-3"><i class="fa-solid fa-clock-rotate-left me-2"></i>สถานะ Die PM (รอบละ 100,000 Pcs)</h5>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle mb-0 small">
+                                    <thead>
+                                        <tr class="text-secondary">
+                                            <th>Part No.</th>
+                                            <th>ปั๊มสะสม (Stroke Qty)</th>
+                                            <th>ความคืบหน้า (PM Target)</th>
+                                            <th>สถานะ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="diePmStatusTable">
+                                        <tr><td colspan="4" class="text-center text-secondary py-3">ไม่มีข้อมูลแม่พิมพ์</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Die BM Record Form -->
+                    <div class="col-lg-6">
+                        <div class="card p-4">
+                            <h5 class="fw-bold text-danger mb-3"><i class="fa-solid fa-triangle-exclamation me-2"></i>บันทึกแม่พิมพ์เสียฉุกเฉิน (Die BM)</h5>
+                            <form id="dieBmForm" onsubmit="submitDieBm(event)">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-secondary">วันที่เกิดเหตุ</label>
+                                        <input type="date" id="bmDate" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-secondary">Part No. แม่พิมพ์</label>
+                                        <select id="bmPartNo" class="form-select" required>
+                                            <option value="">-- เลือก Part No. --</option>
+                                            <option value="5678">5678</option>
+                                            <option value="J0701-17620-Z1T-8000-20">J0701-17620-Z1T-8000-20</option>
+                                            <option value="J0701-17620-Z1T-8000-21">J0701-17620-Z1T-8000-21</option>
+                                            <option value="J0701-17620-Z1T-8000-23">J0701-17620-Z1T-8000-23</option>
+                                            <option value="J0701-17620-Z1T-8000-25">J0701-17620-Z1T-8000-25</option>
+                                            <option value="J0802-17622-ZOT-8200">J0802-17622-ZOT-8200</option>
+                                            <option value="J0804-17625-Z4H-3000">J0804-17625-Z4H-3000</option>
+                                            <option value="J0804-17636-Z4H-0100">J0804-17636-Z4H-0100</option>
+                                            <option value="J0803-17620-899-8000-20">J0803-17620-899-8000-20</option>
+                                            <option value="J0803-17620-899-8000-21">J0803-17620-899-8000-21</option>
+                                            <option value="J0803-17620-899-8000-22">J0803-17620-899-8000-22</option>
+                                            <option value="J0803-17625-434-3000">J0803-17625-434-3000</option>
+                                            <option value="J0803-17620-899-8000-23">J0803-17620-899-8000-23</option>
+                                            <option value="J0804-17621-Z4H-3100">J0804-17621-Z4H-3100</option>
+                                            <option value="J1901-17622-Z4H-9100">J1901-17622-Z4H-9100</option>
+                                            <option value="J1701-17625-K59K-T110-Y1">J1701-17625-K59K-T110-Y1</option>
+                                            <option value="J1201-17628-K20-9010-Y1">J1201-17628-K20-9010-Y1</option>
+                                            <option value="J1201-17623-K20-A110-Y1">J1201-17623-K20-A110-Y1</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small text-secondary">รายละเอียดอาการเสีย / ปัญหา (Problem Statement)</label>
+                                        <textarea id="bmProblem" class="form-control" rows="2" placeholder="เช่น เข็มหัก, ชิ้นงานเป็นรอย, แม่พิมพ์ติด" required></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small text-secondary">แนวทางแก้ไข / รายละเอียดการซ่อม (Action Taken)</label>
+                                        <textarea id="bmAction" class="form-control" rows="2" placeholder="เช่น เจียรแต่งเข็มใหม่, ขัดผิวหน้าแม่พิมพ์" required></textarea>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-secondary">ช่างผู้ซ่อม / ผู้รับผิดชอบ</label>
+                                        <input type="text" id="bmTechnician" class="form-control" placeholder="ชื่อช่างซ่อม" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-secondary">สถานะการซ่อม</label>
+                                        <select id="bmStatus" class="form-select" required>
+                                            <option value="Under Repair">กำลังซ่อมแซม (Under Repair)</option>
+                                            <option value="Completed">ซ่อมเสร็จสิ้น (Completed)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">
+                                            <i class="fa-solid fa-wrench me-2"></i>บันทึกการส่งซ่อม Die BM
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Die BM History Table -->
+                <div class="card p-4 mt-4">
+                    <h5 class="fw-bold text-warning mb-3"><i class="fa-solid fa-list-check me-2"></i>ประวัติการซ่อมแม่พิมพ์ฉุกเฉิน (Die BM History Log)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle mb-0 small">
+                            <thead>
+                                <tr class="text-secondary">
+                                    <th>วันที่</th>
+                                    <th>Part No.</th>
+                                    <th>อาการเสีย / ปัญหา</th>
+                                    <th>แนวทางการแก้ไข</th>
+                                    <th>ช่างผู้ซ่อม</th>
+                                    <th>สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dieBmHistoryTable">
+                                <tr><td colspan="6" class="text-center text-secondary py-3">ยังไม่มีประวัติการส่งซ่อม BM</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal ยืนยันการล้างข้อมูล -->
+    <div class="modal fade" id="clearDataModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>ล้างข้อมูลสายการผลิต</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">เลือกลายน์ที่ต้องการล้างข้อมูล</label>
+                        <select id="clearTargetLine" class="form-select">
+                            <option value="Line A">Line A</option>
+                            <option value="Line Q">Line Q</option>
+                            <option value="Line C1">Line C1</option>
+                            <option value="Line C2">Line C2</option>
+                            <option value="Line C3">Line C3</option>
+                            <option value="ALL">⚠️ ล้างทุกสายการผลิต (All Lines)</option>
                         </select>
                     </div>
-
-                    <div class="form-group">
-                        <label>รายละเอียดอาการเสีย / ปัญหา</label>
-                        <input type="text" id="bm-problem" class="form-control" placeholder="เช่น เข็มหัก, ชิ้นส่วนเป็นรอย" required>
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">รหัสผ่าน (Password)</label>
+                        <input type="password" id="clearDataPassword" class="form-control" placeholder="กรอกรหัสผ่าน">
                     </div>
-
-                    <div class="form-group">
-                        <label>แนวทางแก้ไข / รายละเอียดการซ่อม</label>
-                        <input type="text" id="bm-action" class="form-control" placeholder="เช่น เจียรแต่งเข็มใหม่, ขัดผิวหน้าแม่พิมพ์" required>
-                    </div>
-
-                    <div style="display: flex; gap: 10px;">
-                        <div class="form-group" style="flex: 1;">
-                            <label>ช่างผู้ซ่อม / ผู้รับผิดชอบ</label>
-                            <input type="text" id="bm-technician" class="form-control" placeholder="ชื่อช่างซ่อม" required>
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label>สถานะการซ่อม</label>
-                            <select id="bm-status" class="form-control">
-                                <option value="กำลังซ่อมแซม (Under Repair)">กำลังซ่อมแซม (Under Repair)</option>
-                                <option value="ซ่อมเสร็จสิ้น (Completed)">ซ่อมเสร็จสิ้น (Completed)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-submit">🔧 บันทึกการส่งซ่อม Die BM</button>
-                </form>
-            </div>
-
-        </div>
-
-        <!-- ตารางส่วนล่าง: ประวัติการซ่อมฉุกเฉิน (แสดงเครื่องจักรด้วย) -->
-        <div class="card">
-            <div class="card-title" style="color: #facc15;">
-                📜 ประวัติการซ่อมแม่พิมพ์ฉุกเฉิน (Die BM History Log)
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>วันที่</th>
-                        <th>เครื่องจักร</th>
-                        <th>Part No.</th>
-                        <th>อาการเสีย / ปัญหา</th>
-                        <th>แนวทางการแก้ไข</th>
-                        <th>ช่างผู้ซ่อม</th>
-                        <th>สถานะ</th>
-                    </tr>
-                </thead>
-                <tbody id="bm-history-table">
-                    <!-- ข้อมูลจะแสดงตรงนี้เมื่อกดบันทึก -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- PAGE 2: หน้าต่างใหม่ Machine Capacity -->
-    <div id="capacity-page" class="page-view">
-        <div class="card">
-            <div class="card-title" style="color: #38bdf8;">
-                📊 ภาพรวม Machine Capacity & Status
-            </div>
-            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px;">
-                แสดงอัตราการใช้งาน (Utilization Rate) และสถานะพร้อมใช้งานของเครื่องจักรแต่ละเครื่อง
-            </p>
-
-            <div class="grid-3" id="machine-capacity-list">
-                <!-- การ์ดเครื่องจักรจะสร้างผ่าน JS -->
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger btn-sm fw-bold" onclick="confirmClearData()">ยืนยันการล้างข้อมูล</button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        // Set วันที่ปัจจุบันให้ Input
-        document.getElementById('bm-date').valueAsDate = new Date();
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxizb7qREyore3QD7vENdQBhCpr64olCc3BCQjb_77DfRHMKbegrW-FLczVeIMnrsk/exec"; 
+        const ADMIN_PASSWORD = "1234";
 
-        // สลับหน้าต่าง (Tabs Switcher)
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.page-view').forEach(page => page.classList.remove('active'));
+        let globalData = [];
+        const ALL_LINES = ["Line A", "Line Q", "Line C1", "Line C2", "Line C3"];
+        const DIE_PM_TARGET = 100000;
+        let clearModal;
 
-            if (tabName === 'maintenance') {
-                document.getElementById('maintenance-page').classList.add('active');
-            } else if (tabName === 'capacity') {
-                document.getElementById('capacity-page').classList.add('active');
-                renderCapacityPage(); // อัปเดตข้อมูลหน้า Capacity
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) overlay.classList.remove('d-none');
+            else overlay.classList.add('d-none');
+        }
+
+        function setDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('planOrderDate').value = today;
+            document.getElementById('planTargetDate').value = today;
+            document.getElementById('actualDate').value = today;
+            document.getElementById('bmDate').value = today;
+        }
+
+        async function loadData() {
+            showLoading(true);
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                globalData = await response.json();
+                renderDashboard();
+                renderStock();
+                renderDieManagement();
+                updateActualFormState();
+            } catch (err) {
+                console.error("Error loading data:", err);
+            } finally {
+                showLoading(false);
             }
-            
-            event.target.classList.add('active');
         }
 
-        // 1. ข้อมูลจำลองแผน PM (เช็ก Delay)
-        const pmPlans = [
-            { partNo: "PART-A01", targetDate: "2026-07-20", isDone: false }, // เลยกำหนด -> ขึ้น Delay
-            { partNo: "PART-B02", targetDate: "2026-07-25", isDone: false }, 
-            { partNo: "PART-C03", targetDate: "2026-07-30", isDone: false }  
-        ];
+        // =========================================================
+        //  LOGIC กรองเอาเฉพาะ Part No. ที่ "ยังผลิตไม่ครบ" มาแสดง
+        // =========================================================
+        function updateActualFormState() {
+            const selectedLine = document.getElementById('actualLine').value;
+            const actualPartSelect = document.getElementById('actualPartNo');
+            const alertBox = document.getElementById('noPlanAlert');
+            const alertText = document.getElementById('noPlanAlertText');
+            const btnSubmit = document.getElementById('btnSubmitActual');
 
-        function renderPMTable() {
-            const tbody = document.getElementById('pm-status-table');
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // 1. ดึงรายการ Plan ทั้งหมดใน Line ที่เลือก
+            const plannedItems = globalData.filter(i => i.line === selectedLine && i.planPartNo && Number(i.planQty) > 0);
 
-            tbody.innerHTML = pmPlans.map(plan => {
-                const target = new Date(plan.targetDate);
-                target.setHours(0, 0, 0, 0);
+            // 2. คัดกรองเฉพาะ Part ที่ยอดผลิตสะสมยังน้อยกว่า Plan (ยังผลิตไม่ครบ Lot)
+            const activePlans = plannedItems.filter(plan => {
+                const actuals = globalData.filter(i => i.line === selectedLine && i.actualPartNo === plan.planPartNo);
+                const totalActual = actuals.reduce((sum, item) => sum + (Number(item.actualQty) || 0), 0);
+                return totalActual < Number(plan.planQty); // เอาเฉพาะที่ Actual < Plan
+            });
 
-                let badgeHTML = "";
+            actualPartSelect.innerHTML = '';
 
-                if (plan.isDone) {
-                    badgeHTML = '<span class="badge badge-success">Completed</span>';
-                } else if (target < today) {
-                    badgeHTML = '<span class="badge badge-delay">⚠️ Delay</span>';
-                } else if (target.getTime() === today.getTime()) {
-                    badgeHTML = '<span class="badge badge-warning">Due Today</span>';
-                } else {
-                    badgeHTML = '<span class="badge badge-success">On Track</span>';
-                }
+            if (plannedItems.length === 0) {
+                // กรณีไม่มีการตั้ง Plan ในไลน์นี้เลย
+                alertBox.classList.remove('d-none');
+                alertBox.classList.add('d-flex');
+                alertText.innerHTML = `<strong>ไม่สามารถบันทึกยอดผลิตได้!</strong> ยังไม่มีการวางแผนการผลิตสำหรับ ${selectedLine}`;
+                btnSubmit.disabled = true;
 
-                return `
-                    <tr>
-                        <td><b>${plan.partNo}</b></td>
-                        <td>${plan.targetDate}</td>
-                        <td>${badgeHTML}</td>
-                    </tr>
-                `;
-            }).join('');
+                const option = document.createElement('option');
+                option.value = "";
+                option.text = "-- ไม่มีแผนการผลิตในไลน์นี้ --";
+                actualPartSelect.appendChild(option);
+                
+                document.getElementById('actualLotNo').value = "";
+                document.getElementById('actualLotNo').readOnly = true;
+            } 
+            else if (activePlans.length === 0) {
+                // กรณีมี Plan แต่ผลิตครบจบ Lot ไปทั้งหมดแล้ว
+                alertBox.classList.remove('d-none');
+                alertBox.classList.add('d-flex');
+                alertText.innerHTML = `<strong>จบ Lot ทั้งหมดแล้ว!</strong> ทุก Part No. ใน ${selectedLine} ผลิตครบตามแผนเรียบร้อยแล้ว`;
+                btnSubmit.disabled = true;
+
+                const option = document.createElement('option');
+                option.value = "";
+                option.text = "-- ผลิตครบจบ Lot ทุกรายการแล้ว --";
+                actualPartSelect.appendChild(option);
+
+                document.getElementById('actualLotNo').value = "";
+                document.getElementById('actualLotNo').readOnly = true;
+            } 
+            else {
+                // กรณียังมีรายการที่ผลิตไม่เสร็จ -> โชว์เฉพาะ Part เหล่านั้น
+                alertBox.classList.add('d-none');
+                alertBox.classList.remove('d-flex');
+                btnSubmit.disabled = false;
+
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = "";
+                defaultOpt.text = "-- เลือก Part No. ที่มีแผนผลิต --";
+                actualPartSelect.appendChild(defaultOpt);
+
+                const uniqueActiveParts = [...new Set(activePlans.map(item => item.planPartNo))];
+                uniqueActiveParts.forEach(partNo => {
+                    const option = document.createElement('option');
+                    option.value = partNo;
+                    option.text = partNo;
+                    actualPartSelect.appendChild(option);
+                });
+
+                document.getElementById('actualLotNo').value = "";
+            }
         }
 
-        // 2. ระบบบันทึกประวัติการซ่อม BM (รวมข้อมูลเครื่องจักร)
-        let bmHistory = JSON.parse(localStorage.getItem('bmHistory')) || [];
+        function onActualPartChange() {
+            const selectedLine = document.getElementById('actualLine').value;
+            const selectedPart = document.getElementById('actualPartNo').value;
+            const lotInput = document.getElementById('actualLotNo');
+            const noticeSpan = document.getElementById('lotNoNotice');
 
-        function saveBMData(event) {
-            event.preventDefault();
-
-            const newRecord = {
-                date: document.getElementById('bm-date').value,
-                machine: document.getElementById('bm-machine').value,
-                part: document.getElementById('bm-part').value,
-                problem: document.getElementById('bm-problem').value,
-                action: document.getElementById('bm-action').value,
-                technician: document.getElementById('bm-technician').value,
-                status: document.getElementById('bm-status').value
-            };
-
-            bmHistory.unshift(newRecord);
-            localStorage.setItem('bmHistory', JSON.stringify(bmHistory));
-
-            renderBMHistoryTable();
-            document.getElementById('bm-problem').value = '';
-            document.getElementById('bm-action').value = '';
-            document.getElementById('bm-technician').value = '';
-            alert('บันทึกข้อมูลการส่งซ่อมเรียบร้อยแล้ว!');
-        }
-
-        function renderBMHistoryTable() {
-            const tbody = document.getElementById('bm-history-table');
-
-            if (bmHistory.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #64748b;">ยังไม่มีประวัติการส่งซ่อม BM</td></tr>`;
+            if (!selectedPart) {
+                lotInput.value = "";
                 return;
             }
 
-            tbody.innerHTML = bmHistory.map(item => `
-                <tr>
-                    <td>${item.date}</td>
-                    <td><span style="color: #38bdf8; font-weight: bold;">${item.machine || '-'}</span></td>
-                    <td><b>${item.part}</b></td>
-                    <td>${item.problem}</td>
-                    <td>${item.action}</td>
-                    <td>${item.technician}</td>
-                    <td><span class="badge ${item.status.includes('เสร็จสิ้น') ? 'badge-success' : 'badge-warning'}">${item.status}</span></td>
-                </tr>
-            `).join('');
+            // ค้นหาข้อมูล Plan ของ Part นี้
+            const planItem = globalData.find(i => i.line === selectedLine && i.planPartNo === selectedPart);
+
+            if (planItem && planItem.planLotNo) {
+                // ดึง Lot No. จาก Plan และล็อกไม่ให้แก้ไข
+                lotInput.value = planItem.planLotNo;
+                lotInput.readOnly = true;
+                noticeSpan.innerText = "(อ้างอิงจาก Plan อัตโนมัติ)";
+                noticeSpan.className = "text-info small";
+            } else {
+                lotInput.value = "";
+                lotInput.readOnly = false;
+                noticeSpan.innerText = "";
+            }
         }
 
-        // 3. ฟังก์ชันสร้างหน้าต่าง Machine Capacity
-        const machines = [
-            { name: "Press Machine #1 (100T)", capacityHrs: 24, usedHrs: 18 },
-            { name: "Press Machine #2 (200T)", capacityHrs: 24, usedHrs: 22 },
-            { name: "Press Machine #3 (300T)", capacityHrs: 24, usedHrs: 12 },
-            { name: "Press Machine #4 (500T)", capacityHrs: 24, usedHrs: 24 }
-        ];
+        function renderStock() {
+            const stockSummary = {};
+            let totalAccumulated = 0;
 
-        function renderCapacityPage() {
-            const container = document.getElementById('machine-capacity-list');
-            
-            container.innerHTML = machines.map(m => {
-                // เช็กว่าเครื่องนี้กำลังโดนซ่อม BM อยู่หรือไม่
-                const isUnderRepair = bmHistory.some(bm => bm.machine === m.name && bm.status.includes('กำลังซ่อมแซม'));
-                const percent = Math.round((m.usedHrs / m.capacityHrs) * 100);
+            globalData.forEach(item => {
+                const partNo = item.actualPartNo;
+                const actualQty = Number(item.actualQty) || 0;
 
-                let statusBadge = isUnderRepair 
-                    ? '<span class="badge badge-delay">⚠️ breakdown (ซ่อม)</span>'
-                    : '<span class="badge badge-success">Running Normal</span>';
+                if (partNo && actualQty > 0) {
+                    if (!stockSummary[partNo]) {
+                        stockSummary[partNo] = { totalQty: 0, lastDate: item.actualDate || '-' };
+                    }
+                    stockSummary[partNo].totalQty += actualQty;
+                    totalAccumulated += actualQty;
+                    if (item.actualDate) stockSummary[partNo].lastDate = item.actualDate;
+                }
+            });
 
-                return `
-                    <div style="background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #334155;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h4 style="color: #f8fafc;">${m.name}</h4>
-                            ${statusBadge}
+            const stockTableBody = document.getElementById('stockTableBody');
+            stockTableBody.innerHTML = '';
+
+            const partKeys = Object.keys(stockSummary);
+            document.getElementById('totalAccumulatedQty').innerText = `${totalAccumulated.toLocaleString()} Pcs`;
+            document.getElementById('totalPartTypes').innerText = `${partKeys.length} รายการ`;
+
+            if (partKeys.length === 0) {
+                stockTableBody.innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-3">ยังไม่มีข้อมูลการผลิตสะสม</td></tr>';
+                return;
+            }
+
+            partKeys.forEach(part => {
+                const data = stockSummary[part];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-info">${part}</td>
+                    <td class="text-success fw-bold fs-6">${data.totalQty.toLocaleString()} Pcs</td>
+                    <td class="text-secondary">${data.lastDate}</td>
+                    <td><span class="badge bg-success"><i class="fa-solid fa-box me-1"></i>Active Stock</span></td>
+                `;
+                stockTableBody.appendChild(tr);
+            });
+        }
+
+        function renderDieManagement() {
+            const diePmSummary = {};
+            const bmLogs = [];
+
+            globalData.forEach(item => {
+                if (item.actualPartNo && Number(item.actualQty) > 0) {
+                    const part = item.actualPartNo;
+                    if (!diePmSummary[part]) diePmSummary[part] = 0;
+                    diePmSummary[part] += Number(item.actualQty);
+                }
+
+                if (item.bmProblem) {
+                    bmLogs.push(item);
+                }
+            });
+
+            const alertContainer = document.getElementById('diePmAlertContainer');
+            const statusTable = document.getElementById('diePmStatusTable');
+            alertContainer.innerHTML = '';
+            statusTable.innerHTML = '';
+
+            const pmPartKeys = Object.keys(diePmSummary);
+
+            if (pmPartKeys.length === 0) {
+                statusTable.innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-3">ไม่มีข้อมูลแม่พิมพ์</td></tr>';
+            }
+
+            pmPartKeys.forEach(part => {
+                const currentQty = diePmSummary[part];
+                const pmPercent = Math.min(Math.round((currentQty / DIE_PM_TARGET) * 100), 100);
+                const needPm = currentQty >= DIE_PM_TARGET;
+
+                if (needPm) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger d-flex justify-content-between align-items-center shadow-lg mb-3';
+                    alertDiv.innerHTML = `
+                        <div>
+                            <h6 class="fw-bold mb-1"><i class="fa-solid fa-triangle-exclamation fa-lg me-2"></i>🚨 แจ้งเตือน: Die PM ถึงกำหนด PM (ครบ 100,000 Pcs)</h6>
+                            <p class="mb-0 small">Part No: <strong>${part}</strong> | ยอดปั๊มปัจจุบัน: <strong class="fs-6">${currentQty.toLocaleString()} Pcs</strong></p>
                         </div>
-                        <p style="font-size: 0.85rem; color: #94a3b8;">กำลังการผลิตที่ใช้: <b>${m.usedHrs}/${m.capacityHrs} ชั่วโฒง</b> (${percent}%)</p>
-                        <div class="progress-bg">
-                            <div class="progress-fill" style="width: ${percent}%; background-color: ${percent > 90 ? '#e11d48' : '#0284c7'};"></div>
+                        <button class="btn btn-light btn-sm fw-bold text-danger" onclick="alert('กรุณาติดต่อแผนก Maintenance เพื่อบันทึกการซ่อมบำรุงแม่พิมพ์')">
+                            <i class="fa-solid fa-wrench me-1"></i>ส่งทำ PM
+                        </button>
+                    `;
+                    alertContainer.appendChild(alertDiv);
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-info">${part}</td>
+                    <td class="${needPm ? 'text-danger fw-bold' : 'text-white'}">${currentQty.toLocaleString()} Pcs</td>
+                    <td style="width: 130px;">
+                        <div class="progress" style="height: 10px; background-color: #0f172a;">
+                            <div class="progress-bar ${needPm ? 'bg-danger' : 'bg-warning'}" style="width: ${pmPercent}%;"></div>
+                        </div>
+                        <small class="text-secondary" style="font-size: 10px;">${pmPercent}% (100k Target)</small>
+                    </td>
+                    <td>${needPm ? '<span class="badge bg-danger">🚨 ต้อง PM</span>' : '<span class="badge bg-success">ปกติ</span>'}</td>
+                `;
+                statusTable.appendChild(tr);
+            });
+
+            const bmTable = document.getElementById('dieBmHistoryTable');
+            bmTable.innerHTML = '';
+
+            if (bmLogs.length === 0) {
+                bmTable.innerHTML = '<tr><td colspan="6" class="text-center text-secondary py-3">ยังไม่มีประวัติการส่งซ่อม BM</td></tr>';
+                return;
+            }
+
+            bmLogs.reverse().forEach(log => {
+                const isCompleted = log.bmStatus === 'Completed';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${log.bmDate || '-'}</td>
+                    <td class="fw-bold text-info">${log.bmPartNo}</td>
+                    <td class="text-danger">${log.bmProblem}</td>
+                    <td class="text-success">${log.bmAction}</td>
+                    <td>${log.bmTechnician}</td>
+                    <td><span class="badge ${isCompleted ? 'bg-success' : 'bg-warning text-dark'}">${log.bmStatus}</span></td>
+                `;
+                bmTable.appendChild(tr);
+            });
+        }
+
+        async function submitDieBm(e) {
+            e.preventDefault();
+            showLoading(true);
+
+            const payload = {
+                action: "addProductionLog",
+                data: {
+                    line: "Die BM",
+                    bmDate: document.getElementById('bmDate').value,
+                    bmPartNo: document.getElementById('bmPartNo').value,
+                    bmProblem: document.getElementById('bmProblem').value,
+                    bmAction: document.getElementById('bmAction').value,
+                    bmTechnician: document.getElementById('bmTechnician').value,
+                    bmStatus: document.getElementById('bmStatus').value
+                }
+            };
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                alert('บันทึกการส่งซ่อม Die BM เรียบร้อยแล้ว!');
+                document.getElementById('dieBmForm').reset();
+                setDefaultDates();
+                setTimeout(loadData, 1500);
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                showLoading(false);
+            }
+        }
+
+        function renderDashboard() {
+            const lineFilter = document.getElementById('filterLine').value;
+            const container = document.getElementById('lineDashboardContainer');
+            container.innerHTML = '';
+
+            const targetLines = (lineFilter === 'ALL') ? ALL_LINES : [lineFilter];
+
+            targetLines.forEach(lineName => {
+                const lineItems = globalData.filter(i => i.line === lineName);
+                const partsGrouped = {};
+
+                lineItems.forEach(item => {
+                    const partNo = item.planPartNo || item.actualPartNo;
+                    if (!partNo) return;
+
+                    if (!partsGrouped[partNo]) {
+                        partsGrouped[partNo] = {
+                            partNo: partNo,
+                            lotNo: item.planLotNo || item.actualLotNo || '-',
+                            planQty: 0,
+                            actualQty: 0,
+                            defectQty: 0,
+                            operator: item.operator || item.planner || '-'
+                        };
+                    }
+
+                    partsGrouped[partNo].planQty += Number(item.planQty) || 0;
+                    partsGrouped[partNo].actualQty += Number(item.actualQty) || 0;
+                    partsGrouped[partNo].defectQty += Number(item.defectQty) || 0;
+
+                    if (item.actualLotNo) partsGrouped[partNo].lotNo = item.actualLotNo;
+                    if (item.operator) partsGrouped[partNo].operator = item.operator;
+                });
+
+                const partsList = Object.values(partsGrouped);
+                let totalPlan = 0;
+                let totalActual = 0;
+
+                partsList.forEach(p => {
+                    totalPlan += p.planQty;
+                    totalActual += p.actualQty;
+                });
+
+                const overallPercent = totalPlan > 0 ? Math.min(Math.round((totalActual / totalPlan) * 100), 100) : 0;
+
+                let tableRowsHtml = '';
+                if (partsList.length === 0) {
+                    tableRowsHtml = '<tr><td colspan="8" class="text-center text-secondary py-3">ไม่มีรายการ Part ในไลน์นี้</td></tr>';
+                } else {
+                    partsList.forEach(item => {
+                        const plan = item.planQty;
+                        const actual = item.actualQty;
+                        const percent = plan > 0 ? Math.min(Math.round((actual / plan) * 100), 100) : 0;
+
+                        let statusBadge = '';
+                        if (plan > 0 && actual >= plan) {
+                            statusBadge = '<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Completed</span>';
+                        } else if (actual > 0) {
+                            statusBadge = '<span class="badge bg-warning text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i>In Progress</span>';
+                        } else {
+                            statusBadge = '<span class="badge bg-danger"><i class="fa-solid fa-clock me-1"></i>Pending</span>';
+                        }
+
+                        tableRowsHtml += `
+                            <tr>
+                                <td class="fw-bold text-info">${item.partNo}</td>
+                                <td>${item.lotNo}</td>
+                                <td>${plan.toLocaleString()}</td>
+                                <td class="text-success fw-bold">${actual.toLocaleString()}</td>
+                                <td class="text-danger">${item.defectQty.toLocaleString()}</td>
+                                <td style="width: 140px;">
+                                    <div class="progress" style="height: 12px; background-color: #0f172a;">
+                                        <div class="progress-bar ${percent >= 100 ? 'bg-success' : 'bg-info'}" style="width: ${percent}%;"></div>
+                                    </div>
+                                    <small class="text-secondary" style="font-size: 10px;">${percent}%</small>
+                                </td>
+                                <td>${statusBadge}</td>
+                                <td><small class="text-secondary">${item.operator}</small></td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                const colDiv = document.createElement('div');
+                colDiv.className = 'col-12 col-lg-6';
+                colDiv.innerHTML = `
+                    <div class="card p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary">
+                            <h5 class="fw-bold text-warning mb-0"><i class="fa-solid fa-industry me-2"></i>${lineName}</h5>
+                            <div class="d-flex gap-2 align-items-center">
+                                <span class="badge bg-secondary">Plan: ${totalPlan.toLocaleString()}</span>
+                                <span class="badge bg-success">Act: ${totalActual.toLocaleString()}</span>
+                                <span class="badge ${overallPercent >= 100 ? 'bg-success' : 'bg-info'}">${overallPercent}%</span>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle mb-0 small">
+                                <thead>
+                                    <tr class="text-secondary">
+                                        <th>Part No.</th>
+                                        <th>Lot No.</th>
+                                        <th>Plan</th>
+                                        <th>Actual</th>
+                                        <th>Defect</th>
+                                        <th>Progress</th>
+                                        <th>Status</th>
+                                        <th>Operator</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${tableRowsHtml}</tbody>
+                            </table>
                         </div>
                     </div>
                 `;
-            }).join('');
+                container.appendChild(colDiv);
+            });
         }
 
-        // โหลดข้อมูลตอนเริ่ม
-        renderPMTable();
-        renderBMHistoryTable();
+        function openClearDataModal() {
+            document.getElementById('clearDataPassword').value = '';
+            clearModal = new bootstrap.Modal(document.getElementById('clearDataModal'));
+            clearModal.show();
+        }
+
+        async function confirmClearData() {
+            const pwd = document.getElementById('clearDataPassword').value;
+            const targetLine = document.getElementById('clearTargetLine').value;
+
+            if (pwd !== ADMIN_PASSWORD) {
+                alert('รหัสผ่านไม่ถูกต้อง!');
+                return;
+            }
+
+            clearModal.hide();
+            showLoading(true);
+
+            const payload = { action: "clearData", line: targetLine };
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                alert(`ล้างข้อมูล ${targetLine === 'ALL' ? 'ทุกสายการผลิต' : targetLine} เรียบร้อยแล้ว!`);
+                setTimeout(loadData, 1500);
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการล้างข้อมูล');
+                showLoading(false);
+            }
+        }
+
+        async function submitPlan(e) {
+            e.preventDefault();
+            showLoading(true);
+
+            const payload = {
+                action: "addProductionLog",
+                data: {
+                    line: document.getElementById('planLine').value,
+                    planPartNo: document.getElementById('planPartNo').value,
+                    planLotNo: document.getElementById('planLotNo').value,
+                    planOrderDate: document.getElementById('planOrderDate').value,
+                    planTargetDate: document.getElementById('planTargetDate').value,
+                    planQty: document.getElementById('planQty').value,
+                    planner: document.getElementById('plannerName').value
+                }
+            };
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                alert('บันทึกแผนการผลิตเรียบร้อยแล้ว!');
+                document.getElementById('planForm').reset();
+                setDefaultDates();
+                setTimeout(loadData, 1500);
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                showLoading(false);
+            }
+        }
+
+        async function submitActual(e) {
+            e.preventDefault();
+            
+            const selectedPart = document.getElementById('actualPartNo').value;
+            if (!selectedPart) {
+                alert('กรุณาเลือก Part No. ที่ต้องการบันทึก');
+                return;
+            }
+
+            showLoading(true);
+
+            const payload = {
+                action: "addProductionLog",
+                data: {
+                    line: document.getElementById('actualLine').value,
+                    actualDate: document.getElementById('actualDate').value,
+                    actualPartNo: selectedPart,
+                    actualLotNo: document.getElementById('actualLotNo').value,
+                    actualQty: document.getElementById('actualQty').value,
+                    defectQty: document.getElementById('defectQty').value,
+                    operator: document.getElementById('operatorName').value
+                }
+            };
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                alert('บันทึกผลการผลิตเรียบร้อยแล้ว!');
+                document.getElementById('actualForm').reset();
+                setDefaultDates();
+                setTimeout(loadData, 1500);
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                showLoading(false);
+            }
+        }
+
+        window.onload = () => {
+            setDefaultDates();
+            loadData();
+        };
     </script>
 </body>
 </html>
