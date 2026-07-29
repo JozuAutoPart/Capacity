@@ -1408,36 +1408,27 @@
             location.reload();
         }
     }
-    <script>
-    function checkPlanningPassword(event, element) {
-        // ป้องกันไม่ให้เปิด Tab ทันทีก่อนกรอกรหัส
-        event.preventDefault(); 
-        
-        let correctPassword = "1234"; // <-- กำหนดรหัสผ่านที่นี่ (เปลี่ยนได้ตามต้องการ)
+   <script>
+    function checkPlanningPassword(event) {
+        let correctPassword = "1234"; // กำหนดรหัสผ่านที่นี่ (เปลี่ยนได้ตามต้องการ)
         let userInput = prompt("กรุณากรอกรหัสผ่านเพื่อเข้าสู่หน้า Planning:");
 
-        // ถ้ากด Cancel
+        // ถ้าผู้ใช้กด Cancel ให้ยกเลิกการเปลี่ยน Tab
         if (userInput === null) {
-            return;
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
         }
 
+        // ถ้ากรอกรหัสผ่านถูกต้อง ให้ผ่านไปเปิด Tab ตามปกติ
         if (userInput === correctPassword) {
-            alert("รหัสผ่านถูกต้อง!");
-            
-            // ดึงค่าเป้าหมายของ Tab เดิมแล้วสั่งให้เปิดหน้าเว็บตามปกติ
-            let targetTabId = element.getAttribute("href");
-            
-            // หากระบบใช้ Bootstrap Tab ให้ใช้คำสั่งเปิด Tab (หรือปรับตามโครงสร้าง JS เดิมของคุณ)
-            if (window.bootstrap && bootstrap.Tab) {
-                let tab = new bootstrap.Tab(element);
-                tab.show();
-            } else {
-                // กรณีคลิกแล้วเปลี่ยนหน้าหรือเปิดแสดงผล div
-                element.click();
-                location.href = targetTabId;
-            }
+            return true; 
         } else {
-            alert("รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง");
+            // ถ้ากรอกผิด ให้ยกเลิกการเปิด Tab และแจ้งเตือน
+            alert("รหัสผ่านไม่ถูกต้อง!");
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
         }
     }
 </script>
