@@ -47,12 +47,12 @@
         <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
                 <div class="position-relative">
-                    <img id="companyLogo" src="Jozu.png" alt="Jozu Logo" class="logo-header-img" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนรูปโลโก้"
+                    <img id="companyLogo" src="Jozu.png" alt="Jozu Logo" class="logo-header-img" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนรูปโลโก้" onerror="this.src='https://via.placeholder.com/150x50/ffffff/000000?text=Jozu+Logo'">
                     <input type="file" id="logoInput" accept="image/*" class="d-none" onchange="uploadLogo(event)">
                 </div>
                 <div>
                     <h2 class="fw-bold text-info m-0 d-flex align-items-center gap-2">
-                        Production System
+                        Production & Capacity System
                     </h2>
                     <small class="text-muted">Jozu Auto Part Co., ltd. - ระบบจัดการแผนการผลิต และกำลังการผลิต</small>
                 </div>
@@ -64,9 +64,9 @@
                 <button class="btn btn-success btn-sm" onclick="exportToExcelXLSX('actuals')">
                     <i class="fas fa-file-excel me-1"></i> Export ประวัติผลิต (.xlsx)
                 </button>
-          <button class="btn btn-danger btn-sm" onclick="deleteSpecificPartPrompt()">
-              <i class="fas fa-trash me-1"></i> ลบ Part นี้
-          </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="showClearModal()">
+                    <i class="fas fa-trash-alt me-1"></i> ลบข้อมูลในระบบ
+                </button>
             </div>
         </div>
 
@@ -161,28 +161,6 @@
             <div class="tab-pane fade" id="tab-capacity">
                 <div class="card p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                       <button type="button" class="btn btn-warning btn-sm float-end" onclick="doResetStrokes()">
-    <i class="fas fa-undo"></i> Reset Actual Strokes
-</button>
-                        <div class="d-flex justify-content-between align-items-center mb-3 px-3">
-    <div class="d-flex align-items-center gap-2">
-        <label class="text-light fw-bold small"><i class="fas fa-calendar-alt"></i> เลือกเดือน:</label>
-        <select id="filterMonth" class="form-select form-select-sm bg-dark text-light border-secondary" style="width: 160px;" onchange="changeCapacityMonth()">
-            <option value="0">มกราคม</option>
-            <option value="1">กุมภาพันธ์</option>
-            <option value="2">มีนาคม</option>
-            <option value="3">เมษายน</option>
-            <option value="4">พฤษภาคม</option>
-            <option value="5">มิถุนายน</option>
-            <option value="6">กรกฎาคม</option>
-            <option value="7">สิงหาคม</option>
-            <option value="8">กันยายน</option>
-            <option value="9">ตุลาคม</option>
-            <option value="10">พฤศจิกายน</option>
-            <option value="11">ธันวาคม</option>
-        </select>
-    </div>
-</div>
                         <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
                         <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
                     </div>
@@ -205,7 +183,7 @@
             </div>
 
             <!-- TAB 3: PLANNING -->
-                                   <div class="tab-pane fade" id="tab-plan">
+            <div class="tab-pane fade" id="tab-plan">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <div class="card p-3">
@@ -1367,97 +1345,5 @@
             if(modal) modal.hide();
         }
     </script>
-   <script>
-    function doResetStrokes() {
-        if (confirm("ยืนยันการรีเซ็ตค่า Actual Produced (Strokes) ทั้งหมดเป็น 0?")) {
-            // ล้างค่าตัวแปรหลักที่ระบบใช้เก็บยอดจริง
-            localStorage.removeItem('sys_actuals');
-            localStorage.setItem("actualProducedCapacity", 0);
-            
-            // ถ้าตารางดึงค่าจากตัวแปรตัวอื่น ให้เคลียร์ทิ้งด้วย
-            if (typeof actuals !== 'undefined') {
-                actuals = [];
-            }
-
-            alert("รีเซ็ตข้อมูลสำเร็จ!");
-            location.reload(); // รีโหลดหน้าเว็บเพื่อเคลียร์ค่าเป็น 0
-        }
-    }
-       <script>
-    // ตั้งค่าเริ่มต้น Dropdown ให้ตรงกับเดือนปัจจุบันเมื่อโหลดหน้าเว็บ
-    document.addEventListener("DOMContentLoaded", function() {
-        let currentMonth = new Date().getMonth();
-        let monthSelect = document.getElementById("filterMonth");
-        if(monthSelect) {
-            monthSelect.value = localStorage.getItem("selectedCapacityMonth") || currentMonth;
-        }
-    });
-
-    // ฟังก์ชันเมื่อเปลี่ยนเดือน
-    function changeCapacityMonth() {
-        let selectedMonth = document.getElementById("filterMonth").value;
-        localStorage.setItem("selectedCapacityMonth", selectedMonth);
-        
-        // โหลดข้อมูลใหม่ตามเดือนที่เลือก (เรียกใช้ฟังก์ชันเรนเดอร์หน้าเว็บหลักของคุณ)
-        if (typeof renderCapacity === 'function') {
-            renderCapacity();
-        } else {
-            location.reload();
-        }
-    }
-<script>
-    function deleteSpecificPartPrompt() {
-        try {
-            let targetPart = prompt("กรุณาพิมพ์ Part No. ที่ต้องการลบให้ถูกต้อง (เช่น 55388-05021):");
-            if (!targetPart) return;
-
-            let adminPassword = "1234";
-            let inputPassword = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบ Part: " + targetPart);
-
-            if (inputPassword === null) return;
-
-            if (inputPassword === adminPassword) {
-                let deleted = false;
-                
-                // วนลูปหาข้อมูลใน LocalStorage ทุกคีย์เพื่อลบ Part ที่ตรงกัน
-                for (let i = 0; i < localStorage.length; i++) {
-                    let key = localStorage.key(i);
-                    let data = localStorage.getItem(key);
-                    if (data) {
-                        try {
-                            let arr = JSON.parse(data);
-                            if (Array.isArray(arr) && arr.length > 0) {
-                                let beforeLen = arr.length;
-                                let newArr = arr.filter(item => {
-                                    if (!item || typeof item !== 'object') return true;
-                                    let match = Object.values(item).some(val => 
-                                        val && String(val).trim().toLowerCase() === String(targetPart).trim().toLowerCase()
-                                    );
-                                    return !match;
-                                });
-                                if (newArr.length < beforeLen) {
-                                    localStorage.setItem(key, JSON.stringify(newArr));
-                                    deleted = true;
-                                }
-                            }
-                        } catch (err) {}
-                    }
-                }
-
-                if (deleted) {
-                    alert("ลบข้อมูล Part No. " + targetPart + " สำเร็จ!");
-                    location.reload();
-                } else {
-                    alert("ไม่พบข้อมูลของ Part No. '" + targetPart + "' ในระบบ");
-                }
-
-            } else {
-                alert("รหัสผ่านไม่ถูกต้อง!");
-            }
-        } catch (e) {
-            alert("เกิดข้อผิดพลาด: " + e.message);
-        }
-    }
-</script>
-    </body>
+</body>
 </html>
