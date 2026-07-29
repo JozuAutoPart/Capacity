@@ -12,7 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- SheetJS Library สำหรับ Export Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card { background-color: #1e293b; border-color: #334155; }
@@ -48,7 +47,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
                 <div class="position-relative">
-                    <img id="companyLogo" src="Jozu.png" alt="Jozu Logo" class="logo-header-img" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนรูปโลโก้" 
+                    <img id="companyLogo" src="Jozu.png" alt="Jozu Logo" class="logo-header-img" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนรูปโลโก้" onerror="this.src='https://via.placeholder.com/150x50/ffffff/000000?text=Jozu+Logo'">
                     <input type="file" id="logoInput" accept="image/*" class="d-none" onchange="uploadLogo(event)">
                 </div>
                 <div>
@@ -136,32 +135,7 @@
                         </div>
                     </div>
                 </div>
-<!-- กราฟแสดงผลแบบขนาดกะทัดรัด -->
-<div class="row mt-3">
-    <!-- กราฟที่ 1: เปรียบเทียบ Plan vs Actual (ปรับลดขนาดความกว้าง) -->
-    <div class="col-lg-7 mb-3">
-        <div class="card p-2 border-start border-3 border-primary" style="background-color: #1e293b;">
-            <div class="d-flex justify-content-between align-items-center mb-2 px-2">
-                <h6 class="text-white m-0" style="font-size: 14px;">📊 แผนผลิต vs ผลผลิตจริง (Plan vs Actual)</h6>
-            </div>
-            <div style="height: 220px; position: relative;">
-                <canvas id="planActualChart"></canvas>
-            </div>
-        </div>
-    </div>
 
-    <!-- กราฟที่ 2: สัดส่วน OK / NG (ปรับลดขนาดให้เล็กลง) -->
-    <div class="col-lg-5 mb-3">
-        <div class="card p-2 border-start border-3 border-success" style="background-color: #1e293b;">
-            <div class="d-flex justify-content-between align-items-center mb-2 px-2">
-                <h6 class="text-white m-0" style="font-size: 14px;">🍩 สัดส่วนงานดี (OK) / งานเสีย (NG)</h6>
-            </div>
-            <div style="height: 220px; position: relative; display: flex; justify-content: center;">
-                <canvas id="ngRatioChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
                 <div class="card p-3">
                     <div class="table-responsive">
                         <table class="table table-dark table-hover align-middle m-0">
@@ -1370,100 +1344,6 @@
             const modal = bootstrap.Modal.getInstance(modalEl);
             if(modal) modal.hide();
         }
-   <script>
-    function updateDashboardCharts() {
-        // เช็คความปลอดภัย ถ้าไม่มีตัวแปร plans ให้สร้างอาเรย์ว่างกันพัง
-        if (typeof plans === 'undefined') window.plans = [];
-
-        const uniqueLines = [...new Set(plans.map(p => p.line))];
-        const lines = uniqueLines.length > 0 ? uniqueLines : ['Line A', 'Line Q', 'Line C1', 'Line C2', 'Line C3'];
-        
-        let planData = lines.map(line => {
-            return plans.filter(p => p.line === line).reduce((sum, p) => sum + Number(p.qty || 0), 0);
-        });
-
-        // ดึงข้อมูล Actual จาก localStorage (ปรับชื่อคีย์ให้ตรงกับระบบบันทึกจริงของคุณ เช่น productionHistory หรือ actuals)
-        let actualsData = JSON.parse(localStorage.getItem('productionHistory')) || JSON.parse(localStorage.getItem('actuals')) || [];
-        
-        let actualData = lines.map(line => {
-            return actualsData.filter(a => (a.lineMc === line || a.line === line)).reduce((sum, a) => sum + Number(a.okQty || 0), 0);
-        });
-
-        let prodOk = actualsData.reduce((sum, a) => sum + Number(a.okQty || 0), 0);
-        let prodNg = actualsData.reduce((sum, a) => sum + Number(a.ngQty || 0), 0);
-
-        let qgateData = JSON.parse(localStorage.getItem('qgateData')) || [];
-        let qgateOk = qgateData.reduce((sum, q) => sum + Number(q.okQty || 0), 0);
-        let qgateNg = qgateData.reduce((sum, q) => sum + Number(q.ngQty || 0), 0);
-
-        let totalOk = prodOk + qgateOk;
-        let totalNg = prodNg + qgateNg;
-
-        // ถ้าไม่มีข้อมูลเลย ให้ดึงตัวเลขจากตารางหน้าเว็บมาใส่กันกราฟโล่ง
-        if (totalOk === 0) totalOk = 2458; 
-
-        const finalPlanData = planData.some(val => val > 0) ? planData : [2500, 0, 0, 0, 0];
-        const finalActualData = actualData.some(val => val > 0) ? actualData : [2458, 0, 0, 0, 0];
-
-        // --- 1. กราฟแท่ง ---
-        const ctxPlanActual = document.getElementById('planActualChart');
-        if (ctxPlanActual) {
-            if (window.myPlanActualChart) window.myPlanActualChart.destroy();
-            window.myPlanActualChart = new Chart(ctxPlanActual.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: lines,
-                    datasets: [
-                       { label: 'Plan', data: planData, backgroundColor: '#0dcaf0', borderRadius: 3 },
-{ label: 'Actual OK', data: actualData, backgroundColor: '#198754', borderRadius: 3 }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#fff', boxWidth: 12, font: { size: 11 } } } },
-                    scales: {
-                        x: { ticks: { color: '#adb5bd', font: { size: 10 } }, grid: { color: '#334155' } },
-                        y: { ticks: { color: '#adb5bd', font: { size: 10 } }, grid: { color: '#334155' } }
-                    }
-                }
-            });
-        }
-
-        // --- 2. กราฟโดนัท ---
-        const ctxNgRatio = document.getElementById('ngRatioChart');
-        if (ctxNgRatio) {
-            if (window.myNgRatioChart) window.myNgRatioChart.destroy();
-            window.myNgRatioChart = new Chart(ctxNgRatio.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['OK Qty (รวม)', 'NG Qty (รวม)'],
-                    datasets: [{
-                        data: [totalOk, totalNg > 0 ? totalNg : 5], // ถ้า NG เป็น 0 ให้ใส่ 5 นิดหน่อยเพื่อให้วงล้อสวยงาม
-                        backgroundColor: ['#198754', '#dc3545'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#fff', boxWidth: 12, font: { size: 11 } }, position: 'bottom' } }
-                }
-            });
-        }
-    }
-
-    // สั่งให้โหลดกราฟทันที และพ่วงเข้ากับปุ่มกดสลับแท็บ Dashboard (ถ้ามี)
-    window.addEventListener('load', () => {
-        setTimeout(updateDashboardCharts, 300); // หน่วงเวลาเล็กน้อยให้ข้อมูลโหลดเสร็จก่อน
-    });
-    
-    // เผื่อมีการคลิกเปลี่ยนแท็บ ให้รีเฟรชคราฟด้วย
-    document.querySelectorAll('button[onclick*="dash"], .nav-link').forEach(btn => {
-        btn.addEventListener('click', () => {
-            setTimeout(updateDashboardCharts, 100);
-        });
-    });
-</script>
+    </script>
 </body>
 </html>
