@@ -84,13 +84,14 @@
             <li class="nav-item">
                 <button class="nav-link" id="actual-tab" data-bs-toggle="tab" data-bs-target="#tab-actual" type="button" onclick="checkAndLoadPlans()"><i class="fas fa-user-edit me-2"></i>บันทึกยอดผลิต (พนักงาน)</button>
             </li>
-            <!-- แท็บเพิ่มใหม่: Q-Gate -->
             <li class="nav-item">
                 <button class="nav-link" id="qgate-tab" data-bs-toggle="tab" data-bs-target="#tab-qgate" type="button" onclick="loadQGateParts()"><i class="fas fa-clipboard-check me-2 text-warning"></i>Q-Gate Inspection</button>
             </li>
-            <!-- แท็บปรับปรุง: Stock WIP & FG -->
             <li class="nav-item">
                 <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#tab-stock" type="button"><i class="fas fa-warehouse me-2 text-info"></i>Stock WIP & FG</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="delivery-tab" data-bs-toggle="tab" data-bs-target="#tab-delivery" type="button" onclick="loadDeliveryParts()"><i class="fas fa-truck me-2 text-primary"></i>Delivery (การส่งมอบ)</button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
@@ -287,7 +288,7 @@
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label small">Machine No.</label>
-                                        <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No.">
+                                        <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
                                     </div>
                                 </div>
                                 <div class="mb-2">
@@ -348,7 +349,7 @@
                 </div>
             </div>
 
-            <!-- TAB 5: NEW - Q-GATE INSPECTION -->
+            <!-- TAB 5: Q-GATE INSPECTION -->
             <div class="tab-pane fade" id="tab-qgate">
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -414,7 +415,7 @@
                 </div>
             </div>
 
-            <!-- TAB 6: NEW - STOCK WIP & FG -->
+            <!-- TAB 6: STOCK WIP & FG -->
             <div class="tab-pane fade" id="tab-stock">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -453,8 +454,9 @@
                                         <tr>
                                             <th>Part No.</th>
                                             <th>รับเข้า FG (Pass Qty)</th>
-                                            <th>ของเสียที่พบที่ Q-Gate</th>
-                                            <th>สถานะคลัง FG</th>
+                                            <th class="text-primary">ส่งมอบออก (Delivery)</th>
+                                            <th>คงเหลือ FG จริง</th>
+                                            <th>สถานะ</th>
                                         </tr>
                                     </thead>
                                     <tbody id="fgTableBody"></tbody>
@@ -465,7 +467,71 @@
                 </div>
             </div>
 
-            <!-- TAB 7: DIE MAINTENANCE & PM -->
+            <!-- TAB 7: DELIVERY (การส่งมอบสินค้า) -->
+            <div class="tab-pane fade" id="tab-delivery">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="card p-3 border-start border-4 border-primary">
+                            <h5 class="mb-3 text-primary"><i class="fas fa-truck-loading me-2"></i>บันทึกการส่งมอบสินค้า (Delivery)</h5>
+                            <form id="deliveryForm" onsubmit="submitDelivery(event)">
+                                <div class="mb-2">
+                                    <label class="form-label small">1. วันที่ส่งมอบ (Delivery Date)</label>
+                                    <input type="date" id="deliveryDate" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-info fw-bold">Part No. (เลือกจาก Stock FG)</label>
+                                    <select id="deliveryPartNo" class="form-select form-select-sm" onchange="updateFgMaxHint()" required>
+                                        <option value="">-- เลือก Part No. ที่มีใน Stock FG --</option>
+                                    </select>
+                                    <small id="fgMaxHint" class="text-info d-block mt-1">คงเหลือใน FG: 0 ชิ้น</small>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-primary fw-bold">2. จำนวนส่งมอบ (Delivery Qty)</label>
+                                    <input type="number" id="deliveryQty" class="form-control form-control-sm border-primary" placeholder="0" min="1" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">ชื่อลูกค้า / สถานที่ส่งมอบ</label>
+                                    <input type="text" id="deliveryCustomer" class="form-control form-control-sm" placeholder="เช่น บริษัท A จำกัด">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small">หมายเหตุ / เลขที่ DO</label>
+                                    <input type="text" id="deliveryRemark" class="form-control form-control-sm" placeholder="เช่น DO-69001">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+                                    <i class="fas fa-paper-plane me-1"></i> ยืนยันบันทึกส่งมอบ & ตัด Stock FG
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="m-0"><i class="fas fa-shipping-fast me-2 text-primary"></i>ประวัติการส่งมอบสินค้า (Delivery Log)</h5>
+                                <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('delivery')">
+                                    <i class="fas fa-file-excel me-1"></i> Export ประวัติการส่งมอบ
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle m-0">
+                                    <thead>
+                                        <tr>
+                                            <th>วันที่ส่งมอบ</th>
+                                            <th>Part No.</th>
+                                            <th>จำนวนส่งมอบ</th>
+                                            <th>ลูกค้า</th>
+                                            <th>หมายเหตุ / DO</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="deliveryTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 8: DIE MAINTENANCE & PM -->
             <div class="tab-pane fade" id="tab-die">
                 <div class="row g-3">
                     <div class="col-md-7">
@@ -506,40 +572,34 @@
                                     <input type="date" id="bmDate" class="form-control form-control-sm" required>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label small">Line</label>
-                                    <select id="bmLine" class="form-select form-select-sm" required>
-                                        <option value="Line A">Line A</option>
-                                        <option value="Line Q">Line Q</option>
-                                        <option value="Line C1">Line C1</option>
-                                        <option value="Line C2">Line C2</option>
-                                        <option value="Line C3">Line C3</option>
-                                    </select>
+                                    <label class="form-label small">Part No. แม่พิมพ์</label>
+                                    <input type="text" id="bmPartNo" class="form-control form-control-sm" placeholder="เช่น 17154-0T040" required>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label small">Part No.</label>
-                                    <input type="text" id="bmPartNo" class="form-control form-control-sm" placeholder="ระบุ Part No." required>
+                                    <label class="form-label small">อาการเสีย / รายละเอียดปัญหา</label>
+                                    <textarea id="bmProblem" class="form-control form-control-sm" rows="2" placeholder="เช่น แม่พิมพ์แตก, ชิ้นงานเป็นรอย" required></textarea>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label small">อาการเสีย / ปัญหาแม่พิมพ์</label>
-                                    <textarea id="bmProblem" class="form-control form-control-sm" rows="3" placeholder="ระบุปัญหา เช่น แม่พิมพ์บิ่น, ชิ้นงานเป็นรอย" required></textarea>
+                                    <label class="form-label small">ผู้แจ้งซ่อม</label>
+                                    <input type="text" id="bmReporter" class="form-control form-control-sm" placeholder="เช่น ช่างสมศักดิ์" required>
                                 </div>
-                                <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold"><i class="fas fa-save me-1"></i> บันทึกประวัติซ่อม</button>
+                                <button type="submit" class="btn btn-danger btn-sm w-100"><i class="fas fa-exclamation-triangle me-1"></i> บันทึกแจ้งซ่อม (Breakdown)</button>
                             </form>
                         </div>
 
                         <div class="card p-3">
-                            <h5 class="mb-3">ประวัติการแจ้งซ่อม/PM</h5>
+                            <h5 class="mb-3"><i class="fas fa-history me-2"></i>ประวัติการซ่อมแม่พิมพ์</h5>
                             <div class="table-responsive">
                                 <table class="table table-dark table-hover align-middle m-0">
                                     <thead>
                                         <tr>
                                             <th>Date</th>
-                                            <th>Line</th>
                                             <th>Part No.</th>
-                                            <th>Problem / Detail</th>
+                                            <th>Problem</th>
+                                            <th>Reporter</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="dieTableBody"></tbody>
+                                    <tbody id="dieBmTableBody"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -550,739 +610,725 @@
         </div>
     </div>
 
-    <!-- Modal ลบข้อมูลในระบบ -->
-    <div class="modal fade" id="clearDataModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content bg-dark text-white border-secondary">
+    <!-- Modals -->
+    <div class="modal fade" id="clearModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ลบข้อมูลในระบบ</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ยืนยันการลบข้อมูลทั้งหมด</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">เลือกลบข้อมูลตาม Line:</label>
-                        <select id="deleteTargetLine" class="form-select">
-                            <option value="ALL">--- ลบข้อมูลทั้งหมด (ทุก Line) ---</option>
-                            <option value="Line A">เฉพาะ Line A</option>
-                            <option value="Line Q">เฉพาะ Line Q</option>
-                            <option value="Line C1">เฉพาะ Line C1</option>
-                            <option value="Line C2">เฉพาะ Line C2</option>
-                            <option value="Line C3">เฉพาะ Line C3</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">กรอกรหัสผ่านผู้ดูแลระบบ (Admin Password):</label>
-                        <input type="password" id="deletePassword" class="form-control" placeholder="กรอกรหัส 1234">
-                    </div>
+                    การดำเนินการนี้จะทำการลบข้อมูลแผนการผลิต ประวัติการผลิต ประวัติ Q-Gate ประวัติการส่งมอบ และประวัติ PM ทั้งหมดในระบบ และไม่สามารถกู้คืนได้
                 </div>
                 <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-danger" onclick="confirmClearData()">ยืนยันการลบข้อมูล</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="clearAllData()">ยืนยันลบทั้งหมด</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const DEFAULT_MAX_CAPACITY = 10000;
-        const DIE_PM_LIMIT = 40000;
-        const ADMIN_PASSWORD = "1234";
-
-        let currentFilterLine = 'ALL';
+        // Data Structures in LocalStorage
         let plans = JSON.parse(localStorage.getItem('sys_plans')) || [];
         let actuals = JSON.parse(localStorage.getItem('sys_actuals')) || [];
-        let qgateLogs = JSON.parse(localStorage.getItem('sys_qgate_logs')) || [];
-        let dieLogs = JSON.parse(localStorage.getItem('sys_dielogs')) || [];
+        let qgate = JSON.parse(localStorage.getItem('sys_qgate')) || [];
+        let deliveries = JSON.parse(localStorage.getItem('sys_deliveries')) || [];
+        let bms = JSON.parse(localStorage.getItem('sys_bms')) || [];
+        let currentFilterLine = 'ALL';
 
+        const PM_LIMIT = 40000;
+        const MC_MAX_CAPACITY = 50000;
+
+        // Initialization
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
-            if (document.getElementById('planDate')) document.getElementById('planDate').value = today;
-            if (document.getElementById('planFinishDate')) document.getElementById('planFinishDate').value = today;
-            if (document.getElementById('actualDate')) document.getElementById('actualDate').value = today;
-            if (document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
-            if (document.getElementById('bmDate')) document.getElementById('bmDate').value = today;
+            if(document.getElementById('planDate')) document.getElementById('planDate').value = today;
+            if(document.getElementById('planFinishDate')) document.getElementById('planFinishDate').value = today;
+            if(document.getElementById('actualDate')) document.getElementById('actualDate').value = today;
+            if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
+            if(document.getElementById('deliveryDate')) document.getElementById('deliveryDate').value = today;
+            if(document.getElementById('bmDate')) document.getElementById('bmDate').value = today;
 
             const savedLogo = localStorage.getItem('sys_logo');
             if (savedLogo) {
                 document.getElementById('companyLogo').src = savedLogo;
             }
 
-            refreshAllViews();
+            renderAll();
         });
 
+        function saveAll() {
+            localStorage.setItem('sys_plans', JSON.stringify(plans));
+            localStorage.setItem('sys_actuals', JSON.stringify(actuals));
+            localStorage.setItem('sys_qgate', JSON.stringify(qgate));
+            localStorage.setItem('sys_deliveries', JSON.stringify(deliveries));
+            localStorage.setItem('sys_bms', JSON.stringify(bms));
+            renderAll();
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderCapacity();
+            renderPlans();
+            renderActuals();
+            renderQGate();
+            renderStock();
+            renderDelivery();
+            renderDiePM();
+        }
+
+        // Logo Upload Logic
         function uploadLogo(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const base64Img = e.target.result;
-                    document.getElementById('companyLogo').src = base64Img;
-                    localStorage.setItem('sys_logo', base64Img);
+                    const result = e.target.result;
+                    document.getElementById('companyLogo').src = result;
+                    localStorage.setItem('sys_logo', result);
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        function saveToStorage() {
-            localStorage.setItem('sys_plans', JSON.stringify(plans));
-            localStorage.setItem('sys_actuals', JSON.stringify(actuals));
-            localStorage.setItem('sys_qgate_logs', JSON.stringify(qgateLogs));
-            localStorage.setItem('sys_dielogs', JSON.stringify(dieLogs));
-            refreshAllViews();
-        }
-
-        function refreshAllViews() {
-            renderDashboard();
-            renderPlans();
-            renderActuals();
-            renderQGateLogs();
-            renderStockWipAndFg();
-            renderCapacity();
-            renderDie();
-        }
-
+        // --- TAB 1: DASHBOARD ---
         function filterDashboard(line, btn) {
             currentFilterLine = line;
-            if (btn) {
-                const buttons = btn.parentElement.querySelectorAll('.btn');
-                buttons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            }
+            const buttons = btn.parentElement.querySelectorAll('button');
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             renderDashboard();
         }
 
         function renderDashboard() {
-            let filteredPlans = plans;
-            let filteredActuals = actuals;
-
-            if (currentFilterLine !== 'ALL') {
-                filteredPlans = plans.filter(p => p.line === currentFilterLine);
-                filteredActuals = actuals.filter(a => a.line === currentFilterLine);
-            }
-
-            const totalPlan = filteredPlans.reduce((sum, p) => sum + Number(p.planQty), 0);
-            const totalActual = filteredActuals.reduce((sum, a) => sum + Number(a.okQty), 0);
-            const diff = totalPlan - totalActual;
-
-            document.getElementById('dashTotalPlan').innerText = totalPlan.toLocaleString();
-            document.getElementById('dashTotalActual').innerText = totalActual.toLocaleString();
-            document.getElementById('dashTotalDiff').innerText = (diff < 0 ? 0 : diff).toLocaleString();
-
             const tbody = document.getElementById('dashTableBody');
             tbody.innerHTML = '';
 
-            if (filteredPlans.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted p-3">ไม่มีข้อมูลแผนการผลิต</td></tr>`;
-                return;
-            }
+            let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => p.line === currentFilterLine);
 
-            const todayStr = new Date().toISOString().split('T')[0];
+            let totalPlan = 0;
+            let totalActual = 0;
 
             filteredPlans.forEach(plan => {
-                const actMatches = actuals.filter(a => a.partNo === plan.partNo && a.lotNo === plan.lotNo);
-                const actQty = actMatches.reduce((sum, a) => sum + Number(a.okQty), 0);
-                const progress = Math.min(Math.round((actQty / plan.planQty) * 100), 100) || 0;
-                const isDelayed = (todayStr > plan.finishDate) && (progress < 100);
+                const actForPlan = actuals.filter(a => a.line === plan.line && a.partNo === plan.partNo && a.lotNo === plan.lotNo);
+                const actualOkSum = actForPlan.reduce((sum, a) => sum + Number(a.qty), 0);
 
-                let progressBarClass = 'bg-info';
-                let badgeStatus = '';
+                totalPlan += Number(plan.qty);
+                totalActual += actualOkSum;
 
-                if (progress >= 100) {
-                    progressBarClass = 'bg-success';
-                } else if (isDelayed) {
-                    progressBarClass = 'bg-danger animate-pulse';
-                    badgeStatus = '<span class="badge bg-danger ms-2">Delay</span>';
-                }
+                const progress = Math.min(100, Math.round((actualOkSum / plan.qty) * 100)) || 0;
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${plan.startDate}</td>
-                        <td>${plan.finishDate}</td>
-                        <td><span class="badge bg-secondary">${plan.line}</span></td>
-                        <td class="fw-bold text-info">${plan.partNo}</td>
-                        <td>${plan.lotNo}</td>
-                        <td>${Number(plan.planQty).toLocaleString()}</td>
-                        <td class="text-success fw-bold">${actQty.toLocaleString()}</td>
-                        <td style="width: 20%;">
-                            <div class="d-flex align-items-center">
-                                <div class="progress flex-grow-1" style="height: 15px;">
-                                    <div class="progress-bar ${progressBarClass}" style="width: ${progress}%">${progress}%</div>
-                                </div>
-                                ${badgeStatus}
-                            </div>
-                        </td>
-                    </tr>
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${plan.date}</td>
+                    <td>${plan.finishDate || plan.date}</td>
+                    <td><span class="badge bg-secondary">${plan.line}</span></td>
+                    <td class="fw-bold text-info">${plan.partNo}</td>
+                    <td>${plan.lotNo}</td>
+                    <td>${Number(plan.qty).toLocaleString()}</td>
+                    <td class="text-success fw-bold">${actualOkSum.toLocaleString()}</td>
+                    <td style="width: 200px;">
+                        <div class="progress" style="height: 15px;">
+                            <div class="progress-bar ${progress >= 100 ? 'bg-success' : 'bg-info'}" role="progressbar" style="width: ${progress}%;">${progress}%</div>
+                        </div>
+                    </td>
                 `;
+                tbody.appendChild(tr);
             });
+
+            document.getElementById('dashTotalPlan').innerText = totalPlan.toLocaleString();
+            document.getElementById('dashTotalActual').innerText = totalActual.toLocaleString();
+            const diff = totalPlan - totalActual;
+            document.getElementById('dashTotalDiff').innerText = (diff > 0 ? diff : 0).toLocaleString();
         }
 
+        // --- TAB 2: CAPACITY ---
         function renderCapacity() {
             const tbody = document.getElementById('capacityTableBody');
             tbody.innerHTML = '';
 
-            const mcGroup = {};
+            const lineMcs = {};
             actuals.forEach(a => {
-                const mcKey = a.mcNo || 'N/A';
-                if (!mcGroup[mcKey]) {
-                    mcGroup[mcKey] = { line: a.line, mcNo: mcKey, actualQty: 0 };
-                }
-                mcGroup[mcKey].actualQty += Number(a.okQty);
+                const key = `${a.line}|${a.mcNo || 'N/A'}`;
+                if(!lineMcs[key]) lineMcs[key] = { line: a.line, mcNo: a.mcNo || 'N/A', strokes: 0 };
+                lineMcs[key].strokes += (Number(a.qty) + Number(a.ngQty || 0));
             });
 
-            const keys = Object.keys(mcGroup);
-            if (keys.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-3">ยังไม่มีข้อมูลการเดินเครื่องจักร</td></tr>`;
+            let totalStrokes = 0;
+            let totalMaxCap = 0;
+
+            const keys = Object.keys(lineMcs);
+            if(keys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">ยังไม่มีข้อมูลการผลิตเพื่อคำนวณ Capacity</td></tr>';
                 document.getElementById('overallUtilization').innerText = '0%';
                 return;
             }
 
-            let totalActualAllMc = 0;
-            let totalMaxCapAllMc = 0;
+            keys.forEach(k => {
+                const item = lineMcs[k];
+                totalStrokes += item.strokes;
+                totalMaxCap += MC_MAX_CAPACITY;
 
-            keys.forEach(key => {
-                const item = mcGroup[key];
-                const util = Math.round((item.actualQty / DEFAULT_MAX_CAPACITY) * 100);
-                totalActualAllMc += item.actualQty;
-                totalMaxCapAllMc += DEFAULT_MAX_CAPACITY;
-
+                const util = Math.round((item.strokes / MC_MAX_CAPACITY) * 100);
                 let statusBadge = '<span class="badge bg-success">Normal</span>';
-                if (util >= 90) statusBadge = '<span class="badge bg-danger">Overload</span>';
-                else if (util >= 75) statusBadge = '<span class="badge bg-warning text-dark">High Load</span>';
+                if(util > 90) statusBadge = '<span class="badge bg-danger animate-pulse">Overload</span>';
+                else if(util > 75) statusBadge = '<span class="badge bg-warning text-dark">High</span>';
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td><span class="badge bg-secondary">${item.line}</span></td>
-                        <td class="fw-bold text-warning">${item.mcNo}</td>
-                        <td>${item.actualQty.toLocaleString()}</td>
-                        <td>${DEFAULT_MAX_CAPACITY.toLocaleString()}</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <span class="me-2">${util}%</span>
-                                <div class="progress flex-grow-1" style="height: 10px;">
-                                    <div class="progress-bar ${util >= 90 ? 'bg-danger' : util >= 75 ? 'bg-warning' : 'bg-info'}" style="width: ${Math.min(util, 100)}%"></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>${statusBadge}</td>
-                    </tr>
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.line}</td>
+                    <td>${item.mcNo}</td>
+                    <td>${item.strokes.toLocaleString()}</td>
+                    <td>${MC_MAX_CAPACITY.toLocaleString()}</td>
+                    <td class="fw-bold">${util}%</td>
+                    <td>${statusBadge}</td>
                 `;
+                tbody.appendChild(tr);
             });
 
-            const overall = Math.round((totalActualAllMc / totalMaxCapAllMc) * 100) || 0;
-            document.getElementById('overallUtilization').innerText = `${overall}%`;
+            const overall = totalMaxCap > 0 ? Math.round((totalStrokes / totalMaxCap) * 100) : 0;
+            document.getElementById('overallUtilization').innerText = overall + '%';
         }
 
+        // --- TAB 3: PLANNING ---
         function submitPlan(e) {
             e.preventDefault();
-            const newPlan = {
+            const plan = {
                 id: Date.now(),
-                startDate: document.getElementById('planDate').value,
+                date: document.getElementById('planDate').value,
                 finishDate: document.getElementById('planFinishDate').value,
                 line: document.getElementById('planLine').value,
-                partNo: document.getElementById('planPartNo').value.trim().toUpperCase(),
-                lotNo: document.getElementById('planLotNo').value.trim().toUpperCase(),
-                planQty: Number(document.getElementById('planQty').value)
+                partNo: document.getElementById('planPartNo').value.trim(),
+                lotNo: document.getElementById('planLotNo').value.trim(),
+                qty: Number(document.getElementById('planQty').value)
             };
-
-            plans.push(newPlan);
-            saveToStorage();
-
+            plans.push(plan);
+            saveAll();
             document.getElementById('planForm').reset();
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('planDate').value = today;
             document.getElementById('planFinishDate').value = today;
-            alert('บันทึกแผนงานเรียบร้อยแล้ว!');
         }
 
         function renderPlans() {
             const tbody = document.getElementById('planTableBody');
             tbody.innerHTML = '';
-
-            if (plans.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-3">ไม่มีรายการแผนการผลิต</td></tr>`;
-                return;
-            }
-
-            plans.forEach(p => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${p.startDate}</td>
-                        <td>${p.finishDate}</td>
-                        <td><span class="badge bg-secondary">${p.line}</span></td>
-                        <td class="fw-bold text-info">${p.partNo}</td>
-                        <td>${p.lotNo}</td>
-                        <td>${Number(p.planQty).toLocaleString()}</td>
-                        <td class="text-center">
-                            <button class="btn btn-outline-danger btn-sm" onclick="deletePlan(${p.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
+            plans.forEach(plan => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${plan.date}</td>
+                    <td>${plan.finishDate}</td>
+                    <td><span class="badge bg-secondary">${plan.line}</span></td>
+                    <td class="fw-bold text-info">${plan.partNo}</td>
+                    <td>${plan.lotNo}</td>
+                    <td>${Number(plan.qty).toLocaleString()}</td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-danger btn-sm" onclick="deletePlan(${plan.id})"><i class="fas fa-trash"></i></button>
+                    </td>
                 `;
+                tbody.appendChild(tr);
             });
         }
 
         function deletePlan(id) {
-            if (confirm('คุณต้องการลบรายการแผนการผลิตนี้หรือไม่?')) {
-                plans = plans.filter(p => p.id !== id);
-                saveToStorage();
-            }
+            plans = plans.filter(p => p.id !== id);
+            saveAll();
         }
 
         function clearAllPlans() {
-            if (confirm('คำเตือน: คุณต้องการล้างรายการ "แผนการผลิตทั้งหมด" ใช่หรือไม่?')) {
+            if(confirm('ต้องการล้างแผนการผลิตทั้งหมดใช่หรือไม่?')) {
                 plans = [];
-                saveToStorage();
+                saveAll();
             }
         }
 
+        // --- TAB 4: ACTUAL PRODUCTION ---
         function checkAndLoadPlans() {
-            const selectedLine = document.getElementById('actualLine').value;
-            const partSelect = document.getElementById('actualPartNo');
+            const line = document.getElementById('actualLine').value;
+            const selectPart = document.getElementById('actualPartNo');
+            selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
+
+            const linePlans = plans.filter(p => p.line === line);
             const alertBox = document.getElementById('actualAlert');
-            const alertText = document.getElementById('actualAlertText');
-            const submitBtn = document.getElementById('btnSubmitActual');
 
-            const availPlans = plans.filter(p => p.line === selectedLine);
-            partSelect.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
-
-            if (availPlans.length === 0) {
-                alertText.innerText = `ไม่พบแผนการผลิตใน ${selectedLine} กรุณาเพิ่มแผนการผลิตก่อน`;
+            if(linePlans.length === 0) {
                 alertBox.classList.remove('d-none');
-                partSelect.disabled = true;
-                submitBtn.disabled = true;
-                document.getElementById('actualLotNo').value = '';
+                document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
             } else {
                 alertBox.classList.add('d-none');
-                partSelect.disabled = false;
-                submitBtn.disabled = false;
-
-                availPlans.forEach(p => {
-                    partSelect.innerHTML += `<option value="${p.partNo}" data-lot="${p.lotNo}">${p.partNo} (Lot: ${p.lotNo})</option>`;
+                linePlans.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.partNo;
+                    opt.dataset.lot = p.lotNo;
+                    opt.innerText = `${p.partNo} (Lot: ${p.lotNo})`;
+                    selectPart.appendChild(opt);
                 });
             }
         }
 
         function onActualPartChange() {
-            const partSelect = document.getElementById('actualPartNo');
-            const selectedOpt = partSelect.options[partSelect.selectedIndex];
-            const lotInput = document.getElementById('actualLotNo');
-
-            if (selectedOpt && selectedOpt.dataset.lot) {
-                lotInput.value = selectedOpt.dataset.lot;
-            } else {
-                lotInput.value = '';
-            }
+            const select = document.getElementById('actualPartNo');
+            const selectedOpt = select.options[select.selectedIndex];
+            document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
         }
 
         function submitActual(e) {
             e.preventDefault();
-            const newAct = {
+            const actual = {
                 id: Date.now(),
                 date: document.getElementById('actualDate').value,
                 operator: document.getElementById('actualOperator').value.trim(),
                 line: document.getElementById('actualLine').value,
-                mcNo: document.getElementById('actualMcNo').value.trim() || 'MC-01',
+                mcNo: document.getElementById('actualMcNo').value.trim(),
                 partNo: document.getElementById('actualPartNo').value,
                 lotNo: document.getElementById('actualLotNo').value,
-                okQty: Number(document.getElementById('actualQty').value),
-                ngQty: Number(document.getElementById('actualNgQty').value) || 0,
+                qty: Number(document.getElementById('actualQty').value),
+                ngQty: Number(document.getElementById('actualNgQty').value || 0),
                 remark: document.getElementById('actualRemark').value.trim()
             };
-
-            actuals.unshift(newAct);
-            saveToStorage();
-
-            document.getElementById('actualQty').value = '';
-            document.getElementById('actualNgQty').value = '0';
-            document.getElementById('actualRemark').value = '';
-            alert('บันทึกยอดผลิตเรียบร้อย! (ยอด OK เพิ่มเข้า Stock WIP แล้ว)');
+            actuals.push(actual);
+            saveAll();
+            document.getElementById('actualForm').reset();
+            document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
+            checkAndLoadPlans();
         }
 
         function renderActuals() {
             const tbody = document.getElementById('actualTableBody');
             tbody.innerHTML = '';
-
-            if (actuals.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted p-3">ไม่มีประวัติการบันทึกการผลิต</td></tr>`;
-                return;
-            }
-
-            actuals.forEach(a => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${a.date}</td>
-                        <td>${a.operator}</td>
-                        <td><span class="badge bg-secondary">${a.line}</span> <small class="text-warning">(${a.mcNo})</small></td>
-                        <td class="fw-bold text-info">${a.partNo}</td>
-                        <td>${a.lotNo}</td>
-                        <td class="text-success fw-bold">${a.okQty.toLocaleString()}</td>
-                        <td class="text-danger fw-bold">${a.ngQty.toLocaleString()}</td>
-                        <td><small class="text-muted">${a.remark || '-'}</small></td>
-                    </tr>
+            actuals.slice().reverse().forEach(a => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${a.date}</td>
+                    <td>${a.operator}</td>
+                    <td><span class="badge bg-secondary">${a.line}</span> / ${a.mcNo}</td>
+                    <td class="fw-bold text-info">${a.partNo}</td>
+                    <td>${a.lotNo}</td>
+                    <td class="text-success fw-bold">${Number(a.qty).toLocaleString()}</td>
+                    <td class="text-danger">${Number(a.ngQty).toLocaleString()}</td>
+                    <td class="small text-muted">${a.remark || '-'}</td>
                 `;
+                tbody.appendChild(tr);
             });
         }
 
-        // ================= Q-GATE FUNCTIONS =================
+        // --- TAB 5: Q-GATE INSPECTION ---
+        function getWipBalances() {
+            const wipMap = {};
+            actuals.forEach(a => {
+                if(!wipMap[a.partNo]) wipMap[a.partNo] = 0;
+                wipMap[a.partNo] += Number(a.qty);
+            });
+            qgate.forEach(q => {
+                if(!wipMap[q.partNo]) wipMap[q.partNo] = 0;
+                wipMap[q.partNo] -= Number(q.checkQty);
+            });
+            return wipMap;
+        }
+
         function loadQGateParts() {
-            const qgateSelect = document.getElementById('qgatePartNo');
-            qgateSelect.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
+            const wipMap = getWipBalances();
+            const select = document.getElementById('qgatePartNo');
+            select.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
 
-            const partSet = new Set(actuals.map(a => a.partNo));
-            partSet.forEach(partNo => {
-                const totalWipIn = actuals.filter(a => a.partNo === partNo).reduce((sum, a) => sum + Number(a.okQty), 0);
-                const totalChecked = qgateLogs.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.checkQty), 0);
-                const currentWip = totalWipIn - totalChecked;
-
-                if (currentWip > 0) {
-                    qgateSelect.innerHTML += `<option value="${partNo}">Part: ${partNo} (WIP คงเหลือ: ${currentWip.toLocaleString()} ชิ้น)</option>`;
+            Object.keys(wipMap).forEach(partNo => {
+                if(wipMap[partNo] > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = partNo;
+                    opt.innerText = `${partNo} (คงเหลือ WIP: ${wipMap[partNo].toLocaleString()})`;
+                    select.appendChild(opt);
                 }
             });
-
             updateWipMaxHint();
-        }
-
-        function getWipBalanceForPart(partNo) {
-            if (!partNo) return 0;
-            const totalWipIn = actuals.filter(a => a.partNo === partNo).reduce((sum, a) => sum + Number(a.okQty), 0);
-            const totalChecked = qgateLogs.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.checkQty), 0);
-            return Math.max(0, totalWipIn - totalChecked);
         }
 
         function updateWipMaxHint() {
             const partNo = document.getElementById('qgatePartNo').value;
+            const wipMap = getWipBalances();
             const hint = document.getElementById('wipMaxHint');
-            const wipBal = getWipBalanceForPart(partNo);
-            hint.innerText = `คงเหลือใน WIP ที่พร้อมตรวจ: ${wipBal.toLocaleString()} ชิ้น`;
+            const available = wipMap[partNo] || 0;
+            hint.innerText = `คงเหลือใน WIP: ${available.toLocaleString()} ชิ้น`;
+            document.getElementById('qgateCheckQty').max = available;
         }
 
         function submitQGate(e) {
             e.preventDefault();
             const partNo = document.getElementById('qgatePartNo').value;
             const checkQty = Number(document.getElementById('qgateCheckQty').value);
-            const ngQty = Number(document.getElementById('qgateNgQty').value) || 0;
-            const currentWip = getWipBalanceForPart(partNo);
+            const ngQty = Number(document.getElementById('qgateNgQty').value);
 
-            if (!partNo) {
-                alert('กรุณาเลือก Part No. ที่ต้องการตรวจ');
+            const wipMap = getWipBalances();
+            if(checkQty > (wipMap[partNo] || 0)) {
+                alert('จำนวนที่ตรวจสอบมากกว่ายอดคงเหลือใน WIP!');
                 return;
             }
 
-            if (checkQty > currentWip) {
-                alert(`จำนวนที่ตรวจ (${checkQty.toLocaleString()}) มากกว่าจำนวนที่มีอยู่ใน WIP (${currentWip.toLocaleString()})`);
+            if(ngQty > checkQty) {
+                alert('จำนวน NG ไม่สามารถมากกว่าจำนวนที่ตรวจสอบได้!');
                 return;
             }
 
-            if (ngQty > checkQty) {
-                alert('จำนวนของเสีย (NG) ห้ามมากกว่าจำนวนที่ตรวจสอบทั้งหมด');
-                return;
-            }
-
-            const passQty = checkQty - ngQty; // ยอดของดีโอนเข้า FG
-
-            const newQGateLog = {
+            const record = {
                 id: Date.now(),
                 date: document.getElementById('qgateDate').value,
                 inspector: document.getElementById('qgateInspector').value.trim(),
                 partNo: partNo,
                 checkQty: checkQty,
                 ngQty: ngQty,
-                passQty: passQty
+                passQty: checkQty - ngQty
             };
 
-            qgateLogs.unshift(newQGateLog);
-            saveToStorage();
-
-            document.getElementById('qgateCheckQty').value = '';
-            document.getElementById('qgateNgQty').value = '0';
+            qgate.push(record);
+            saveAll();
+            document.getElementById('qgateForm').reset();
+            document.getElementById('qgateDate').value = new Date().toISOString().split('T')[0];
             loadQGateParts();
-            alert(`ตรวจ Q-Gate สำเร็จ! โอนของดี ${passQty.toLocaleString()} ชิ้น เข้า FG และตัดยอดจาก WIP เรียบร้อยแล้ว`);
         }
 
-        function renderQGateLogs() {
+        function renderQGate() {
             const tbody = document.getElementById('qgateTableBody');
             tbody.innerHTML = '';
-
-            if (qgateLogs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-3">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
-                return;
-            }
-
-            qgateLogs.forEach(q => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${q.date}</td>
-                        <td>${q.inspector}</td>
-                        <td class="fw-bold text-info">${q.partNo}</td>
-                        <td>${Number(q.checkQty).toLocaleString()}</td>
-                        <td class="text-danger fw-bold">${Number(q.ngQty).toLocaleString()}</td>
-                        <td class="text-success fw-bold">${Number(q.passQty).toLocaleString()}</td>
-                    </tr>
+            qgate.slice().reverse().forEach(q => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${q.date}</td>
+                    <td>${q.inspector}</td>
+                    <td class="fw-bold text-info">${q.partNo}</td>
+                    <td>${Number(q.checkQty).toLocaleString()}</td>
+                    <td class="text-danger fw-bold">${Number(q.ngQty).toLocaleString()}</td>
+                    <td class="text-success fw-bold">${Number(q.passQty).toLocaleString()}</td>
                 `;
+                tbody.appendChild(tr);
             });
         }
 
-        // ================= STOCK WIP & FG FUNCTIONS =================
-        function renderStockWipAndFg() {
+        // --- TAB 6: STOCK WIP & FG ---
+        function getFgBalances() {
+            const fgMap = {};
+            // รับเข้า FG จาก Q-Gate
+            qgate.forEach(q => {
+                if(!fgMap[q.partNo]) fgMap[q.partNo] = 0;
+                fgMap[q.partNo] += Number(q.passQty);
+            });
+            // ตัดส่งมอบออก (Delivery)
+            deliveries.forEach(d => {
+                if(!fgMap[d.partNo]) fgMap[d.partNo] = 0;
+                fgMap[d.partNo] -= Number(d.qty);
+            });
+            return fgMap;
+        }
+
+        function renderStock() {
             const wipTbody = document.getElementById('wipTableBody');
             const fgTbody = document.getElementById('fgTableBody');
             wipTbody.innerHTML = '';
             fgTbody.innerHTML = '';
 
-            const partSet = new Set([
-                ...actuals.map(a => a.partNo),
-                ...qgateLogs.map(q => q.partNo)
+            const partsSet = new Set([
+                ...actuals.map(a => a.partNo), 
+                ...qgate.map(q => q.partNo),
+                ...deliveries.map(d => d.partNo)
             ]);
 
-            if (partSet.size === 0) {
-                wipTbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted p-3">ไม่มีสินค้าใน WIP</td></tr>`;
-                fgTbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted p-3">ไม่มีสินค้าใน คลัง FG</td></tr>`;
-                return;
-            }
+            partsSet.forEach(partNo => {
+                if(!partNo) return;
 
-            partSet.forEach(partNo => {
-                // WIP Calculation
-                const totalWipIn = actuals.filter(a => a.partNo === partNo).reduce((sum, a) => sum + Number(a.okQty), 0);
-                const totalChecked = qgateLogs.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.checkQty), 0);
-                const wipBalance = Math.max(0, totalWipIn - totalChecked);
+                // WIP Summary
+                const totalIn = actuals.filter(a => a.partNo === partNo).reduce((sum, a) => sum + Number(a.qty), 0);
+                const totalTransferred = qgate.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.checkQty), 0);
+                const currentWip = totalIn - totalTransferred;
 
-                wipTbody.innerHTML += `
-                    <tr>
-                        <td class="fw-bold text-info">${partNo}</td>
-                        <td class="text-success">${totalWipIn.toLocaleString()}</td>
-                        <td class="text-warning">${totalChecked.toLocaleString()}</td>
-                        <td class="fw-bold text-white fs-6">${wipBalance.toLocaleString()}</td>
-                    </tr>
+                const trWip = document.createElement('tr');
+                trWip.innerHTML = `
+                    <td class="fw-bold text-info">${partNo}</td>
+                    <td>${totalIn.toLocaleString()}</td>
+                    <td>${totalTransferred.toLocaleString()}</td>
+                    <td class="fw-bold ${currentWip > 0 ? 'text-warning' : ''}">${currentWip.toLocaleString()}</td>
                 `;
+                wipTbody.appendChild(trWip);
 
-                // FG Calculation
-                const fgMatches = qgateLogs.filter(q => q.partNo === partNo);
-                const totalFgPass = fgMatches.reduce((sum, q) => sum + Number(q.passQty), 0);
-                const totalQGateNg = fgMatches.reduce((sum, q) => sum + Number(q.ngQty), 0);
+                // FG Summary
+                const fgPass = qgate.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.passQty), 0);
+                const fgDelivered = deliveries.filter(d => d.partNo === partNo).reduce((sum, d) => sum + Number(d.qty), 0);
+                const currentFg = fgPass - fgDelivered;
 
-                let fgStatus = totalFgPass > 0 ? '<span class="badge bg-success">In Stock</span>' : '<span class="badge bg-secondary">Out of Stock</span>';
-
-                fgTbody.innerHTML += `
-                    <tr>
-                        <td class="fw-bold text-info">${partNo}</td>
-                        <td class="text-success fw-bold fs-6">${totalFgPass.toLocaleString()}</td>
-                        <td class="text-danger fw-bold">${totalQGateNg.toLocaleString()}</td>
-                        <td>${fgStatus}</td>
-                    </tr>
+                const trFg = document.createElement('tr');
+                trFg.innerHTML = `
+                    <td class="fw-bold text-info">${partNo}</td>
+                    <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
+                    <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
+                    <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()}</td>
+                    <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
                 `;
+                fgTbody.appendChild(trFg);
             });
         }
 
-        // ================= DIE MAINTENANCE FUNCTIONS =================
-        function renderDie() {
-            const tbodyPm = document.getElementById('diePmTableBody');
-            const tbodyLogs = document.getElementById('dieTableBody');
-            tbodyPm.innerHTML = '';
-            tbodyLogs.innerHTML = '';
+        // --- TAB 7: DELIVERY (การส่งมอบ) ---
+        function loadDeliveryParts() {
+            const fgMap = getFgBalances();
+            const select = document.getElementById('deliveryPartNo');
+            select.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน Stock FG --</option>';
 
-            const partDieMap = {};
-
-            actuals.forEach(a => {
-                if (!partDieMap[a.partNo]) {
-                    partDieMap[a.partNo] = { partNo: a.partNo, lastLine: a.line, totalStroke: 0 };
+            Object.keys(fgMap).forEach(partNo => {
+                if(fgMap[partNo] > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = partNo;
+                    opt.innerText = `${partNo} (คงเหลือ FG: ${fgMap[partNo].toLocaleString()})`;
+                    select.appendChild(opt);
                 }
-                partDieMap[a.partNo].totalStroke += Number(a.okQty);
-                partDieMap[a.partNo].lastLine = a.line;
+            });
+            updateFgMaxHint();
+        }
+
+        function updateFgMaxHint() {
+            const partNo = document.getElementById('deliveryPartNo').value;
+            const fgMap = getFgBalances();
+            const hint = document.getElementById('fgMaxHint');
+            const available = fgMap[partNo] || 0;
+            hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
+            document.getElementById('deliveryQty').max = available;
+        }
+
+        function submitDelivery(e) {
+            e.preventDefault();
+            const partNo = document.getElementById('deliveryPartNo').value;
+            const deliveryQty = Number(document.getElementById('deliveryQty').value);
+
+            const fgMap = getFgBalances();
+            const currentStock = fgMap[partNo] || 0;
+
+            if(deliveryQty > currentStock) {
+                alert(`จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
+                return;
+            }
+
+            const record = {
+                id: Date.now(),
+                date: document.getElementById('deliveryDate').value,
+                partNo: partNo,
+                qty: deliveryQty,
+                customer: document.getElementById('deliveryCustomer').value.trim() || '-',
+                remark: document.getElementById('deliveryRemark').value.trim() || '-'
+            };
+
+            deliveries.push(record);
+            saveAll();
+            document.getElementById('deliveryForm').reset();
+            document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
+            loadDeliveryParts();
+        }
+
+        function renderDelivery() {
+            const tbody = document.getElementById('deliveryTableBody');
+            tbody.innerHTML = '';
+            deliveries.slice().reverse().forEach(d => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${d.date}</td>
+                    <td class="fw-bold text-info">${d.partNo}</td>
+                    <td class="text-primary fw-bold">${Number(d.qty).toLocaleString()}</td>
+                    <td>${d.customer}</td>
+                    <td class="small text-muted">${d.remark}</td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteDelivery(${d.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteDelivery(id) {
+            if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไป)')) {
+                deliveries = deliveries.filter(d => d.id !== id);
+                saveAll();
+                loadDeliveryParts();
+            }
+        }
+
+        // --- TAB 8: DIE MAINTENANCE & PM ---
+        function submitDieBm(e) {
+            e.preventDefault();
+            const bm = {
+                id: Date.now(),
+                date: document.getElementById('bmDate').value,
+                partNo: document.getElementById('bmPartNo').value.trim(),
+                problem: document.getElementById('bmProblem').value.trim(),
+                reporter: document.getElementById('bmReporter').value.trim()
+            };
+            bms.push(bm);
+            saveAll();
+            document.getElementById('dieForm').reset();
+            document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        function resetDiePm(partNo) {
+            if(confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
+                actuals.forEach(a => {
+                    if(a.partNo === partNo) a.pmReset = true;
+                });
+                saveAll();
+            }
+        }
+
+        function renderDiePM() {
+            const pmTbody = document.getElementById('diePmTableBody');
+            const bmTbody = document.getElementById('dieBmTableBody');
+            pmTbody.innerHTML = '';
+            bmTbody.innerHTML = '';
+
+            const dieStrokes = {};
+            actuals.forEach(a => {
+                if(a.pmReset) return;
+                if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line, strokes: 0 };
+                dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
             });
 
             let pmDueCount = 0;
             let pmNearCount = 0;
 
-            const partKeys = Object.keys(partDieMap);
-            if (partKeys.length === 0) {
-                tbodyPm.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-3">ไม่มีข้อมูลสะสมการใช้งานแม่พิมพ์</td></tr>`;
-            } else {
-                partKeys.forEach(key => {
-                    const item = partDieMap[key];
-                    const progressPercent = Math.min(Math.round((item.totalStroke / DIE_PM_LIMIT) * 100), 100);
+            Object.keys(dieStrokes).forEach(partNo => {
+                const item = dieStrokes[partNo];
+                const strokes = item.strokes;
+                const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
 
-                    let statusBadge = '<span class="badge bg-success">Normal</span>';
-                    if (item.totalStroke >= DIE_PM_LIMIT) {
-                        statusBadge = '<span class="badge bg-danger animate-pulse">PM Due Now!</span>';
-                        pmDueCount++;
-                    } else if (item.totalStroke >= DIE_PM_LIMIT * 0.8) {
-                        statusBadge = '<span class="badge bg-warning text-dark">Near PM</span>';
-                        pmNearCount++;
-                    }
+                let statusBadge = '<span class="badge bg-success">OK</span>';
+                if(strokes >= PM_LIMIT) {
+                    statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
+                    pmDueCount++;
+                } else if(strokes >= PM_LIMIT * 0.85) {
+                    statusBadge = '<span class="badge bg-warning text-dark">NEAR PM</span>';
+                    pmNearCount++;
+                }
 
-                    tbodyPm.innerHTML += `
-                        <tr>
-                            <td class="fw-bold text-info">${item.partNo}</td>
-                            <td><span class="badge bg-secondary">${item.lastLine}</span></td>
-                            <td class="fw-bold">${item.totalStroke.toLocaleString()}</td>
-                            <td>${DIE_PM_LIMIT.toLocaleString()}</td>
-                            <td style="width: 20%;">
-                                <div class="progress" style="height: 15px;">
-                                    <div class="progress-bar ${item.totalStroke >= DIE_PM_LIMIT ? 'bg-danger' : item.totalStroke >= DIE_PM_LIMIT*0.8 ? 'bg-warning' : 'bg-info'}" style="width: ${progressPercent}%">${progressPercent}%</div>
-                                </div>
-                            </td>
-                            <td>${statusBadge}</td>
-                            <td>
-                                <button class="btn btn-outline-warning btn-sm" onclick="quickPmReset('${item.partNo}')">
-                                    <i class="fas fa-wrench me-1"></i> Reset PM
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            }
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-info">${partNo}</td>
+                    <td>${item.line}</td>
+                    <td>${strokes.toLocaleString()}</td>
+                    <td>${PM_LIMIT.toLocaleString()}</td>
+                    <td style="width: 150px;">
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar ${strokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${progress}%;"></div>
+                        </div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn btn-outline-success btn-sm" onclick="resetDiePm('${partNo}')"><i class="fas fa-check me-1"></i>Reset PM</button>
+                    </td>
+                `;
+                pmTbody.appendChild(tr);
+            });
 
             document.getElementById('diePmDueCount').innerText = pmDueCount;
             document.getElementById('diePmNearCount').innerText = pmNearCount;
 
-            if (dieLogs.length === 0) {
-                tbodyLogs.innerHTML = `<tr><td colspan="4" class="text-center text-muted p-3">ไม่มีประวัติการแจ้งซ่อม/PM</td></tr>`;
-            } else {
-                dieLogs.forEach(log => {
-                    tbodyLogs.innerHTML += `
-                        <tr>
-                            <td>${log.date}</td>
-                            <td><span class="badge bg-secondary">${log.line}</span></td>
-                            <td class="fw-bold text-info">${log.partNo}</td>
-                            <td>${log.problem}</td>
-                        </tr>
-                    `;
-                });
-            }
+            bms.slice().reverse().forEach(b => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${b.date}</td>
+                    <td class="fw-bold text-info">${b.partNo}</td>
+                    <td class="text-danger">${b.problem}</td>
+                    <td>${b.reporter}</td>
+                `;
+                bmTbody.appendChild(tr);
+            });
         }
 
-        function submitDieBm(e) {
-            e.preventDefault();
-            const newLog = {
-                id: Date.now(),
-                date: document.getElementById('bmDate').value,
-                line: document.getElementById('bmLine').value,
-                partNo: document.getElementById('bmPartNo').value.trim().toUpperCase(),
-                problem: document.getElementById('bmProblem').value.trim()
-            };
-
-            dieLogs.unshift(newLog);
-            saveToStorage();
-
-            document.getElementById('dieForm').reset();
-            document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
-            alert('บันทึกการแจ้งซ่อม/PM เรียบร้อยแล้ว!');
-        }
-
-        function quickPmReset(partNo) {
-            if (confirm(`ยืนยันการเคลียร์รอบ PM สำหรับ Part No. ${partNo} หรือไม่?\n(ระบบจะลบสถิติ Actual เดิมของ Part นี้เพื่อเริ่มรอบ PM ใหม่)`)) {
-                actuals = actuals.filter(a => a.partNo !== partNo);
-                dieLogs.unshift({
-                    id: Date.now(),
-                    date: new Date().toISOString().split('T')[0],
-                    line: 'N/A',
-                    partNo: partNo,
-                    problem: 'ทำการบำรุงรักษาเชิงป้องกัน (Preventive Maintenance - PM) และ Reset รอบการใช้งาน'
-                });
-                saveToStorage();
-            }
-        }
-
-        function showClearModal() {
-            const modal = new bootstrap.Modal(document.getElementById('clearDataModal'));
-            document.getElementById('deletePassword').value = '';
-            modal.show();
-        }
-
-        function confirmClearData() {
-            const scopeLine = document.getElementById('deleteTargetLine').value;
-            const pwd = document.getElementById('deletePassword').value;
-
-            if (pwd !== ADMIN_PASSWORD) {
-                alert('รหัสผ่านไม่ถูกต้อง! ไม่สามารถลบข้อมูลได้');
-                return;
-            }
-
-            if (scopeLine === 'ALL') {
-                plans = [];
-                actuals = [];
-                qgateLogs = [];
-                dieLogs = [];
-            } else {
-                plans = plans.filter(p => p.line !== scopeLine);
-                actuals = actuals.filter(a => a.line !== scopeLine);
-                dieLogs = dieLogs.filter(d => d.line !== scopeLine);
-            }
-
-            saveToStorage();
-
-            const modalEl = document.getElementById('clearDataModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
-
-            alert(`ลบข้อมูล (${scopeLine}) สำเร็จแล้ว!`);
-        }
-
+        // --- EXPORT TO EXCEL (SheetJS) ---
         function exportToExcelXLSX(type) {
             let data = [];
-            let filename = '';
+            let fileName = 'export.xlsx';
 
-            if (type === 'plans') {
-                filename = 'Production_Plans.xlsx';
+            if(type === 'plans') {
                 data = plans.map(p => ({
-                    'Start Date': p.startDate,
+                    'Start Date': p.date,
                     'Finish Date': p.finishDate,
                     'Line': p.line,
-                    'Part No': p.partNo,
-                    'Lot No': p.lotNo,
-                    'Plan Qty': Number(p.planQty)
+                    'Part No.': p.partNo,
+                    'Lot No.': p.lotNo,
+                    'Plan Qty': p.qty
                 }));
-            } 
-            else if (type === 'actuals') {
-                filename = 'Production_Actuals.xlsx';
+                fileName = 'Production_Plans.xlsx';
+            } else if(type === 'actuals') {
                 data = actuals.map(a => ({
                     'Date': a.date,
                     'Operator': a.operator,
                     'Line': a.line,
-                    'Machine No': a.mcNo || 'N/A',
-                    'Part No': a.partNo,
-                    'Lot No': a.lotNo,
-                    'OK Qty': Number(a.okQty),
-                    'NG Qty': Number(a.ngQty),
-                    'Remark': a.remark || '-'
+                    'Machine No.': a.mcNo,
+                    'Part No.': a.partNo,
+                    'Lot No.': a.lotNo,
+                    'OK Qty': a.qty,
+                    'NG Qty': a.ngQty,
+                    'Remark': a.remark
                 }));
-            }
-            else if (type === 'qgate') {
-                filename = 'QGate_Inspection_Logs.xlsx';
-                data = qgateLogs.map(q => ({
+                fileName = 'Production_Actuals.xlsx';
+            } else if(type === 'qgate') {
+                data = qgate.map(q => ({
                     'Date': q.date,
                     'Inspector': q.inspector,
-                    'Part No': q.partNo,
-                    'Checked Qty': Number(q.checkQty),
-                    'NG Qty': Number(q.ngQty),
-                    'Passed to FG Qty': Number(q.passQty)
+                    'Part No.': q.partNo,
+                    'Checked Qty': q.checkQty,
+                    'NG Qty': q.ngQty,
+                    'Pass Qty (FG)': q.passQty
                 }));
-            }
-            else if (type === 'stock_fg') {
-                filename = 'Stock_FG_Summary.xlsx';
-                const partSet = new Set([...qgateLogs.map(q => q.partNo)]);
-                partSet.forEach(partNo => {
-                    const fgMatches = qgateLogs.filter(q => q.partNo === partNo);
-                    const totalFgPass = fgMatches.reduce((sum, q) => sum + Number(q.passQty), 0);
-                    const totalQGateNg = fgMatches.reduce((sum, q) => sum + Number(q.ngQty), 0);
+                fileName = 'QGate_Inspections.xlsx';
+            } else if(type === 'delivery') {
+                data = deliveries.map(d => ({
+                    'Delivery Date': d.date,
+                    'Part No.': d.partNo,
+                    'Delivery Qty': d.qty,
+                    'Customer': d.customer,
+                    'Remark / DO': d.remark
+                }));
+                fileName = 'Delivery_Log.xlsx';
+            } else if(type === 'stock_fg') {
+                const partsSet = new Set([...qgate.map(q => q.partNo), ...deliveries.map(d => d.partNo)]);
+                partsSet.forEach(partNo => {
+                    const fgPass = qgate.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.passQty), 0);
+                    const fgDelivered = deliveries.filter(d => d.partNo === partNo).reduce((sum, d) => sum + Number(d.qty), 0);
+                    const currentFg = fgPass - fgDelivered;
                     data.push({
-                        'Part No': partNo,
-                        'FG Total Pass': totalFgPass,
-                        'Q-Gate NG': totalQGateNg
+                        'Part No.': partNo,
+                        'Received FG (Pass Qty)': fgPass,
+                        'Delivered Qty': fgDelivered,
+                        'Current Stock FG': currentFg,
+                        'Status': currentFg > 0 ? 'In Stock' : 'Out of Stock'
                     });
                 });
+                fileName = 'Stock_FG_Report.xlsx';
             }
 
-            if (data.length === 0) {
+            if(data.length === 0) {
                 alert('ไม่มีข้อมูลสำหรับ Export');
                 return;
             }
 
             const worksheet = XLSX.utils.json_to_sheet(data);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-            XLSX.writeFile(workbook, filename);
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        // Modal Clear System Data
+        function showClearModal() {
+            const modal = new bootstrap.Modal(document.getElementById('clearModal'));
+            modal.show();
+        }
+
+        function clearAllData() {
+            localStorage.removeItem('sys_plans');
+            localStorage.removeItem('sys_actuals');
+            localStorage.removeItem('sys_qgate');
+            localStorage.removeItem('sys_deliveries');
+            localStorage.removeItem('sys_bms');
+            plans = []; actuals = []; qgate = []; deliveries = []; bms = [];
+            renderAll();
+            const modalEl = document.getElementById('clearModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if(modal) modal.hide();
         }
     </script>
 </body>
