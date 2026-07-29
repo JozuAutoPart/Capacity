@@ -1405,79 +1405,62 @@
             location.reload();
         }
     }
- <script>
-    function deleteSpecificPartPrompt() {
-        // 1. ให้กรอก Part No. ที่ต้องการลบ
-        let targetPart = prompt("กรุณาพิมพ์ Part No. ที่ต้องการลบให้ถูกต้อง:");
-        if (!targetPart) return; // ถ้ากด Cancel หรือไม่พิมพ์ ให้หยุดทำงาน
+ <!-- โค้ดส่วนอื่นๆ ของเว็บคุณ... -->
 
-        // 2. ใส่รหัสผ่านเพื่อยืนยัน (ตั้งค่ารหัสผ่านไว้ที่นี่ เช่น "1234")
-        let adminPassword = "1234";
-        let inputPassword = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบ Part " + targetPart + ":");
+    <!-- นำฟังก์ชันมาวางไว้ตรงนี้ (ก่อนถึงแท็กปิด body) -->
+    <script>
+        function deleteSpecificPartPrompt() {
+            let targetPart = prompt("กรุณาพิมพ์ Part No. ที่ต้องการลบให้ถูกต้อง (เช่น 55388-05021):");
+            if (!targetPart) return;
 
-        if (inputPassword === null) return; // ถ้ากด Cancel
+            let adminPassword = "1234";
+            let inputPassword = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบ Part: " + targetPart);
 
-        if (inputPassword === adminPassword) {
-            let deleted = false;
+            if (inputPassword === null) return;
 
-           if (inputPassword === adminPassword) {
-            let deleted = false;
+            if (inputPassword === adminPassword) {
+                let deleted = false;
 
-            // วนลูปเช็คทุกข้อมูลที่จัดเก็บใน LocalStorage ของเบราว์เซอร์ทั้งหมด
-            for (let i = 0; i < localStorage.length; i++) {
-                let key = localStorage.key(i);
-                let dataStr = localStorage.getItem(key);
-                
-                if (dataStr) {
-                    try {
-                        let dataList = JSON.parse(dataStr);
-                        if (Array.isArray(dataList) && dataList.length > 0) {
-                            let initialLen = dataList.length;
-                            
-                            // กรองข้อมูลทิ้งถ้าเจอ Part No. ที่ตรงกัน (รองรับทุกตัวพิมพ์เล็ก-ใหญ่)
-                            let filteredList = dataList.filter(item => {
-                                if (!item || typeof item !== 'object') return true;
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    let dataStr = localStorage.getItem(key);
+                    
+                    if (dataStr) {
+                        try {
+                            let dataList = JSON.parse(dataStr);
+                            if (Array.isArray(dataList) && dataList.length > 0) {
+                                let initialLen = dataList.length;
                                 
-                                // ตรวจหาชื่อฟิลด์ที่เป็น Part No. ทุกรูปแบบที่เป็นไปได้
-                                let pNo = item.partNo || item.PartNo || item.part_no || item.PARTNO;
-                                
-                                // ถ้าตรงกับที่พิมพ์มา ให้ตัดทิ้ง (ไม่เอาไว้)
-                                if (pNo && String(pNo).trim() === String(targetPart).trim()) {
-                                    return false; 
+                                let filteredList = dataList.filter(item => {
+                                    if (!item || typeof item !== 'object') return true;
+                                    
+                                    let isMatch = Object.values(item).some(val => 
+                                        val && String(val).trim().toLowerCase() === String(targetPart).trim().toLowerCase()
+                                    );
+                                    
+                                    return !isMatch;
+                                });
+
+                                if (filteredList.length < initialLen) {
+                                    localStorage.setItem(key, JSON.stringify(filteredList));
+                                    deleted = true;
                                 }
-                                return true;
-                            });
-
-                            if (filteredList.length < initialLen) {
-                                localStorage.setItem(key, JSON.stringify(filteredList));
-                                deleted = true;
                             }
-                        }
-                    } catch (e) {
-                        // ข้ามข้อมูลที่ไม่ใช่ JSON
+                        } catch (e) {}
                     }
                 }
-            }
 
-            if (deleted) {
-                alert("ลบข้อมูล Part No. " + targetPart + " เรียบร้อยแล้ว!");
-                location.reload();
+                if (deleted) {
+                    alert("ลบข้อมูล Part No. " + targetPart + " เรียบร้อยแล้ว!");
+                    location.reload();
+                } else {
+                    alert("ไม่พบข้อมูลของ Part No. '" + targetPart + "' ในระบบ กรุณาตรวจสอบตัวสะกดอีกครั้งครับ");
+                }
+
             } else {
-                alert("ไม่พบข้อมูลของ Part No. '" + targetPart + "' ในระบบ กรุณาตรวจสอบตัวสะกดอีกครั้งครับ");
+                alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
             }
-
-            if (deleted) {
-                alert("ลบข้อมูล Part No. " + targetPart + " เรียบร้อยแล้ว!");
-                location.reload();
-            } else {
-                alert("ไม่พบ Part No. '" + targetPart + "' ในระบบ กรุณาตรวจสอบความถูกต้องอีกครั้ง");
-            }
-
-        } else {
-            alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
         }
-    }
-</script>
-
+    </script>
 </body>
 </html>
