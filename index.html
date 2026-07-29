@@ -1405,7 +1405,44 @@
             location.reload();
         }
     }
-   
+   <script>
+    function deleteSpecificPart(partNo) {
+        // กำหนดรหัสผ่านสำหรับยืนยันการลบ (สามารถเปลี่ยนได้ตามต้องการ เช่น "1234")
+        let adminPassword = "1234"; 
+
+        // 1. ให้เลือกเฉพาะ Part No. ที่ต้องการ (ช่อง Prompt จะขึ้น Part No. ให้ดูอัตโนมัติ)
+        let confirmPart = prompt("ต้องการลบ Part No. นี้ใช่หรือไม่?\nกรุณาพิมพ์ยืนยัน Part No. ให้ตรงกัน:", partNo);
+        
+        if (confirmPart !== partNo) {
+            if (confirmPart !== null) {
+                alert("ชื่อ Part No. ไม่ถูกต้อง ยกเลิกการลบ");
+            }
+            return;
+        }
+
+        // 2. ให้ใส่รหัสผ่านเพื่อยืนยัน
+        let inputPassword = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบ:");
+
+        if (inputPassword === null) {
+            return; // ถ้ากด Cancel
+        }
+
+        if (inputPassword === adminPassword) {
+            // ถ้ากรอกรหัสถูกต้อง ให้ทำการลบข้อมูล Part นั้นออกจากระบบ
+            
+            // ตัวอย่างการลบข้อมูลออกจาก LocalStorage (ปรับให้ตรงกับตัวแปร array ของคุณ เช่น plans หรือ actuals)
+            if (typeof plans !== 'undefined') {
+                plans = plans.filter(item => item.partNo !== partNo);
+                localStorage.setItem('sys_plans', JSON.stringify(plans));
+            }
+
+            alert("ลบข้อมูล Part No. " + partNo + " เรียบร้อยแล้ว!");
+            location.reload(); // โหลดหน้าเว็บใหม่เพื่ออัปเดตข้อมูล
+        } else {
+            alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
+        }
+    }
 </script>
+
 </body>
 </html>
