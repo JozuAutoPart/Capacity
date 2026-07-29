@@ -1373,6 +1373,7 @@
         }
     </script>
  <script>
+   <script>
     function updateDashboardCharts() {
         // 1. ดึงชื่อไลน์ทั้งหมดจากแผน
         const uniqueLines = [...new Set(plans.map(p => p.line))];
@@ -1388,21 +1389,26 @@
             return actualsData.filter(a => a.line === line).reduce((sum, a) => sum + Number(a.okQty || 0), 0);
         });
 
-        // คำนวณ OK และ NG จากหน้าผลิตจริง
-        let prodOk = actualData.reduce((a, b) => a + b, 0);
+        // คำนวณยอด OK และ NG จากหน้าบันทึกยอดผลิตจริงโดยตรง
+        let prodOk = actualsData.reduce((sum, a) => sum + Number(a.okQty || 0), 0);
         let prodNg = actualsData.reduce((sum, a) => sum + Number(a.ngQty || 0), 0);
 
-        // 3. ดึงข้อมูลจากส่วน "Q-Gate Inspection" (สมมติว่าจัดเก็บใน localStorage ชื่อ 'qgateData' หรือปรับชื่อคีย์ให้ตรงกับระบบของคุณ)
+        // 3. ดึงข้อมูลจากส่วน "Q-Gate Inspection" (ถ้ามี)
         let qgateData = JSON.parse(localStorage.getItem('qgateData')) || [];
         let qgateOk = qgateData.reduce((sum, q) => sum + Number(q.okQty || 0), 0);
         let qgateNg = qgateData.reduce((sum, q) => sum + Number(q.ngQty || 0), 0);
 
-        // 4. รวมยอด OK และ NG ทั้งจากระบบผลิต และ Q-Gate เข้าด้วยกัน
-        let totalOk = (prodOk > 0 ? prodOk : 10250) + qgateOk;
-        let totalNg = (prodNg > 0 ? prodNg : 150) + qgateNg;
+        // 4. รวมยอด OK และ NG จากข้อมูลจริงทั้งหมด (ไม่ใส่ตัวเลขหลอกตายตัวแล้ว)
+        let totalOk = prodOk + qgateOk;
+        let totalNg = prodNg + qgateNg;
+
+        // ป้องกันกราฟพังกรณีไม่มีข้อมูลเลย ให้เป็น 0
+        if (totalOk === 0 && totalNg === 0) {
+            totalOk = 1; // ใส่ 1 เพื่อให้กราฟไม่ error เวลาไม่มีข้อมูล
+        }
 
         const finalPlanData = planData.some(val => val > 0) ? planData : [2500, 1800, 3000, 1200, 2000];
-        const finalActualData = actualData.some(val => val > 0) ? actualData : [2500, 1750, 2900, 1200, 1950];
+        const finalActualData = actualData.some(val => val > 0) ? actualData : [0, 0, 0, 0, 0];
 
         // --- กราฟแท่ง (Plan vs Actual) ---
         const ctxPlanActual = document.getElementById('planActualChart');
@@ -1431,7 +1437,7 @@
             });
         }
 
-        // --- กราฟโดนัท (OK / NG รวมจาก ผลิต + Q-Gate) ---
+        // --- กราฟโดนัท (OK / NG จากข้อมูลจริง) ---
         const ctxNgRatio = document.getElementById('ngRatioChart');
         if (ctxNgRatio) {
             if (window.myNgRatioChart) window.myNgRatioChart.destroy();
