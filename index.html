@@ -1345,5 +1345,23 @@
             if(modal) modal.hide();
         }
     </script>
+    <script>
+    function checkPassword(tabName) {
+        // กำหนดรหัสผ่านที่ต้องการ (ตัวอย่างตั้งเป็น 1234 หรือเปลี่ยนตามต้องการ)
+        let correctPassword = "1234"; 
+        
+        let userInput = prompt("กรุณากรอกรหัสผ่านเพื่อเข้าสู่หน้า " + tabName + ":");
+        
+        // ถ้าผู้ใช้กรอกรหัสผ่านถูกต้อง
+        if (userInput === correctPassword) {
+            alert("รหัสผ่านถูกต้อง!");
+            // คำสั่งสำหรับเปิด Tab นั้นๆ (ขึ้นอยู่กับโค้ดโครงสร้างเดิมของคุณ เช่น เรียกใช้ฟังก์ชันเปิด Tab)
+            // ตัวอย่างเช่น: showTab(tabName);
+        } else if (userInput !== null) {
+            // ถ้ากด cancel (userInput เป็น null) จะไม่แจ้งเตือน แต่ถ้ากรอกผิดจะแจ้งเตือน
+            alert("รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง");
+        }
+    }
+</script>
 </body>
 </html>
