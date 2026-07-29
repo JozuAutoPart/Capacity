@@ -543,10 +543,25 @@
                 return;
             }
 
+            const todayStr = new Date().toISOString().split('T')[0];
+
             filteredPlans.forEach(plan => {
                 const actMatches = actuals.filter(a => a.partNo === plan.partNo && a.lotNo === plan.lotNo);
                 const actQty = actMatches.reduce((sum, a) => sum + Number(a.okQty), 0);
                 const progress = Math.min(Math.round((actQty / plan.planQty) * 100), 100) || 0;
+
+                // ตรวจสอบเงื่อนไข Delay (เลย Finish Date และยอดยังไม่ครบ 100%)
+                const isDelayed = (todayStr > plan.finishDate) && (progress < 100);
+
+                let progressBarClass = 'bg-info';
+                let badgeStatus = '';
+
+                if (progress >= 100) {
+                    progressBarClass = 'bg-success';
+                } else if (isDelayed) {
+                    progressBarClass = 'bg-danger animate-pulse';
+                    badgeStatus = '<span class="badge bg-danger ms-2">Delay</span>';
+                }
 
                 tbody.innerHTML += `
                     <tr>
@@ -557,9 +572,12 @@
                         <td>${plan.lotNo}</td>
                         <td>${Number(plan.planQty).toLocaleString()}</td>
                         <td class="text-success fw-bold">${actQty.toLocaleString()}</td>
-                        <td style="width: 15%;">
-                            <div class="progress" style="height: 15px;">
-                                <div class="progress-bar ${progress >= 100 ? 'bg-success' : 'bg-info'}" style="width: ${progress}%">${progress}%</div>
+                        <td style="width: 20%;">
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1" style="height: 15px;">
+                                    <div class="progress-bar ${progressBarClass}" style="width: ${progress}%">${progress}%</div>
+                                </div>
+                                ${badgeStatus}
                             </div>
                         </td>
                     </tr>
