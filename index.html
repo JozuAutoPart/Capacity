@@ -1350,13 +1350,23 @@
     </script>
     <script>
     function resetActualStrokes() {
-        if (confirm("คุณต้องการรีเซ็ตค่า Actual Produced (Strokes) ทั้งหมดให้เป็น 0 ใช่หรือไม่?")) {
-            // ล้างค่าใน LocalStorage ของหน้า Capacity
-            localStorage.setItem("actualProducedCapacity", 0);
-            
-            // แจ้งเตือนและรีเฟรชหน้าเว็บ
-            alert("รีเซ็ตข้อมูลสำเร็จ!");
-            location.reload();
+    if (confirm("คุณต้องการรีเซ็ตค่า Actual Produced (Strokes) ทั้งหมดให้เป็น 0 ใช่หรือไม่?")) {
+        // ล้างค่าข้อมูลการผลิตจริงในระบบ (ตามคีย์จริงของเว็บคุณ)
+        localStorage.removeItem('sys_actuals');
+        
+        // หรือเคลียร์ตัวแปร array และเซฟค่าว่างทับ
+        if (typeof actuals !== 'undefined') {
+            actuals = [];
+            localStorage.setItem('sys_actuals', JSON.stringify(actuals));
+        }
+
+        // ล้างตัวแปรจำลองอื่นๆ ที่เกี่ยวข้อง
+        localStorage.setItem("actualProducedCapacity", 0);
+        
+        alert("รีเซ็ตข้อมูลสำเร็จ!");
+        location.reload();
+    }
+}
         }
     }
 </script>
