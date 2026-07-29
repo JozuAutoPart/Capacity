@@ -682,22 +682,7 @@
 
             renderAll();
         });
-// ฟังก์ชันแปลงรูปแบบวันที่เป็น วัน-เดือน-ปี (เช่น 29-07-2026 หรือใช้ชื่อเดือนภาษาอังกฤษ)
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    
-    // ตรวจสอบว่าเป็นวันที่ที่ถูกต้องหรือไม่
-    if (isNaN(date.getTime())) return dateString; 
-
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // เดือนเริ่มจาก 0 ต้องบวก 1
-    const year = date.getFullYear(); // หากต้องการปี พ.ศ. สามารถบวก 543 ตรงนี้ได้ (year + 543)
-
-    // คืนค่ารูปแบบ วัน-เดือน-ปี
-    return `${day}-${month}-${year}`;
-}
-        function saveAll() {
+       function saveAll() {
             localStorage.setItem('sys_plans', JSON.stringify(plans));
             localStorage.setItem('sys_actuals', JSON.stringify(actuals));
             localStorage.setItem('sys_qgate', JSON.stringify(qgate));
