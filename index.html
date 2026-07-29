@@ -164,6 +164,25 @@
                        <button type="button" class="btn btn-warning btn-sm float-end" onclick="doResetStrokes()">
     <i class="fas fa-undo"></i> Reset Actual Strokes
 </button>
+                        <div class="d-flex justify-content-between align-items-center mb-3 px-3">
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-light fw-bold small"><i class="fas fa-calendar-alt"></i> เลือกเดือน:</label>
+        <select id="filterMonth" class="form-select form-select-sm bg-dark text-light border-secondary" style="width: 160px;" onchange="changeCapacityMonth()">
+            <option value="0">มกราคม</option>
+            <option value="1">กุมภาพันธ์</option>
+            <option value="2">มีนาคม</option>
+            <option value="3">เมษายน</option>
+            <option value="4">พฤษภาคม</option>
+            <option value="5">มิถุนายน</option>
+            <option value="6">กรกฎาคม</option>
+            <option value="7">สิงหาคม</option>
+            <option value="8">กันยายน</option>
+            <option value="9">ตุลาคม</option>
+            <option value="10">พฤศจิกายน</option>
+            <option value="11">ธันวาคม</option>
+        </select>
+    </div>
+</div>
                         <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
                         <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
                     </div>
@@ -1362,6 +1381,28 @@
 
             alert("รีเซ็ตข้อมูลสำเร็จ!");
             location.reload(); // รีโหลดหน้าเว็บเพื่อเคลียร์ค่าเป็น 0
+        }
+    }
+       <script>
+    // ตั้งค่าเริ่มต้น Dropdown ให้ตรงกับเดือนปัจจุบันเมื่อโหลดหน้าเว็บ
+    document.addEventListener("DOMContentLoaded", function() {
+        let currentMonth = new Date().getMonth();
+        let monthSelect = document.getElementById("filterMonth");
+        if(monthSelect) {
+            monthSelect.value = localStorage.getItem("selectedCapacityMonth") || currentMonth;
+        }
+    });
+
+    // ฟังก์ชันเมื่อเปลี่ยนเดือน
+    function changeCapacityMonth() {
+        let selectedMonth = document.getElementById("filterMonth").value;
+        localStorage.setItem("selectedCapacityMonth", selectedMonth);
+        
+        // โหลดข้อมูลใหม่ตามเดือนที่เลือก (เรียกใช้ฟังก์ชันเรนเดอร์หน้าเว็บหลักของคุณ)
+        if (typeof renderCapacity === 'function') {
+            renderCapacity();
+        } else {
+            location.reload();
         }
     }
 </script>
