@@ -46,7 +46,6 @@
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
-                <!-- โลโก้รูปภาพเปลี่ยนจากไอคอนเดิม -->
                 <div class="position-relative">
                     <img id="companyLogo" src="Jozu.png" alt="Jozu Logo" class="logo-header-img" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนรูปโลโก้" onerror="this.src='https://via.placeholder.com/150x50/ffffff/000000?text=Jozu+Logo'">
                     <input type="file" id="logoInput" accept="image/*" class="d-none" onchange="uploadLogo(event)">
@@ -85,8 +84,13 @@
             <li class="nav-item">
                 <button class="nav-link" id="actual-tab" data-bs-toggle="tab" data-bs-target="#tab-actual" type="button" onclick="checkAndLoadPlans()"><i class="fas fa-user-edit me-2"></i>บันทึกยอดผลิต (พนักงาน)</button>
             </li>
+            <!-- แท็บเพิ่มใหม่: Q-Gate -->
             <li class="nav-item">
-                <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#tab-stock" type="button"><i class="fas fa-boxes me-2"></i>Stock</button>
+                <button class="nav-link" id="qgate-tab" data-bs-toggle="tab" data-bs-target="#tab-qgate" type="button" onclick="loadQGateParts()"><i class="fas fa-clipboard-check me-2 text-warning"></i>Q-Gate Inspection</button>
+            </li>
+            <!-- แท็บปรับปรุง: Stock WIP & FG -->
+            <li class="nav-item">
+                <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#tab-stock" type="button"><i class="fas fa-warehouse me-2 text-info"></i>Stock WIP & FG</button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
@@ -298,7 +302,7 @@
                                 </div>
                                 <div class="row g-2 mb-2">
                                     <div class="col-6">
-                                        <label class="form-label small text-success">ยอดผลิตดี (OK Qty)</label>
+                                        <label class="form-label small text-success">ยอดผลิตดี (OK Qty -> เพิ่มเข้า WIP)</label>
                                         <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
                                     </div>
                                     <div class="col-6">
@@ -344,34 +348,124 @@
                 </div>
             </div>
 
-            <!-- TAB 5: STOCK -->
-            <div class="tab-pane fade" id="tab-stock">
-                <div class="card p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="m-0"><i class="fas fa-boxes me-2"></i>สรุปสถานะสต็อกและคลังสินค้า (Stock Summary)</h5>
-                        <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('stock')">
-                            <i class="fas fa-file-excel me-1"></i> Export สต็อก
-                        </button>
+            <!-- TAB 5: NEW - Q-GATE INSPECTION -->
+            <div class="tab-pane fade" id="tab-qgate">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="card p-3 border-start border-4 border-warning">
+                            <h5 class="mb-3 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
+                            <form id="qgateForm" onsubmit="submitQGate(event)">
+                                <div class="mb-2">
+                                    <label class="form-label small">วันที่ตรวจสอบ</label>
+                                    <input type="date" id="qgateDate" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">ชื่อพนักงานตรวจสอบ (Inspector)</label>
+                                    <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น นายสมศักดิ์ (QC-01)" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-warning fw-bold">Part No. (ตรวจจาก WIP)</label>
+                                    <select id="qgatePartNo" class="form-select form-select-sm" onchange="updateWipMaxHint()" required>
+                                        <option value="">-- เลือก Part No. ที่มีใน WIP --</option>
+                                    </select>
+                                    <small id="wipMaxHint" class="text-info d-block mt-1">คงเหลือใน WIP: 0 ชิ้น</small>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small">จำนวนที่ตรวจสอบ</label>
+                                        <input type="number" id="qgateCheckQty" class="form-control form-control-sm" placeholder="0" min="1" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small text-danger">ของเสีย (NG Qty)</label>
+                                        <input type="number" id="qgateNgQty" class="form-control form-control-sm border-danger" value="0" min="0" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold">
+                                    <i class="fas fa-check-double me-1"></i> ยืนยันตรวจ & ตัด WIP เข้า FG
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle m-0">
-                            <thead>
-                                <tr>
-                                    <th>Part No.</th>
-                                    <th>Total Plan</th>
-                                    <th>Total Actual (OK)</th>
-                                    <th>Total NG</th>
-                                    <th>Balance (ค้างผลิต)</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="stockTableBody"></tbody>
-                        </table>
+                    <div class="col-md-8">
+                        <div class="card p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการตรวจสินค้าที่ Q-Gate</h5>
+                                <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('qgate')">
+                                    <i class="fas fa-file-excel me-1"></i> Export ประวัติ Q-Gate
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle m-0">
+                                    <thead>
+                                        <tr>
+                                            <th>วันที่ตรวจ</th>
+                                            <th>พนักงานตรวจ</th>
+                                            <th>Part No.</th>
+                                            <th>ยอดตรวจทั้งหมด</th>
+                                            <th>ของเสีย (NG)</th>
+                                            <th>ผ่านเข้า FG (Pass)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="qgateTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 6: DIE MAINTENANCE & PM -->
+            <!-- TAB 6: NEW - STOCK WIP & FG -->
+            <div class="tab-pane fade" id="tab-stock">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card p-3 border-start border-4 border-info">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="m-0 text-info"><i class="fas fa-cogs me-2"></i>คลังสินค้าระหว่างผลิต (Stock WIP)</h5>
+                                <span class="badge bg-info text-dark">ยอดผลิตดีรอการตรวจ QC</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle m-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Part No.</th>
+                                            <th>ผลิตเข้า WIP รวม</th>
+                                            <th>ตัดโอนออกไป FG</th>
+                                            <th>คงเหลือ WIP ปัจจุบัน</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="wipTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card p-3 border-start border-4 border-success">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="m-0 text-success"><i class="fas fa-box-open me-2"></i>คลังสินค้าสำเร็จรูป (Stock FG)</h5>
+                                <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('stock_fg')">
+                                    <i class="fas fa-file-excel me-1"></i> Export Stock FG
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle m-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Part No.</th>
+                                            <th>รับเข้า FG (Pass Qty)</th>
+                                            <th>ของเสียที่พบที่ Q-Gate</th>
+                                            <th>สถานะคลัง FG</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fgTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 7: DIE MAINTENANCE & PM -->
             <div class="tab-pane fade" id="tab-die">
                 <div class="row g-3">
                     <div class="col-md-7">
@@ -490,13 +584,14 @@
     </div>
 
     <script>
-        const DEFAULT_MAX_CAPACITY = 70000;
+        const DEFAULT_MAX_CAPACITY = 10000;
         const DIE_PM_LIMIT = 40000;
         const ADMIN_PASSWORD = "1234";
 
         let currentFilterLine = 'ALL';
         let plans = JSON.parse(localStorage.getItem('sys_plans')) || [];
         let actuals = JSON.parse(localStorage.getItem('sys_actuals')) || [];
+        let qgateLogs = JSON.parse(localStorage.getItem('sys_qgate_logs')) || [];
         let dieLogs = JSON.parse(localStorage.getItem('sys_dielogs')) || [];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -504,6 +599,7 @@
             if (document.getElementById('planDate')) document.getElementById('planDate').value = today;
             if (document.getElementById('planFinishDate')) document.getElementById('planFinishDate').value = today;
             if (document.getElementById('actualDate')) document.getElementById('actualDate').value = today;
+            if (document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
             if (document.getElementById('bmDate')) document.getElementById('bmDate').value = today;
 
             const savedLogo = localStorage.getItem('sys_logo');
@@ -530,6 +626,7 @@
         function saveToStorage() {
             localStorage.setItem('sys_plans', JSON.stringify(plans));
             localStorage.setItem('sys_actuals', JSON.stringify(actuals));
+            localStorage.setItem('sys_qgate_logs', JSON.stringify(qgateLogs));
             localStorage.setItem('sys_dielogs', JSON.stringify(dieLogs));
             refreshAllViews();
         }
@@ -538,7 +635,8 @@
             renderDashboard();
             renderPlans();
             renderActuals();
-            renderStock();
+            renderQGateLogs();
+            renderStockWipAndFg();
             renderCapacity();
             renderDie();
         }
@@ -798,7 +896,7 @@
             document.getElementById('actualQty').value = '';
             document.getElementById('actualNgQty').value = '0';
             document.getElementById('actualRemark').value = '';
-            alert('บันทึกยอดผลิตเรียบร้อย!');
+            alert('บันทึกยอดผลิตเรียบร้อย! (ยอด OK เพิ่มเข้า Stock WIP แล้ว)');
         }
 
         function renderActuals() {
@@ -826,47 +924,157 @@
             });
         }
 
-        function renderStock() {
-            const tbody = document.getElementById('stockTableBody');
-            tbody.innerHTML = '';
+        // ================= Q-GATE FUNCTIONS =================
+        function loadQGateParts() {
+            const qgateSelect = document.getElementById('qgatePartNo');
+            qgateSelect.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
 
-            const partSet = new Set([
-                ...plans.map(p => p.partNo),
-                ...actuals.map(a => a.partNo)
-            ]);
+            const partSet = new Set(actuals.map(a => a.partNo));
+            partSet.forEach(partNo => {
+                const totalWipIn = actuals.filter(a => a.partNo === partNo).reduce((sum, a) => sum + Number(a.okQty), 0);
+                const totalChecked = qgateLogs.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.checkQty), 0);
+                const currentWip = totalWipIn - totalChecked;
 
-            if (partSet.size === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-3">ไม่มีข้อมูลสต็อกสินค้า</td></tr>`;
+                if (currentWip > 0) {
+                    qgateSelect.innerHTML += `<option value="${partNo}">Part: ${partNo} (WIP คงเหลือ: ${currentWip.toLocaleString()} ชิ้น)</option>`;
+                }
+            });
+
+            updateWipMaxHint();
+        }
+
+        function getWipBalanceForPart(partNo) {
+            if (!partNo) return 0;
+            const totalWipIn = actuals.filter(a => a.partNo === partNo).reduce((sum, a) => sum + Number(a.okQty), 0);
+            const totalChecked = qgateLogs.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.checkQty), 0);
+            return Math.max(0, totalWipIn - totalChecked);
+        }
+
+        function updateWipMaxHint() {
+            const partNo = document.getElementById('qgatePartNo').value;
+            const hint = document.getElementById('wipMaxHint');
+            const wipBal = getWipBalanceForPart(partNo);
+            hint.innerText = `คงเหลือใน WIP ที่พร้อมตรวจ: ${wipBal.toLocaleString()} ชิ้น`;
+        }
+
+        function submitQGate(e) {
+            e.preventDefault();
+            const partNo = document.getElementById('qgatePartNo').value;
+            const checkQty = Number(document.getElementById('qgateCheckQty').value);
+            const ngQty = Number(document.getElementById('qgateNgQty').value) || 0;
+            const currentWip = getWipBalanceForPart(partNo);
+
+            if (!partNo) {
+                alert('กรุณาเลือก Part No. ที่ต้องการตรวจ');
                 return;
             }
 
-            partSet.forEach(partNo => {
-                const totalPlan = plans.filter(p => p.partNo === partNo).reduce((sum, p) => sum + Number(p.planQty), 0);
-                const matchingActs = actuals.filter(a => a.partNo === partNo);
-                const totalActualOK = matchingActs.reduce((sum, a) => sum + Number(a.okQty), 0);
-                const totalNG = matchingActs.reduce((sum, a) => sum + Number(a.ngQty), 0);
-                const balance = totalPlan - totalActualOK;
+            if (checkQty > currentWip) {
+                alert(`จำนวนที่ตรวจ (${checkQty.toLocaleString()}) มากกว่าจำนวนที่มีอยู่ใน WIP (${currentWip.toLocaleString()})`);
+                return;
+            }
 
-                let statusBadge = '<span class="badge bg-warning text-dark">In Progress</span>';
-                if (totalPlan > 0 && balance <= 0) {
-                    statusBadge = '<span class="badge bg-success">Completed</span>';
-                } else if (totalPlan === 0) {
-                    statusBadge = '<span class="badge bg-secondary">No Plan</span>';
-                }
+            if (ngQty > checkQty) {
+                alert('จำนวนของเสีย (NG) ห้ามมากกว่าจำนวนที่ตรวจสอบทั้งหมด');
+                return;
+            }
 
+            const passQty = checkQty - ngQty; // ยอดของดีโอนเข้า FG
+
+            const newQGateLog = {
+                id: Date.now(),
+                date: document.getElementById('qgateDate').value,
+                inspector: document.getElementById('qgateInspector').value.trim(),
+                partNo: partNo,
+                checkQty: checkQty,
+                ngQty: ngQty,
+                passQty: passQty
+            };
+
+            qgateLogs.unshift(newQGateLog);
+            saveToStorage();
+
+            document.getElementById('qgateCheckQty').value = '';
+            document.getElementById('qgateNgQty').value = '0';
+            loadQGateParts();
+            alert(`ตรวจ Q-Gate สำเร็จ! โอนของดี ${passQty.toLocaleString()} ชิ้น เข้า FG และตัดยอดจาก WIP เรียบร้อยแล้ว`);
+        }
+
+        function renderQGateLogs() {
+            const tbody = document.getElementById('qgateTableBody');
+            tbody.innerHTML = '';
+
+            if (qgateLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-3">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
+                return;
+            }
+
+            qgateLogs.forEach(q => {
                 tbody.innerHTML += `
                     <tr>
-                        <td class="fw-bold text-info">${partNo}</td>
-                        <td>${totalPlan.toLocaleString()}</td>
-                        <td class="text-success fw-bold">${totalActualOK.toLocaleString()}</td>
-                        <td class="text-danger fw-bold">${totalNG.toLocaleString()}</td>
-                        <td class="fw-bold">${(balance < 0 ? 0 : balance).toLocaleString()}</td>
-                        <td>${statusBadge}</td>
+                        <td>${q.date}</td>
+                        <td>${q.inspector}</td>
+                        <td class="fw-bold text-info">${q.partNo}</td>
+                        <td>${Number(q.checkQty).toLocaleString()}</td>
+                        <td class="text-danger fw-bold">${Number(q.ngQty).toLocaleString()}</td>
+                        <td class="text-success fw-bold">${Number(q.passQty).toLocaleString()}</td>
                     </tr>
                 `;
             });
         }
 
+        // ================= STOCK WIP & FG FUNCTIONS =================
+        function renderStockWipAndFg() {
+            const wipTbody = document.getElementById('wipTableBody');
+            const fgTbody = document.getElementById('fgTableBody');
+            wipTbody.innerHTML = '';
+            fgTbody.innerHTML = '';
+
+            const partSet = new Set([
+                ...actuals.map(a => a.partNo),
+                ...qgateLogs.map(q => q.partNo)
+            ]);
+
+            if (partSet.size === 0) {
+                wipTbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted p-3">ไม่มีสินค้าใน WIP</td></tr>`;
+                fgTbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted p-3">ไม่มีสินค้าใน คลัง FG</td></tr>`;
+                return;
+            }
+
+            partSet.forEach(partNo => {
+                // WIP Calculation
+                const totalWipIn = actuals.filter(a => a.partNo === partNo).reduce((sum, a) => sum + Number(a.okQty), 0);
+                const totalChecked = qgateLogs.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.checkQty), 0);
+                const wipBalance = Math.max(0, totalWipIn - totalChecked);
+
+                wipTbody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold text-info">${partNo}</td>
+                        <td class="text-success">${totalWipIn.toLocaleString()}</td>
+                        <td class="text-warning">${totalChecked.toLocaleString()}</td>
+                        <td class="fw-bold text-white fs-6">${wipBalance.toLocaleString()}</td>
+                    </tr>
+                `;
+
+                // FG Calculation
+                const fgMatches = qgateLogs.filter(q => q.partNo === partNo);
+                const totalFgPass = fgMatches.reduce((sum, q) => sum + Number(q.passQty), 0);
+                const totalQGateNg = fgMatches.reduce((sum, q) => sum + Number(q.ngQty), 0);
+
+                let fgStatus = totalFgPass > 0 ? '<span class="badge bg-success">In Stock</span>' : '<span class="badge bg-secondary">Out of Stock</span>';
+
+                fgTbody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold text-info">${partNo}</td>
+                        <td class="text-success fw-bold fs-6">${totalFgPass.toLocaleString()}</td>
+                        <td class="text-danger fw-bold">${totalQGateNg.toLocaleString()}</td>
+                        <td>${fgStatus}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // ================= DIE MAINTENANCE FUNCTIONS =================
         function renderDie() {
             const tbodyPm = document.getElementById('diePmTableBody');
             const tbodyLogs = document.getElementById('dieTableBody');
@@ -994,6 +1202,7 @@
             if (scopeLine === 'ALL') {
                 plans = [];
                 actuals = [];
+                qgateLogs = [];
                 dieLogs = [];
             } else {
                 plans = plans.filter(p => p.line !== scopeLine);
@@ -1038,28 +1247,29 @@
                     'NG Qty': Number(a.ngQty),
                     'Remark': a.remark || '-'
                 }));
-            } 
-            else if (type === 'stock') {
-                filename = 'Stock_Summary.xlsx';
-                const partSet = new Set([...plans.map(p => p.partNo), ...actuals.map(a => a.partNo)]);
-                
+            }
+            else if (type === 'qgate') {
+                filename = 'QGate_Inspection_Logs.xlsx';
+                data = qgateLogs.map(q => ({
+                    'Date': q.date,
+                    'Inspector': q.inspector,
+                    'Part No': q.partNo,
+                    'Checked Qty': Number(q.checkQty),
+                    'NG Qty': Number(q.ngQty),
+                    'Passed to FG Qty': Number(q.passQty)
+                }));
+            }
+            else if (type === 'stock_fg') {
+                filename = 'Stock_FG_Summary.xlsx';
+                const partSet = new Set([...qgateLogs.map(q => q.partNo)]);
                 partSet.forEach(partNo => {
-                    const totalPlan = plans.filter(p => p.partNo === partNo).reduce((sum, p) => sum + Number(p.planQty), 0);
-                    const matchingActs = actuals.filter(a => a.partNo === partNo);
-                    const totalActualOK = matchingActs.reduce((sum, a) => sum + Number(a.okQty), 0);
-                    const totalNG = matchingActs.reduce((sum, a) => sum + Number(a.ngQty), 0);
-                    const balance = Math.max(0, totalPlan - totalActualOK);
-                    
-                    let status = (totalPlan > 0 && balance === 0) ? 'Completed' : 'In Progress';
-                    if (totalPlan === 0) status = 'No Plan';
-
+                    const fgMatches = qgateLogs.filter(q => q.partNo === partNo);
+                    const totalFgPass = fgMatches.reduce((sum, q) => sum + Number(q.passQty), 0);
+                    const totalQGateNg = fgMatches.reduce((sum, q) => sum + Number(q.ngQty), 0);
                     data.push({
                         'Part No': partNo,
-                        'Total Plan': totalPlan,
-                        'Total Actual (OK)': totalActualOK,
-                        'Total NG': totalNG,
-                        'Balance': balance,
-                        'Status': status
+                        'FG Total Pass': totalFgPass,
+                        'Q-Gate NG': totalQGateNg
                     });
                 });
             }
