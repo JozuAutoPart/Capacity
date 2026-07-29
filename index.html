@@ -205,10 +205,7 @@
             </div>
 
             <!-- TAB 3: PLANNING -->
-            <a class="nav-link" data-bs-toggle="tab" href="#tab-plan" onclick="return checkPlanningPassword(event)">
-    <i class="fas fa-calendar-alt"></i> Planning
-</a>
-                       <div class="tab-pane fade" id="tab-plan">
+                                   <div class="tab-pane fade" id="tab-plan">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <div class="card p-3">
@@ -1408,29 +1405,7 @@
             location.reload();
         }
     }
-   <script>
-    function checkPlanningPassword(event) {
-        let correctPassword = "1234"; // กำหนดรหัสผ่านที่นี่ (เปลี่ยนได้ตามต้องการ)
-        let userInput = prompt("กรุณากรอกรหัสผ่านเพื่อเข้าสู่หน้า Planning:");
-
-        // ถ้าผู้ใช้กด Cancel ให้ยกเลิกการเปลี่ยน Tab
-        if (userInput === null) {
-            event.preventDefault();
-            event.stopPropagation();
-            return false;
-        }
-
-        // ถ้ากรอกรหัสผ่านถูกต้อง ให้ผ่านไปเปิด Tab ตามปกติ
-        if (userInput === correctPassword) {
-            return true; 
-        } else {
-            // ถ้ากรอกผิด ให้ยกเลิกการเปิด Tab และแจ้งเตือน
-            alert("รหัสผ่านไม่ถูกต้อง!");
-            event.preventDefault();
-            event.stopPropagation();
-            return false;
-        }
-    }
+   
 </script>
 </body>
 </html>
