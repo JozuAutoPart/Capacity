@@ -161,7 +161,7 @@
             <div class="tab-pane fade" id="tab-capacity">
                 <div class="card p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <button class="btn btn-warning btn-sm float-end" onclick="resetActualStrokes()">
+                       <button type="button" class="btn btn-warning btn-sm float-end" onclick="doResetStrokes()">
     <i class="fas fa-undo"></i> Reset Actual Strokes
 </button>
                         <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
@@ -1348,25 +1348,20 @@
             if(modal) modal.hide();
         }
     </script>
-    <script>
-    function resetActualStrokes() {
-    if (confirm("คุณต้องการรีเซ็ตค่า Actual Produced (Strokes) ทั้งหมดให้เป็น 0 ใช่หรือไม่?")) {
-        // ล้างค่าข้อมูลการผลิตจริงในระบบ (ตามคีย์จริงของเว็บคุณ)
-        localStorage.removeItem('sys_actuals');
-        
-        // หรือเคลียร์ตัวแปร array และเซฟค่าว่างทับ
-        if (typeof actuals !== 'undefined') {
-            actuals = [];
-            localStorage.setItem('sys_actuals', JSON.stringify(actuals));
-        }
+   <script>
+    function doResetStrokes() {
+        if (confirm("ยืนยันการรีเซ็ตค่า Actual Produced (Strokes) ทั้งหมดเป็น 0?")) {
+            // ล้างค่าตัวแปรหลักที่ระบบใช้เก็บยอดจริง
+            localStorage.removeItem('sys_actuals');
+            localStorage.setItem("actualProducedCapacity", 0);
+            
+            // ถ้าตารางดึงค่าจากตัวแปรตัวอื่น ให้เคลียร์ทิ้งด้วย
+            if (typeof actuals !== 'undefined') {
+                actuals = [];
+            }
 
-        // ล้างตัวแปรจำลองอื่นๆ ที่เกี่ยวข้อง
-        localStorage.setItem("actualProducedCapacity", 0);
-        
-        alert("รีเซ็ตข้อมูลสำเร็จ!");
-        location.reload();
-    }
-}
+            alert("รีเซ็ตข้อมูลสำเร็จ!");
+            location.reload(); // รีโหลดหน้าเว็บเพื่อเคลียร์ค่าเป็น 0
         }
     }
 </script>
