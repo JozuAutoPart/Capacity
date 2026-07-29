@@ -205,6 +205,10 @@
             </div>
 
             <!-- TAB 3: PLANNING -->
+            <!-- ตัวอย่างการแก้ปุ่มเมนู Planning (ให้ปรับตามโค้ดเดิมของคุณที่มีอยู่) -->
+<a class="nav-link" href="#planning" onclick="checkPlanningPassword(event, this)">
+    <i class="fas fa-calendar-alt"></i> Planning
+</a>
             <div class="tab-pane fade" id="tab-plan">
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -1403,6 +1407,39 @@
             renderCapacity();
         } else {
             location.reload();
+        }
+    }
+</script>
+    <script>
+    function checkPlanningPassword(event, element) {
+        // ป้องกันไม่ให้เปิด Tab ทันทีก่อนกรอกรหัส
+        event.preventDefault(); 
+        
+        let correctPassword = "1234"; // <-- กำหนดรหัสผ่านที่นี่ (เปลี่ยนได้ตามต้องการ)
+        let userInput = prompt("กรุณากรอกรหัสผ่านเพื่อเข้าสู่หน้า Planning:");
+
+        // ถ้ากด Cancel
+        if (userInput === null) {
+            return;
+        }
+
+        if (userInput === correctPassword) {
+            alert("รหัสผ่านถูกต้อง!");
+            
+            // ดึงค่าเป้าหมายของ Tab เดิมแล้วสั่งให้เปิดหน้าเว็บตามปกติ
+            let targetTabId = element.getAttribute("href");
+            
+            // หากระบบใช้ Bootstrap Tab ให้ใช้คำสั่งเปิด Tab (หรือปรับตามโครงสร้าง JS เดิมของคุณ)
+            if (window.bootstrap && bootstrap.Tab) {
+                let tab = new bootstrap.Tab(element);
+                tab.show();
+            } else {
+                // กรณีคลิกแล้วเปลี่ยนหน้าหรือเปิดแสดงผล div
+                element.click();
+                location.href = targetTabId;
+            }
+        } else {
+            alert("รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง");
         }
     }
 </script>
