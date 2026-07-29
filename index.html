@@ -424,6 +424,13 @@
                                 <h5 class="m-0 text-info"><i class="fas fa-cogs me-2"></i>คลังสินค้าระหว่างผลิต (Stock WIP)</h5>
                                 <span class="badge bg-info text-dark">ยอดผลิตดีรอการตรวจ QC</span>
                             </div>
+                            <!-- ช่องค้นหา Stock WIP -->
+<div class="mb-3">
+    <div class="input-group input-group-sm">
+        <span class="input-group-text bg-dark text-light border-secondary"><i class="fas fa-search"></i> ค้นหา Part No.</span>
+        <input type="text" id="searchWipInput" class="form-control bg-dark text-light border-secondary" placeholder="พิมพ์ Part No. WIP..." onkeyup="filterWipTable()">
+    </div>
+</div>
                             <div class="table-responsive">
                                 <table class="table table-dark table-hover align-middle m-0">
                                     <thead>
@@ -448,6 +455,13 @@
                                     <i class="fas fa-file-excel me-1"></i> Export Stock FG
                                 </button>
                             </div>
+                            <!-- ช่องค้นหา Stock FG -->
+<div class="mb-3">
+    <div class="input-group input-group-sm">
+        <span class="input-group-text bg-dark text-light border-secondary"><i class="fas fa-search"></i> ค้นหา Part No.</span>
+        <input type="text" id="searchFgInput" class="form-control bg-dark text-light border-secondary" placeholder="พิมพ์ Part No. FG..." onkeyup="filterFgTable()">
+    </div>
+</div>
                             <div class="table-responsive">
                                 <table class="table table-dark table-hover align-middle m-0">
                                     <thead>
