@@ -1069,6 +1069,74 @@
             setDefaultDates();
             loadData();
         });
+        // ==========================================
+        // EXPORT TO EXCEL (.XLSX)
+        // ==========================================
+        function exportToExcelXLSX(type) {
+            let data = [];
+            let filename = '';
+
+            if (type === 'plans') {
+                filename = 'Production_Plans.xlsx';
+                data = plans.map(p => ({
+                    'Start Date': p.startDate,
+                    'Finish Date': p.finishDate,
+                    'Line': p.line,
+                    'Part No': p.partNo,
+                    'Lot No': p.lotNo,
+                    'Plan Qty': Number(p.planQty)
+                }));
+            } 
+            else if (type === 'actuals') {
+                filename = 'Production_Actuals.xlsx';
+                data = actuals.map(a => ({
+                    'Date': a.date,
+                    'Operator': a.operator,
+                    'Line': a.line,
+                    'Machine No': a.mcNo || 'N/A',
+                    'Part No': a.partNo,
+                    'Lot No': a.lotNo,
+                    'OK Qty': Number(a.okQty),
+                    'NG Qty': Number(a.ngQty),
+                    'Remark': a.remark || '-'
+                }));
+            } 
+            else if (type === 'stock') {
+                filename = 'Stock_Summary.xlsx';
+                const partSet = new Set([...plans.map(p => p.partNo), ...actuals.map(a => a.partNo)]);
+                
+                partSet.forEach(partNo => {
+                    const totalPlan = plans.filter(p => p.partNo === partNo).reduce((sum, p) => sum + Number(p.planQty), 0);
+                    const matchingActs = actuals.filter(a => a.partNo === partNo);
+                    const totalActualOK = matchingActs.reduce((sum, a) => sum + Number(a.okQty), 0);
+                    const totalNG = matchingActs.reduce((sum, a) => sum + Number(a.ngQty), 0);
+                    const balance = Math.max(0, totalPlan - totalActualOK);
+                    
+                    let status = (totalPlan > 0 && balance === 0) ? 'Completed' : 'In Progress';
+                    if (totalPlan === 0) status = 'No Plan';
+
+                    data.push({
+                        'Part No': partNo,
+                        'Total Plan': totalPlan,
+                        'Total Actual (OK)': totalActualOK,
+                        'Total NG': totalNG,
+                        'Balance': balance,
+                        'Status': status
+                    });
+                });
+            }
+
+            if (data.length === 0) {
+                alert('ไม่มีข้อมูลสำหรับ Export');
+                return;
+            }
+
+            // แปลงข้อมูลเป็น Excel และดาวน์โหลด
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+            XLSX.writeFile(workbook, filename);
+        }
     </script>
 </body>
 </html>
