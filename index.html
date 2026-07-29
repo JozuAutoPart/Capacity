@@ -1345,5 +1345,59 @@
             if(modal) modal.hide();
         }
     </script>
+    <script>
+    function deleteSpecificPartPrompt() {
+        try {
+            let targetPart = prompt("กรุณาพิมพ์ Part No. ที่ต้องการลบให้ถูกต้อง (เช่น 55388-05021):");
+            if (!targetPart) return;
+
+            let adminPassword = "1234";
+            let inputPassword = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบ Part: " + targetPart);
+
+            if (inputPassword === null) return;
+
+            if (inputPassword === adminPassword) {
+                let deleted = false;
+                
+                // วนลูปหาข้อมูลใน LocalStorage ทุกคีย์เพื่อลบ Part ที่ตรงกัน
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    let data = localStorage.getItem(key);
+                    if (data) {
+                        try {
+                            let arr = JSON.parse(data);
+                            if (Array.isArray(arr) && arr.length > 0) {
+                                let beforeLen = arr.length;
+                                let newArr = arr.filter(item => {
+                                    if (!item || typeof item !== 'object') return true;
+                                    let match = Object.values(item).some(val => 
+                                        val && String(val).trim().toLowerCase() === String(targetPart).trim().toLowerCase()
+                                    );
+                                    return !match;
+                                });
+                                if (newArr.length < beforeLen) {
+                                    localStorage.setItem(key, JSON.stringify(newArr));
+                                    deleted = true;
+                                }
+                            }
+                        } catch (err) {}
+                    }
+                }
+
+                if (deleted) {
+                    alert("ลบข้อมูล Part No. " + targetPart + " สำเร็จ!");
+                    location.reload();
+                } else {
+                    alert("ไม่พบข้อมูลของ Part No. '" + targetPart + "' ในระบบ");
+                }
+
+            } else {
+                alert("รหัสผ่านไม่ถูกต้อง!");
+            }
+        } catch (e) {
+            alert("เกิดข้อผิดพลาด: " + e.message);
+        }
+    }
+</script>
 </body>
 </html>
