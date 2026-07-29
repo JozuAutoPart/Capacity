@@ -137,21 +137,29 @@
                         </div>
                     </div>
                 </div>
-<!-- กราฟแสดงผลเชิงวิเคราะห์ใน Dashboard -->
-<div class="row mt-4">
-    <!-- กราฟที่ 1: เปรียบเทียบ Plan vs Actual -->
-    <div class="col-md-8 mb-4">
-        <div class="card p-3 border-start border-4 border-primary">
-            <h5 class="text-white mb-3" style="font-size: 16px;">📊 เปรียบเทียบแผนผลิตกับผลผลิตจริง (Plan vs Actual)</h5>
-            <canvas id="planActualChart"></canvas>
+<!-- กราฟแสดงผลแบบขนาดกะทัดรัด -->
+<div class="row mt-3">
+    <!-- กราฟที่ 1: เปรียบเทียบ Plan vs Actual (ปรับลดขนาดความกว้าง) -->
+    <div class="col-lg-7 mb-3">
+        <div class="card p-2 border-start border-3 border-primary" style="background-color: #1e293b;">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+                <h6 class="text-white m-0" style="font-size: 14px;">📊 แผนผลิต vs ผลผลิตจริง (Plan vs Actual)</h6>
+            </div>
+            <div style="height: 220px; position: relative;">
+                <canvas id="planActualChart"></canvas>
+            </div>
         </div>
     </div>
 
-    <!-- กราฟที่ 2: สัดส่วน OK / NG -->
-    <div class="col-md-4 mb-4">
-        <div class="card p-3 border-start border-4 border-success">
-            <h5 class="text-white mb-3" style="font-size: 16px;">🍩 สัดส่วนงานดี (OK) และงานเสีย (NG)</h5>
-            <canvas id="ngRatioChart"></canvas>
+    <!-- กราฟที่ 2: สัดส่วน OK / NG (ปรับลดขนาดให้เล็กลง) -->
+    <div class="col-lg-5 mb-3">
+        <div class="card p-2 border-start border-3 border-success" style="background-color: #1e293b;">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+                <h6 class="text-white m-0" style="font-size: 14px;">🍩 สัดส่วนงานดี (OK) / งานเสีย (NG)</h6>
+            </div>
+            <div style="height: 220px; position: relative; display: flex; justify-content: center;">
+                <canvas id="ngRatioChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -1364,70 +1372,61 @@
             if(modal) modal.hide();
         }
     </script>
-   <script>
-    // ฟังก์ชันสำหรับอัปเดตและเรนเดอร์กราฟโดยดึงข้อมูลจริงจากระบบ
+  <script>
     function updateDashboardCharts() {
-        // 1. ดึงรายการ Line ทั้งหมดที่ระบบใช้งาน
-        const uniqueLines = [...new Set(plans.map(p => p.line))]; // ดึงชื่อไลน์จากแผนจริง
-        
-        // ถ้ายังไม่มีไลน์ ให้ใช้ค่าเริ่มต้นมาตรฐาน
+        const uniqueLines = [...new Set(plans.map(p => p.line))];
         const lines = uniqueLines.length > 0 ? uniqueLines : ['Line A', 'Line Q', 'Line C1', 'Line C2', 'Line C3'];
         
         let planData = lines.map(line => {
-            // รวมยอด Plan ของแต่ละไลน์จากอาเรย์ plans จริง
-            return plans
-                .filter(p => p.line === line)
-                .reduce((sum, p) => sum + Number(p.qty || 0), 0);
+            return plans.filter(p => p.line === line).reduce((sum, p) => sum + Number(p.qty || 0), 0);
         });
 
-        // สมมติว่าดึงยอด Actual จากอาเรย์ข้อมูลการผลิตจริง (เช่น actuals หรือ history)
-        // หรือดึงผ่าน localStorage ถ้ามีการเก็บบันทึกไว้
         let actualsData = JSON.parse(localStorage.getItem('actuals')) || [];
         let actualData = lines.map(line => {
-            return actualsData
-                .filter(a => a.line === line)
-                .reduce((sum, a) => sum + Number(a.okQty || 0), 0);
+            return actualsData.filter(a => a.line === line).reduce((sum, a) => sum + Number(a.okQty || 0), 0);
         });
 
         let totalActualOk = actualData.reduce((a, b) => a + b, 0);
         let totalNgQty = actualsData.reduce((sum, a) => sum + Number(a.ngQty || 0), 0);
 
-        // หากยังไม่มีการบันทึกข้อมูลจริง ให้แสดงค่าจากแผนมาเทียบเบื้องต้นก่อนได้
         const finalPlanData = planData.some(val => val > 0) ? planData : [2500, 1800, 3000, 1200, 2000];
         const finalActualData = actualData.some(val => val > 0) ? actualData : [2500, 1750, 2900, 1200, 1950];
 
-        // --- 2. สร้างหรืออัปเดตกราฟแท่ง (Plan vs Actual) ---
+        // 1. กราฟแท่ง
         const ctxPlanActual = document.getElementById('planActualChart');
         if (ctxPlanActual) {
-            if (window.myPlanActualChart) window.myPlanActualChart.destroy(); // ล้างกราฟเก่าเพื่อกันเบิ้ล
+            if (window.myPlanActualChart) window.myPlanActualChart.destroy();
             window.myPlanActualChart = new Chart(ctxPlanActual.getContext('2d'), {
                 type: 'bar',
                 data: {
                     labels: lines,
                     datasets: [
-                        { label: 'Plan (แผน)', data: finalPlanData, backgroundColor: '#0dcaf0', borderRadius: 1 },
-                        { label: 'Actual OK (ผลิตจริง)', data: finalActualData, backgroundColor: '#198754', borderRadius: 1 }
+                        { label: 'Plan', data: finalPlanData, backgroundColor: '#0dcaf0', borderRadius: 3 },
+                        { label: 'Actual OK', data: finalActualData, backgroundColor: '#198754', borderRadius: 3 }
                     ]
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { labels: { color: '#fff' } } },
+                    maintainAspectRatio: false, // ช่วยให้กราฟปรับขนาดตามกรอบที่จำกัดไว้ได้
+                    plugins: { 
+                        legend: { labels: { color: '#fff', boxWidth: 12, font: { size: 11 } } } 
+                    },
                     scales: {
-                        x: { ticks: { color: '#adb5bd' }, grid: { color: '#334155' } },
-                        y: { ticks: { color: '#adb5bd' }, grid: { color: '#334155' } }
+                        x: { ticks: { color: '#adb5bd', font: { size: 10 } }, grid: { color: '#334155' } },
+                        y: { ticks: { color: '#adb5bd', font: { size: 10 } }, grid: { color: '#334155' } }
                     }
                 }
             });
         }
 
-        // --- 3. สร้างหรืออัปเดตกราฟโดนัท (OK / NG Ratio) ---
+        // 2. กราฟโดนัท
         const ctxNgRatio = document.getElementById('ngRatioChart');
         if (ctxNgRatio) {
             if (window.myNgRatioChart) window.myNgRatioChart.destroy();
             window.myNgRatioChart = new Chart(ctxNgRatio.getContext('2d'), {
                 type: 'doughnut',
                 data: {
-                    labels: ['OK Qty (งานดี)', 'NG Qty (งานเสีย)'],
+                    labels: ['OK Qty', 'NG Qty'],
                     datasets: [{
                         data: [totalActualOk > 0 ? totalActualOk : 10250, totalNgQty > 0 ? totalNgQty : 150],
                         backgroundColor: ['#198754', '#dc3545'],
@@ -1436,13 +1435,15 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { labels: { color: '#fff' }, position: 'bottom' } }
+                    maintainAspectRatio: false, // ช่วยให้กราฟปรับขนาดตามกรอบที่จำกัดไว้ได้
+                    plugins: { 
+                        legend: { labels: { color: '#fff', boxWidth: 12, font: { size: 11 } }, position: 'bottom' } 
+                    }
                 }
             });
         }
     }
 
-    // เรียกใช้งานฟังก์ชันวาดกราฟทันทีเมื่อโหลดหน้าเว็บเสร็จ
     document.addEventListener('DOMContentLoaded', updateDashboardCharts);
 </script>
 </body>
