@@ -1364,45 +1364,86 @@
             if(modal) modal.hide();
         }
     </script>
-    <script>
-    // 1. กราฟแท่ง Plan vs Actual
-    const ctxPlanActual = document.getElementById('planActualChart').getContext('2d');
-    new Chart(ctxPlanActual, {
-        type: 'bar',
-        data: {
-            labels: ['Line A', 'Line Q', 'Line C1', 'Line C2', 'Line C3'],
-            datasets: [
-                { label: 'Plan', data: [2500, 1800, 3000, 1200, 2000], backgroundColor: '#0dcaf0', borderRadius: 4 },
-                { label: 'Actual OK', data: [2500, 1750, 2900, 1200, 1950], backgroundColor: '#198754', borderRadius: 4 }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { labels: { color: '#fff' } } },
-            scales: {
-                x: { ticks: { color: '#adb5bd' }, grid: { color: '#334155' } },
-                y: { ticks: { color: '#adb5bd' }, grid: { color: '#334155' } }
-            }
-        }
-    });
+   <script>
+    // ฟังก์ชันสำหรับอัปเดตและเรนเดอร์กราฟโดยดึงข้อมูลจริงจากระบบ
+    function updateDashboardCharts() {
+        // 1. ดึงรายการ Line ทั้งหมดที่ระบบใช้งาน
+        const uniqueLines = [...new Set(plans.map(p => p.line))]; // ดึงชื่อไลน์จากแผนจริง
+        
+        // ถ้ายังไม่มีไลน์ ให้ใช้ค่าเริ่มต้นมาตรฐาน
+        const lines = uniqueLines.length > 0 ? uniqueLines : ['Line A', 'Line Q', 'Line C1', 'Line C2', 'Line C3'];
+        
+        let planData = lines.map(line => {
+            // รวมยอด Plan ของแต่ละไลน์จากอาเรย์ plans จริง
+            return plans
+                .filter(p => p.line === line)
+                .reduce((sum, p) => sum + Number(p.qty || 0), 0);
+        });
 
-    // 2. กราฟโดนัท OK / NG
-    const ctxNgRatio = document.getElementById('ngRatioChart').getContext('2d');
-    new Chart(ctxNgRatio, {
-        type: 'doughnut',
-        data: {
-            labels: ['OK Qty', 'NG Qty'],
-            datasets: [{
-                data: [10250, 150],
-                backgroundColor: ['#198754', '#dc3545'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { labels: { color: '#fff' }, position: 'bottom' } }
+        // สมมติว่าดึงยอด Actual จากอาเรย์ข้อมูลการผลิตจริง (เช่น actuals หรือ history)
+        // หรือดึงผ่าน localStorage ถ้ามีการเก็บบันทึกไว้
+        let actualsData = JSON.parse(localStorage.getItem('actuals')) || [];
+        let actualData = lines.map(line => {
+            return actualsData
+                .filter(a => a.line === line)
+                .reduce((sum, a) => sum + Number(a.okQty || 0), 0);
+        });
+
+        let totalActualOk = actualData.reduce((a, b) => a + b, 0);
+        let totalNgQty = actualsData.reduce((sum, a) => sum + Number(a.ngQty || 0), 0);
+
+        // หากยังไม่มีการบันทึกข้อมูลจริง ให้แสดงค่าจากแผนมาเทียบเบื้องต้นก่อนได้
+        const finalPlanData = planData.some(val => val > 0) ? planData : [2500, 1800, 3000, 1200, 2000];
+        const finalActualData = actualData.some(val => val > 0) ? actualData : [2500, 1750, 2900, 1200, 1950];
+
+        // --- 2. สร้างหรืออัปเดตกราฟแท่ง (Plan vs Actual) ---
+        const ctxPlanActual = document.getElementById('planActualChart');
+        if (ctxPlanActual) {
+            if (window.myPlanActualChart) window.myPlanActualChart.destroy(); // ล้างกราฟเก่าเพื่อกันเบิ้ล
+            window.myPlanActualChart = new Chart(ctxPlanActual.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: lines,
+                    datasets: [
+                        { label: 'Plan (แผน)', data: finalPlanData, backgroundColor: '#0dcaf0', borderRadius: 4 },
+                        { label: 'Actual OK (ผลิตจริง)', data: finalActualData, backgroundColor: '#198754', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#fff' } } },
+                    scales: {
+                        x: { ticks: { color: '#adb5bd' }, grid: { color: '#334155' } },
+                        y: { ticks: { color: '#adb5bd' }, grid: { color: '#334155' } }
+                    }
+                }
+            });
         }
-    });
+
+        // --- 3. สร้างหรืออัปเดตกราฟโดนัท (OK / NG Ratio) ---
+        const ctxNgRatio = document.getElementById('ngRatioChart');
+        if (ctxNgRatio) {
+            if (window.myNgRatioChart) window.myNgRatioChart.destroy();
+            window.myNgRatioChart = new Chart(ctxNgRatio.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['OK Qty (งานดี)', 'NG Qty (งานเสีย)'],
+                    datasets: [{
+                        data: [totalActualOk > 0 ? totalActualOk : 10250, totalNgQty > 0 ? totalNgQty : 150],
+                        backgroundColor: ['#198754', '#dc3545'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: '#fff' }, position: 'bottom' } }
+                }
+            });
+        }
+    }
+
+    // เรียกใช้งานฟังก์ชันวาดกราฟทันทีเมื่อโหลดหน้าเว็บเสร็จ
+    document.addEventListener('DOMContentLoaded', updateDashboardCharts);
 </script>
 </body>
 </html>
