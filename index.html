@@ -64,9 +64,9 @@
                 <button class="btn btn-success btn-sm" onclick="exportToExcelXLSX('actuals')">
                     <i class="fas fa-file-excel me-1"></i> Export ประวัติผลิต (.xlsx)
                 </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteSpecificPartPrompt()">
-    <i class="fas fa-trash me-1"></i> ลบออกจากระบบ
-</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSpecificPartPrompt()">
+              <i class="fas fa-trash me-1"></i> ลบ Part นี้
+          </button>
             </div>
         </div>
 
@@ -1405,11 +1405,9 @@
             location.reload();
         }
     }
- <!-- โค้ดส่วนอื่นๆ ของเว็บคุณ... -->
-
-    <!-- นำฟังก์ชันมาวางไว้ตรงนี้ (ก่อนถึงแท็กปิด body) -->
-    <script>
-        function deleteSpecificPartPrompt() {
+<script>
+    function deleteSpecificPartPrompt() {
+        try {
             let targetPart = prompt("กรุณาพิมพ์ Part No. ที่ต้องการลบให้ถูกต้อง (เช่น 55388-05021):");
             if (!targetPart) return;
 
@@ -1420,47 +1418,46 @@
 
             if (inputPassword === adminPassword) {
                 let deleted = false;
-
+                
+                // วนลูปหาข้อมูลใน LocalStorage ทุกคีย์เพื่อลบ Part ที่ตรงกัน
                 for (let i = 0; i < localStorage.length; i++) {
                     let key = localStorage.key(i);
-                    let dataStr = localStorage.getItem(key);
-                    
-                    if (dataStr) {
+                    let data = localStorage.getItem(key);
+                    if (data) {
                         try {
-                            let dataList = JSON.parse(dataStr);
-                            if (Array.isArray(dataList) && dataList.length > 0) {
-                                let initialLen = dataList.length;
-                                
-                                let filteredList = dataList.filter(item => {
+                            let arr = JSON.parse(data);
+                            if (Array.isArray(arr) && arr.length > 0) {
+                                let beforeLen = arr.length;
+                                let newArr = arr.filter(item => {
                                     if (!item || typeof item !== 'object') return true;
-                                    
-                                    let isMatch = Object.values(item).some(val => 
+                                    let match = Object.values(item).some(val => 
                                         val && String(val).trim().toLowerCase() === String(targetPart).trim().toLowerCase()
                                     );
-                                    
-                                    return !isMatch;
+                                    return !match;
                                 });
-
-                                if (filteredList.length < initialLen) {
-                                    localStorage.setItem(key, JSON.stringify(filteredList));
+                                if (newArr.length < beforeLen) {
+                                    localStorage.setItem(key, JSON.stringify(newArr));
                                     deleted = true;
                                 }
                             }
-                        } catch (e) {}
+                        } catch (err) {}
                     }
                 }
 
                 if (deleted) {
-                    alert("ลบข้อมูล Part No. " + targetPart + " เรียบร้อยแล้ว!");
+                    alert("ลบข้อมูล Part No. " + targetPart + " สำเร็จ!");
                     location.reload();
                 } else {
-                    alert("ไม่พบข้อมูลของ Part No. '" + targetPart + "' ในระบบ กรุณาตรวจสอบตัวสะกดอีกครั้งครับ");
+                    alert("ไม่พบข้อมูลของ Part No. '" + targetPart + "' ในระบบ");
                 }
 
             } else {
-                alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
+                alert("รหัสผ่านไม่ถูกต้อง!");
             }
+        } catch (e) {
+            alert("เกิดข้อผิดพลาด: " + e.message);
         }
-    </script>
-</body>
+    }
+</script>
+    </body>
 </html>
