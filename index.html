@@ -1344,44 +1344,6 @@
             const modal = bootstrap.Modal.getInstance(modalEl);
             if(modal) modal.hide();
         }
-     <script>
-    function checkPassword(tabName) {
-        // กำหนดรหัสผ่านที่ต้องการ (ตัวอย่างตั้งเป็น 1234 หรือเปลี่ยนตามต้องการ)
-        let correctPassword = "1234"; 
-        
-        let userInput = prompt("กรุณากรอกรหัสผ่านเพื่อเข้าสู่หน้า " + tabName + ":");
-        
-        // ถ้าผู้ใช้กรอกรหัสผ่านถูกต้อง
-        if (userInput === correctPassword) {
-            alert("รหัสผ่านถูกต้อง!");
-            // คำสั่งสำหรับเปิด Tab นั้นๆ (ขึ้นอยู่กับโค้ดโครงสร้างเดิมของคุณ เช่น เรียกใช้ฟังก์ชันเปิด Tab)
-            // ตัวอย่างเช่น: showTab(tabName);
-        } else if (userInput !== null) {
-            // ถ้ากด cancel (userInput เป็น null) จะไม่แจ้งเตือน แต่ถ้ากรอกผิดจะแจ้งเตือน
-            alert("รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง");
-        }
-    }
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        let currentDate = new Date();
-        let currentMonth = currentDate.getMonth(); // เดือนปัจจุบัน (0-11)
-        
-        // ตรวจสอบเดือนล่าสุดที่เคยบันทึกไว้สำหรับ Capacity
-        let lastCapacityMonth = localStorage.getItem("lastCapacityMonth");
-
-        // ถ้าเปลี่ยนเดือนใหม่ (หรือเปิดใช้งานครั้งแรก)
-        if (lastCapacityMonth === null || parseInt(lastCapacityMonth) !== currentMonth) {
-            
-            // รีเซ็ตค่าการผลิตในหน้า Capacity เป็น 0
-            localStorage.setItem("actualProducedCapacity", 0);
-            
-            // บันทึกเดือนปัจจุบันเก็บไว้ เพื่อไม่ให้รีเซ็ตซ้ำซ้อนในเดือนเดียวกัน
-            localStorage.setItem("lastCapacityMonth", currentMonth);
-            
-            // หากต้องการให้หน้าเว็บรีโหลดอัตโนมัติเพื่อแสดงค่า 0 สามารถเปิดใช้บรรทัดล่างนี้ได้ครับ:
-            // location.reload();
-        }
-    });
-</script>
+    </script>
 </body>
 </html>
