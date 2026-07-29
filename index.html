@@ -12,6 +12,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- SheetJS Library สำหรับ Export Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- นำโค้ดบรรทัดนี้ไปวางไว้ในแท็ก <head> -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card { background-color: #1e293b; border-color: #334155; }
@@ -135,7 +137,24 @@
                         </div>
                     </div>
                 </div>
+<!-- กราฟแสดงผลเชิงวิเคราะห์ใน Dashboard -->
+<div class="row mt-4">
+    <!-- กราฟที่ 1: เปรียบเทียบ Plan vs Actual -->
+    <div class="col-md-8 mb-4">
+        <div class="card p-3 border-start border-4 border-primary">
+            <h5 class="text-white mb-3" style="font-size: 16px;">📊 เปรียบเทียบแผนผลิตกับผลผลิตจริง (Plan vs Actual)</h5>
+            <canvas id="planActualChart"></canvas>
+        </div>
+    </div>
 
+    <!-- กราฟที่ 2: สัดส่วน OK / NG -->
+    <div class="col-md-4 mb-4">
+        <div class="card p-3 border-start border-4 border-success">
+            <h5 class="text-white mb-3" style="font-size: 16px;">🍩 สัดส่วนงานดี (OK) และงานเสีย (NG)</h5>
+            <canvas id="ngRatioChart"></canvas>
+        </div>
+    </div>
+</div>
                 <div class="card p-3">
                     <div class="table-responsive">
                         <table class="table table-dark table-hover align-middle m-0">
@@ -1345,5 +1364,45 @@
             if(modal) modal.hide();
         }
     </script>
+    <script>
+    // 1. กราฟแท่ง Plan vs Actual
+    const ctxPlanActual = document.getElementById('planActualChart').getContext('2d');
+    new Chart(ctxPlanActual, {
+        type: 'bar',
+        data: {
+            labels: ['Line A', 'Line Q', 'Line C1', 'Line C2', 'Line C3'],
+            datasets: [
+                { label: 'Plan', data: [2500, 1800, 3000, 1200, 2000], backgroundColor: '#0dcaf0', borderRadius: 4 },
+                { label: 'Actual OK', data: [2500, 1750, 2900, 1200, 1950], backgroundColor: '#198754', borderRadius: 4 }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#fff' } } },
+            scales: {
+                x: { ticks: { color: '#adb5bd' }, grid: { color: '#334155' } },
+                y: { ticks: { color: '#adb5bd' }, grid: { color: '#334155' } }
+            }
+        }
+    });
+
+    // 2. กราฟโดนัท OK / NG
+    const ctxNgRatio = document.getElementById('ngRatioChart').getContext('2d');
+    new Chart(ctxNgRatio, {
+        type: 'doughnut',
+        data: {
+            labels: ['OK Qty', 'NG Qty'],
+            datasets: [{
+                data: [10250, 150],
+                backgroundColor: ['#198754', '#dc3545'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#fff' }, position: 'bottom' } }
+        }
+    });
+</script>
 </body>
 </html>
