@@ -1405,39 +1405,48 @@
             location.reload();
         }
     }
-   <script>
-    function deleteSpecificPart(partNo) {
-        // กำหนดรหัสผ่านสำหรับยืนยันการลบ (สามารถเปลี่ยนได้ตามต้องการ เช่น "1234")
-        let adminPassword = "1234"; 
+ <script>
+    function deleteSpecificPartPrompt() {
+        // 1. ให้กรอก Part No. ที่ต้องการลบ
+        let targetPart = prompt("กรุณาพิมพ์ Part No. ที่ต้องการลบให้ถูกต้อง:");
+        if (!targetPart) return; // ถ้ากด Cancel หรือไม่พิมพ์ ให้หยุดทำงาน
 
-        // 1. ให้เลือกเฉพาะ Part No. ที่ต้องการ (ช่อง Prompt จะขึ้น Part No. ให้ดูอัตโนมัติ)
-        let confirmPart = prompt("ต้องการลบ Part No. นี้ใช่หรือไม่?\nกรุณาพิมพ์ยืนยัน Part No. ให้ตรงกัน:", partNo);
-        
-        if (confirmPart !== partNo) {
-            if (confirmPart !== null) {
-                alert("ชื่อ Part No. ไม่ถูกต้อง ยกเลิกการลบ");
-            }
-            return;
-        }
+        // 2. ใส่รหัสผ่านเพื่อยืนยัน (ตั้งค่ารหัสผ่านไว้ที่นี่ เช่น "1234")
+        let adminPassword = "1234";
+        let inputPassword = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบ Part " + targetPart + ":");
 
-        // 2. ให้ใส่รหัสผ่านเพื่อยืนยัน
-        let inputPassword = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบ:");
-
-        if (inputPassword === null) {
-            return; // ถ้ากด Cancel
-        }
+        if (inputPassword === null) return; // ถ้ากด Cancel
 
         if (inputPassword === adminPassword) {
-            // ถ้ากรอกรหัสถูกต้อง ให้ทำการลบข้อมูล Part นั้นออกจากระบบ
-            
-            // ตัวอย่างการลบข้อมูลออกจาก LocalStorage (ปรับให้ตรงกับตัวแปร array ของคุณ เช่น plans หรือ actuals)
-            if (typeof plans !== 'undefined') {
-                plans = plans.filter(item => item.partNo !== partNo);
-                localStorage.setItem('sys_plans', JSON.stringify(plans));
+            let deleted = false;
+
+            // ค้นหาและลบออกจากแผนการผลิต (Plans)
+            if (typeof plans !== 'undefined' && plans.length > 0) {
+                let initialLength = plans.length;
+                plans = plans.filter(item => item.partNo !== targetPart);
+                if (plans.length < initialLength) {
+                    localStorage.setItem('sys_plans', JSON.stringify(plans));
+                    deleted = true;
+                }
             }
 
-            alert("ลบข้อมูล Part No. " + partNo + " เรียบร้อยแล้ว!");
-            location.reload(); // โหลดหน้าเว็บใหม่เพื่ออัปเดตข้อมูล
+            // ค้นหาและลบออกจากข้อมูลการผลิตจริง (Actuals)
+            if (typeof actuals !== 'undefined' && actuals.length > 0) {
+                let initialLength = actuals.length;
+                actuals = actuals.filter(item => item.partNo !== targetPart);
+                if (actuals.length < initialLength) {
+                    localStorage.setItem('sys_actuals', JSON.stringify(actuals));
+                    deleted = true;
+                }
+            }
+
+            if (deleted) {
+                alert("ลบข้อมูล Part No. " + targetPart + " เรียบร้อยแล้ว!");
+                location.reload();
+            } else {
+                alert("ไม่พบ Part No. '" + targetPart + "' ในระบบ กรุณาตรวจสอบความถูกต้องอีกครั้ง");
+            }
+
         } else {
             alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
         }
