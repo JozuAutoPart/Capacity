@@ -1420,24 +1420,50 @@
         if (inputPassword === adminPassword) {
             let deleted = false;
 
-            // ค้นหาและลบออกจากแผนการผลิต (Plans)
-            if (typeof plans !== 'undefined' && plans.length > 0) {
-                let initialLength = plans.length;
-                plans = plans.filter(item => item.partNo !== targetPart);
-                if (plans.length < initialLength) {
-                    localStorage.setItem('sys_plans', JSON.stringify(plans));
-                    deleted = true;
+           if (inputPassword === adminPassword) {
+            let deleted = false;
+
+            // วนลูปเช็คทุกข้อมูลที่จัดเก็บใน LocalStorage ของเบราว์เซอร์ทั้งหมด
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                let dataStr = localStorage.getItem(key);
+                
+                if (dataStr) {
+                    try {
+                        let dataList = JSON.parse(dataStr);
+                        if (Array.isArray(dataList) && dataList.length > 0) {
+                            let initialLen = dataList.length;
+                            
+                            // กรองข้อมูลทิ้งถ้าเจอ Part No. ที่ตรงกัน (รองรับทุกตัวพิมพ์เล็ก-ใหญ่)
+                            let filteredList = dataList.filter(item => {
+                                if (!item || typeof item !== 'object') return true;
+                                
+                                // ตรวจหาชื่อฟิลด์ที่เป็น Part No. ทุกรูปแบบที่เป็นไปได้
+                                let pNo = item.partNo || item.PartNo || item.part_no || item.PARTNO;
+                                
+                                // ถ้าตรงกับที่พิมพ์มา ให้ตัดทิ้ง (ไม่เอาไว้)
+                                if (pNo && String(pNo).trim() === String(targetPart).trim()) {
+                                    return false; 
+                                }
+                                return true;
+                            });
+
+                            if (filteredList.length < initialLen) {
+                                localStorage.setItem(key, JSON.stringify(filteredList));
+                                deleted = true;
+                            }
+                        }
+                    } catch (e) {
+                        // ข้ามข้อมูลที่ไม่ใช่ JSON
+                    }
                 }
             }
 
-            // ค้นหาและลบออกจากข้อมูลการผลิตจริง (Actuals)
-            if (typeof actuals !== 'undefined' && actuals.length > 0) {
-                let initialLength = actuals.length;
-                actuals = actuals.filter(item => item.partNo !== targetPart);
-                if (actuals.length < initialLength) {
-                    localStorage.setItem('sys_actuals', JSON.stringify(actuals));
-                    deleted = true;
-                }
+            if (deleted) {
+                alert("ลบข้อมูล Part No. " + targetPart + " เรียบร้อยแล้ว!");
+                location.reload();
+            } else {
+                alert("ไม่พบข้อมูลของ Part No. '" + targetPart + "' ในระบบ กรุณาตรวจสอบตัวสะกดอีกครั้งครับ");
             }
 
             if (deleted) {
