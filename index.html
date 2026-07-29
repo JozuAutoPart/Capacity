@@ -31,7 +31,7 @@
                 <small class="text-muted">ระบบจัดการแผนการผลิต บันทึกผลการทำงานพนักงาน และวิเคราะห์กำลังการผลิต (Capacity)</small>
             </div>
             <button class="btn btn-outline-danger btn-sm" onclick="showClearModal()">
-                <i class="fas fa-trash-alt me-1"></i> ล้างข้อมูลทั้งหมดในระบบ
+                <i class="fas fa-trash-alt me-1"></i> ลบข้อมูลในระบบ
             </button>
         </div>
 
@@ -495,20 +495,37 @@
         </div>
     </div>
 
-    <!-- Clear All Data Modal -->
+    <!-- Clear Data Modal (WITH PASSWORD & LINE OPTION) -->
     <div class="modal fade" id="clearDataModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content bg-dark border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ยืนยันการล้างข้อมูลทั้งหมด</h5>
+                    <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ยืนยันการลบข้อมูล</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    การดำเนินการนี้จะลบข้อมูลแผนการผลิต ผลิตจริง และการแจ้งซ่อมทั้งหมด ออกจากระบบอย่างถาวร!
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">เลือกรอบการลบข้อมูล (Scope)</label>
+                        <select class="form-select border-info" id="deleteTargetLine">
+                            <option value="ALL">-- ลบข้อมูลทั้งหมดทุก Line (Clear All) --</option>
+                            <option value="Line A">เฉพาะ Line A</option>
+                            <option value="Line Q">เฉพาะ Line Q</option>
+                            <option value="Line C1">เฉพาะ Line C1</option>
+                            <option value="Line C2">เฉพาะ Line C2</option>
+                            <option value="Line C3">เฉพาะ Line C3</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-warning">กรอกรหัสผ่านยืนยัน (Default: 1234)</label>
+                        <input type="password" class="form-control border-warning" id="deletePassword" placeholder="ใส่รหัสผ่านเพื่อลบข้อมูล" required>
+                    </div>
+
+                    <small class="text-danger">* การดำเนินการนี้จะลบข้อมูลออกจากระบบอย่างถาวร ไม่สามารถกู้คืนได้</small>
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-danger" onclick="confirmClearData()">ยืนยันลบทั้งหมด</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmClearData()">ยืนยันลบข้อมูล</button>
                 </div>
             </div>
         </div>
@@ -517,6 +534,7 @@
     <script>
         const DEFAULT_MAX_CAPACITY = 10000;
         const DIE_PM_LIMIT = 40000; // เกณฑ์เป้าหมาย PM 40,000 ชิ้น
+        const SYSTEM_PASSWORD = "1234"; // รหัสผ่านสำหรับลบข้อมูล
 
         let db = {
             plans: JSON.parse(localStorage.getItem('db_plans')) || [],
@@ -703,9 +721,13 @@
                 alert('ไม่มีข้อมูลแผนการผลิตให้ล้าง');
                 return;
             }
-            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการล้าง "แผนการผลิตทั้งหมด"? (ข้อมูลผลผลิตจริงจะไม่ถูกลบ)')) {
+            const pwd = prompt('กรุณากรอกรหัสผ่านเพื่อยืนยันการล้างแผนการผลิตทั้งหมด:');
+            if (pwd === SYSTEM_PASSWORD) {
                 db.plans = [];
                 saveData();
+                alert('ล้างแผนการผลิตทั้งหมดเรียบร้อยแล้ว');
+            } else if (pwd !== null) {
+                alert('รหัสผ่านไม่ถูกต้อง!');
             }
         }
 
@@ -953,16 +975,14 @@
                 const accum = item.accumQty;
                 const percent = Math.min(Math.round((accum / DIE_PM_LIMIT) * 100), 100);
 
-                // --- ปรับแต่งเงื่อนไขการแจ้งเตือน PM ---
                 let statusBadge = '<span class="badge bg-success">Normal</span>';
                 let progressColor = 'bg-info';
 
-                // เงื่อนไข: ถ้ายอดสะสมยังไม่ถึงเกณฑ์ (น้อยกว่า 80% หรือ 32,000) จะไม่แจ้งเตือน
-                if (accum >= DIE_PM_LIMIT) { // ถึง 40,000 ชิ้นขึ้นไป (100%)
+                if (accum >= DIE_PM_LIMIT) {
                     statusBadge = '<span class="badge bg-danger text-white"><i class="fas fa-bell me-1"></i>Due for PM</span>';
                     progressColor = 'bg-danger';
                     dueCount++;
-                } else if (accum >= (DIE_PM_LIMIT * 0.8)) { // ตั้งแต่ 32,000 ถึง 39,999 ชิ้น (80%-99%)
+                } else if (accum >= (DIE_PM_LIMIT * 0.8)) {
                     statusBadge = '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i>Near PM</span>';
                     progressColor = 'bg-warning';
                     nearCount++;
@@ -992,25 +1012,47 @@
                 tbodyPm.appendChild(tr);
             });
 
-            // อัปเดตยอดแจ้งเตือนบนการ์ดสรุปด้านบน
             document.getElementById('diePmDueCount').innerText = dueCount;
             document.getElementById('diePmNearCount').innerText = nearCount;
         }
 
-        // --- RESET ALL DATA ---
+        // --- RESET DATA (WITH PASSWORD & LINE TARGET) ---
         function showClearModal() { 
+            document.getElementById('deletePassword').value = '';
             if (clearModal) {
                 clearModal.show(); 
             } else {
-                if (confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมดในระบบ?")) {
+                const pwd = prompt("กรอกรหัสผ่านยืนยันการลบข้อมูล (Default: 1234):");
+                if (pwd === SYSTEM_PASSWORD) {
                     confirmClearData();
+                } else if (pwd !== null) {
+                    alert("รหัสผ่านไม่ถูกต้อง!");
                 }
             }
         }
 
         function confirmClearData() {
-            localStorage.clear();
-            db = { plans: [], actuals: [], dies: [] };
+            const pwdInput = document.getElementById('deletePassword').value;
+            const targetLine = document.getElementById('deleteTargetLine').value;
+
+            if (pwdInput !== SYSTEM_PASSWORD) {
+                alert("❌ รหัสผ่านไม่ถูกต้อง! ไม่สามารถทำการลบข้อมูลได้");
+                return;
+            }
+
+            if (targetLine === 'ALL') {
+                // ลบข้อมูลทั้งหมด
+                localStorage.clear();
+                db = { plans: [], actuals: [], dies: [] };
+                alert("ลบข้อมูลทั้งหมดในระบบเรียบร้อยแล้ว");
+            } else {
+                // ลบเฉพาะ Line ที่เลือก
+                db.plans = db.plans.filter(p => p.planLine !== targetLine);
+                db.actuals = db.actuals.filter(a => a.actualLine !== targetLine);
+                db.dies = db.dies.filter(d => d.bmLine !== targetLine);
+                alert(`ลบข้อมูลเฉพาะ ${targetLine} เรียบร้อยแล้ว`);
+            }
+
             saveData();
             if (clearModal) clearModal.hide();
         }
