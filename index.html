@@ -27,19 +27,41 @@
             100% { opacity: 1; }
         }
         .animate-pulse { animation: pulse 1.5s infinite; }
+        .logo-header-img {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+            background-color: #ffffff;
+            padding: 3px 6px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            cursor: pointer;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body class="p-3 p-md-4">
 
     <div class="container-fluid">
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
-            <div>
-                <h2 class="fw-bold text-info m-0"><i class="fas fa-industry me-2"></i>Production & Capacity System</h2>
-                <small class="text-muted">ระบบจัดการแผนการผลิต บันทึกผลการทำงานพนักงาน และวิเคราะห์กำลังการผลิต (Capacity)</small>
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <!-- โลโก้รูปภาพเปลี่ยนจากไอคอนเดิม -->
+                <div class="position-relative">
+                    <img id="companyLogo" src="Jozu.png" alt="Jozu Logo" class="logo-header-img" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนรูปโลโก้" onerror="this.src='https://via.placeholder.com/150x50/ffffff/000000?text=Jozu+Logo'">
+                    <input type="file" id="logoInput" accept="image/*" class="d-none" onchange="uploadLogo(event)">
+                </div>
+                <div>
+                    <h2 class="fw-bold text-info m-0 d-flex align-items-center gap-2">
+                        Production & Capacity System
+                    </h2>
+                    <small class="text-muted">Jozu Auto Part Co., ltd. - ระบบจัดการแผนการผลิต และกำลังการผลิต</small>
+                </div>
             </div>
-            <div class="d-flex gap-2">
-                <!-- ปุ่ม Export Excel หลัก -->
+            <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-outline-light btn-sm" onclick="document.getElementById('logoInput').click()">
+                    <i class="fas fa-image me-1"></i> เปลี่ยนโลโก้
+                </button>
                 <button class="btn btn-success btn-sm" onclick="exportToExcelXLSX('actuals')">
                     <i class="fas fa-file-excel me-1"></i> Export ประวัติผลิต (.xlsx)
                 </button>
@@ -472,13 +494,11 @@
         const DIE_PM_LIMIT = 40000;
         const ADMIN_PASSWORD = "1234";
 
-        // Global State จาก LocalStorage
         let currentFilterLine = 'ALL';
         let plans = JSON.parse(localStorage.getItem('sys_plans')) || [];
         let actuals = JSON.parse(localStorage.getItem('sys_actuals')) || [];
         let dieLogs = JSON.parse(localStorage.getItem('sys_dielogs')) || [];
 
-        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             if (document.getElementById('planDate')) document.getElementById('planDate').value = today;
@@ -486,8 +506,26 @@
             if (document.getElementById('actualDate')) document.getElementById('actualDate').value = today;
             if (document.getElementById('bmDate')) document.getElementById('bmDate').value = today;
 
+            const savedLogo = localStorage.getItem('sys_logo');
+            if (savedLogo) {
+                document.getElementById('companyLogo').src = savedLogo;
+            }
+
             refreshAllViews();
         });
+
+        function uploadLogo(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Img = e.target.result;
+                    document.getElementById('companyLogo').src = base64Img;
+                    localStorage.setItem('sys_logo', base64Img);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
 
         function saveToStorage() {
             localStorage.setItem('sys_plans', JSON.stringify(plans));
@@ -505,9 +543,6 @@
             renderDie();
         }
 
-        // ==========================================
-        // 1. DASHBOARD
-        // ==========================================
         function filterDashboard(line, btn) {
             currentFilterLine = line;
             if (btn) {
@@ -549,8 +584,6 @@
                 const actMatches = actuals.filter(a => a.partNo === plan.partNo && a.lotNo === plan.lotNo);
                 const actQty = actMatches.reduce((sum, a) => sum + Number(a.okQty), 0);
                 const progress = Math.min(Math.round((actQty / plan.planQty) * 100), 100) || 0;
-
-                // ตรวจสอบเงื่อนไข Delay (เลย Finish Date และยอดยังไม่ครบ 100%)
                 const isDelayed = (todayStr > plan.finishDate) && (progress < 100);
 
                 let progressBarClass = 'bg-info';
@@ -585,9 +618,6 @@
             });
         }
 
-        // ==========================================
-        // 2. CAPACITY MANAGEMENT
-        // ==========================================
         function renderCapacity() {
             const tbody = document.getElementById('capacityTableBody');
             tbody.innerHTML = '';
@@ -644,9 +674,6 @@
             document.getElementById('overallUtilization').innerText = `${overall}%`;
         }
 
-        // ==========================================
-        // 3. PLANNING
-        // ==========================================
         function submitPlan(e) {
             e.preventDefault();
             const newPlan = {
@@ -711,9 +738,6 @@
             }
         }
 
-        // ==========================================
-        // 4. ACTUAL PRODUCTION (OPERATOR)
-        // ==========================================
         function checkAndLoadPlans() {
             const selectedLine = document.getElementById('actualLine').value;
             const partSelect = document.getElementById('actualPartNo');
@@ -722,7 +746,6 @@
             const submitBtn = document.getElementById('btnSubmitActual');
 
             const availPlans = plans.filter(p => p.line === selectedLine);
-
             partSelect.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
 
             if (availPlans.length === 0) {
@@ -803,9 +826,6 @@
             });
         }
 
-        // ==========================================
-        // 5. STOCK
-        // ==========================================
         function renderStock() {
             const tbody = document.getElementById('stockTableBody');
             tbody.innerHTML = '';
@@ -847,9 +867,6 @@
             });
         }
 
-        // ==========================================
-        // 6. DIE MAINTENANCE & PM
-        // ==========================================
         function renderDie() {
             const tbodyPm = document.getElementById('diePmTableBody');
             const tbodyLogs = document.getElementById('dieTableBody');
@@ -959,9 +976,6 @@
             }
         }
 
-        // ==========================================
-        // 7. CLEAR DATA MODAL SYSTEM
-        // ==========================================
         function showClearModal() {
             const modal = new bootstrap.Modal(document.getElementById('clearDataModal'));
             document.getElementById('deletePassword').value = '';
@@ -996,9 +1010,6 @@
             alert(`ลบข้อมูล (${scopeLine}) สำเร็จแล้ว!`);
         }
 
-        // ==========================================
-        // 8. EXPORT TO EXCEL (.XLSX)
-        // ==========================================
         function exportToExcelXLSX(type) {
             let data = [];
             let filename = '';
