@@ -187,46 +187,53 @@
 <!-- TAB: MATERIAL (รับ-จ่าย Material) -->
 <div class="tab-pane fade" id="tab-material">
     <div class="row g-3">
-        <!-- ฝั่งซ้าย: ฟอร์มทำรายการ รับ/จ่าย -->
+        <!-- ฝั่งซ้าย: ฟอร์มทำรายการ รับ / จ่าย -->
         <div class="col-md-4">
             <div class="card p-3 border-start border-4 border-warning shadow-sm">
                 <h5 class="mb-3 text-warning"><i class="fas fa-exchange-alt me-2"></i>บันทึก รับ / จ่าย Material</h5>
                 <form id="materialForm" onsubmit="submitMaterialTransaction(event)">
                     <div class="mb-2">
                         <label class="form-label small">ประเภทรายการ (Transaction Type)</label>
-                        <select id="matType" class="form-select form-select-sm" onchange="toggleMatReference()" required>
-                            <option value="IN">📥 รับ Material เข้าคลัง (In)</option>
-                            <option value="OUT">📤 จ่าย Material ออก (Out)</option>
+                        <select id="matType" class="form-select form-select-sm" onchange="toggleMatFormFields()" required>
+                            <option value="IN">📥 รับเข้าวัตถุดิบ (In)</option>
+                            <option value="OUT">📤 จ่ายออกวัตถุดิบ (Out)</option>
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">วันที่ทำรายการ</label>
+                        <label class="form-label small" id="lblMatDate">วันที่รับวัตถุดิบ</label>
                         <input type="date" id="matDate" class="form-control form-control-sm" required>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">รหัสวัสดุ / ชื่อวัสดุ (Material Code & Name)</label>
-                        <input type="text" id="matName" class="form-control form-control-sm" placeholder="เช่น MAT-001 (เหล็กแผ่น)" required>
+                        <label class="form-label small">Part No.</label>
+                        <input type="text" id="matPartNo" class="form-control form-control-sm" placeholder="เช่น PART-001" required>
                     </div>
-                    <div class="row g-2 mb-2">
-                        <div class="col-6">
-                            <label class="form-label small">จำนวน (Quantity)</label>
-                            <input type="number" id="matQty" class="form-control form-control-sm" placeholder="0" min="1" required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small">หน่วย (Unit)</label>
-                            <input type="text" id="matUnit" class="form-control form-control-sm" value="ชิ้น" required>
-                        </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Type / Size</label>
+                        <input type="text" id="matTypeSize" class="form-control form-control-sm" placeholder="เช่น SUS304 / 2.0mm" required>
                     </div>
-                    <div class="mb-2" id="matRefContainer">
-                        <label class="form-label small" id="matRefLabel">อ้างอิง PO / Supplier</label>
-                        <input type="text" id="matReference" class="form-control form-control-sm" placeholder="เช่น PO-69001 / บริษัท...">
+                    <div class="mb-2">
+                        <label class="form-label small">จำนวน (Quantity)</label>
+                        <input type="number" id="matQty" class="form-control form-control-sm" placeholder="0" min="1" required>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small">ผู้ทำรายการ / หมายเหตุ</label>
-                        <input type="text" id="matRemark" class="form-control form-control-sm" placeholder="เช่น เบิกไปใช้ Line A">
+                    
+                    <!-- ฟิลด์เฉพาะขา "รับเข้า" -->
+                    <div class="mb-2 mat-in-group">
+                        <label class="form-label small">Supplier</label>
+                        <input type="text" id="matSupplier" class="form-control form-control-sm" placeholder="ชื่อผู้ขาย / บริษัท" required>
                     </div>
-                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold">
-                        <i class="fas fa-save me-1"></i> บันทึกรายการ Material
+                    <div class="mb-2 mat-in-group">
+                        <label class="form-label small">ผู้รับ (Receiver)</label>
+                        <input type="text" id="matReceiver" class="form-control form-control-sm" placeholder="ชื่อผู้รับของ" required>
+                    </div>
+
+                    <!-- ฟิลด์เฉพาะขา "จ่ายออก" (ซ่อนไว้ก่อนเมื่อเริ่มระบบ) -->
+                    <div class="mb-2 mat-out-group" style="display: none;">
+                        <label class="form-label small">ผู้เบิก (Requester)</label>
+                        <input type="text" id="matRequester" class="form-control form-control-sm" placeholder="ชื่อผู้เบิก / ไลน์ผลิต">
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
+                        <i class="fas fa-save me-1"></i> บันทึกรายการ
                     </button>
                 </form>
             </div>
@@ -243,11 +250,11 @@
                     <table class="table table-dark table-hover align-middle m-0">
                         <thead>
                             <tr>
-                                <th>รหัส / ชื่อวัสดุ</th>
+                                <th>Part No.</th>
+                                <th>Type / Size</th>
                                 <th>รับเข้าสะสม</th>
                                 <th>จ่ายออกสะสม</th>
-                                <th>คงเหลือปัจจุบัน</th>
-                                <th>หน่วย</th>
+                                <th>คงเหลือ</th>
                             </tr>
                         </thead>
                         <tbody id="matStockTableBody"></tbody>
@@ -255,28 +262,28 @@
                 </div>
             </div>
 
-         <!-- ประวัติการ รับ-จ่าย -->
-<div class="card p-3 shadow-sm">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-dark table-hover align-middle m-0">
-            <thead>
-                <tr>
-                    <th>วันที่</th>
-                    <th>ประเภท</th>
-                    <th>Part No.</th>
-                    <th>Type / Size</th>
-                    <th>จำนวน</th>
-                    <th>Supplier / ผู้รับ / ผู้เบิก</th>
-                    <th class="text-center">จัดการ</th> <!-- 📌 เพิ่มหัวข้อคอลัมน์ลบ -->
-                </tr>
-            </thead>
-            <tbody id="matHistoryTableBody"></tbody>
-        </table>
-    </div>
-</div>
+            <!-- ประวัติการ รับ-จ่าย -->
+            <div class="card p-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead>
+                            <tr>
+                                <th>วันที่</th>
+                                <th>ประเภท</th>
+                                <th>Part No.</th>
+                                <th>Type / Size</th>
+                                <th>จำนวน</th>
+                                <th>Supplier / ผู้รับ / ผู้เบิก</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matHistoryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
