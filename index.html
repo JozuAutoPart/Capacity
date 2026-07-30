@@ -47,7 +47,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
                 <div class="position-relative">
-                    <img id="companyLogo" src="Jozu.png" alt="Jozu Logo" class="logo-header-img" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนรูปโลโก้" 
+                    <img id="companyLogo" src="Jozu.png" alt="Jozu Logo" class="logo-header-img" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนรูปโลโก้" onerror="this.src='https://via.placeholder.com/150x50/ffffff/000000?text=Jozu+Logo'">
                     <input type="file" id="logoInput" accept="image/*" class="d-none" onchange="uploadLogo(event)">
                 </div>
                 <div>
@@ -75,6 +75,12 @@
             <li class="nav-item">
                 <button class="nav-link active" id="dash-tab" data-bs-toggle="tab" data-bs-target="#tab-dash" type="button"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</button>
             </li>
+            <li class="nav-item">
+                 <button class="nav-link" id="mat-receive-tab" data-bs-toggle="tab" data-bs-target="#tab-mat-receive" type="button"><i class="fas fa-dolly me-2 text-warning"></i>รับ-จ่าย Material</button>
+            </li>
+            <li class="nav-item">
+                 <button class="nav-link" id="mat-stock-tab" data-bs-toggle="tab" data-bs-target="#tab-mat-stock" type="button"><i class="fas fa-boxes me-2 text-info"></i>Stock Material</button>
+             </li>
             <li class="nav-item">
                 <button class="nav-link" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#tab-capacity" type="button"><i class="fas fa-microchip me-2"></i>Capacity</button>
             </li>
@@ -181,7 +187,100 @@
                     </div>
                 </div>
             </div>
+<!-- TAB: รับ - จ่าย Material -->
+<div class="tab-pane fade" id="tab-mat-receive">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card p-3 border-start border-4 border-warning">
+                <h5 class="mb-3 text-warning"><i class="fas fa-exchange-alt me-2"></i>บันทึก รับ / จ่าย Material</h5>
+                <form id="materialTxForm" onsubmit="submitMaterialTx(event)">
+                    <div class="mb-2">
+                        <label class="form-label small">วันที่ทำรายการ</label>
+                        <input type="date" id="matTxDate" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">ประเภทรายการ</label>
+                        <select id="matTxType" class="form-select form-select-sm" required>
+                            <option value="RECEIVE">รับเข้า Material (Receive)</option>
+                            <option value="ISSUE">จ่ายออก Material (Issue to Production)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">รหัสวัตถุดิบ (Material Code / Part)</label>
+                        <input type="text" id="matCode" class="form-control form-control-sm" placeholder="เช่น MAT-001 หรือ Steel Coil" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">ชื่อวัตถุดิบ (Description)</label>
+                        <input type="text" id="matName" class="form-control form-control-sm" placeholder="เช่น เหล็กแผ่น SPCC" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">จำนวน (Qty)</label>
+                        <input type="number" id="matQty" class="form-control form-control-sm" placeholder="0" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">ผู้บันทึก / อ้างอิง (Ref / Operator)</label>
+                        <input type="text" id="matRef" class="form-control form-control-sm" placeholder="เช่น PO-68001 หรือ Lot ผลิต">
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold">
+                        <i class="fas fa-save me-1"></i> บันทึกรายการ Material
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-8">
+    <div class="card p-3">
+        <h5 class="mb-3"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle m-0">
+                <thead>
+                    <tr>
+                        <th>วันที่</th>
+                        <th>ประเภท</th>
+                        <th>รหัสวัตถุดิบ</th>
+                        <th>ชื่อวัตถุดิบ</th>
+                        <th>จำนวน</th>
+                        <th>อ้างอิง</th>
+                        <th class="text-center">จัดการ</th> <!-- เพิ่มคอลัมน์นี้ -->
+                    </tr>
+                </thead>
+                <tbody id="materialTxTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
+<!-- TAB: Stock Material -->
+<div class="tab-pane fade" id="tab-mat-stock">
+    <div class="card p-3 border-start border-4 border-info">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="m-0 text-info"><i class="fas fa-warehouse me-2"></i>คลังวัตถุดิบคงเหลือ (Stock Material Balance)</h5>
+            <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('material_stock')">
+                <i class="fas fa-file-excel me-1"></i> Export Stock Material
+            </button>
+        </div>
+        <div class="mb-3">
+            <div class="input-group input-group-sm" style="max-width: 350px;">
+                <span class="input-group-text bg-dark text-light border-secondary"><i class="fas fa-search"></i> ค้นหา</span>
+                <input type="text" id="searchMatInput" class="form-control bg-dark text-light border-secondary" placeholder="พิมพ์รหัสหรือชื่อวัตถุดิบ..." onkeyup="filterMaterialStock()">
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle m-0">
+                <thead>
+                    <tr>
+                        <th>รหัสวัตถุดิบ</th>
+                        <th>ชื่อวัตถุดิบ</th>
+                        <th>ยอดรับเข้า (Receive)</th>
+                        <th>ยอดจ่ายออก (Issue)</th>
+                        <th>คงเหลือปัจจุบัน (Balance)</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody id="materialStockTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
             <!-- TAB 3: PLANNING -->
             <div class="tab-pane fade" id="tab-plan">
                 <div class="row g-3">
@@ -757,67 +856,7 @@
             const diff = totalPlan - totalActual;
             document.getElementById('dashTotalDiff').innerText = (diff > 0 ? diff : 0).toLocaleString();
         }
-// ฟังก์ชันลบข้อมูลประวัติการรับ-จ่ายตามลำดับที่บันทึก
-function deleteMaterialTx(index) {
-    if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่? (ยอด Stock จะถูกคำนวณใหม่ให้อัตโนมัติ)')) {
-        materialTransactions.splice(index, 1);
-        localStorage.setItem('jozu_material_tx', JSON.stringify(materialTransactions));
-        renderMaterialData();
-    }
-}
 
-// อัปเดตฟังก์ชัน renderMaterialData ให้รองรับปุ่มลบ
-function renderMaterialData() {
-    const txBody = document.getElementById('materialTxTableBody');
-    if(txBody) {
-        txBody.innerHTML = '';
-        materialTransactions.slice().reverse().forEach((t, revIndex) => {
-            const actualIndex = materialTransactions.length - 1 - revIndex;
-            const badge = t.type === 'RECEIVE' ? '<span class="badge bg-success">รับเข้า</span>' : '<span class="badge bg-danger">จ่ายออก</span>';
-            txBody.innerHTML += `
-                <tr>
-                    <td>${t.date}</td>
-                    <td>${badge}</td>
-                    <td class="fw-bold text-info">${t.code}</td>
-                    <td>${t.name}</td>
-                    <td>${t.qty.toLocaleString()}</td>
-                    <td>${t.ref || '-'}</td>
-                    <td class="text-center">
-                        <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialTx(${actualIndex})" title="ลบรายการนี้">
-                            <i class="fas fa-trash-alt"></i> ลบ
-                        </button>
-                    </td>
-                </tr>`;
-        });
-    }
-
-    const stockMap = {};
-    materialTransactions.forEach(t => {
-        if(!stockMap[t.code]) stockMap[t.code] = { code: t.code, name: t.name, receive: 0, issue: 0 };
-        stockMap[t.code].name = t.name;
-        if(t.type === 'RECEIVE') stockMap[t.code].receive += t.qty;
-        if(t.type === 'ISSUE') stockMap[t.code].issue += t.qty;
-    });
-
-    const stockBody = document.getElementById('materialStockTableBody');
-    if(stockBody) {
-        stockBody.innerHTML = '';
-        for(let code in stockMap) {
-            let item = stockMap[code];
-            let balance = item.receive - item.issue;
-            let statusBadge = balance > 0 ? '<span class="badge bg-success">ปกติ</span>' : '<span class="badge bg-danger">ของหมด</span>';
-            stockBody.innerHTML += `
-                <tr>
-                    <td class="fw-bold text-info">${item.code}</td>
-                    <td>${item.name}</td>
-                    <td class="text-success">+${item.receive.toLocaleString()}</td>
-                    <td class="text-danger">-${item.issue.toLocaleString()}</td>
-                    <td class="fw-bold">${balance.toLocaleString()}</td>
-                    <td>${statusBadge}</td>
-                </tr>`;
-              });
-        }
-        
         // --- TAB 2: CAPACITY ---
         function renderCapacity() {
             const tbody = document.getElementById('capacityTableBody');
@@ -1404,6 +1443,187 @@ function renderMaterialData() {
             const modal = bootstrap.Modal.getInstance(modalEl);
             if(modal) modal.hide();
         }
+        // โครงสร้างข้อมูลจัดเก็บใน localStorage
+let materialTransactions = JSON.parse(localStorage.getItem('jozu_material_tx')) || [];
+
+// ตั้งค่าวันที่ปัจจุบันให้ฟอร์มตอนเปิดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", () => {
+    if(document.getElementById('matTxDate')) {
+        document.getElementById('matTxDate').valueAsDate = new Date();
+    }
+    renderMaterialData();
+});
+
+// ฟังก์ชันบันทึกรับ-จ่าย Material
+function submitMaterialTx(e) {
+    e.preventDefault();
+    const tx = {
+        date: document.getElementById('matTxDate').value,
+        type: document.getElementById('matTxType').value,
+        code: document.getElementById('matCode').value.trim().toUpperCase(),
+        name: document.getElementById('matName').value.trim(),
+        qty: parseFloat(document.getElementById('matQty').value),
+        ref: document.getElementById('matRef').value.trim()
+    };
+
+    // กรณีเป็นการจ่ายออก (ISSUE) ให้เช็คว่า Stock พอไหม (Option เสริม)
+    if (tx.type === 'ISSUE') {
+        const currentStock = calculateMaterialStockBalance(tx.code);
+        if (tx.qty > currentStock) {
+            alert(`Stock ไม่พอจ่าย! คงเหลือปัจจุบัน: ${currentStock} ชิ้น`);
+            return;
+        }
+    }
+
+    materialTransactions.push(tx);
+    localStorage.setItem('jozu_material_tx', JSON.stringify(materialTransactions));
+
+    document.getElementById('materialTxForm').reset();
+    document.getElementById('matTxDate').valueAsDate = new Date();
+    renderMaterialData();
+    alert('บันทึกข้อมูล Material สำเร็จ!');
+}
+
+// คำนวณยอดคงเหลือรายตัว
+function calculateMaterialStockBalance(code) {
+    let balance = 0;
+    materialTransactions.forEach(t => {
+        if (t.code === code) {
+            if (t.type === 'RECEIVE') balance += t.qty;
+            else if (t.type === 'ISSUE') balance -= t.qty;
+        }
+    });
+    return balance;
+}
+
+// เรนเดอร์ข้อมูลลงตารางประวัติและตาราง Stock
+function renderMaterialData() {
+    // 1. ตารางประวัติ
+    const txBody = document.getElementById('materialTxTableBody');
+    if(txBody) {
+        txBody.innerHTML = '';
+        materialTransactions.slice().reverse().forEach(t => {
+            const badge = t.type === 'RECEIVE' 
+                ? '<span class="badge bg-success">รับเข้า</span>' 
+                : '<span class="badge bg-danger">จ่ายออก</span>';
+            txBody.innerHTML += `
+                <tr>
+                    <td>${t.date}</td>
+                    <td>${badge}</td>
+                    <td>${t.code}</td>
+                    <td>${t.name}</td>
+                    <td>${t.qty.toLocaleString()}</td>
+                    <td>${t.ref || '-'}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // 2. ตาราง Stock สรุปยอดคงเหลือ
+    const stockMap = {};
+    materialTransactions.forEach(t => {
+        if (!stockMap[t.code]) {
+            stockMap[t.code] = { code: t.code, name: t.name, receive: 0, issue: 0 };
+        }
+        stockMap[t.code].name = t.name; // อัปเดตชื่อล่าสุดเสมอ
+        if (t.type === 'RECEIVE') stockMap[t.code].receive += t.qty;
+        if (t.type === 'ISSUE') stockMap[t.code].issue += t.qty;
+    });
+
+    const stockBody = document.getElementById('materialStockTableBody');
+    if(stockBody) {
+        stockBody.innerHTML = '';
+        for (let code in stockMap) {
+            let item = stockMap[code];
+            let balance = item.receive - item.issue;
+            let statusBadge = balance > 0 
+                ? '<span class="badge bg-success">ปกติ</span>' 
+                : '<span class="badge bg-danger">ของหมด / ติดลบ</span>';
+
+            stockBody.innerHTML += `
+                <tr>
+                    <td class="fw-bold text-info">${item.code}</td>
+                    <td>${item.name}</td>
+                    <td class="text-success">+${item.receive.toLocaleString()}</td>
+                    <td class="text-danger">-${item.issue.toLocaleString()}</td>
+                    <td class="fw-bold">${balance.toLocaleString()}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        }
+    }
+}
+
+// ฟังก์ชันค้นหาในตาราง Stock Material
+function filterMaterialStock() {
+    let input = document.getElementById('searchMatInput').value.toLowerCase();
+    let rows = document.querySelectorAll('#materialStockTableBody tr');
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? '' : 'none';
+    });
+}
+ // ฟังก์ชันลบข้อมูลประวัติการรับ-จ่ายตามลำดับที่บันทึก
+function deleteMaterialTx(index) {
+    if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่? (ยอด Stock จะถูกคำนวณใหม่ให้อัตโนมัติ)')) {
+        materialTransactions.splice(index, 1);
+        localStorage.setItem('jozu_material_tx', JSON.stringify(materialTransactions));
+        renderMaterialData();
+    }
+}
+
+// อัปเดตฟังก์ชัน renderMaterialData ให้รองรับปุ่มลบ
+function renderMaterialData() {
+    const txBody = document.getElementById('materialTxTableBody');
+    if(txBody) {
+        txBody.innerHTML = '';
+        materialTransactions.slice().reverse().forEach((t, revIndex) => {
+            const actualIndex = materialTransactions.length - 1 - revIndex;
+            const badge = t.type === 'RECEIVE' ? '<span class="badge bg-success">รับเข้า</span>' : '<span class="badge bg-danger">จ่ายออก</span>';
+            txBody.innerHTML += `
+                <tr>
+                    <td>${t.date}</td>
+                    <td>${badge}</td>
+                    <td class="fw-bold text-info">${t.code}</td>
+                    <td>${t.name}</td>
+                    <td>${t.qty.toLocaleString()}</td>
+                    <td>${t.ref || '-'}</td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialTx(${actualIndex})" title="ลบรายการนี้">
+                            <i class="fas fa-trash-alt"></i> ลบ
+                        </button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    const stockMap = {};
+    materialTransactions.forEach(t => {
+        if(!stockMap[t.code]) stockMap[t.code] = { code: t.code, name: t.name, receive: 0, issue: 0 };
+        stockMap[t.code].name = t.name;
+        if(t.type === 'RECEIVE') stockMap[t.code].receive += t.qty;
+        if(t.type === 'ISSUE') stockMap[t.code].issue += t.qty;
+    });
+
+    const stockBody = document.getElementById('materialStockTableBody');
+    if(stockBody) {
+        stockBody.innerHTML = '';
+        for(let code in stockMap) {
+            let item = stockMap[code];
+            let balance = item.receive - item.issue;
+            let statusBadge = balance > 0 ? '<span class="badge bg-success">ปกติ</span>' : '<span class="badge bg-danger">ของหมด</span>';
+            stockBody.innerHTML += `
+                <tr>
+                    <td class="fw-bold text-info">${item.code}</td>
+                    <td>${item.name}</td>
+                    <td class="text-success">+${item.receive.toLocaleString()}</td>
+                    <td class="text-danger">-${item.issue.toLocaleString()}</td>
+                    <td class="fw-bold">${balance.toLocaleString()}</td>
+                    <td>${statusBadge}</td>
+                </tr>`;
+        }
+    }
+}       
     </script>
 </body>
 </html>
