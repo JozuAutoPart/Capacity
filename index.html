@@ -79,6 +79,9 @@
                 <button class="nav-link" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#tab-capacity" type="button"><i class="fas fa-microchip me-2"></i>Capacity</button>
             </li>
             <li class="nav-item">
+    <button class="nav-link" id="material-tab" data-bs-toggle="tab" data-bs-target="#tab-material" type="button" onclick="loadMaterialStock()"><i class="fas fa-boxes me-2 text-warning"></i>รับ-จ่าย Material</button>
+</li>
+            <li class="nav-item">
                 <button class="nav-link" id="plan-tab" data-bs-toggle="tab" data-bs-target="#tab-plan" type="button"><i class="fas fa-calendar-alt me-2"></i>Planning</button>
             </li>
             <li class="nav-item">
@@ -181,7 +184,100 @@
                     </div>
                 </div>
             </div>
+<!-- TAB: MATERIAL (รับ-จ่าย Material) -->
+<div class="tab-pane fade" id="tab-material">
+    <div class="row g-3">
+        <!-- ฝั่งซ้าย: ฟอร์มทำรายการ รับ/จ่าย -->
+        <div class="col-md-4">
+            <div class="card p-3 border-start border-4 border-warning shadow-sm">
+                <h5 class="mb-3 text-warning"><i class="fas fa-exchange-alt me-2"></i>บันทึก รับ / จ่าย Material</h5>
+                <form id="materialForm" onsubmit="submitMaterialTransaction(event)">
+                    <div class="mb-2">
+                        <label class="form-label small">ประเภทรายการ (Transaction Type)</label>
+                        <select id="matType" class="form-select form-select-sm" onchange="toggleMatReference()" required>
+                            <option value="IN">📥 รับ Material เข้าคลัง (In)</option>
+                            <option value="OUT">📤 จ่าย Material ออก (Out)</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">วันที่ทำรายการ</label>
+                        <input type="date" id="matDate" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">รหัสวัสดุ / ชื่อวัสดุ (Material Code & Name)</label>
+                        <input type="text" id="matName" class="form-control form-control-sm" placeholder="เช่น MAT-001 (เหล็กแผ่น)" required>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small">จำนวน (Quantity)</label>
+                            <input type="number" id="matQty" class="form-control form-control-sm" placeholder="0" min="1" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">หน่วย (Unit)</label>
+                            <input type="text" id="matUnit" class="form-control form-control-sm" value="ชิ้น" required>
+                        </div>
+                    </div>
+                    <div class="mb-2" id="matRefContainer">
+                        <label class="form-label small" id="matRefLabel">อ้างอิง PO / Supplier</label>
+                        <input type="text" id="matReference" class="form-control form-control-sm" placeholder="เช่น PO-69001 / บริษัท...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">ผู้ทำรายการ / หมายเหตุ</label>
+                        <input type="text" id="matRemark" class="form-control form-control-sm" placeholder="เช่น เบิกไปใช้ Line A">
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold">
+                        <i class="fas fa-save me-1"></i> บันทึกรายการ Material
+                    </button>
+                </form>
+            </div>
+        </div>
 
+        <!-- ฝั่งขวา: สต็อกคงเหลือ และ ประวัติ -->
+        <div class="col-md-8">
+            <!-- สต็อกวัสดุคงเหลือ -->
+            <div class="card p-3 mb-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0 text-info"><i class="fas fa-warehouse me-2"></i>สต็อก Material คงเหลือปัจจุบัน</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead>
+                            <tr>
+                                <th>รหัส / ชื่อวัสดุ</th>
+                                <th>รับเข้าสะสม</th>
+                                <th>จ่ายออกสะสม</th>
+                                <th>คงเหลือปัจจุบัน</th>
+                                <th>หน่วย</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matStockTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ประวัติการ รับ-จ่าย -->
+            <div class="card p-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead>
+                            <tr>
+                                <th>วันที่</th>
+                                <th>ประเภท</th>
+                                <th>รายการวัสดุ</th>
+                                <th>จำนวน</th>
+                                <th>อ้างอิง / หมายเหตุ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matHistoryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
             <!-- TAB 3: PLANNING -->
             <div class="tab-pane fade" id="tab-plan">
                 <div class="row g-3">
@@ -1344,6 +1440,109 @@
             const modal = bootstrap.Modal.getInstance(modalEl);
             if(modal) modal.hide();
         }
+        // ตั้งค่าเริ่มต้นวันที่ปัจจุบันและโหลดสต็อกเมื่อเปิดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", function() {
+    const today = new Date().toISOString().split('T')[0];
+    if(document.getElementById('matDate')) document.getElementById('matDate').value = today;
+    loadMaterialStock();
+});
+
+// สลับป้ายกำกับ (Label) ฟิลด์อ้างอิงอัตโนมัติตามประเภท (รับเข้า หรือ จ่ายออก)
+function toggleMatReference() {
+    const type = document.getElementById('matType').value;
+    const label = document.getElementById('matRefLabel');
+    if(type === 'IN') {
+        label.innerText = "อ้างอิง PO / Supplier";
+    } else {
+        label.innerText = "อ้างอิง Line ผลิต / ผู้เบิก";
+    }
+}
+
+// ฐานข้อมูลจำลองสำหรับเก็บประวัติผ่าน localStorage
+let materialHistory = JSON.parse(localStorage.getItem('jozu_material_history')) || [];
+
+function submitMaterialTransaction(e) {
+    e.preventDefault();
+    const type = document.getElementById('matType').value;
+    const date = document.getElementById('matDate').value;
+    const name = document.getElementById('matName').value.trim();
+    const qty = parseInt(document.getElementById('matQty').value);
+    const unit = document.getElementById('matUnit').value;
+    const reference = document.getElementById('matReference').value;
+    const remark = document.getElementById('matRemark').value;
+
+    const transaction = {
+        id: Date.now(),
+        type: type,
+        date: date,
+        name: name,
+        qty: qty,
+        unit: unit,
+        reference: reference,
+        remark: remark
+    };
+
+    materialHistory.unshift(transaction);
+    localStorage.setItem('jozu_material_history', JSON.stringify(materialHistory));
+
+    alert(`บันทึกรายการ ${type === 'IN' ? 'รับเข้า' : 'จ่ายออก'} Material สำเร็จ!`);
+    document.getElementById('materialForm').reset();
+    document.getElementById('matDate').value = new Date().toISOString().split('T')[0];
+    loadMaterialStock();
+}
+
+function loadMaterialStock() {
+    let stockMap = {};
+    materialHistory.forEach(item => {
+        if(!stockMap[item.name]) {
+            stockMap[item.name] = { in: 0, out: 0, unit: item.unit };
+        }
+        if(item.type === 'IN') {
+            stockMap[item.name].in += item.qty;
+        } else {
+            stockMap[item.name].out += item.qty;
+        }
+    });
+
+    // แสดงผลตาราง Stock คงเหลือ
+    const stockBody = document.getElementById('matStockTableBody');
+    stockBody.innerHTML = '';
+    if(Object.keys(stockMap).length === 0) {
+        stockBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูล Material ในระบบ</td></tr>`;
+    } else {
+        for(let name in stockMap) {
+            let balance = stockMap[name].in - stockMap[name].out;
+            stockBody.innerHTML += `
+                <tr>
+                    <td class="fw-bold">${name}</td>
+                    <td class="text-success">+${stockMap[name].in}</td>
+                    <td class="text-danger">-${stockMap[name].out}</td>
+                    <td class="fw-bold text-info">${balance}</td>
+                    <td>${stockMap[name].unit}</td>
+                </tr>
+            `;
+        }
+    }
+
+    // แสดงผลตารางประวัติย้อนหลัง
+    const historyBody = document.getElementById('matHistoryTableBody');
+    historyBody.innerHTML = '';
+    if(materialHistory.length === 0) {
+        historyBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
+    } else {
+        materialHistory.slice(0, 15).forEach(item => {
+            historyBody.innerHTML += `
+                <tr>
+                    <td>${item.date}</td>
+                    <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
+                    <td>${item.name}</td>
+                    <td class="fw-bold">${item.qty} ${item.unit}</td>
+                    <td><small class="text-muted">${item.reference || '-'} ${item.remark ? '(' + item.remark + ')' : ''}</small></td>
+                </tr>
+            `;
+        });
+    }
+}
     </script>
 </body>
 </html>
