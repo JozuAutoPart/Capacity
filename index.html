@@ -81,7 +81,6 @@
             <li class="nav-item">
     <button class="nav-link" id="material-tab" data-bs-toggle="tab" data-bs-target="#tab-material" type="button" onclick="loadMaterialStock()"><i class="fas fa-boxes me-2 text-warning"></i>รับ-จ่าย Material</button>
 </li>
-           
             <li class="nav-item">
                 <button class="nav-link" id="plan-tab" data-bs-toggle="tab" data-bs-target="#tab-plan" type="button"><i class="fas fa-calendar-alt me-2"></i>Planning</button>
             </li>
@@ -205,12 +204,8 @@
                         <input type="date" id="matDate" class="form-control form-control-sm" required>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">Part No. </label>
-                        <input type="text" id="matName" class="form-control form-control-sm" placeholder="(17154-0T040)" required>
-                    </div>
-                       <div class="mb-2">
-                        <label class="form-label small">Type/Spec </label>
-                        <input type="text" id="matName" class="form-control form-control-sm" placeholder="(spcc/1.2x151xcoil)" required>
+                        <label class="form-label small">รหัสวัสดุ / ชื่อวัสดุ (Material Code & Name)</label>
+                        <input type="text" id="matName" class="form-control form-control-sm" placeholder="เช่น MAT-001 (เหล็กแผ่น)" required>
                     </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
@@ -248,8 +243,7 @@
                     <table class="table table-dark table-hover align-middle m-0">
                         <thead>
                             <tr>
-                                <th>Part No.</th>
-                                <th>Type/Spec</th>
+                                <th>รหัส / ชื่อวัสดุ</th>
                                 <th>รับเข้าสะสม</th>
                                 <th>จ่ายออกสะสม</th>
                                 <th>คงเหลือปัจจุบัน</th>
@@ -271,7 +265,6 @@
                         <thead>
                             <tr>
                                 <th>วันที่</th>
-                                <th>Part No.</th>
                                 <th>ประเภท</th>
                                 <th>รายการวัสดุ</th>
                                 <th>จำนวน</th>
@@ -1435,29 +1428,18 @@
             modal.show();
         }
 
-    function clearAllData() {
-    localStorage.removeItem('sys_plans');
-    localStorage.removeItem('sys_actuals');
-    localStorage.removeItem('sys_qgate');
-    localStorage.removeItem('sys_deliveries');
-    localStorage.removeItem('sys_bms');
-    
-    // 📌 เพิ่มบรรทัดนี้เพื่อล้างข้อมูลประวัติและสต็อก Material ด้วย
-    localStorage.removeItem('jozu_material_history');
-    materialHistory = []; 
-
-    plans = []; actuals = []; qgate = []; deliveries = []; bms = [];
-    renderAll();
-    
-    // โหลดหน้าสต็อก Material ใหม่ให้เป็นค่าว่าง
-    if(typeof loadMaterialStock === 'function') {
-        loadMaterialStock();
-    }
-
-    const modalEl = document.getElementById('clearModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    if(modal) modal.hide();
-}
+        function clearAllData() {
+            localStorage.removeItem('sys_plans');
+            localStorage.removeItem('sys_actuals');
+            localStorage.removeItem('sys_qgate');
+            localStorage.removeItem('sys_deliveries');
+            localStorage.removeItem('sys_bms');
+            plans = []; actuals = []; qgate = []; deliveries = []; bms = [];
+            renderAll();
+            const modalEl = document.getElementById('clearModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if(modal) modal.hide();
+        }
         // ตั้งค่าเริ่มต้นวันที่ปัจจุบันและโหลดสต็อกเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
