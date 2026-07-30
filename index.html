@@ -187,53 +187,46 @@
 <!-- TAB: MATERIAL (รับ-จ่าย Material) -->
 <div class="tab-pane fade" id="tab-material">
     <div class="row g-3">
-        <!-- ฝั่งซ้าย: ฟอร์มทำรายการ รับ / จ่าย -->
+        <!-- ฝั่งซ้าย: ฟอร์มทำรายการ รับ/จ่าย -->
         <div class="col-md-4">
             <div class="card p-3 border-start border-4 border-warning shadow-sm">
                 <h5 class="mb-3 text-warning"><i class="fas fa-exchange-alt me-2"></i>บันทึก รับ / จ่าย Material</h5>
                 <form id="materialForm" onsubmit="submitMaterialTransaction(event)">
                     <div class="mb-2">
                         <label class="form-label small">ประเภทรายการ (Transaction Type)</label>
-                        <select id="matType" class="form-select form-select-sm" onchange="toggleMatFormFields()" required>
-                            <option value="IN">📥 รับเข้าวัตถุดิบ (In)</option>
-                            <option value="OUT">📤 จ่ายออกวัตถุดิบ (Out)</option>
+                        <select id="matType" class="form-select form-select-sm" onchange="toggleMatReference()" required>
+                            <option value="IN">📥 รับ Material เข้าคลัง (In)</option>
+                            <option value="OUT">📤 จ่าย Material ออก (Out)</option>
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small" id="lblMatDate">วันที่รับวัตถุดิบ</label>
+                        <label class="form-label small">วันที่ทำรายการ</label>
                         <input type="date" id="matDate" class="form-control form-control-sm" required>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">Part No.</label>
-                        <input type="text" id="matPartNo" class="form-control form-control-sm" placeholder="เช่น PART-001" required>
+                        <label class="form-label small">รหัสวัสดุ / ชื่อวัสดุ (Material Code & Name)</label>
+                        <input type="text" id="matName" class="form-control form-control-sm" placeholder="เช่น MAT-001 (เหล็กแผ่น)" required>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label small">Type / Size</label>
-                        <input type="text" id="matTypeSize" class="form-control form-control-sm" placeholder="เช่น SUS304 / 2.0mm" required>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small">จำนวน (Quantity)</label>
+                            <input type="number" id="matQty" class="form-control form-control-sm" placeholder="0" min="1" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">หน่วย (Unit)</label>
+                            <input type="text" id="matUnit" class="form-control form-control-sm" value="ชิ้น" required>
+                        </div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label small">จำนวน (Quantity)</label>
-                        <input type="number" id="matQty" class="form-control form-control-sm" placeholder="0" min="1" required>
+                    <div class="mb-2" id="matRefContainer">
+                        <label class="form-label small" id="matRefLabel">อ้างอิง PO / Supplier</label>
+                        <input type="text" id="matReference" class="form-control form-control-sm" placeholder="เช่น PO-69001 / บริษัท...">
                     </div>
-                    
-                    <!-- ฟิลด์เฉพาะขา "รับเข้า" -->
-                    <div class="mb-2 mat-in-group">
-                        <label class="form-label small">Supplier</label>
-                        <input type="text" id="matSupplier" class="form-control form-control-sm" placeholder="ชื่อผู้ขาย / บริษัท">
+                    <div class="mb-3">
+                        <label class="form-label small">ผู้ทำรายการ / หมายเหตุ</label>
+                        <input type="text" id="matRemark" class="form-control form-control-sm" placeholder="เช่น เบิกไปใช้ Line A">
                     </div>
-                    <div class="mb-2 mat-in-group">
-                        <label class="form-label small">ผู้รับ (Receiver)</label>
-                        <input type="text" id="matReceiver" class="form-control form-control-sm" placeholder="ชื่อผู้รับของ">
-                    </div>
-
-                    <!-- ฟิลด์เฉพาะขา "จ่ายออก" (ซ่อนไว้ก่อนเมื่อเริ่มระบบ) -->
-                    <div class="mb-2 mat-out-group" style="display: none;">
-                        <label class="form-label small">ผู้เบิก (Requester / Issuer)</label>
-                        <input type="text" id="matRequester" class="form-control form-control-sm" placeholder="ชื่อผู้เบิก / ไลน์ผลิต">
-                    </div>
-
-                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
-                        <i class="fas fa-save me-1"></i> บันทึกรายการ
+                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold">
+                        <i class="fas fa-save me-1"></i> บันทึกรายการ Material
                     </button>
                 </form>
             </div>
@@ -250,11 +243,11 @@
                     <table class="table table-dark table-hover align-middle m-0">
                         <thead>
                             <tr>
-                                <th>Part No.</th>
-                                <th>Type / Size</th>
+                                <th>รหัส / ชื่อวัสดุ</th>
                                 <th>รับเข้าสะสม</th>
                                 <th>จ่ายออกสะสม</th>
-                                <th>คงเหลือ</th>
+                                <th>คงเหลือปัจจุบัน</th>
+                                <th>หน่วย</th>
                             </tr>
                         </thead>
                         <tbody id="matStockTableBody"></tbody>
@@ -262,28 +255,29 @@
                 </div>
             </div>
 
-          <!-- ประวัติการ รับ-จ่าย -->
-<div class="card p-3 shadow-sm">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
+            <!-- ประวัติการ รับ-จ่าย -->
+            <div class="card p-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead>
+                            <tr>
+                                <th>วันที่</th>
+                                <th>ประเภท</th>
+                                <th>รายการวัสดุ</th>
+                                <th>จำนวน</th>
+                                <th>อ้างอิง / หมายเหตุ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matHistoryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-dark table-hover align-middle m-0">
-            <thead>
-                <tr>
-                    <th>วันที่</th>
-                    <th>ประเภท</th>
-                    <th>Part No.</th>
-                    <th>Type / Size</th>
-                    <th>จำนวน</th>
-                    <th>Supplier / ผู้รับ / ผู้เบิก</th>
-                    <th class="text-center">จัดการ</th> <!-- 📌 เพิ่มหัวข้อคอลัมน์ลบ -->
-                </tr>
-            </thead>
-            <tbody id="matHistoryTableBody"></tbody>
-        </table>
-    </div>
-</div>>
+</div>
             <!-- TAB 3: PLANNING -->
             <div class="tab-pane fade" id="tab-plan">
                 <div class="row g-3">
@@ -1446,75 +1440,53 @@
             const modal = bootstrap.Modal.getInstance(modalEl);
             if(modal) modal.hide();
         }
-      // ตั้งค่าเริ่มต้นวันที่และโหลดข้อมูล
+        // ตั้งค่าเริ่มต้นวันที่ปัจจุบันและโหลดสต็อกเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('matDate')) document.getElementById('matDate').value = today;
     loadMaterialStock();
 });
 
-// สลับการแสดงผลฟิลด์ฟอร์มตามประเภท รับเข้า หรือ จ่ายออก
-function toggleMatFormFields() {
+// สลับป้ายกำกับ (Label) ฟิลด์อ้างอิงอัตโนมัติตามประเภท (รับเข้า หรือ จ่ายออก)
+function toggleMatReference() {
     const type = document.getElementById('matType').value;
-    const lblDate = document.getElementById('lblMatDate');
-    const inGroups = document.querySelectorAll('.mat-in-group');
-    const outGroups = document.querySelectorAll('.mat-out-group');
-
+    const label = document.getElementById('matRefLabel');
     if(type === 'IN') {
-        lblDate.innerText = "วันที่รับวัตถุดิบ";
-        inGroups.forEach(el => el.style.display = 'block');
-        outGroups.forEach(el => el.style.display = 'none');
-        document.getElementById('matSupplier').required = true;
-        document.getElementById('matReceiver').required = true;
-        document.getElementById('matRequester').required = false;
+        label.innerText = "อ้างอิง PO / Supplier";
     } else {
-        lblDate.innerText = "วันที่จ่าย";
-        inGroups.forEach(el => el.style.display = 'none');
-        outGroups.forEach(el => el.style.display = 'block');
-        document.getElementById('matSupplier').required = false;
-        document.getElementById('matReceiver').required = false;
-        document.getElementById('matRequester').required = true;
+        label.innerText = "อ้างอิง Line ผลิต / ผู้เบิก";
     }
 }
 
-// ฐานข้อมูลจำลองใน localStorage
+// ฐานข้อมูลจำลองสำหรับเก็บประวัติผ่าน localStorage
 let materialHistory = JSON.parse(localStorage.getItem('jozu_material_history')) || [];
 
 function submitMaterialTransaction(e) {
     e.preventDefault();
     const type = document.getElementById('matType').value;
     const date = document.getElementById('matDate').value;
-    const partNo = document.getElementById('matPartNo').value.trim();
-    const typeSize = document.getElementById('matTypeSize').value.trim();
+    const name = document.getElementById('matName').value.trim();
     const qty = parseInt(document.getElementById('matQty').value);
-    
-    let detailInfo = '';
-    if(type === 'IN') {
-        const supplier = document.getElementById('matSupplier').value;
-        const receiver = document.getElementById('matReceiver').value;
-        detailInfo = `Supplier: ${supplier} | ผู้รับ: ${receiver}`;
-    } else {
-        const requester = document.getElementById('matRequester').value;
-        detailInfo = `ผู้เบิก: ${requester}`;
-    }
+    const unit = document.getElementById('matUnit').value;
+    const reference = document.getElementById('matReference').value;
+    const remark = document.getElementById('matRemark').value;
 
     const transaction = {
         id: Date.now(),
         type: type,
         date: date,
-        partNo: partNo,
-        typeSize: typeSize,
+        name: name,
         qty: qty,
-        detail: detailInfo
+        unit: unit,
+        reference: reference,
+        remark: remark
     };
 
     materialHistory.unshift(transaction);
     localStorage.setItem('jozu_material_history', JSON.stringify(materialHistory));
 
-    alert(`บันทึกรายการ${type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}สำเร็จ!`);
+    alert(`บันทึกรายการ ${type === 'IN' ? 'รับเข้า' : 'จ่ายออก'} Material สำเร็จ!`);
     document.getElementById('materialForm').reset();
-    document.getElementById('matType').value = type; // คงค่าประเภทเดิมไว้
-    toggleMatFormFields();
     document.getElementById('matDate').value = new Date().toISOString().split('T')[0];
     loadMaterialStock();
 }
@@ -1522,72 +1494,55 @@ function submitMaterialTransaction(e) {
 function loadMaterialStock() {
     let stockMap = {};
     materialHistory.forEach(item => {
-        let key = item.partNo + "||" + item.typeSize;
-        if(!stockMap[key]) {
-            stockMap[key] = { partNo: item.partNo, typeSize: item.typeSize, in: 0, out: 0 };
+        if(!stockMap[item.name]) {
+            stockMap[item.name] = { in: 0, out: 0, unit: item.unit };
         }
         if(item.type === 'IN') {
-            stockMap[key].in += item.qty;
+            stockMap[item.name].in += item.qty;
         } else {
-            stockMap[key].out += item.qty;
+            stockMap[item.name].out += item.qty;
         }
     });
 
-    // ตารางสต็อกคงเหลือ
+    // แสดงผลตาราง Stock คงเหลือ
     const stockBody = document.getElementById('matStockTableBody');
     stockBody.innerHTML = '';
     if(Object.keys(stockMap).length === 0) {
         stockBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูล Material ในระบบ</td></tr>`;
     } else {
-        for(let key in stockMap) {
-            let item = stockMap[key];
-            let balance = item.in - item.out;
+        for(let name in stockMap) {
+            let balance = stockMap[name].in - stockMap[name].out;
             stockBody.innerHTML += `
                 <tr>
-                    <td class="fw-bold">${item.partNo}</td>
-                    <td>${item.typeSize}</td>
-                    <td class="text-success">+${item.in}</td>
-                    <td class="text-danger">-${item.out}</td>
+                    <td class="fw-bold">${name}</td>
+                    <td class="text-success">+${stockMap[name].in}</td>
+                    <td class="text-danger">-${stockMap[name].out}</td>
                     <td class="fw-bold text-info">${balance}</td>
+                    <td>${stockMap[name].unit}</td>
                 </tr>
             `;
         }
     }
-// 📌 ฟังก์ชันสำหรับลบรายการประวัติ Material ตาม ID
-function deleteMaterialItem(id) {
-    if(confirm("คุณต้องการลบรายการนี้ใช่หรือไม่? ยอดสต็อกจะถูกคำนวณใหม่โดยอัตโนมัติ")) {
-        // กรองข้อมูลรายการที่ต้องการลบออก
-        materialHistory = materialHistory.filter(item => item.id !== id);
-        // บันทึกลง localStorage ใหม่
-        localStorage.setItem('jozu_material_history', JSON.stringify(materialHistory));
-        // โหลดตารางและสต็อกใหม่
-        loadMaterialStock();
-    }
-}
-    // ตารางประวัติ
+
+    // แสดงผลตารางประวัติย้อนหลัง
     const historyBody = document.getElementById('matHistoryTableBody');
     historyBody.innerHTML = '';
     if(materialHistory.length === 0) {
-        historyBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
+        historyBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
     } else {
         materialHistory.slice(0, 15).forEach(item => {
             historyBody.innerHTML += `
                 <tr>
                     <td>${item.date}</td>
                     <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
-                    <td class="fw-bold">${item.partNo}</td>
-                    <td>${item.typeSize}</td>
-                    <td class="fw-bold">${item.qty}</td>
-                    <td><small class="text-muted">${item.detail}</small></td>
-                    <td class="text-center">
-                        <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialItem(${item.id})" title="ลบรายการนี้">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </td>
+                    <td>${item.name}</td>
+                    <td class="fw-bold">${item.qty} ${item.unit}</td>
+                    <td><small class="text-muted">${item.reference || '-'} ${item.remark ? '(' + item.remark + ')' : ''}</small></td>
                 </tr>
             `;
         });
     }
+}
     </script>
 </body>
 </html>
