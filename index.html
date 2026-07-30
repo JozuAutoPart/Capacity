@@ -1455,7 +1455,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMaterialData();
 });
 
-// 1. เพิ่มฟังก์ชันสำหรับลบข้อมูล
+// ฟังก์ชันลบข้อมูลประวัติการรับ-จ่าย
 function deleteMaterialTx(index) {
     if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่? (ยอด Stock จะถูกคำนวณใหม่ให้อัตโนมัติ)')) {
         materialTransactions.splice(index, 1);
@@ -1464,7 +1464,7 @@ function deleteMaterialTx(index) {
     }
 }
 
-// 2. ปรับปรุงฟังก์ชัน renderMaterialData เดิม (ให้เพิ่มปุ่มลบเข้าไปในตาราง)
+// อัปเดตฟังก์ชัน renderMaterialData ให้สร้างปุ่มลบ
 function renderMaterialData() {
     const txBody = document.getElementById('materialTxTableBody');
     if(txBody) {
@@ -1472,8 +1472,6 @@ function renderMaterialData() {
         materialTransactions.slice().reverse().forEach((t, revIndex) => {
             const actualIndex = materialTransactions.length - 1 - revIndex;
             const badge = t.type === 'RECEIVE' ? '<span class="badge bg-success">รับเข้า</span>' : '<span class="badge bg-danger">จ่ายออก</span>';
-            
-            // สังเกตการเพิ่มปุ่มลบในบรรทัดนี้
             txBody.innerHTML += `
                 <tr>
                     <td>${t.date}</td>
