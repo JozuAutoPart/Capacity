@@ -241,27 +241,30 @@
 
         <!-- ฝั่งขวา: สต็อกคงเหลือ และ ประวัติ -->
         <div class="col-md-8">
-            <!-- สต็อกวัสดุคงเหลือ -->
-            <div class="card p-3 mb-3 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 text-info"><i class="fas fa-warehouse me-2"></i>สต็อก Material คงเหลือปัจจุบัน</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover align-middle m-0">
-                        <thead>
-                            <tr>
-                                <th>Part No.</th>
-                                <th>Type / Size</th>
-                                <th>รับเข้าสะสม</th>
-                                <th>จ่ายออกสะสม</th>
-                                <th>คงเหลือ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="matStockTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
+           <!-- สต็อกวัสดุคงเหลือ -->
+<div class="card p-3 mb-3 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="m-0 text-info"><i class="fas fa-warehouse me-2"></i>สต็อก Material คงเหลือปัจจุบัน</h5>
+        <!-- 📌 เพิ่มช่องค้นหาตรงนี้ -->
+        <div style="width: 250px;">
+            <input type="text" id="matSearchBox" class="form-control form-control-sm" placeholder="🔍 ค้นหา Part No. / Type..." oninput="loadMaterialStock()">
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle m-0">
+            <thead>
+                <tr>
+                    <th>Part No.</th>
+                    <th>Type / Size</th>
+                    <th>รับเข้าสะสม</th>
+                    <th>จ่ายออกสะสม</th>
+                    <th>คงเหลือ</th>
+                </tr>
+            </thead>
+            <tbody id="matStockTableBody"></tbody>
+        </table>
+    </div>
+</div>
             <!-- ประวัติการ รับ-จ่าย -->
             <div class="card p-3 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -1542,14 +1545,24 @@ function loadMaterialStock() {
         }
     });
 
-    // แสดงผลตาราง Stock คงเหลือ
+    // ดึงค่าคำค้นหาจากช่อง Search Box
+    const searchBox = document.getElementById('matSearchBox');
+    const keyword = searchBox ? searchBox.value.toLowerCase().trim() : '';
+
+    // แสดงผลตาราง Stock คงเหลือ (พร้อมระบบกรองคำค้นหา)
     const stockBody = document.getElementById('matStockTableBody');
     if(stockBody) {
         stockBody.innerHTML = '';
-        if(Object.keys(stockMap).length === 0) {
-            stockBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูล Material ในระบบ</td></tr>`;
+        
+        let filteredKeys = Object.keys(stockMap).filter(key => {
+            let item = stockMap[key];
+            return item.partNo.toLowerCase().includes(keyword) || item.typeSize.toLowerCase().includes(keyword);
+        });
+
+        if(filteredKeys.length === 0) {
+            stockBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ไม่พบข้อมูล Material ที่ค้นหา</td></tr>`;
         } else {
-            for(let key in stockMap) {
+            filteredKeys.forEach(key => {
                 let item = stockMap[key];
                 let balance = item.in - item.out;
                 stockBody.innerHTML += `
@@ -1561,11 +1574,11 @@ function loadMaterialStock() {
                         <td class="fw-bold text-info">${balance}</td>
                     </tr>
                 `;
-            }
+            });
         }
     }
 
-    // แสดงผลตารางประวัติย้อนหลัง พร้อมปุ่มลบรายการ
+    // แสดงผลตารางประวัติย้อนหลัง (คงเดิม)
     const historyBody = document.getElementById('matHistoryTableBody');
     if(historyBody) {
         historyBody.innerHTML = '';
@@ -1592,7 +1605,6 @@ function loadMaterialStock() {
         }
     }
 }
-
 // ฟังก์ชันลบรายการประวัติ Material รายการเดียว
 function deleteMaterialItem(id) {
     if(confirm("คุณต้องการลบรายการนี้ใช่หรือไม่? ยอดสต็อกจะถูกคำนวณใหม่โดยอัตโนมัติ")) {
