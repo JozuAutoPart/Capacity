@@ -1557,14 +1557,6 @@ function loadMaterialStock() {
         });
     }
 }
-        function clearMaterialData() {
-    if(confirm("คุณต้องการล้างประวัติและสต็อก Material ทั้งหมดใช่หรือไม่?")) {
-        localStorage.removeItem('jozu_material_history');
-        materialHistory = [];
-        loadMaterialStock();
-        alert("ล้างข้อมูล Material เรียบร้อยแล้ว");
-    }
-}
     </script>
 </body>
 </html>
