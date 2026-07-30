@@ -1463,18 +1463,40 @@ function deleteQGateItem(id) {
             modal.show();
         }
 
-        function clearAllData() {
+      // 📌 ฟังก์ชันลบข้อมูลในระบบทั้งหมด (ต้องใส่รหัสผ่านผู้ดูแลระบบ)
+function clearAllData() {
+    let password = prompt("⚠️ คำเตือนสำคัญ: คุณกำลังจะล้างข้อมูลทั้งหมดในระบบ!\n\nกรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยัน:");
+    
+    // ตั้งรหัสผ่านที่ต้องการ (ตัวอย่างนี้ใช้ "1234")
+    if (password === "1234") {
+        if (confirm("ยืนยันอีกครั้ง! ข้อมูลประวัติการผลิต, สต็อก Material และ Q-Gate ทั้งหมดจะถูกลบและไม่สามารถกู้คืนได้ คุณต้องการลบใช่หรือไม่?")) {
+            // ล้างข้อมูลใน localStorage ทุกหมวดของระบบ
             localStorage.removeItem('sys_plans');
             localStorage.removeItem('sys_actuals');
             localStorage.removeItem('sys_qgate');
             localStorage.removeItem('sys_deliveries');
             localStorage.removeItem('sys_bms');
-            plans = []; actuals = []; qgate = []; deliveries = []; bms = [];
-            renderAll();
-            const modalEl = document.getElementById('clearModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            if(modal) modal.hide();
+            localStorage.removeItem('jozu_material_history');
+
+            // รีเซ็ตตัวแปรในหน่วยความจำ (ถ้ามี)
+            if (typeof plans !== 'undefined') plans = [];
+            if (typeof actuals !== 'undefined') actuals = [];
+            if (typeof qgate !== 'undefined') qgate = [];
+            if (typeof deliveries !== 'undefined') deliveries = [];
+            if (typeof bms !== 'undefined') bms = [];
+            if (typeof materialHistory !== 'undefined') materialHistory = [];
+
+            // เรียกโหลดข้อมูลหน้าจอใหม่ทุกส่วน
+            if (typeof renderAll === 'function') renderAll();
+            if (typeof loadMaterialStock === 'function') loadMaterialStock();
+            if (typeof renderQGate === 'function') renderQGate();
+
+            alert("✅ ลบข้อมูลในระบบทั้งหมดเรียบร้อยแล้ว");
         }
+    } else if (password !== null) {
+        alert("❌ รหัสผ่านไม่ถูกต้อง! ระบบยกเลิกการลบข้อมูล");
+    }
+}
       // ==========================================
 // 📌 ระบบจัดการ Material (รับ - จ่าย - สต็อก)
 // ==========================================
