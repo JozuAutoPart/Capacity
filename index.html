@@ -262,30 +262,28 @@
                 </div>
             </div>
 
-            <!-- ประวัติการ รับ-จ่าย -->
-            <div class="card p-3 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover align-middle m-0">
-                        <thead>
-                            <tr>
-                                <th>วันที่</th>
-                                <th>ประเภท</th>
-                                <th>Part No.</th>
-                                <th>Type / Size</th>
-                                <th>จำนวน</th>
-                                <th>Supplier / ผู้รับ / ผู้เบิก</th>
-                            </tr>
-                        </thead>
-                        <tbody id="matHistoryTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+          <!-- ประวัติการ รับ-จ่าย -->
+<div class="card p-3 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
     </div>
-</div>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle m-0">
+            <thead>
+                <tr>
+                    <th>วันที่</th>
+                    <th>ประเภท</th>
+                    <th>Part No.</th>
+                    <th>Type / Size</th>
+                    <th>จำนวน</th>
+                    <th>Supplier / ผู้รับ / ผู้เบิก</th>
+                    <th class="text-center">จัดการ</th> <!-- 📌 เพิ่มหัวข้อคอลัมน์ลบ -->
+                </tr>
+            </thead>
+            <tbody id="matHistoryTableBody"></tbody>
+        </table>
+    </div>
+</div>>
             <!-- TAB 3: PLANNING -->
             <div class="tab-pane fade" id="tab-plan">
                 <div class="row g-3">
@@ -1555,12 +1553,22 @@ function loadMaterialStock() {
             `;
         }
     }
-
+// 📌 ฟังก์ชันสำหรับลบรายการประวัติ Material ตาม ID
+function deleteMaterialItem(id) {
+    if(confirm("คุณต้องการลบรายการนี้ใช่หรือไม่? ยอดสต็อกจะถูกคำนวณใหม่โดยอัตโนมัติ")) {
+        // กรองข้อมูลรายการที่ต้องการลบออก
+        materialHistory = materialHistory.filter(item => item.id !== id);
+        // บันทึกลง localStorage ใหม่
+        localStorage.setItem('jozu_material_history', JSON.stringify(materialHistory));
+        // โหลดตารางและสต็อกใหม่
+        loadMaterialStock();
+    }
+}
     // ตารางประวัติ
     const historyBody = document.getElementById('matHistoryTableBody');
     historyBody.innerHTML = '';
     if(materialHistory.length === 0) {
-        historyBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
+        historyBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
     } else {
         materialHistory.slice(0, 15).forEach(item => {
             historyBody.innerHTML += `
@@ -1571,11 +1579,15 @@ function loadMaterialStock() {
                     <td>${item.typeSize}</td>
                     <td class="fw-bold">${item.qty}</td>
                     <td><small class="text-muted">${item.detail}</small></td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialItem(${item.id})" title="ลบรายการนี้">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
                 </tr>
             `;
         });
     }
-}
     </script>
 </body>
 </html>
