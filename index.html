@@ -255,26 +255,28 @@
                 </div>
             </div>
 
-            <!-- ประวัติการ รับ-จ่าย -->
-            <div class="card p-3 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover align-middle m-0">
-                        <thead>
-                            <tr>
-                                <th>วันที่</th>
-                                <th>ประเภท</th>
-                                <th>รายการวัสดุ</th>
-                                <th>จำนวน</th>
-                                <th>อ้างอิง / หมายเหตุ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="matHistoryTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
+         <!-- ประวัติการ รับ-จ่าย -->
+<div class="card p-3 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการ รับ - จ่าย Material</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle m-0">
+            <thead>
+                <tr>
+                    <th>วันที่</th>
+                    <th>ประเภท</th>
+                    <th>Part No.</th>
+                    <th>Type / Size</th>
+                    <th>จำนวน</th>
+                    <th>Supplier / ผู้รับ / ผู้เบิก</th>
+                    <th class="text-center">จัดการ</th> <!-- 📌 เพิ่มหัวข้อคอลัมน์ลบ -->
+                </tr>
+            </thead>
+            <tbody id="matHistoryTableBody"></tbody>
+        </table>
+    </div>
+</div>
         </div>
     </div>
 </div>
@@ -1440,107 +1442,166 @@
             const modal = bootstrap.Modal.getInstance(modalEl);
             if(modal) modal.hide();
         }
-        // ตั้งค่าเริ่มต้นวันที่ปัจจุบันและโหลดสต็อกเมื่อเปิดหน้าเว็บ
+      // ==========================================
+// 📌 ระบบจัดการ Material (รับ - จ่าย - สต็อก)
+// ==========================================
+
+// ตั้งค่าเริ่มต้นวันที่ปัจจุบันและโหลดสต็อกเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('matDate')) document.getElementById('matDate').value = today;
     loadMaterialStock();
 });
 
-// สลับป้ายกำกับ (Label) ฟิลด์อ้างอิงอัตโนมัติตามประเภท (รับเข้า หรือ จ่ายออก)
-function toggleMatReference() {
+// สลับการแสดงผลฟิลด์ฟอร์มตามประเภท รับเข้า หรือ จ่ายออก
+function toggleMatFormFields() {
     const type = document.getElementById('matType').value;
-    const label = document.getElementById('matRefLabel');
+    const lblDate = document.getElementById('lblMatDate');
+    const inGroups = document.querySelectorAll('.mat-in-group');
+    const outGroups = document.querySelectorAll('.mat-out-group');
+
     if(type === 'IN') {
-        label.innerText = "อ้างอิง PO / Supplier";
+        lblDate.innerText = "วันที่รับวัตถุดิบ";
+        inGroups.forEach(el => el.style.display = 'block');
+        outGroups.forEach(el => el.style.display = 'none');
+        document.getElementById('matSupplier').required = true;
+        document.getElementById('matReceiver').required = true;
+        document.getElementById('matRequester').required = false;
     } else {
-        label.innerText = "อ้างอิง Line ผลิต / ผู้เบิก";
+        lblDate.innerText = "วันที่จ่าย";
+        inGroups.forEach(el => el.style.display = 'none');
+        outGroups.forEach(el => el.style.display = 'block');
+        document.getElementById('matSupplier').required = false;
+        document.getElementById('matReceiver').required = false;
+        document.getElementById('matRequester').required = true;
     }
 }
 
 // ฐานข้อมูลจำลองสำหรับเก็บประวัติผ่าน localStorage
 let materialHistory = JSON.parse(localStorage.getItem('jozu_material_history')) || [];
 
+// ฟังก์ชันบันทึกรายการ รับ / จ่าย Material
 function submitMaterialTransaction(e) {
     e.preventDefault();
     const type = document.getElementById('matType').value;
     const date = document.getElementById('matDate').value;
-    const name = document.getElementById('matName').value.trim();
+    const partNo = document.getElementById('matPartNo').value.trim();
+    const typeSize = document.getElementById('matTypeSize').value.trim();
     const qty = parseInt(document.getElementById('matQty').value);
-    const unit = document.getElementById('matUnit').value;
-    const reference = document.getElementById('matReference').value;
-    const remark = document.getElementById('matRemark').value;
+    
+    let detailInfo = '';
+    if(type === 'IN') {
+        const supplier = document.getElementById('matSupplier').value;
+        const receiver = document.getElementById('matReceiver').value;
+        detailInfo = `Supplier: ${supplier} | ผู้รับ: ${receiver}`;
+    } else {
+        const requester = document.getElementById('matRequester').value;
+        detailInfo = `ผู้เบิก: ${requester}`;
+    }
 
     const transaction = {
         id: Date.now(),
         type: type,
         date: date,
-        name: name,
+        partNo: partNo,
+        typeSize: typeSize,
         qty: qty,
-        unit: unit,
-        reference: reference,
-        remark: remark
+        detail: detailInfo
     };
 
     materialHistory.unshift(transaction);
     localStorage.setItem('jozu_material_history', JSON.stringify(materialHistory));
 
-    alert(`บันทึกรายการ ${type === 'IN' ? 'รับเข้า' : 'จ่ายออก'} Material สำเร็จ!`);
+    alert(`บันทึกรายการ${type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}สำเร็จ!`);
     document.getElementById('materialForm').reset();
+    document.getElementById('matType').value = type; // คงค่าประเภทเดิมไว้
+    toggleMatFormFields();
     document.getElementById('matDate').value = new Date().toISOString().split('T')[0];
     loadMaterialStock();
 }
 
+// ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ
 function loadMaterialStock() {
     let stockMap = {};
     materialHistory.forEach(item => {
-        if(!stockMap[item.name]) {
-            stockMap[item.name] = { in: 0, out: 0, unit: item.unit };
+        let key = item.partNo + "||" + item.typeSize;
+        if(!stockMap[key]) {
+            stockMap[key] = { partNo: item.partNo, typeSize: item.typeSize, in: 0, out: 0 };
         }
         if(item.type === 'IN') {
-            stockMap[item.name].in += item.qty;
+            stockMap[key].in += item.qty;
         } else {
-            stockMap[item.name].out += item.qty;
+            stockMap[key].out += item.qty;
         }
     });
 
     // แสดงผลตาราง Stock คงเหลือ
     const stockBody = document.getElementById('matStockTableBody');
-    stockBody.innerHTML = '';
-    if(Object.keys(stockMap).length === 0) {
-        stockBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูล Material ในระบบ</td></tr>`;
-    } else {
-        for(let name in stockMap) {
-            let balance = stockMap[name].in - stockMap[name].out;
-            stockBody.innerHTML += `
-                <tr>
-                    <td class="fw-bold">${name}</td>
-                    <td class="text-success">+${stockMap[name].in}</td>
-                    <td class="text-danger">-${stockMap[name].out}</td>
-                    <td class="fw-bold text-info">${balance}</td>
-                    <td>${stockMap[name].unit}</td>
-                </tr>
-            `;
+    if(stockBody) {
+        stockBody.innerHTML = '';
+        if(Object.keys(stockMap).length === 0) {
+            stockBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูล Material ในระบบ</td></tr>`;
+        } else {
+            for(let key in stockMap) {
+                let item = stockMap[key];
+                let balance = item.in - item.out;
+                stockBody.innerHTML += `
+                    <tr>
+                        <td class="fw-bold">${item.partNo}</td>
+                        <td>${item.typeSize}</td>
+                        <td class="text-success">+${item.in}</td>
+                        <td class="text-danger">-${item.out}</td>
+                        <td class="fw-bold text-info">${balance}</td>
+                    </tr>
+                `;
+            }
         }
     }
 
-    // แสดงผลตารางประวัติย้อนหลัง
+    // แสดงผลตารางประวัติย้อนหลัง พร้อมปุ่มลบรายการ
     const historyBody = document.getElementById('matHistoryTableBody');
-    historyBody.innerHTML = '';
-    if(materialHistory.length === 0) {
-        historyBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
-    } else {
-        materialHistory.slice(0, 15).forEach(item => {
-            historyBody.innerHTML += `
-                <tr>
-                    <td>${item.date}</td>
-                    <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
-                    <td>${item.name}</td>
-                    <td class="fw-bold">${item.qty} ${item.unit}</td>
-                    <td><small class="text-muted">${item.reference || '-'} ${item.remark ? '(' + item.remark + ')' : ''}</small></td>
-                </tr>
-            `;
-        });
+    if(historyBody) {
+        historyBody.innerHTML = '';
+        if(materialHistory.length === 0) {
+            historyBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
+        } else {
+            materialHistory.slice(0, 15).forEach(item => {
+                historyBody.innerHTML += `
+                    <tr>
+                        <td>${item.date}</td>
+                        <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
+                        <td class="fw-bold">${item.partNo}</td>
+                        <td>${item.typeSize}</td>
+                        <td class="fw-bold">${item.qty}</td>
+                        <td><small class="text-muted">${item.detail}</small></td>
+                        <td class="text-center">
+                            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialItem(${item.id})" title="ลบรายการนี้">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    }
+}
+
+// ฟังก์ชันลบรายการประวัติ Material รายการเดียว
+function deleteMaterialItem(id) {
+    if(confirm("คุณต้องการลบรายการนี้ใช่หรือไม่? ยอดสต็อกจะถูกคำนวณใหม่โดยอัตโนมัติ")) {
+        materialHistory = materialHistory.filter(item => item.id !== id);
+        localStorage.setItem('jozu_material_history', JSON.stringify(materialHistory));
+        loadMaterialStock();
+    }
+}
+
+// ฟังก์ชันล้างข้อมูลประวัติและสต็อก Material ทั้งหมด
+function clearMaterialData() {
+    if(confirm("คุณต้องการล้างประวัติและสต็อก Material ทั้งหมดใช่หรือไม่?")) {
+        localStorage.removeItem('jozu_material_history');
+        materialHistory = [];
+        loadMaterialStock();
+        alert("ล้างข้อมูล Material เรียบร้อยแล้ว");
     }
 }
     </script>
