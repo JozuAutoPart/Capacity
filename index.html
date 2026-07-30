@@ -456,73 +456,85 @@
                     </div>
                 </div>
             </div>
+<!-- TAB: Q-GATE INSPECTION -->
+<div class="tab-pane fade" id="tab-qgate">
+    <div class="row g-3">
+        <!-- ฝั่งซ้าย: ฟอร์มบันทึกผลตรวจ Q-Gate -->
+        <div class="col-md-4">
+            <div class="card p-3 border-start border-4 border-warning shadow-sm">
+                <h5 class="mb-3 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
+                <form id="qgateForm" onsubmit="submitQGateTransaction(event)">
+                    <div class="mb-2">
+                        <label class="form-label small">วันที่ตรวจสอบ</label>
+                        <input type="date" id="qgateDate" class="form-control form-control-sm" required>
+                    </div>
 
-            <!-- TAB 5: Q-GATE INSPECTION -->
-            <div class="tab-pane fade" id="tab-qgate">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="card p-3 border-start border-4 border-warning">
-                            <h5 class="mb-3 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
-                            <form id="qgateForm" onsubmit="submitQGate(event)">
-                                <div class="mb-2">
-                                    <label class="form-label small">วันที่ตรวจสอบ</label>
-                                    <input type="date" id="qgateDate" class="form-control form-control-sm" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">ชื่อพนักงานตรวจสอบ (Inspector)</label>
-                                    <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น นายสมศักดิ์ (QC-01)" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small text-warning fw-bold">Part No. (ตรวจจาก WIP)</label>
-                                    <select id="qgatePartNo" class="form-select form-select-sm" onchange="updateWipMaxHint()" required>
-                                        <option value="">-- เลือก Part No. ที่มีใน WIP --</option>
-                                    </select>
-                                    <small id="wipMaxHint" class="text-info d-block mt-1">คงเหลือใน WIP: 0 ชิ้น</small>
-                                </div>
-                                <div class="row g-2 mb-3">
-                                    <div class="col-6">
-                                        <label class="form-label small">จำนวนที่ตรวจสอบ</label>
-                                        <input type="number" id="qgateCheckQty" class="form-control form-control-sm" placeholder="0" min="1" required>
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label small text-danger">ของเสีย (NG Qty)</label>
-                                        <input type="number" id="qgateNgQty" class="form-control form-control-sm border-danger" value="0" min="0" required>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold">
-                                    <i class="fas fa-check-double me-1"></i> ยืนยันตรวจ & ตัด WIP เข้า FG
-                                </button>
-                            </form>
+                    <!-- 📌 เพิ่มฟิลด์เวลาเริ่มต้น และ เวลาสิ้นสุด -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small">เวลาเริ่มตรวจสอบ</label>
+                            <input type="time" id="qgateStartTime" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">เวลาสิ้นสุด</label>
+                            <input type="time" id="qgateEndTime" class="form-control form-control-sm" required>
                         </div>
                     </div>
-                    <div class="col-md-8">
-                        <div class="card p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการตรวจสินค้าที่ Q-Gate</h5>
-                                <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('qgate')">
-                                    <i class="fas fa-file-excel me-1"></i> Export ประวัติ Q-Gate
-                                </button>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-dark table-hover align-middle m-0">
-                                    <thead>
-                                        <tr>
-                                            <th>วันที่ตรวจ</th>
-                                            <th>พนักงานตรวจ</th>
-                                            <th>Part No.</th>
-                                            <th>ยอดตรวจทั้งหมด</th>
-                                            <th>ของเสีย (NG)</th>
-                                            <th>ผ่านเข้า FG (Pass)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="qgateTableBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small">ชื่อพนักงานตรวจสอบ (Inspector)</label>
+                        <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น นายสมศักดิ์ (QC-01)" required>
                     </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Part No. (ตรวจจาก WIP)</label>
+                        <select id="qgatePartNo" class="form-select form-select-sm" required>
+                            <option value="">-- เลือก Part No. ที่มีใน WIP --</option>
+                        </select>
+                        <small class="text-muted" id="qgateWipBalance">คงเหลือใน WIP: 0 ชิ้น</small>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">จำนวนที่ตรวจสอบ</label>
+                        <input type="number" id="qgateTotalQty" class="form-control form-control-sm" placeholder="0" min="1" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-danger">ของเสีย (NG Qty)</label>
+                        <input type="number" id="qgateNgQty" class="form-control form-control-sm" placeholder="0" min="0" value="0" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
+                        <i class="fas fa-save me-1"></i> ยืนยันตรวจ & ตัด WIP เข้า FG
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ฝั่งขวา: ตารางประวัติการตรวจ Q-Gate -->
+        <div class="col-md-8">
+            <div class="card p-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการตรวจสินค้าที่ Q-Gate</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead>
+                            <tr>
+                                <th>วันที่ตรวจ</th>
+                                <th>เวลา</th>
+                                <th>พนักงานตรวจ</th>
+                                <th>Part No.</th>
+                                <th>ยอดตรวจทั้งหมด</th>
+                                <th>ของเสีย (NG)</th>
+                                <th>ผ่านเข้า FG (Pass)</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qgateHistoryTableBody"></tbody>
+                    </table>
                 </div>
             </div>
-
+        </div>
+    </div>
+</div>
             <!-- TAB 6: STOCK WIP & FG -->
             <div class="tab-pane fade" id="tab-stock">
                 <div class="row g-3">
@@ -1036,96 +1048,107 @@
             });
         }
 
-        // --- TAB 5: Q-GATE INSPECTION ---
-        function getWipBalances() {
-            const wipMap = {};
-            actuals.forEach(a => {
-                if(!wipMap[a.partNo]) wipMap[a.partNo] = 0;
-                wipMap[a.partNo] += Number(a.qty);
-            });
-            qgate.forEach(q => {
-                if(!wipMap[q.partNo]) wipMap[q.partNo] = 0;
-                wipMap[q.partNo] -= Number(q.checkQty);
-            });
-            return wipMap;
-        }
+     // ==========================================
+// 📌 ระบบจัดการ Q-Gate Inspection & History
+// ==========================================
 
-        function loadQGateParts() {
-            const wipMap = getWipBalances();
-            const select = document.getElementById('qgatePartNo');
-            select.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
+// ตั้งค่าวันที่ปัจจุบันเมื่อเปิดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", function() {
+    const today = new Date().toISOString().split('T')[0];
+    if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
+    
+    // โหลดข้อมูลประวัติ Q-Gate
+    renderQGate();
+});
 
-            Object.keys(wipMap).forEach(partNo => {
-                if(wipMap[partNo] > 0) {
-                    const opt = document.createElement('option');
-                    opt.value = partNo;
-                    opt.innerText = `${partNo} (คงเหลือ WIP: ${wipMap[partNo].toLocaleString()})`;
-                    select.appendChild(opt);
-                }
-            });
-            updateWipMaxHint();
-        }
-
-        function updateWipMaxHint() {
-            const partNo = document.getElementById('qgatePartNo').value;
-            const wipMap = getWipBalances();
-            const hint = document.getElementById('wipMaxHint');
-            const available = wipMap[partNo] || 0;
-            hint.innerText = `คงเหลือใน WIP: ${available.toLocaleString()} ชิ้น`;
-            document.getElementById('qgateCheckQty').max = available;
-        }
-
-        function submitQGate(e) {
-            e.preventDefault();
-            const partNo = document.getElementById('qgatePartNo').value;
-            const checkQty = Number(document.getElementById('qgateCheckQty').value);
-            const ngQty = Number(document.getElementById('qgateNgQty').value);
-
-            const wipMap = getWipBalances();
-            if(checkQty > (wipMap[partNo] || 0)) {
-                alert('จำนวนที่ตรวจสอบมากกว่ายอดคงเหลือใน WIP!');
-                return;
-            }
-
-            if(ngQty > checkQty) {
-                alert('จำนวน NG ไม่สามารถมากกว่าจำนวนที่ตรวจสอบได้!');
-                return;
-            }
-
-            const record = {
-                id: Date.now(),
-                date: document.getElementById('qgateDate').value,
-                inspector: document.getElementById('qgateInspector').value.trim(),
-                partNo: partNo,
-                checkQty: checkQty,
-                ngQty: ngQty,
-                passQty: checkQty - ngQty
-            };
-
-            qgate.push(record);
-            saveAll();
-            document.getElementById('qgateForm').reset();
-            document.getElementById('qgateDate').value = new Date().toISOString().split('T')[0];
-            loadQGateParts();
-        }
-
-        function renderQGate() {
-            const tbody = document.getElementById('qgateTableBody');
-            tbody.innerHTML = '';
-            qgate.slice().reverse().forEach(q => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${q.date}</td>
-                    <td>${q.inspector}</td>
-                    <td class="fw-bold text-info">${q.partNo}</td>
-                    <td>${Number(q.checkQty).toLocaleString()}</td>
-                    <td class="text-danger fw-bold">${Number(q.ngQty).toLocaleString()}</td>
-                    <td class="text-success fw-bold">${Number(q.passQty).toLocaleString()}</td>
+// ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
+function renderQGate() {
+    const qgateHistory = JSON.parse(localStorage.getItem('sys_qgate')) || [];
+    const historyBody = document.getElementById('qgateHistoryTableBody');
+    
+    if(historyBody) {
+        historyBody.innerHTML = '';
+        if(qgateHistory.length === 0) {
+            historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
+        } else {
+            qgateHistory.slice(0, 15).forEach(item => {
+                historyBody.innerHTML += `
+                    <tr>
+                        <td>${item.date}</td>
+                        <td><small class="text-warning">${item.timeRange || '-'}</small></td>
+                        <td>${item.inspector}</td>
+                        <td class="fw-bold">${item.partNo}</td>
+                        <td>${item.totalQty}</td>
+                        <td class="text-danger">${item.ngQty}</td>
+                        <td class="text-success fw-bold">${item.passQty}</td>
+                        <td class="text-center">
+                            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteQGateItem(${item.id})" title="ลบรายการนี้">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
                 `;
-                tbody.appendChild(tr);
             });
         }
+    }
+}
 
+// ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
+function submitQGateTransaction(e) {
+    e.preventDefault();
+    const date = document.getElementById('qgateDate').value;
+    const startTime = document.getElementById('qgateStartTime').value;
+    const endTime = document.getElementById('qgateEndTime').value;
+    const timeRange = `${startTime} - ${endTime}`;
+    const inspector = document.getElementById('qgateInspector').value.trim();
+    const partNo = document.getElementById('qgatePartNo').value;
+    const totalQty = parseInt(document.getElementById('qgateTotalQty').value);
+    const ngQty = parseInt(document.getElementById('qgateNgQty').value);
+
+    if (ngQty > totalQty) {
+        alert("จำนวนของเสีย (NG) ต้องไม่มากกว่ายอดตรวจสอบทั้งหมด!");
+        return;
+    }
+
+    const passQty = totalQty - ngQty;
+
+    const newItem = {
+        id: Date.now(),
+        date: date,
+        timeRange: timeRange,
+        inspector: inspector,
+        partNo: partNo,
+        totalQty: totalQty,
+        ngQty: ngQty,
+        passQty: passQty
+    };
+
+    let qgateHistory = JSON.parse(localStorage.getItem('sys_qgate')) || [];
+    qgateHistory.unshift(newItem);
+    localStorage.setItem('sys_qgate', JSON.stringify(qgateHistory));
+
+    alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
+    document.getElementById('qgateForm').reset();
+    document.getElementById('qgateDate').value = new Date().toISOString().split('T')[0];
+    renderQGate();
+}
+
+// 📌 ฟังก์ชันลบรายการ Q-Gate แบบใส่รหัสผ่าน
+function deleteQGateItem(id) {
+    let password = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบข้อมูล Q-Gate:");
+    
+    // กำหนดรหัสผ่าน (สามารถเปลี่ยนรหัสได้ตรงนี้ เช่น "1234")
+    if (password === "1234") {
+        let qgateHistory = JSON.parse(localStorage.getItem('sys_qgate')) || [];
+        qgateHistory = qgateHistory.filter(item => item.id !== id);
+        localStorage.setItem('sys_qgate', JSON.stringify(qgateHistory));
+        
+        renderQGate();
+        alert("ลบรายการ Q-Gate สำเร็จ");
+    } else if (password !== null) {
+        alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
+    }
+}
         // --- TAB 6: STOCK WIP & FG ---
         function getFgBalances() {
             const fgMap = {};
