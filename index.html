@@ -1046,7 +1046,7 @@ function submitPlan(e) {
             }
         }
 
-       // --- TAB 4: ACTUAL PRODUCTION ---
+      // --- TAB 4: ACTUAL PRODUCTION ---
 function checkAndLoadPlans() {
     const line = document.getElementById('actualLine').value;
     const selectPart = document.getElementById('actualPartNo');
@@ -1132,7 +1132,8 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
-// ฟังก์ชันดึงประวัติการผลิตจริงจาก Google Sheets มาแสดงที่ตาราง
+
+// ฟังก์ชันดึงประวัติการผลิตจริงจาก Google Sheets มาแสดงที่ตารางตอนเปิดเว็บ
 function loadActuals() {
     fetch(GOOGLE_SCRIPT_URL + '?action=getActuals')
     .then(response => response.json())
