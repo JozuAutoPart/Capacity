@@ -970,20 +970,44 @@
         }
 
         // --- TAB 3: PLANNING ---
-        function submitPlan(e) {
-            e.preventDefault();
-         const plan = {
-            id: Date.now(),
-            "Start": document.getElementById('planDate').value,
-            "Finish": document.getElementById('planFinishDate').value,
-            "Line": document.getElementById('planLine').value,
-            "Part No.": document.getElementById('planPartNo').value.trim(),
-            "Lot No.": document.getElementById('planLotNo').value.trim(),
-            "Plan Qty": Number(document.getElementById('planQty').value)
-        };
-        plans.push(plan);
-        saveAll('savePlan', plan);
-        
+       // --- TAB 3: PLANNING ---
+function submitPlan(e) {
+    e.preventDefault();
+    
+    const plan = {
+        id: Date.now(),
+        "Start": document.getElementById('planDate').value,
+        "Finish": document.getElementById('planFinishDate').value,
+        "Line": document.getElementById('planLine').value,
+        "Part No.": document.getElementById('planPartNo').value.trim(),
+        "Lot No.": document.getElementById('planLotNo').value.trim(),
+        "Plan Qty": Number(document.getElementById('planQty').value)
+    };
+
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'savePlan', data: plan })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if(result.status === "success") {
+            plans.push(plan);
+            document.getElementById('planForm').reset();
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('planDate').value = today;
+            document.getElementById('planFinishDate').value = today;
+            renderPlans();
+            alert("บันทึกข้อมูลสำเร็จ!");
+        } else {
+            alert("บันทึกไม่สำเร็จ: " + result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    });
+}
         document.getElementById('planForm').reset();
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('planDate').value = today;
