@@ -1106,7 +1106,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
-    const qgateHistory = JSON.parse(localStorage.getItem('sys_qgate')) || [];
+   const qgateHistory = qgate || [];
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
     if(historyBody) {
