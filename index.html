@@ -1047,75 +1047,81 @@ function submitPlan(e) {
         }
 
         // --- TAB 4: ACTUAL PRODUCTION ---
-        function checkAndLoadPlans() {
-            const line = document.getElementById('actualLine').value;
-            const selectPart = document.getElementById('actualPartNo');
-            selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
+function checkAndLoadPlans() {
+    const line = document.getElementById('actualLine').value;
+    const selectPart = document.getElementById('actualPartNo');
+    selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
 
-            const linePlans = plans.filter(p => p.Line === line);
-            const alertBox = document.getElementById('actualAlert');
+    const linePlans = plans.filter(p => p.line === line);
+    const alertBox = document.getElementById('actualAlert');
 
-            if(linePlans.length === 0) {
-                alertBox.classList.remove('d-none');
-                document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
-            } else {
-                alertBox.classList.add('d-none');
-                linePlans.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p["Part No."];
-                    opt.dataset.lot = p["Lot No."];
-                    opt.innerText = `${p["Part No."]} (Lot: ${p["Lot No."]})`;
-                    selectPart.appendChild(opt);
-                });
-            }
-        }
+    if (linePlans.length === 0) {
+        alertBox.classList.remove('d-none');
+        document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+    } else {
+        alertBox.classList.add('d-none');
+        linePlans.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p["Part No."];
+            opt.dataset.lot = p["Lot No."];
+            opt.innerText = `${p["Part No."]} (Lot: ${p["Lot No."]})`;
+            selectPart.appendChild(opt);
+        });
+    }
+}
 
-        function onActualPartChange() {
-            const select = document.getElementById('actualPartNo');
-            const selectedOpt = select.options[select.selectedIndex];
-            document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
-        }
+function onActualPartChange() {
+    const select = document.getElementById('actualPartNo');
+    const selectedOpt = select.options[select.selectedIndex];
+    document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
+}
 
-        function submitActual(e) {
-            e.preventDefault();
-            const actual = {
-                id: Date.now(),
-                date: document.getElementById('actualDate').value,
-                operator: document.getElementById('actualOperator').value.trim(),
-                line: document.getElementById('actualLine').value,
-                mcNo: document.getElementById('actualMcNo').value.trim(),
-                partNo: document.getElementById('actualPartNo').value,
-                lotNo: document.getElementById('actualLotNo').value,
-                qty: Number(document.getElementById('actualQty').value),
-                ngQty: Number(document.getElementById('actualNgQty').value || 0),
-                remark: document.getElementById('actualRemark').value.trim()
-            };
-            actuals.push(actual);
-            saveAll();
-            document.getElementById('actualForm').reset();
-            document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
-            checkAndLoadPlans();
-        }
+function submitActual(e) {
+    e.preventDefault();
+    const actual = {
+        date: document.getElementById('actualDate').value,
+        operator: document.getElementById('actualOperator').value.trim(),
+        line: document.getElementById('actualLine').value,
+        mcNo: document.getElementById('actualMcNo').value.trim(),
+        partNo: document.getElementById('actualPartNo').value,
+        lotNo: document.getElementById('actualLotNo').value,
+        qty: Number(document.getElementById('actualQty').value),
+        ngQty: Number(document.getElementById('actualNgQty').value || 0),
+        remark: document.getElementById('actualRemark').value.trim()
+    };
 
-        function renderActuals() {
-            const tbody = document.getElementById('actualTableBody');
-            tbody.innerHTML = '';
-            actuals.slice().reverse().forEach(a => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${a.date}</td>
-                    <td>${a.operator}</td>
-                    <td><span class="badge bg-secondary">${a.line}</span> / ${a.mcNo}</td>
-                    <td class="fw-bold text-info">${a.partNo}</td>
-                    <td>${a.lotNo}</td>
-                    <td class="text-success fw-bold">${Number(a.qty).toLocaleString()}</td>
-                    <td class="text-danger">${Number(a.ngQty).toLocaleString()}</td>
-                    <td class="small text-muted">${a.remark || '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+    actuals.push(actual);
 
+    // ส่งข้อมูลขึ้น Google Sheets ผ่าน Google Apps Script Web App
+    saveDataToCloud("saveActual", actual).then(() => {
+        loadActuals(); // โหลดข้อมูลล่าสุดจากชีตมาแสดง
+    }).catch(err => {
+        console.error("Error saving actual production:", err);
+    });
+
+    document.getElementById('actualForm').reset();
+    document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
+    checkAndLoadPlans();
+}
+
+function renderActuals() {
+    const tbody = document.getElementById('actualTableBody');
+    tbody.innerHTML = '';
+    actuals.slice().reverse().forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${a.date}</td>
+            <td>${a.operator}</td>
+            <td><span class="badge bg-secondary">${a.line}</span> / ${a.mcNo}</td>
+            <td class="fw-bold text-info">${a.partNo}</td>
+            <td>${a.lotNo}</td>
+            <td class="text-success fw-bold">${Number(a.qty).toLocaleString()}</td>
+            <td class="text-danger">${Number(a.ngQty).toLocaleString()}</td>
+            <td class="small text-muted">${a.remark || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
      // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History
 // ==========================================
