@@ -1046,7 +1046,36 @@ function submitPlan(e) {
             }
         }
 
-        // --- TAB 4: ACTUAL PRODUCTION ---
+       // --- TAB 4: ACTUAL PRODUCTION ---
+function checkAndLoadPlans() {
+    const line = document.getElementById('actualLine').value;
+    const selectPart = document.getElementById('actualPartNo');
+    selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
+
+    const linePlans = plans.filter(p => p.Line === line);
+    const alertBox = document.getElementById('actualAlert');
+
+    if (linePlans.length === 0) {
+        alertBox.classList.remove('d-none');
+        document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+    } else {
+        alertBox.classList.add('d-none');
+        linePlans.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p["Part No."];
+            opt.dataset.lot = p["Lot No."];
+            opt.innerText = `${p["Part No."]} (Lot: ${p["Lot No."]})`;
+            selectPart.appendChild(opt);
+        });
+    }
+}
+
+function onActualPartChange() {
+    const select = document.getElementById('actualPartNo');
+    const selectedOpt = select.options[select.selectedIndex];
+    document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
+}
+
 function submitActual(e) {
     e.preventDefault();
     const actual = {
@@ -1061,7 +1090,7 @@ function submitActual(e) {
         remark: document.getElementById('actualRemark').value.trim()
     };
 
-    // ใช้ fetch ส่งข้อมูลไปบันทึกที่ Google Sheets รูปแบบเดียวกับหน้า Planning
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script (ใช้รูปแบบเดียวกับ Planning)
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'saveActual', data: actual })
