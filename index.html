@@ -1052,7 +1052,7 @@ function submitPlan(e) {
             const selectPart = document.getElementById('actualPartNo');
             selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
 
-            const linePlans = plans.filter(p => p.line === line);
+            const linePlans = plans.filter(p => p.Line === line);
             const alertBox = document.getElementById('actualAlert');
 
             if(linePlans.length === 0) {
@@ -1062,9 +1062,9 @@ function submitPlan(e) {
                 alertBox.classList.add('d-none');
                 linePlans.forEach(p => {
                     const opt = document.createElement('option');
-                    opt.value = p.partNo;
-                    opt.dataset.lot = p.lotNo;
-                    opt.innerText = `${p.partNo} (Lot: ${p.lotNo})`;
+                    opt.value = p["Part No."];
+                    opt.dataset.lot = p["Lot No."];
+                    opt.innerText = `${p["Part No."]} (Lot: ${p["Lot No."]})`;
                     selectPart.appendChild(opt);
                 });
             }
