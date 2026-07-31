@@ -1132,7 +1132,16 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
-
+// ฟังก์ชันดึงประวัติการผลิตจริงจาก Google Sheets มาแสดงที่ตาราง
+function loadActuals() {
+    fetch(GOOGLE_SCRIPT_URL + '?action=getActuals')
+    .then(response => response.json())
+    .then(data => {
+        actuals = data || [];
+        renderActuals();
+    })
+    .catch(error => console.error('Error loading actuals:', error));
+}
      // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History
 // ==========================================
