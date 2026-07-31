@@ -871,47 +871,42 @@
         }
 
         // --- TAB 1: DASHBOARD ---
-        function renderDashboard() {
-    const tbody = document.getElementById('dashTableBody');
+       function renderActuals() {
+    const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
+    
+    if (!actuals || actuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
+        return;
+    }
 
-    let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => p.Line === currentFilterLine);
-
-    let totalPlan = 0;
-    let totalActual = 0;
-
-    filteredPlans.forEach(plan => {
-        // ปรับเงื่อนไขการจับคู่ให้ยืดหยุ่นขึ้น (เช็ค Line และ Part No. แบบตัดช่องว่างส่วนเกิน)
-        const actForPlan = actuals.filter(a => 
-            String(a.line || '').trim() === String(plan.Line || '').trim() && 
-            String(a.partNo || '').trim() === String(plan["Part No."] || '').trim()
-        );
-        const actualOkSum = actForPlan.reduce((sum, a) => sum + Number(a.qty || 0), 0);
-
-        totalPlan += Number(plan["Plan Qty"] || 0);
-        totalActual += actualOkSum;
-
-        const progress = Math.min(100, Math.round((actualOkSum / plan["Plan Qty"]) * 100)) || 0;
+    actuals.slice().reverse().forEach(a => {
+        // รองรับทั้งแบบพิมพ์เล็กและพิมพ์ใหญ่เพื่อป้องกันค่า undefined
+        const dateVal = a.date || a.Date || '-';
+        const opVal = a.operator || a['OP Name'] || '-';
+        const lineVal = a.line || '-';
+        const mcVal = a.mcNo || '';
+        const partVal = a.partNo || a['Part No.'] || '-';
+        const lotVal = a.lotNo || a['Lot No.'] || '-';
+        const qtyVal = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+        const ngVal = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
+        const remarkVal = a.remark || a.Remark || '-';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${plan.Start}</td>
-            <td>${plan.Finish || plan.Start}</td>
-            <td><span class="badge bg-secondary">${plan.Line}</span></td>
-            <td class="fw-bold text-info">${plan["Part No."]}</td>
-            <td>${plan["Lot No."]}</td>
-            <td>${Number(plan["Plan Qty"]).toLocaleString()}</td>
-            <td class="text-success fw-bold">${actualOkSum.toLocaleString()}</td>
-            <td>
-                <div class="progress" style="height: 15px;">
-                    <div class="progress-bar ${progress >= 100 ? 'bg-success' : 'bg-info'}" role="progressbar" style="width: ${progress}%;">${progress}%</div>
-                </div>
-            </td>
+            <td>${dateVal}</td>
+            <td>${opVal}</td>
+            <td><span class="badge bg-secondary">${lineVal}</span> ${mcVal ? '/ ' + mcVal : ''}</td>
+            <td class="fw-bold text-info">${partVal}</td>
+            <td>${lotVal}</td>
+            <td class="text-success fw-bold">${qtyVal.toLocaleString()}</td>
+            <td class="text-danger">${ngVal.toLocaleString()}</td>
+            <td class="small text-muted">${remarkVal}</td>
         `;
         tbody.appendChild(tr);
     });
-
+}
     const totalPlanEl = document.getElementById('dashTotalPlan');
     const totalActualEl = document.getElementById('dashTotalActual');
     const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
