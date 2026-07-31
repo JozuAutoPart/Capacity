@@ -1604,8 +1604,8 @@ function submitMaterialTransaction(e) {
         detail: detailInfo
     };
 
-    materialHistory.unshift(transaction);
-    localStorage.setItem('jozu_material_history', JSON.stringify(materialHistory));
+  materialHistory.unshift(transaction);
+saveAll('saveBms', transaction); // ส่งข้อมูลบันทึกเข้า Google Sheets (แท็บ BMS)
 
     alert(`บันทึกรายการ${type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}สำเร็จ!`);
     document.getElementById('materialForm').reset();
