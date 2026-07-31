@@ -1091,11 +1091,15 @@ function submitPlan(e) {
                 remark: document.getElementById('actualRemark').value.trim()
             };
             actuals.push(actual);
-            saveAll();
-            document.getElementById('actualForm').reset();
-            document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
-            checkAndLoadPlans();
-        }
+
+// เพิ่มคำสั่งส่งข้อมูลขึ้น Google Sheets ตรงนี้ครับ
+saveDataToCloud("saveActual", actual).then(() => {
+    loadActuals(); // โหลดข้อมูลใหม่จากชีตมาแสดง
+});
+
+document.getElementById('actualForm').reset();
+document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
+checkAndLoadPlans();
 
         function renderActuals() {
             const tbody = document.getElementById('actualTableBody');
