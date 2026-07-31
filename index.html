@@ -1046,37 +1046,37 @@ function submitPlan(e) {
             }
         }
 
-        // --- TAB 4: ACTUAL PRODUCTION ---
-        function checkAndLoadPlans() {
-            const line = document.getElementById('actualLine').value;
-            const selectPart = document.getElementById('actualPartNo');
-            selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
+       // --- TAB 4: ACTUAL PRODUCTION ---
+function checkAndLoadPlans() {
+    const line = document.getElementById('actualLine').value;
+    const selectPart = document.getElementById('actualPartNo');
+    selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
 
-            const linePlans = plans.filter(p => p.Line === line);
-            const alertBox = document.getElementById('actualAlert');
+    const linePlans = plans.filter(p => p.Line === line);
+    const alertBox = document.getElementById('actualAlert');
 
-            if(linePlans.length === 0) {
-                alertBox.classList.remove('d-none');
-                document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
-            } else {
-                alertBox.classList.add('d-none');
-                linePlans.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p["Part No."];
-                    opt.dataset.lot = p["Lot No."];
-                    opt.innerText = `${p["Part No."]} (Lot: ${p["Lot No."]})`;
-                    selectPart.appendChild(opt);
-                });
-            }
-        }
+    if (linePlans.length === 0) {
+        alertBox.classList.remove('d-none');
+        document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+    } else {
+        alertBox.classList.add('d-none');
+        linePlans.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p["Part No."];
+            opt.dataset.lot = p["Lot No."];
+            opt.innerText = `${p["Part No."]} (Lot: ${p["Lot No."]})`;
+            selectPart.appendChild(opt);
+        });
+    }
+}
 
-        function onActualPartChange() {
-            const select = document.getElementById('actualPartNo');
-            const selectedOpt = select.options[select.selectedIndex];
-            document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
-        }
+function onActualPartChange() {
+    const select = document.getElementById('actualPartNo');
+    const selectedOpt = select.options[select.selectedIndex];
+    document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
+}
 
-       function submitActual(e) {
+function submitActual(e) {
     e.preventDefault();
     const actual = {
         id: Date.now(),
@@ -1113,24 +1113,25 @@ function submitPlan(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
-        function renderActuals() {
-            const tbody = document.getElementById('actualTableBody');
-            tbody.innerHTML = '';
-            actuals.slice().reverse().forEach(a => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${a.date}</td>
-                    <td>${a.operator}</td>
-                    <td><span class="badge bg-secondary">${a.line}</span> / ${a.mcNo}</td>
-                    <td class="fw-bold text-info">${a.partNo}</td>
-                    <td>${a.lotNo}</td>
-                    <td class="text-success fw-bold">${Number(a.qty).toLocaleString()}</td>
-                    <td class="text-danger">${Number(a.ngQty).toLocaleString()}</td>
-                    <td class="small text-muted">${a.remark || '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+
+function renderActuals() {
+    const tbody = document.getElementById('actualTableBody');
+    tbody.innerHTML = '';
+    actuals.slice().reverse().forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${a.Date}</td>
+            <td>${a["OP Name"]}</td>
+            <td><span class="badge bg-secondary">${a["Line/MC"]}</span></td>
+            <td class="fw-bold text-info">${a["Part No."]}</td>
+            <td>${a["Lot No."]}</td>
+            <td class="text-success fw-bold">${Number(a["OK Qty"]).toLocaleString()}</td>
+            <td class="text-danger">${Number(a["NG Qty"]).toLocaleString()}</td>
+            <td class="small text-muted">${a.Remark || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
      // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History
