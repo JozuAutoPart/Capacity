@@ -764,13 +764,45 @@
     </div>
 
     <script>
-         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwDf7ok3og8z0UQtZzExxApPiEnNCLB-GRKDpDcVYHS3l2yzzuqvoh8d7vOTOsgkncnQ/exec"; 
-           let plans = JSON.parse(localStorage.getItem('sys_plans')) || [];
-        let actuals = JSON.parse(localStorage.getItem('sys_actuals')) || [];
-        let qgate = JSON.parse(localStorage.getItem('sys_qgate')) || [];
-        let deliveries = JSON.parse(localStorage.getItem('sys_deliveries')) || [];
-        let bms = JSON.parse(localStorage.getItem('sys_bms')) || [];
-        let currentFilterLine = 'ALL';
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwDf7ok3og8z0UQtZzExxApPiEnNCLB-GRKDpDcVYHS3l2yzzuqvoh8d7vOTOsgkncnQ/exec";
+    
+    let plans = [];
+    let actuals = [];
+    let qgate = [];
+    let deliveries = [];
+    let bms = [];
+    let currentFilterLine = 'ALL';
+
+    // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
+    async function loadAllDataFromCloud() {
+        try {
+            let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
+            let jsonPlans = await resPlans.json();
+            if (jsonPlans.status === "success") plans = jsonPlans.data || [];
+
+            let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
+            let jsonActuals = await resActuals.json();
+            if (jsonActuals.status === "success") actuals = jsonActuals.data || [];
+
+            let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
+            let jsonQgate = await resQgate.json();
+            if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
+
+            let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
+            let jsonDeliveries = await resDeliveries.json();
+            if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
+
+            let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
+            let jsonBms = await resBms.json();
+            if (jsonBms.status === "success") bms = jsonBms.data || [];
+
+            if (typeof renderAll === "function") {
+                renderAll();
+            }
+        } catch (error) {
+            console.error("Error loading data from cloud:", error);
+        }
+    }
 
         const PM_LIMIT = 40000;
         const MC_MAX_CAPACITY = 50000;
