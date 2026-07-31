@@ -972,15 +972,17 @@
         // --- TAB 3: PLANNING ---
         function submitPlan(e) {
             e.preventDefault();
-            const plan = {
-                id: Date.now(),
-                date: document.getElementById('planDate').value,
-                finishDate: document.getElementById('planFinishDate').value,
-                line: document.getElementById('planLine').value,
-                partNo: document.getElementById('planPartNo').value.trim(),
-                lotNo: document.getElementById('planLotNo').value.trim(),
-                qty: Number(document.getElementById('planQty').value)
-            };
+          const plan = {
+            id: Date.now(),
+            "Start": document.getElementById('planDate').value,
+            "Finish": document.getElementById('planFinishDate').value,
+            "Line": document.getElementById('planLine').value,
+            "Part No.": document.getElementById('planPartNo').value.trim(),
+            "Lot No.": document.getElementById('planLotNo').value.trim(),
+            "Plan Qty": Number(document.getElementById('planQty').value)
+        };
+        plans.push(plan);
+        saveAll('savePlan', plan);
             plans.push(plan);
             saveAll();
             document.getElementById('planForm').reset();
