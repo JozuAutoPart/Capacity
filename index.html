@@ -892,7 +892,7 @@
                 const actForPlan = actuals.filter(a => a.line === plan.line && a.partNo === plan.partNo && a.lotNo === plan.lotNo);
                 const actualOkSum = actForPlan.reduce((sum, a) => sum + Number(a.qty), 0);
 
-                totalPlan += Number(plan.qty);
+                totalPlan += Number(plan["Plan Qty"]);
                 totalActual += actualOkSum;
 
                 const progress = Math.min(100, Math.round((actualOkSum / plan.qty) * 100)) || 0;
