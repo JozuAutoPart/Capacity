@@ -825,15 +825,26 @@
             renderAll();
         });
 
-        function saveAll() {
-            localStorage.setItem('sys_plans', JSON.stringify(plans));
-            localStorage.setItem('sys_actuals', JSON.stringify(actuals));
-            localStorage.setItem('sys_qgate', JSON.stringify(qgate));
-            localStorage.setItem('sys_deliveries', JSON.stringify(deliveries));
-            localStorage.setItem('sys_bms', JSON.stringify(bms));
-            renderAll();
+       async function saveAll(actionType, dataObj) {
+        try {
+            let response = await fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: actionType,
+                    data: dataObj
+                })
+            });
+            let result = await response.json();
+            if (result.status === "success") {
+                console.log("Saved to Google Sheets successfully");
+                loadAllDataFromCloud(); // โหลดข้อมูลล่าสุดมาแสดงผลใหม่
+            } else {
+                console.error("Save failed:", result.message);
+            }
+        } catch (error) {
+            console.error("Error saving data to cloud:", error);
         }
-
+    }
         function renderAll() {
             renderDashboard();
             renderCapacity();
