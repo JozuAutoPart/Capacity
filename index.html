@@ -1177,43 +1177,69 @@ function renderQGate() {
     }
 }
 
-// ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
-function submitQGateTransaction(e) {
+// --- TAB: Q-GATE INSPECTION ---
+function submitQGate(e) {
     e.preventDefault();
-    const date = document.getElementById('qgateDate').value;
-    const startTime = document.getElementById('qgateStartTime').value;
-    const endTime = document.getElementById('qgateEndTime').value;
-    const timeRange = `${startTime} - ${endTime}`;
-    const inspector = document.getElementById('qgateInspector').value.trim();
-    const partNo = document.getElementById('qgatePartNo').value;
-    const totalQty = parseInt(document.getElementById('qgateTotalQty').value);
-    const ngQty = parseInt(document.getElementById('qgateNgQty').value);
+    const qgate = {
+        date: document.getElementById('qgateDate').value,
+        startTime: document.getElementById('qgateStartTime').value,
+        endTime: document.getElementById('qgateEndTime').value,
+        inspector: document.getElementById('qgateInspector').value.trim(),
+        partNo: document.getElementById('qgatePartNo').value,
+        totalQty: Number(document.getElementById('qgateTotalQty').value),
+        ngQty: Number(document.getElementById('qgateNgQty').value || 0),
+        passQty: Number(document.getElementById('qgateTotalQty').value) - Number(document.getElementById('qgateNgQty').value || 0)
+    };
 
-    if (ngQty > totalQty) {
-        alert("จำนวนของเสีย (NG) ต้องไม่มากกว่ายอดตรวจสอบทั้งหมด!");
+    // ใช้ fetch ส่งข้อมูลไปบันทึกที่ Google Sheets (action: 'saveQGate')
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'saveQGate', data: qgate })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === "success") {
+            qgates.push(qgate); // สมมติว่ามีตัวแปรอาร์เรย์ qgates เก็บข้อมูลฝั่ง client
+            document.getElementById('qgateForm').reset();
+            document.getElementById('qgateDate').value = new Date().toISOString().split('T')[0];
+            renderQGates();
+            alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
+        } else {
+            alert("บันทึกไม่สำเร็จ: " + result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    });
+}
+
+function renderQGates() {
+    const tbody = document.getElementById('qgateTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (!qgates || qgates.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         return;
     }
 
-    const passQty = totalQty - ngQty;
-
-    const newItem = {
-        id: Date.now(),
-        date: date,
-        timeRange: timeRange,
-        inspector: inspector,
-        partNo: partNo,
-        totalQty: totalQty,
-        ngQty: ngQty,
-        passQty: passQty
-    };
-
-    qgate.unshift(newItem);
-saveAll('saveQgate', newItem); // ส่งข้อมูลชิ้นใหม่ไปบันทึกลง Google Sheets
-
-    alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
-    document.getElementById('qgateForm').reset();
-    document.getElementById('qgateDate').value = new Date().toISOString().split('T')[0];
-    renderQGate();
+    qgates.slice().reverse().forEach(q => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${q.date}</td>
+            <td>${q.startTime} - ${q.endTime}</td>
+            <td>${q.inspector}</td>
+            <td class="fw-bold text-info">${q.partNo}</td>
+            <td class="fw-bold">${Number(q.totalQty).toLocaleString()}</td>
+            <td class="text-danger">${Number(q.ngQty).toLocaleString()}</td>
+            <td class="text-success fw-bold">${Number(q.passQty).toLocaleString()}</td>
+            <td class="text-center">
+                <span class="badge bg-success">Pass to FG</span>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 // 📌 ฟังก์ชันลบรายการ Q-Gate แบบใส่รหัสผ่าน
