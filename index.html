@@ -997,12 +997,12 @@
             plans.forEach(plan => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${plan.date}</td>
-                    <td>${plan.finishDate}</td>
-                    <td><span class="badge bg-secondary">${plan.line}</span></td>
-                    <td class="fw-bold text-info">${plan.partNo}</td>
-                    <td>${plan.lotNo}</td>
-                    <td>${Number(plan.qty).toLocaleString()}</td>
+                    <td>${plan.Start}</td>
+                <td>${plan.Finish}</td>
+                <td><span class="badge bg-secondary">${plan.Line}</span></td>
+                <td class="fw-bold text-info">${plan["Part No."]}</td>
+                <td>${plan["Lot No."]}</td>
+                <td>${Number(plan["Plan Qty"]).toLocaleString()}</td>
                     <td class="text-center">
                         <button class="btn btn-outline-danger btn-sm" onclick="deletePlan(${plan.id})"><i class="fas fa-trash"></i></button>
                     </td>
