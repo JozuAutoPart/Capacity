@@ -1692,32 +1692,30 @@ function loadMaterialStock() {
     }
 }
 // 📌 ฟังก์ชันลบรายการ Material เดี่ยว (ต้องใส่รหัสผ่าน)
-function deleteMaterialItem(id) {
-    let password = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบ:");
+// ฟังก์ชันสำหรับโหลดและแสดงข้อมูล Material
+function loadMaterialStock() {
+    const tbody = document.getElementById('materialTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
     
-    // ตั้งรหัสผ่านที่ต้องการตรงนี้ (ตัวอย่างใช้: 1234)
-    if (password === "1234") {
-        materialHistory = materialHistory.filter(item => item.id !== id);
-        localStorage.setItem('jozu_material_history', JSON.stringify(materialHistory));
-        loadMaterialStock();
-        alert("ลบรายการสำเร็จ");
-    } else if (password !== null) {
-        alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
-    }
-}
-
-// 📌 ฟังก์ชันล้างข้อมูล Material ทั้งหมด (ต้องใส่รหัสผ่าน)
-function clearMaterialData() {
-    let password = prompt("⚠️ คำเตือน: คุณกำลังจะล้างข้อมูลทั้งหมด กรุณากรอกรหัสผ่านผู้ดูแลระบบ:");
-    
-    // ตั้งรหัสผ่านที่ต้องการตรงนี้ (ตัวอย่างใช้: 1234)
-    if (password === "1234") {
-        localStorage.removeItem('jozu_material_history');
-        materialHistory = [];
-        loadMaterialStock();
-        alert("ล้างข้อมูล Material ทั้งหมดเรียบร้อยแล้ว");
-    } else if (password !== null) {
-        alert("รหัสผ่านไม่ถูกต้อง! ยกเลิกการทำรายการ");
+    if (typeof materialHistory !== 'undefined') {
+        materialHistory.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date || ''}</td>
+                <td>${item.type || ''}</td>
+                <td>${item.partNo || ''}</td>
+                <td>${item.typeSize || ''}</td>
+                <td>${item.qty || 0}</td>
+                <td>${item.supplier || ''}</td>
+                <td class="text-center">
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteMaterialItem(${item.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
 }
     </script>
