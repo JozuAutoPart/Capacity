@@ -1047,35 +1047,6 @@ function submitPlan(e) {
         }
 
         // --- TAB 4: ACTUAL PRODUCTION ---
-function checkAndLoadPlans() {
-    const line = document.getElementById('actualLine').value;
-    const selectPart = document.getElementById('actualPartNo');
-    selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
-
-    const linePlans = plans.filter(p => p.line === line);
-    const alertBox = document.getElementById('actualAlert');
-
-    if (linePlans.length === 0) {
-        alertBox.classList.remove('d-none');
-        document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
-    } else {
-        alertBox.classList.add('d-none');
-        linePlans.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p["Part No."];
-            opt.dataset.lot = p["Lot No."];
-            opt.innerText = `${p["Part No."]} (Lot: ${p["Lot No."]})`;
-            selectPart.appendChild(opt);
-        });
-    }
-}
-
-function onActualPartChange() {
-    const select = document.getElementById('actualPartNo');
-    const selectedOpt = select.options[select.selectedIndex];
-    document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
-}
-
 function submitActual(e) {
     e.preventDefault();
     const actual = {
@@ -1090,18 +1061,28 @@ function submitActual(e) {
         remark: document.getElementById('actualRemark').value.trim()
     };
 
-    actuals.push(actual);
-
-    // ส่งข้อมูลขึ้น Google Sheets ผ่าน Google Apps Script Web App
-    saveDataToCloud("saveActual", actual).then(() => {
-        loadActuals(); // โหลดข้อมูลล่าสุดจากชีตมาแสดง
-    }).catch(err => {
-        console.error("Error saving actual production:", err);
+    // ใช้ fetch ส่งข้อมูลไปบันทึกที่ Google Sheets รูปแบบเดียวกับหน้า Planning
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'saveActual', data: actual })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === "success") {
+            actuals.push(actual);
+            document.getElementById('actualForm').reset();
+            document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
+            checkAndLoadPlans();
+            renderActuals();
+            alert("บันทึกข้อมูลสำเร็จ!");
+        } else {
+            alert("บันทึกไม่สำเร็จ: " + result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
-
-    document.getElementById('actualForm').reset();
-    document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
-    checkAndLoadPlans();
 }
 
 function renderActuals() {
