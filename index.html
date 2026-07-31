@@ -1047,19 +1047,23 @@ function submitPlan(e) {
         }
 
       // --- TAB 4: ACTUAL PRODUCTION ---
+let actuals = []; // ประกาศตัวแปรรับค่าเป็นอาเรย์ป้องกัน Error slice
+
 function checkAndLoadPlans() {
     const line = document.getElementById('actualLine').value;
     const selectPart = document.getElementById('actualPartNo');
+    if (!selectPart) return;
     selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
 
-    const linePlans = plans.filter(p => p.Line === line);
+    const linePlans = (typeof plans !== 'undefined' ? plans : []).filter(p => p.Line === line);
     const alertBox = document.getElementById('actualAlert');
 
     if (linePlans.length === 0) {
-        alertBox.classList.remove('d-none');
-        document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+        if(alertBox) alertBox.classList.remove('d-none');
+        const alertText = document.getElementById('actualAlertText');
+        if(alertText) alertText.innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
     } else {
-        alertBox.classList.add('d-none');
+        if(alertBox) alertBox.classList.add('d-none');
         linePlans.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p["Part No."];
@@ -1072,22 +1076,37 @@ function checkAndLoadPlans() {
 
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
-    const selectedOpt = select.options[select.selectedIndex];
-    document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
+    const lotInput = document.getElementById('actualLotNo');
+    if (select && lotInput) {
+        const selectedOpt = select.options[select.selectedIndex];
+        lotInput.value = selectedOpt ? (selectedOpt.dataset.lot || '') : '';
+    }
 }
 
 function submitActual(e) {
     e.preventDefault();
+    
+    // ตรวจสอบและดึงค่าจากฟอร์มแบบปลอดภัย (ป้องกันค่า null)
+    const dateEl = document.getElementById('actualDate');
+    const opEl = document.getElementById('actualOperator');
+    const lineEl = document.getElementById('actualLine');
+    const mcEl = document.getElementById('actualMc');
+    const partEl = document.getElementById('actualPartNo');
+    const lotEl = document.getElementById('actualLotNo');
+    const qtyEl = document.getElementById('actualQty');
+    const ngQtyEl = document.getElementById('actualNgQty');
+    const remarkEl = document.getElementById('actualRemark');
+
     const actual = {
         id: Date.now(),
-        "Date": document.getElementById('actualDate').value,
-        "OP Name": document.getElementById('actualOperator').value.trim(),
-        "Line/MC": document.getElementById('actualLine').value + " / " + document.getElementById('actualMc').value.trim(),
-        "Part No.": document.getElementById('actualPartNo').value,
-        "Lot No.": document.getElementById('actualLotNo').value,
-        "OK Qty": Number(document.getElementById('actualQty').value),
-        "NG Qty": Number(document.getElementById('actualNgQty').value || 0),
-        "Remark": document.getElementById('actualRemark').value.trim()
+        "Date": dateEl ? dateEl.value : '',
+        "OP Name": opEl ? opEl.value.trim() : '',
+        "Line/MC": (lineEl ? lineEl.value : '') + " / " + (mcEl ? mcEl.value.trim() : ''),
+        "Part No.": partEl ? partEl.value : '',
+        "Lot No.": lotEl ? lotEl.value : '',
+        "OK Qty": qtyEl ? Number(qtyEl.value) : 0,
+        "NG Qty": ngQtyEl ? Number(ngQtyEl.value || 0) : 0,
+        "Remark": remarkEl ? remarkEl.value.trim() : ''
     };
 
     // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
@@ -1098,14 +1117,18 @@ function submitActual(e) {
     .then(response => response.json())
     .then(result => {
         if(result.status === "success") {
+            if (!Array.isArray(actuals)) actuals = [];
             actuals.push(actual);
-            document.getElementById('actualForm').reset();
-            document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
+            
+            const form = document.getElementById('actualForm');
+            if(form) form.reset();
+            
+            if(dateEl) dateEl.value = new Date().toISOString().split('T')[0];
             checkAndLoadPlans();
             renderActuals();
             alert("บันทึกยอดผลิตสำเร็จ!");
         } else {
-            alert("บันทึกไม่สำเร็จ: " + result.message);
+            alert("บันทึกไม่สำเร็จ: " + (result.message || 'Unknown error'));
         }
     })
     .catch(error => {
@@ -1116,32 +1139,40 @@ function submitActual(e) {
 
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
-    actuals.slice().reverse().forEach(a => {
+    
+    // ป้องกันกรณี actuals ไม่ใช่อาเรย์
+    const dataList = Array.isArray(actuals) ? actuals : [];
+    
+    dataList.slice().reverse().forEach(a => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${a.Date}</td>
-            <td>${a["OP Name"]}</td>
-            <td><span class="badge bg-secondary">${a["Line/MC"]}</span></td>
-            <td class="fw-bold text-info">${a["Part No."]}</td>
-            <td>${a["Lot No."]}</td>
-            <td class="text-success fw-bold">${Number(a["OK Qty"]).toLocaleString()}</td>
-            <td class="text-danger">${Number(a["NG Qty"]).toLocaleString()}</td>
+            <td>${a.Date || ''}</td>
+            <td>${a["OP Name"] || ''}</td>
+            <td><span class="badge bg-secondary">${a["Line/MC"] || ''}</span></td>
+            <td class="fw-bold text-info">${a["Part No."] || ''}</td>
+            <td>${a["Lot No."] || ''}</td>
+            <td class="text-success fw-bold">${Number(a["OK Qty"] || 0).toLocaleString()}</td>
+            <td class="text-danger">${Number(a["NG Qty"] || 0).toLocaleString()}</td>
             <td class="small text-muted">${a.Remark || '-'}</td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// ฟังก์ชันดึงประวัติการผลิตจริงจาก Google Sheets มาแสดงที่ตารางตอนเปิดเว็บ
+// ฟังก์ชันดึงประวัติการผลิตจริงจาก Google Sheets
 function loadActuals() {
     fetch(GOOGLE_SCRIPT_URL + '?action=getActuals')
     .then(response => response.json())
     .then(data => {
-        actuals = data || [];
+        actuals = Array.isArray(data) ? data : [];
         renderActuals();
     })
-    .catch(error => console.error('Error loading actuals:', error));
+    .catch(error => {
+        console.error('Error loading actuals:', error);
+        actuals = [];
+    });
 }
      // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History
