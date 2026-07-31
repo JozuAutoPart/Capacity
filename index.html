@@ -871,50 +871,55 @@
         }
 
         // --- TAB 1: DASHBOARD ---
-       function renderActuals() {
-    const tbody = document.getElementById('actualTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    
-    if (!actuals || actuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
-        return;
-    }
+        function filterDashboard(line, btn) {
+            currentFilterLine = line;
+            const buttons = btn.parentElement.querySelectorAll('button');
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderDashboard();
+        }
 
-    actuals.slice().reverse().forEach(a => {
-        // รองรับทั้งแบบพิมพ์เล็กและพิมพ์ใหญ่เพื่อป้องกันค่า undefined
-        const dateVal = a.date || a.Date || '-';
-        const opVal = a.operator || a['OP Name'] || '-';
-        const lineVal = a.line || '-';
-        const mcVal = a.mcNo || '';
-        const partVal = a.partNo || a['Part No.'] || '-';
-        const lotVal = a.lotNo || a['Lot No.'] || '-';
-        const qtyVal = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-        const ngVal = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
-        const remarkVal = a.remark || a.Remark || '-';
+        function renderDashboard() {
+            const tbody = document.getElementById('dashTableBody');
+            tbody.innerHTML = '';
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${dateVal}</td>
-            <td>${opVal}</td>
-            <td><span class="badge bg-secondary">${lineVal}</span> ${mcVal ? '/ ' + mcVal : ''}</td>
-            <td class="fw-bold text-info">${partVal}</td>
-            <td>${lotVal}</td>
-            <td class="text-success fw-bold">${qtyVal.toLocaleString()}</td>
-            <td class="text-danger">${ngVal.toLocaleString()}</td>
-            <td class="small text-muted">${remarkVal}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-    const totalPlanEl = document.getElementById('dashTotalPlan');
-    const totalActualEl = document.getElementById('dashTotalActual');
-    const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
+            let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => p.line === currentFilterLine);
 
-    if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
-    if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-    if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = (totalPlan - totalActual).toLocaleString();
-}
+            let totalPlan = 0;
+            let totalActual = 0;
+
+            filteredPlans.forEach(plan => {
+                const actForPlan = actuals.filter(a => a.line === plan.line && a.partNo === plan.partNo && a.lotNo === plan.lotNo);
+                const actualOkSum = actForPlan.reduce((sum, a) => sum + Number(a.qty), 0);
+
+                totalPlan += Number(plan["Plan Qty"]);
+                totalActual += actualOkSum;
+
+                const progress = Math.min(100, Math.round((actualOkSum / plan.qty) * 100)) || 0;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                  <td>${plan.Start}</td>
+                    <td>${plan.Finish || plan.Start}</td>
+                    <td><span class="badge bg-secondary">${plan.Line}</span></td>
+                    <td class="fw-bold text-info">${plan["Part No."]}</td>
+                    <td>${plan["Lot No."]}</td>
+                    <td>${Number(plan["Plan Qty"]).toLocaleString()}</td>
+                    <td class="text-success fw-bold">${actualOkSum.toLocaleString()}</td>
+                    <td style="width: 200px;">
+                        <div class="progress" style="height: 15px;">
+                            <div class="progress-bar ${progress >= 100 ? 'bg-success' : 'bg-info'}" role="progressbar" style="width: ${progress}%;">${progress}%</div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('dashTotalPlan').innerText = totalPlan.toLocaleString();
+            document.getElementById('dashTotalActual').innerText = totalActual.toLocaleString();
+            const diff = totalPlan - totalActual;
+            document.getElementById('dashTotalDiff').innerText = (diff > 0 ? diff : 0).toLocaleString();
+        }
 
         // --- TAB 2: CAPACITY ---
         function renderCapacity() {
