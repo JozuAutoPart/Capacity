@@ -1150,7 +1150,7 @@ function loadActuals() {
 document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
-    
+    loadActuals();
     // โหลดข้อมูลประวัติ Q-Gate
     renderQGate();
 });
