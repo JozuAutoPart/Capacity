@@ -871,55 +871,55 @@
         }
 
         // --- TAB 1: DASHBOARD ---
-        function filterDashboard(line, btn) {
-            currentFilterLine = line;
-            const buttons = btn.parentElement.querySelectorAll('button');
-            buttons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderDashboard();
-        }
-
         function renderDashboard() {
-            const tbody = document.getElementById('dashTableBody');
-            tbody.innerHTML = '';
+    const tbody = document.getElementById('dashTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
 
-            let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => p.line === currentFilterLine);
+    let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => p.Line === currentFilterLine);
 
-            let totalPlan = 0;
-            let totalActual = 0;
+    let totalPlan = 0;
+    let totalActual = 0;
 
-            filteredPlans.forEach(plan => {
-                const actForPlan = actuals.filter(a => a.line === plan.line && a.partNo === plan.partNo && a.lotNo === plan.lotNo);
-                const actualOkSum = actForPlan.reduce((sum, a) => sum + Number(a.qty), 0);
+    filteredPlans.forEach(plan => {
+        // ปรับเงื่อนไขการจับคู่ให้ยืดหยุ่นขึ้น (เช็ค Line และ Part No. แบบตัดช่องว่างส่วนเกิน)
+        const actForPlan = actuals.filter(a => 
+            String(a.line || '').trim() === String(plan.Line || '').trim() && 
+            String(a.partNo || '').trim() === String(plan["Part No."] || '').trim()
+        );
+        const actualOkSum = actForPlan.reduce((sum, a) => sum + Number(a.qty || 0), 0);
 
-                totalPlan += Number(plan["Plan Qty"]);
-                totalActual += actualOkSum;
+        totalPlan += Number(plan["Plan Qty"] || 0);
+        totalActual += actualOkSum;
 
-                const progress = Math.min(100, Math.round((actualOkSum / plan.qty) * 100)) || 0;
+        const progress = Math.min(100, Math.round((actualOkSum / plan["Plan Qty"]) * 100)) || 0;
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                  <td>${plan.Start}</td>
-                    <td>${plan.Finish || plan.Start}</td>
-                    <td><span class="badge bg-secondary">${plan.Line}</span></td>
-                    <td class="fw-bold text-info">${plan["Part No."]}</td>
-                    <td>${plan["Lot No."]}</td>
-                    <td>${Number(plan["Plan Qty"]).toLocaleString()}</td>
-                    <td class="text-success fw-bold">${actualOkSum.toLocaleString()}</td>
-                    <td style="width: 200px;">
-                        <div class="progress" style="height: 15px;">
-                            <div class="progress-bar ${progress >= 100 ? 'bg-success' : 'bg-info'}" role="progressbar" style="width: ${progress}%;">${progress}%</div>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${plan.Start}</td>
+            <td>${plan.Finish || plan.Start}</td>
+            <td><span class="badge bg-secondary">${plan.Line}</span></td>
+            <td class="fw-bold text-info">${plan["Part No."]}</td>
+            <td>${plan["Lot No."]}</td>
+            <td>${Number(plan["Plan Qty"]).toLocaleString()}</td>
+            <td class="text-success fw-bold">${actualOkSum.toLocaleString()}</td>
+            <td>
+                <div class="progress" style="height: 15px;">
+                    <div class="progress-bar ${progress >= 100 ? 'bg-success' : 'bg-info'}" role="progressbar" style="width: ${progress}%;">${progress}%</div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 
-            document.getElementById('dashTotalPlan').innerText = totalPlan.toLocaleString();
-            document.getElementById('dashTotalActual').innerText = totalActual.toLocaleString();
-            const diff = totalPlan - totalActual;
-            document.getElementById('dashTotalDiff').innerText = (diff > 0 ? diff : 0).toLocaleString();
-        }
+    const totalPlanEl = document.getElementById('dashTotalPlan');
+    const totalActualEl = document.getElementById('dashTotalActual');
+    const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
+
+    if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
+    if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
+    if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = (totalPlan - totalActual).toLocaleString();
+}
 
         // --- TAB 2: CAPACITY ---
         function renderCapacity() {
