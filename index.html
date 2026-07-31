@@ -764,7 +764,7 @@
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLVXRo080-Ov6x_qexlga5-H_35aod-6N0ZGQhg1q2cQMnb8ZZikP0MQS3iKE_zRoFCw/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwDf7ok3og8z0UQtZzExxApPiEnNCLB-GRKDpDcVYHS3l2yzzuqvoh8d7vOTOsgkncnQ/exec";
     
     let plans = [];
     let actuals = [];
@@ -830,7 +830,7 @@
             let response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 body: JSON.stringify({
-                    action: "saveActual",
+                    action: actionType,
                     data: dataObj
                 })
             });
@@ -1091,15 +1091,11 @@ function submitPlan(e) {
                 remark: document.getElementById('actualRemark').value.trim()
             };
             actuals.push(actual);
-
-// เพิ่มคำสั่งส่งข้อมูลขึ้น Google Sheets ตรงนี้ครับ
-saveDataToCloud("saveActual", actual).then(() => {
-    loadActuals(); // โหลดข้อมูลใหม่จากชีตมาแสดง
-});
-
-document.getElementById('actualForm').reset();
-document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
-checkAndLoadPlans();
+            saveAll();
+            document.getElementById('actualForm').reset();
+            document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
+            checkAndLoadPlans();
+        }
 
         function renderActuals() {
             const tbody = document.getElementById('actualTableBody');
