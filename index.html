@@ -1573,7 +1573,7 @@ function toggleMatFormFields() {
 }
 
 // ฐานข้อมูลจำลองสำหรับเก็บประวัติผ่าน localStorage
-let materialHistory = JSON.parse(localStorage.getItem('jozu_material_history')) || [];
+let materialHistory = bms || [];
 
 // ฟังก์ชันบันทึกรายการ รับ / จ่าย Material
 function submitMaterialTransaction(e) {
