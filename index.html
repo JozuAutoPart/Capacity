@@ -972,7 +972,7 @@
         // --- TAB 3: PLANNING ---
         function submitPlan(e) {
             e.preventDefault();
-          const plan = {
+         const plan = {
             id: Date.now(),
             "Start": document.getElementById('planDate').value,
             "Finish": document.getElementById('planFinishDate').value,
@@ -983,13 +983,12 @@
         };
         plans.push(plan);
         saveAll('savePlan', plan);
-            plans.push(plan);
-            saveAll();
-            document.getElementById('planForm').reset();
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('planDate').value = today;
-            document.getElementById('planFinishDate').value = today;
-        }
+        
+        document.getElementById('planForm').reset();
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('planDate').value = today;
+        document.getElementById('planFinishDate').value = today;
+        renderPlans();
 
         function renderPlans() {
             const tbody = document.getElementById('planTableBody');
