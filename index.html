@@ -1076,27 +1076,43 @@ function submitPlan(e) {
             document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
         }
 
-        function submitActual(e) {
-            e.preventDefault();
-            const actual = {
-                id: Date.now(),
-                date: document.getElementById('actualDate').value,
-                operator: document.getElementById('actualOperator').value.trim(),
-                line: document.getElementById('actualLine').value,
-                mcNo: document.getElementById('actualMcNo').value.trim(),
-                partNo: document.getElementById('actualPartNo').value,
-                lotNo: document.getElementById('actualLotNo').value,
-                qty: Number(document.getElementById('actualQty').value),
-                ngQty: Number(document.getElementById('actualNgQty').value || 0),
-                remark: document.getElementById('actualRemark').value.trim()
-            };
+       function submitActual(e) {
+    e.preventDefault();
+    const actual = {
+        id: Date.now(),
+        "Date": document.getElementById('actualDate').value,
+        "OP Name": document.getElementById('actualOperator').value.trim(),
+        "Line/MC": document.getElementById('actualLine').value + " / " + document.getElementById('actualMc').value.trim(),
+        "Part No.": document.getElementById('actualPartNo').value,
+        "Lot No.": document.getElementById('actualLotNo').value,
+        "OK Qty": Number(document.getElementById('actualQty').value),
+        "NG Qty": Number(document.getElementById('actualNgQty').value || 0),
+        "Remark": document.getElementById('actualRemark').value.trim()
+    };
+
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'saveActual', data: actual })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if(result.status === "success") {
             actuals.push(actual);
-            saveAll();
             document.getElementById('actualForm').reset();
             document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
             checkAndLoadPlans();
+            renderActuals();
+            alert("บันทึกยอดผลิตสำเร็จ!");
+        } else {
+            alert("บันทึกไม่สำเร็จ: " + result.message);
         }
-
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    });
+}
         function renderActuals() {
             const tbody = document.getElementById('actualTableBody');
             tbody.innerHTML = '';
