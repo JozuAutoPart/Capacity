@@ -1166,9 +1166,8 @@ function submitQGateTransaction(e) {
         passQty: passQty
     };
 
-    let qgateHistory = JSON.parse(localStorage.getItem('sys_qgate')) || [];
-    qgateHistory.unshift(newItem);
-    localStorage.setItem('sys_qgate', JSON.stringify(qgateHistory));
+    qgate.unshift(newItem);
+saveAll('saveQgate', newItem); // ส่งข้อมูลชิ้นใหม่ไปบันทึกลง Google Sheets
 
     alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
     document.getElementById('qgateForm').reset();
@@ -1182,10 +1181,8 @@ function deleteQGateItem(id) {
     
     // กำหนดรหัสผ่าน (สามารถเปลี่ยนรหัสได้ตรงนี้ เช่น "1234")
     if (password === "1234") {
-        let qgateHistory = JSON.parse(localStorage.getItem('sys_qgate')) || [];
-        qgateHistory = qgateHistory.filter(item => item.id !== id);
-        localStorage.setItem('sys_qgate', JSON.stringify(qgateHistory));
-        
+       qgate = qgate.filter(item => item.id !== id);
+// หากต้องการให้บันทึกสถานะล่าสุดกลับไป สามารถปรับเพิ่ม Action Delete ใน Apps Script ได้ครับ
         renderQGate();
         alert("ลบรายการ Q-Gate สำเร็จ");
     } else if (password !== null) {
