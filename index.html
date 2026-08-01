@@ -1217,7 +1217,7 @@ function renderActuals() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${dateVal}</td>
+            <td>${dateval ? dateval.split('T')[0] : ''}</td>
             <td>${opVal}</td>
             <td><span class="badge bg-secondary">${lineVal}</span> ${mcVal ? '/ ' + mcVal : ''}</td>
             <td class="fw-bold text-info">${partVal}</td>
@@ -1308,7 +1308,7 @@ function renderQGate() {
             qgateHistory.slice(0, 15).forEach(item => {
                 historyBody.innerHTML += `
                     <tr>
-                        <td>${item.date}</td>
+                        <td>${item.date ? item.date.split('T')[0] : ''}</td>
                         <td><small class="text-warning">${item.timeRange || '-'}</small></td>
                         <td>${item.inspector}</td>
                         <td class="fw-bold">${item.partNo}</td>
