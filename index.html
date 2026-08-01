@@ -2091,25 +2091,26 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading qgate:", err));
 
-    // 4. ดึง Delivery (เพิ่มเข้ามาใหม่ เพื่อให้ยอดส่งมอบไม่หายตอน F5)
-    fetch(scriptUrl + "?action=getDeliveries")
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                deliveries = res.data.map(d => ({
-                    id: d.id || Date.now(),
-                    date: d.date || d['วันที่ส่งมอบ'] || '',
-                    partNo: d.partNo || d['Part No.'] || '',
-                    qty: Number(d.qty !== undefined ? d.qty : (d['จำนวนส่งมอบ'] || 0)),
-                    customer: d.customer || d['ลูกค้า'] || '-'
-                }));
+// 4. ดึง Delivery
+        fetch(scriptUrl + "?action=getDeliveries")
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === "success" && res.data) {
+                    deliveries = res.data.map(d => ({
+                        id: d.id || Date.now(),
+                        date: d.date || d['date'] || d['วันที่ส่งมอบ'] || '',
+                        partNo: d.partNo || d['partNo'] || d['Part No.'] || '',
+                        qty: Number(d.qty !== undefined ? d.qty : (d['qty'] || d['จำนวนส่งมอบ'] || 0)),
+                        customer: d.customer || d['customer'] || d['ลูกค้า'] || '-',
+                        remark: d.remark || d['remark'] || d['หมายเหตุ'] || '-'
+                    }));
 
-                if (typeof renderDelivery === 'function') renderDelivery();
-                if (typeof loadDeliveryParts === 'function') loadDeliveryParts();
-                if (typeof renderStock === 'function') renderStock();
-            }
-        })
-        .catch(err => console.error("Error loading deliveries:", err));
+                    if (typeof renderDelivery === 'function') renderDelivery();
+                    if (typeof loadDeliveryParts === 'function') loadDeliveryParts();
+                    if (typeof renderStock === 'function') renderStock();
+                }
+            })
+            .catch(err => console.error("Error loading deliveries:", err));
 }
 
 // สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
