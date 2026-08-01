@@ -967,7 +967,7 @@
             const keys = Object.keys(lineMcs);
             if(keys.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">ยังไม่มีข้อมูลการผลิตเพื่อคำนวณ Capacity</td></tr>';
-                document.getElementById('overallCap').innerText = '0%';
+                document.getElementById('overallUtilization').innerText = '0%';
                 return;
             }
 
@@ -994,7 +994,7 @@
             });
 
             const overall = totalMaxCap > 0 ? Math.round((totalStrokes / totalMaxCap) * 100) : 0;
-            document.getElementById('overallCap').innerText = overall + '%';
+            document.getElementById('overallUtilization').innerText = overall + '%';
         }
 
         // --- TAB 3: PLANNING ---
@@ -2038,7 +2038,7 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-     // 2. ดึง Actuals
+    // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
@@ -2062,7 +2062,6 @@ function loadAllDataFromCloud() {
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
-rr));
 
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
