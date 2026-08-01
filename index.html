@@ -1323,6 +1323,18 @@ function renderQGate() {
 }
 
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
+        document.addEventListener("DOMContentLoaded", function() {
+    const today = new Date().toISOString().split('T')[0];
+    if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
+    
+    // โหลดข้อมูลประวัติ Q-Gate
+    renderQGate();
+    
+    // 📌 เพิ่มตรงนี้: ให้โหลดรายชื่อ Part No. จาก WIP มาใส่ Dropdown ทันทีที่เปิดหน้าเว็บ
+    if (typeof checkAndLoadWipForQGate === 'function') {
+        checkAndLoadWipForQGate();
+    }
+});
 function submitQGateTransaction(e) {
     e.preventDefault();
     const date = document.getElementById('qgateDate').value;
