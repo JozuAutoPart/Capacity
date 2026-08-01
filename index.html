@@ -1151,6 +1151,29 @@ function submitActual(e) {
     .then(result => {
         if (result.status === "success") {
             actuals.push(actual);
+
+            // ---------------------------------------------------------
+            // เพิ่มส่วนนี้: อัปเดตยอดเข้า Stock WIP ทันที เพื่อให้ Q-Gate ดึงไปตรวจสอบได้
+            // ---------------------------------------------------------
+            if (typeof wipStock !== 'undefined') {
+                const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
+                if (existingWip) {
+                    existingWip.qty = (Number(existingWip.qty) || 0) + actual.qty;
+                } else {
+                    wipStock.push({
+                        date: actual.date,
+                        line: actual.line,
+                        partNo: actual.partNo,
+                        lotNo: actual.lotNo,
+                        qty: actual.qty
+                    });
+                }
+                // ถ้าในระบบมีฟังก์ชันเรนเดอร์หน้า Stock WIP หรือ Q-Gate ให้เรียกอัปเดตด้วย
+                if (typeof renderWipStock === 'function') renderWipStock();
+                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+            }
+            // ---------------------------------------------------------
+
             document.getElementById('actualForm').reset();
             document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
             checkAndLoadPlans();
@@ -1165,7 +1188,6 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
-
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
