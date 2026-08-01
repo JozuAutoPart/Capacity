@@ -879,13 +879,13 @@
             renderDashboard();
         }
 
-       function renderDashboard() {
+    function renderDashboard() {
     const tbody = document.getElementById('dashTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
     let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => {
-        const pLine = String(p.line || p.Line || '').trim();
+        const pLine = String(p.Line || p.line || '').trim();
         return pLine === String(currentFilterLine).trim();
     });
 
@@ -893,34 +893,35 @@
     let totalActual = 0;
 
     filteredPlans.forEach(plan => {
-        const planLine = String(plan.line || plan.Line || '').trim();
-        const planPart = String(plan.partNo || plan["Part No."] || '').trim();
+        const planLine = String(plan.Line || plan.line || '').trim();
+        const planPart = String(plan["Part No."] || plan.partNo || '').trim();
 
-        // กรองข้อมูลประวัติการผลิตที่ตรงกับแผนนี้
+        // กรองข้อมูลประวัติการผลิตที่ตรงกับแผน (เทียบ Line และ Part No.)
         const actForPlan = actuals.filter(a => {
-            const aLine = String(a.line || a.Line || '').trim();
-            const aPart = String(a.partNo || a['Part No.'] || '').trim();
+            let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
+            let aLine = String(aLineRaw).split('/')[0].trim(); // ดึงเฉพาะชื่อ Line หน้าเครื่องหมาย /
+            let aPart = String(a["Part No."] || a.partNo || '').trim();
             return aLine === planLine && aPart === planPart;
         });
         
-        // รวมยอด Actual OK
+        // รวมยอด Actual OK จากชีต์ ACTUAL PRODUCTION
         const actualOkSum = actForPlan.reduce((sum, a) => {
-            let rawQty = a.qty !== undefined ? a.qty : (a['OK Qty'] !== undefined ? a['OK Qty'] : (a.OKQty || 0));
+            let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
             let val = Number(rawQty);
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const planQty = Number(plan.qty || plan["Plan Qty"] || 0);
+        const planQty = Number(plan["Plan Qty"] || plan.qty || 0);
         totalPlan += planQty;
         totalActual += actualOkSum;
 
         const progress = planQty > 0 ? Math.min(100, Math.round((actualOkSum / planQty) * 100)) : 0;
         
-        const startVal = plan.date || plan.Start || '-';
-        const finishVal = plan.finish || plan.Finish || startVal;
-        const lineVal = plan.line || plan.Line || '-';
-        const partVal = plan.partNo || plan["Part No."] || '-';
-        const lotVal = plan.lotNo || plan["Lot No."] || '-';
+        const startVal = plan.Start || plan.date || '-';
+        const finishVal = plan.Finish || plan.finish || startVal;
+        const lineVal = plan.Line || plan.line || '-';
+        const partVal = plan["Part No."] || plan.partNo || '-';
+        const lotVal = plan["Lot No."] || plan.lotNo || '-';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
