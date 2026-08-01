@@ -1375,18 +1375,26 @@ function deleteQGateItem(id) {
         alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
     }
 }
-        // --- TAB 6: STOCK WIP & FG ---
+       // --- TAB 6: STOCK WIP & FG ---
         function getFgBalances() {
             const fgMap = {};
             // รับเข้า FG จาก Q-Gate
             qgate.forEach(q => {
-                if(!fgMap[q.partNo]) fgMap[q.partNo] = 0;
-                fgMap[q.partNo] += Number(q.passQty);
+                const pNo = q.partNo || q['Part No.'] || '';
+                const pQty = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
+                if(pNo) {
+                    if(!fgMap[pNo]) fgMap[pNo] = 0;
+                    fgMap[pNo] += pQty;
+                }
             });
             // ตัดส่งมอบออก (Delivery)
             deliveries.forEach(d => {
-                if(!fgMap[d.partNo]) fgMap[d.partNo] = 0;
-                fgMap[d.partNo] -= Number(d.qty);
+                const pNo = d.partNo || d['Part No.'] || '';
+                const dQty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
+                if(pNo) {
+                    if(!fgMap[pNo]) fgMap[pNo] = 0;
+                    fgMap[pNo] -= dQty;
+                }
             });
             return fgMap;
         }
@@ -1394,21 +1402,31 @@ function deleteQGateItem(id) {
         function renderStock() {
             const wipTbody = document.getElementById('wipTableBody');
             const fgTbody = document.getElementById('fgTableBody');
+            if (!wipTbody || !fgTbody) return;
             wipTbody.innerHTML = '';
             fgTbody.innerHTML = '';
 
+            // ดึง Part No. จากทุกส่วนรองรับทั้งพิมพ์เล็ก/ใหญ่
             const partsSet = new Set([
-                ...actuals.map(a => a.partNo), 
-                ...qgate.map(q => q.partNo),
-                ...deliveries.map(d => d.partNo)
+                ...actuals.map(a => a.partNo || a['Part No.'] || ''),
+                ...qgate.map(q => q.partNo || q['Part No.'] || ''),
+                ...deliveries.map(d => d.partNo || d['Part No.'] || '')
             ]);
 
             partsSet.forEach(partNo => {
                 if(!partNo) return;
 
-                // WIP Summary
-                const totalIn = actuals.filter(a => a.partNo === partNo).reduce((sum, a) => sum + Number(a.qty), 0);
-                const totalTransferred = qgate.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.checkQty), 0);
+                // WIP Summary (รองรับทุกรูปแบบคีย์)
+                const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                    let val = Number(q.checkQty !== undefined ? q.checkQty : (q['Check Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
                 const currentWip = totalIn - totalTransferred;
 
                 const trWip = document.createElement('tr');
@@ -1421,8 +1439,16 @@ function deleteQGateItem(id) {
                 wipTbody.appendChild(trWip);
 
                 // FG Summary
-                const fgPass = qgate.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.passQty), 0);
-                const fgDelivered = deliveries.filter(d => d.partNo === partNo).reduce((sum, d) => sum + Number(d.qty), 0);
+                const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                    let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
+                    let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
                 const currentFg = fgPass - fgDelivered;
 
                 const trFg = document.createElement('tr');
@@ -1436,7 +1462,6 @@ function deleteQGateItem(id) {
                 fgTbody.appendChild(trFg);
             });
         }
-
         // --- TAB 7: DELIVERY (การส่งมอบ) ---
         function loadDeliveryParts() {
             const fgMap = getFgBalances();
