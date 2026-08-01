@@ -1884,8 +1884,8 @@ function toggleMatFormFields() {
     }
 }
 
-// ฐานข้อมูลจำลองสำหรับเก็บประวัติผ่าน localStorage
-let materialHistory = bms || [];
+// ฐานข้อมูลจำลองสำหรับเก็บประวัติ
+let materialHistory = typeof bms !== 'undefined' ? bms : [];
 
 // ฟังก์ชันบันทึกรายการ รับ / จ่าย Material
 function submitMaterialTransaction(e) {
@@ -1916,8 +1916,10 @@ function submitMaterialTransaction(e) {
         detail: detailInfo
     };
 
-  materialHistory.unshift(transaction);
-saveAll('saveBms', transaction); // ส่งข้อมูลบันทึกเข้า Google Sheets (แท็บ BMS)
+    materialHistory.unshift(transaction);
+    if (typeof saveAll === 'function') {
+        saveAll('saveBms', transaction); // ส่งข้อมูลบันทึกเข้า Google Sheets (แท็บ BMS)
+    }
 
     alert(`บันทึกรายการ${type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}สำเร็จ!`);
     document.getElementById('materialForm').reset();
@@ -1927,18 +1929,24 @@ saveAll('saveBms', transaction); // ส่งข้อมูลบันทึ�
     loadMaterialStock();
 }
 
-// ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ
+// ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ (รวมอยู่ในฟังก์ชันเดียวอย่างถูกต้อง)
 function loadMaterialStock() {
     let stockMap = {};
+    
+    // อัปเดตข้อมูลจากตัวแปรส่วนกลางถ้ามี
+    if (typeof bms !== 'undefined' && Array.isArray(bms)) {
+        materialHistory = bms;
+    }
+
     materialHistory.forEach(item => {
         let key = item.partNo + "||" + item.typeSize;
         if(!stockMap[key]) {
             stockMap[key] = { partNo: item.partNo, typeSize: item.typeSize, in: 0, out: 0 };
         }
         if(item.type === 'IN') {
-            stockMap[key].in += item.qty;
+            stockMap[key].in += Number(item.qty || 0);
         } else {
-            stockMap[key].out += item.qty;
+            stockMap[key].out += Number(item.qty || 0);
         }
     });
 
@@ -1966,16 +1974,16 @@ function loadMaterialStock() {
                     <tr>
                         <td class="fw-bold">${item.partNo}</td>
                         <td>${item.typeSize}</td>
-                        <td class="text-success">+${item.in}</td>
-                        <td class="text-danger">-${item.out}</td>
-                        <td class="fw-bold text-info">${balance}</td>
+                        <td class="text-success">+${item.in.toLocaleString()}</td>
+                        <td class="text-danger">-${item.out.toLocaleString()}</td>
+                        <td class="fw-bold text-info">${balance.toLocaleString()}</td>
                     </tr>
                 `;
             });
         }
     }
 
-    // แสดงผลตารางประวัติย้อนหลัง (คงเดิม)
+    // แสดงผลตารางประวัติย้อนหลัง (พร้อมตัดตัว T ออกจากวันที่)
     const historyBody = document.getElementById('matHistoryTableBody');
     if(historyBody) {
         historyBody.innerHTML = '';
@@ -1983,14 +1991,16 @@ function loadMaterialStock() {
             historyBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
         } else {
             materialHistory.slice(0, 15).forEach(item => {
+                let rawDate = item.date || '';
+                let cleanDate = rawDate ? rawDate.split('T')[0] : '';
                 historyBody.innerHTML += `
                     <tr>
-                        <td>${item.date}</td>
+                        <td>${cleanDate}</td>
                         <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
-                        <td class="fw-bold">${item.partNo}</td>
-                        <td>${item.typeSize}</td>
-                        <td class="fw-bold">${item.qty}</td>
-                        <td><small class="text-muted">${item.detail}</small></td>
+                        <td class="fw-bold">${item.partNo || ''}</td>
+                        <td>${item.typeSize || ''}</td>
+                        <td class="fw-bold">${Number(item.qty || 0).toLocaleString()}</td>
+                        <td><small class="text-muted">${item.detail || ''}</small></td>
                         <td class="text-center">
                             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialItem(${item.id})" title="ลบรายการนี้">
                                 <i class="fas fa-trash-alt"></i>
@@ -2000,33 +2010,6 @@ function loadMaterialStock() {
                 `;
             });
         }
-    }
-}
-// 📌 ฟังก์ชันลบรายการ Material เดี่ยว (ต้องใส่รหัสผ่าน)
-// ฟังก์ชันสำหรับโหลดและแสดงข้อมูล Material
-function loadMaterialStock() {
-    const tbody = document.getElementById('materialTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    
-    if (typeof materialHistory !== 'undefined') {
-        materialHistory.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${item.date || ''}</td>
-                <td>${item.type || ''}</td>
-                <td>${item.partNo || ''}</td>
-                <td>${item.typeSize || ''}</td>
-                <td>${item.qty || 0}</td>
-                <td>${item.supplier || ''}</td>
-                <td class="text-center">
-                    <button class="btn btn-outline-danger btn-sm" onclick="deleteMaterialItem(${item.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
     }
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
