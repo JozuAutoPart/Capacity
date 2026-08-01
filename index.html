@@ -1375,6 +1375,49 @@ function deleteQGateItem(id) {
         alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
     }
 }
+        // ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
+function checkAndLoadWipForQGate() {
+    const selectPart = document.getElementById('qgatePartNo');
+    if (!selectPart) return;
+    
+    selectPart.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
+
+    // คำนวณยอด WIP ปัจจุบันจาก actuals และ qgate
+    const wipMap = {};
+    
+    // ยอดเข้าจาก actuals
+    if (typeof actuals !== 'undefined') {
+        actuals.forEach(a => {
+            let pNo = a.partNo || a['Part No.'] || '';
+            let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+            if (pNo) {
+                wipMap[pNo] = (wipMap[pNo] || 0) + qty;
+            }
+        });
+    }
+
+    // หักยอดที่ตรวจ Q-Gate ไปแล้ว
+    if (typeof qgate !== 'undefined') {
+        qgate.forEach(q => {
+            let pNo = q.partNo || q['Part No.'] || '';
+            let qty = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || 0));
+            if (pNo) {
+                wipMap[pNo] = (wipMap[pNo] || 0) - qty;
+            }
+        });
+    }
+
+    // แสดงเฉพาะตัวที่มี WIP คงเหลือมากกว่า 0
+    Object.keys(wipMap).forEach(partNo => {
+        let currentWip = wipMap[partNo];
+        if (currentWip > 0) {
+            const opt = document.createElement('option');
+            opt.value = partNo;
+            opt.innerText = `${partNo} (คงเหลือใน WIP: ${currentWip.toLocaleString()} ชิ้น)`;
+            selectPart.appendChild(opt);
+        }
+    });
+}
        // --- TAB 6: STOCK WIP & FG ---
         function getFgBalances() {
             const fgMap = {};
