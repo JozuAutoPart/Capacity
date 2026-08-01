@@ -1116,18 +1116,41 @@ function submitActual(e) {
 
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
+    if (!tbody) return;
     tbody.innerHTML = '';
+    
+    if (!actuals || actuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
+        return;
+    }
+
     actuals.slice().reverse().forEach(a => {
+        // ดึงค่าแบบครอบจักรวาล รองรับทุกชื่อคีย์ที่เป็นไปได้
+        const dateVal = a.date || a.Date || '-';
+        const opVal = a.operator || a['OP Name'] || a.opName || '-';
+        const lineVal = a.line || a.Line || '-';
+        const mcVal = a.mcNo || a['Machine No.'] || a.machine || '';
+        const partVal = a.partNo || a['Part No.'] || '-';
+        const lotVal = a.lotNo || a['Lot No.'] || '-';
+        
+        // แปลงตัวเลขจำนวนผลิต ป้องกันค่า NaN
+        let rawQty = a.qty !== undefined ? a.qty : (a['OK Qty'] !== undefined ? a['OK Qty'] : a.OKQty);
+        let rawNg = a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] !== undefined ? a['NG Qty'] : a.NGCQty);
+        
+        const qtyVal = Number(rawQty) || 0;
+        const ngVal = Number(rawNg) || 0;
+        const remarkVal = a.remark || a.Remark || '-';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${a.date}</td>
-            <td>${a.operator}</td>
-            <td><span class="badge bg-secondary">${a.line}</span> / ${a.mcNo}</td>
-            <td class="fw-bold text-info">${a.partNo}</td>
-            <td>${a.lotNo}</td>
-            <td class="text-success fw-bold">${Number(a.qty).toLocaleString()}</td>
-            <td class="text-danger">${Number(a.ngQty).toLocaleString()}</td>
-            <td class="small text-muted">${a.remark || '-'}</td>
+            <td>${dateVal}</td>
+            <td>${opVal}</td>
+            <td><span class="badge bg-secondary">${lineVal}</span> ${mcVal ? '/ ' + mcVal : ''}</td>
+            <td class="fw-bold text-info">${partVal}</td>
+            <td>${lotVal}</td>
+            <td class="text-success fw-bold">${qtyVal.toLocaleString()}</td>
+            <td class="text-danger">${ngVal.toLocaleString()}</td>
+            <td class="small text-muted">${remarkVal}</td>
         `;
         tbody.appendChild(tr);
     });
