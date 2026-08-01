@@ -2051,56 +2051,77 @@ function loadMaterialStock() {
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
 // // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
-// สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
-function loadAllDataFromCloud() {
-    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
-    if (!scriptUrl) return;
+// --- ฟังก์ชันดึงข้อมูลทั้งหมดจาก Google Sheets กลับมาแสดงผล ---
+async function loadAllDataFromCloud() {
+    if (typeof scriptUrl === 'undefined' || !scriptUrl) return;
+    
+    try {
+        // 1. ดึงข้อมูล Actual Production
+        const resActual = await fetch(scriptUrl + "?action=getActuals").then(r => r.json());
+        if (resActual.status === "success" && resActual.data) {
+            actuals = resActual.data.map(a => ({
+                date: a.date || a.Date || '',
+                operator: a.operator || a['OP Name'] || '',
+                line: a.line || a['Line/MC'] || '',
+                partNo: a.partNo || a['Part No.'] || '',
+                lotNo: a.lotNo || a['Lot No.'] || '',
+                qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
+                remark: a.remark || a.Remark || ''
+            }));
+        }
 
-    // 1. ดึง Plans
-    fetch(scriptUrl + "?action=getPlans")
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                plans = res.data;
-                renderDashboard();
-            }
-        })
-        .catch(err => console.error("Error loading plans:", err));
+        // 2. ดึงข้อมูล Q-Gate Inspection
+        const resQgate = await fetch(scriptUrl + "?action=getQgate").then(r => r.json());
+        if (resQgate.status === "success" && resQgate.data) {
+            qgate = resQgate.data.map(q => ({
+                id: q.id || Date.now(),
+                date: q.date || q['วันที่ตรวจ'] || '',
+                timeRange: q.timeRange || q['เวลา'] || '',
+                inspector: q.inspector || q['พนักงานตรวจ'] || '',
+                partNo: q.partNo || q['Part No.'] || '',
+                totalQty: Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || q['Check Qty'] || 0)),
+                ngQty: Number(q.ngQty !== undefined ? q.ngQty : (q['ของเสีย (NG)'] || q['NG Qty'] || 0)),
+                passQty: Number(q.passQty !== undefined ? q.passQty : (q['ผ่านเข้า FG (Pass)'] || q['Pass Qty'] || 0))
+            }));
+        }
 
-    // 2. ดึง Actuals
-    // 2. ดึง Actuals
-    fetch(scriptUrl + "?action=getActuals")
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                // แปลงฟิลด์ข้อมูลให้รองรับทั้งพิมพ์เล็ก/ใหญ่
-                actuals = res.data.map(a => ({
-                    date: a.date || a.Date || '',
-                    operator: a.operator || a['OP Name'] || a.opName || '',
-                    line: a.line || a.Line || a['Line/MC'] || '',
-                    mcNo: a.mcNo || a['Machine No.'] || '',
-                    partNo: a.partNo || a['Part No.'] || '',
-                    lotNo: a.lotNo || a['Lot No.'] || '',
-                    qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
-                    ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
-                    remark: a.remark || a.Remark || ''
-                }));
+        // 3. ดึงข้อมูล Delivery
+        const resDelivery = await fetch(scriptUrl + "?action=getDeliveries").then(r => r.json());
+        if (resDelivery.status === "success" && resDelivery.data) {
+            deliveries = resDelivery.data.map(d => ({
+                id: d.id || Date.now(),
+                date: d.date || d['วันที่ส่งมอบ'] || '',
+                partNo: d.partNo || d['Part No.'] || '',
+                qty: Number(d.qty !== undefined ? d.qty : (d['จำนวนส่งมอบ'] || 0)),
+                customer: d.customer || d['ลูกค้า'] || '-',
+                remark: d.remark || d['หมายเหตุ'] || '-'
+            }));
+        }
 
-                renderActuals();
-                renderDashboard();
-                
-                if (typeof renderStock === 'function') {
-                    renderStock();
-                }
-                
-                // 📌 เพิ่มบรรทัดนี้: สั่งให้โหลดข้อมูลเข้า Dropdown ของ Q-Gate ทันที
-                if (typeof checkAndLoadWipForQGate === 'function') {
-                    checkAndLoadWipForQGate();
-                }
-            }
-        })
-        .catch(err => console.error("Error loading actuals:", err));
+        // 4. อัปเดตการแสดงผลหน้าเว็บทุกตารางทันที
+        if (typeof renderDashboard === 'function') renderDashboard();
+        if (typeof renderActuals === 'function') renderActuals();
+        if (typeof renderQGate === 'function') renderQGate();
+        if (typeof renderDelivery === 'function') renderDelivery();
+        if (typeof renderStock === 'function') renderStock();
+        if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+        if (typeof loadDeliveryParts === 'function') loadDeliveryParts();
+
+    } catch (err) {
+        console.error("Error loading data from cloud:", err);
+    }
 }
+
+// --- คำสั่งเริ่มทำงานทันทีเมื่อเปิด/รีเฟรชหน้าเว็บ (เหลือจุดเดียว) ---
+document.addEventListener("DOMContentLoaded", async function() {
+    const today = new Date().toISOString().split('T')[0];
+    if (document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
+    if (document.getElementById('deliveryDate')) document.getElementById('deliveryDate').value = today;
+
+    // ดึงข้อมูลล่าสุดทั้งหมดจาก Google Sheets
+    await loadAllDataFromCloud();
+});
 // สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     loadAllDataFromCloud();
