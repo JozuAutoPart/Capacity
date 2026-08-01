@@ -1190,6 +1190,10 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
+// ==========================================
+// 📌 ระบบจัดการข้อมูล Actuals & Capacity
+// ==========================================
+
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
     if (typeof scriptUrl === 'undefined') return;
@@ -1211,14 +1215,17 @@ function loadActualsFromCloud() {
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
+                // เรียกฟังก์ชันแสดงผลตารางพนักงานและหน้า Capacity
                 renderActuals();
-                if (typeof renderCapacity === 'function') renderCapacity();
+                if (typeof renderCapacity === 'function') {
+                    renderCapacity();
+                }
             }
         })
         .catch(err => console.error("Error loading Actuals:", err));
 }
 
-// ฟังก์ชันแสดงผลตาราง
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิตของพนักงาน
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -1257,6 +1264,9 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
+
+// สั่งให้ดึงข้อมูลทำงานทันทีเมื่อเปิดหน้าเว็บ
+loadActualsFromCloud();
 // ฟังก์ชั่นสำหรับดึงข้อมูลทั้งหมดเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
