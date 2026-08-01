@@ -1282,14 +1282,22 @@ window.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 
 // ตั้งค่าวันที่ปัจจุบันเมื่อเปิดหน้าเว็บ
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", async function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
+    
+    // โหลดข้อมูลทั้งหมดจาก Google Sheets มาเก็บไว้ในตัวแปรก่อนเรนเดอร์หน้าจอ
+    if (typeof loadAllDataFromSheet === 'function') {
+        await loadAllDataFromSheet();
+    }
     
     // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
     renderQGate();
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
+    }
+    if (typeof renderStock === 'function') {
+        renderStock();
     }
 });
 
