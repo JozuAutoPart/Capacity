@@ -2034,13 +2034,23 @@ function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    // 1. ดึง Plans
+   // ดึง Plans
     fetch(scriptUrl + "?action=getPlans")
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                plans = res.data;
-                renderDashboard();
+                plans = res.data.map(p => ({
+                    id: p.id || Date.now(),
+                    date: p.date || p['วันที่'] || p['Date'] || '',
+                    line: p.line || p['Line'] || p['Line/MC'] || '',
+                    partNo: p.partNo || p['Part No.'] || '',
+                    planQty: Number(p.planQty !== undefined ? p.planQty : (p['ยอดแผน'] || p['Plan Qty'] || 0)),
+                    remark: p.remark || p['หมายเหตุ'] || '-'
+                }));
+
+                // สั่งให้ฟังก์ชันแสดงผลตารางประวัติ Planning ทำงาน
+                if (typeof renderPlanning === 'function') renderPlanning();
+                if (typeof renderDashboard === 'function') renderDashboard();
             }
         })
         .catch(err => console.error("Error loading plans:", err));
