@@ -1831,29 +1831,38 @@ function loadMaterialStock() {
     }
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
-   // ฟังก์ชันดึงข้อมูลประวัติการผลิตและแผนการผลิตทั้งหมดจาก Google Sheets เมื่อเปิดหน้าเว็บ
-function loadInitialData() {
+  function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    fetch(scriptUrl)
+    // 1. ดึงข้อมูล Plans
+    fetch(scriptUrl + "?action=getPlans")
         .then(res => res.json())
-        .then(data => {
-            // ถ้าระบบส่งข้อมูลมาเป็นรูปแบบที่มี actuals และ plans
-            if (data.actuals) actuals = data.actuals;
-            if (data.plans) plans = data.plans;
-            
-            // สั่งเรนเดอร์หน้าจอทั้ง Dashboard และประวัติการผลิตใหม่
-            renderDashboard();
-            renderActuals();
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                plans = res.data;
+                renderDashboard();
+            }
         })
-        .catch(err => console.error("Error loading initial data:", err));
+        .catch(err => console.error("Error loading plans:", err));
+
+    // 2. ดึงข้อมูล Actuals
+    fetch(scriptUrl + "?action=getActuals")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                actuals = res.data;
+                renderActuals();
+                renderDashboard(); // เรนเดอร์ทับอีกรอบเพื่อให้ยอด Actual ตัดกับ Plan ทันที
+            }
+        })
+        .catch(err => console.error("Error loading actuals:", err));
 }
 
-// สั่งให้โหลดข้อมูลทันทีที่เปิดหน้าเว็บขึ้นมา
+// สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
-    loadInitialData();
-});     
+    loadAllDataFromCloud();
+});    
     </script>
 </body>
 </html>
