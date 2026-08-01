@@ -1831,11 +1831,12 @@ function loadMaterialStock() {
     }
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
-  function loadAllDataFromCloud() {
+ // ฟังก์ชันดึงข้อมูลแบบรวบยอดทั้ง Plans และ Actuals ในชุดเดียว
+function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    // 1. ดึงข้อมูล Plans
+    // 1. ดึง Plans
     fetch(scriptUrl + "?action=getPlans")
         .then(res => res.json())
         .then(res => {
@@ -1846,14 +1847,14 @@ function loadMaterialStock() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-    // 2. ดึงข้อมูล Actuals
+    // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
                 actuals = res.data;
                 renderActuals();
-                renderDashboard(); // เรนเดอร์ทับอีกรอบเพื่อให้ยอด Actual ตัดกับ Plan ทันที
+                renderDashboard();
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
@@ -1862,7 +1863,7 @@ function loadMaterialStock() {
 // สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     loadAllDataFromCloud();
-});    
+});
     </script>
 </body>
 </html>
