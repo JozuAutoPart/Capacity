@@ -998,7 +998,7 @@
         }
 
         // --- TAB 3: PLANNING ---
-       // --- TAB 3: PLANNING ---
+      // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
 function submitPlan(e) {
     e.preventDefault();
     
@@ -1013,7 +1013,8 @@ function submitPlan(e) {
     };
 
     // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
-    fetch(GOOGLE_SCRIPT_URL, {
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    fetch(scriptUrl, {
         method: 'POST',
         body: JSON.stringify({ action: 'savePlan', data: plan })
     })
@@ -1026,6 +1027,7 @@ function submitPlan(e) {
             document.getElementById('planDate').value = today;
             document.getElementById('planFinishDate').value = today;
             renderPlans();
+            if (typeof renderDashboard === 'function') renderDashboard();
             alert("บันทึกข้อมูลสำเร็จ!");
         } else {
             alert("บันทึกไม่สำเร็จ: " + result.message);
@@ -1036,44 +1038,44 @@ function submitPlan(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
-        document.getElementById('planForm').reset();
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('planDate').value = today;
-        document.getElementById('planFinishDate').value = today;
+
+function renderPlans() {
+    const tbody = document.getElementById('planTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!plans || plans.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูลแผนการผลิต</td></tr>`;
+        return;
+    }
+
+    plans.forEach(plan => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${plan.Start || ''}</td>
+            <td>${plan.Finish || ''}</td>
+            <td><span class="badge bg-secondary">${plan.Line || ''}</span></td>
+            <td class="fw-bold text-info">${plan["Part No."] || ''}</td>
+            <td>${plan["Lot No."] || ''}</td>
+            <td>${Number(plan["Plan Qty"] || 0).toLocaleString()}</td>
+            <td class="text-center">
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deletePlan(${plan.id})" title="ลบแผนนี้">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function deletePlan(id) {
+    if(confirm('ต้องการลบแผนการผลิตรายการนี้ใช่หรือไม่?')) {
+        plans = plans.filter(p => p.id !== id);
         renderPlans();
-
-        function renderPlans() {
-            const tbody = document.getElementById('planTableBody');
-            tbody.innerHTML = '';
-            plans.forEach(plan => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${plan.Start}</td>
-                <td>${plan.Finish}</td>
-                <td><span class="badge bg-secondary">${plan.Line}</span></td>
-                <td class="fw-bold text-info">${plan["Part No."]}</td>
-                <td>${plan["Lot No."]}</td>
-                <td>${Number(plan["Plan Qty"]).toLocaleString()}</td>
-                    <td class="text-center">
-                        <button class="btn btn-outline-danger btn-sm" onclick="deletePlan(${plan.id})"><i class="fas fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function deletePlan(id) {
-            plans = plans.filter(p => p.id !== id);
-            saveAll();
-        }
-
-        function clearAllPlans() {
-            if(confirm('ต้องการล้างแผนการผลิตทั้งหมดใช่หรือไม่?')) {
-                plans = [];
-                saveAll();
-            }
-        }
-
+        if (typeof renderDashboard === 'function') renderDashboard();
+        alert("ลบแผนสำเร็จ");
+    }
+}
        // --- TAB 4: ACTUAL PRODUCTION ---
 // ฟังก์ชันตรวจสอบและโหลดแผนการผลิต (กรองตัวที่ผลิตครบตามแผนออกแล้ว)
 function checkAndLoadPlans() {
@@ -2028,28 +2030,26 @@ function loadMaterialStock() {
     }
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
-// // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
-// สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
 function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-   // ดึง Plans
+ // 1. ดึง Plans
     fetch(scriptUrl + "?action=getPlans")
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
                 plans = res.data.map(p => ({
                     id: p.id || Date.now(),
-                    date: p.date || p['วันที่'] || p['Date'] || '',
-                    line: p.line || p['Line'] || p['Line/MC'] || '',
-                    partNo: p.partNo || p['Part No.'] || '',
-                    planQty: Number(p.planQty !== undefined ? p.planQty : (p['ยอดแผน'] || p['Plan Qty'] || 0)),
-                    remark: p.remark || p['หมายเหตุ'] || '-'
+                    Start: p.Start || p['Start'] || p['วันที่เริ่มต้น'] || '',
+                    Finish: p.Finish || p['Finish'] || p['วันที่สิ้นสุด'] || '',
+                    Line: p.Line || p['Line'] || p['line'] || '',
+                    "Part No.": p["Part No."] || p.partNo || p['partNo'] || '',
+                    "Lot No.": p["Lot No."] || p.lotNo || p['lotNo'] || '',
+                    "Plan Qty": Number(p["Plan Qty"] !== undefined ? p["Plan Qty"] : (p.planQty || p['ยอดแผน'] || 0))
                 }));
 
-                // สั่งให้ฟังก์ชันแสดงผลตารางประวัติ Planning ทำงาน
-                if (typeof renderPlanning === 'function') renderPlanning();
+                if (typeof renderPlans === 'function') renderPlans();
                 if (typeof renderDashboard === 'function') renderDashboard();
             }
         })
