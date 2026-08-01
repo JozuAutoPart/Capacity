@@ -884,22 +884,22 @@
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => p.Line === currentFilterLine);
+    let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => String(p.Line || '').trim() === String(currentFilterLine).trim());
 
     let totalPlan = 0;
     let totalActual = 0;
 
     filteredPlans.forEach(plan => {
-        // ค้นหาข้อมูล Actual ที่ตรงกับ Line และ Part No. (รองรับทุกรูปแบบชื่อคีย์)
+        // ตัดช่องว่างทิ้งทั้งสองฝั่ง เพื่อให้จับคู่ Part No. และ Line ได้แม่นยำ 100%
+        const planLine = String(plan.Line || '').trim();
+        const planPart = String(plan["Part No."] || '').trim();
+
         const actForPlan = actuals.filter(a => {
             const aLine = String(a.line || a.Line || '').trim();
-            const pLine = String(plan.Line || '').trim();
             const aPart = String(a.partNo || a['Part No.'] || '').trim();
-            const pPart = String(plan["Part No."] || '').trim();
-            return aLine === pLine && aPart === pPart;
+            return aLine === planLine && aPart === planPart;
         });
         
-        // รวมยอด Actual OK แบบดึงทุกชื่อคีย์ที่เป็นไปได้ และป้องกัน NaN
         const actualOkSum = actForPlan.reduce((sum, a) => {
             let rawQty = a.qty !== undefined ? a.qty : (a['OK Qty'] !== undefined ? a['OK Qty'] : a.OKQty);
             let val = Number(rawQty);
