@@ -925,8 +925,8 @@
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${startVal}</td>
-            <td>${finishVal}</td>
+            <td>${startval ? startval.split('T')[0] : ''}</td>
+            <td>${finishval ? finishval.split('T')[0] : ''}</td>
             <td><span class="badge bg-secondary">${lineVal}</span></td>
             <td class="fw-bold text-info">${partVal}</td>
             <td>${lotVal}</td>
