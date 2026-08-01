@@ -1190,41 +1190,69 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
+// ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
+function loadActualsFromCloud() {
+    if (typeof scriptUrl === 'undefined') return;
+    
+    fetch(scriptUrl + "?action=getActuals")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                actuals = res.data.map(item => ({
+                    id: item.id || Date.now(),
+                    date: item.date || item['Date'] || '',
+                    operator: item.operator || item['OP Name'] || '',
+                    line: item.line || item['Line/MC'] || '',
+                    mcNo: item.mcNo || item['Machine No.'] || '',
+                    partNo: item.partNo || item['Part No.'] || '',
+                    lotNo: item.lotNo || item['Lot No.'] || '',
+                    qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
+                    ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+                    remark: item.remark || item['Remark'] || '-'
+                }));
+                
+                renderActuals();
+                if (typeof renderCapacity === 'function') renderCapacity();
+            }
+        })
+        .catch(err => console.error("Error loading Actuals:", err));
+}
+
+// ฟังก์ชันแสดงผลตาราง
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    
+
     if (!actuals || actuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
         return;
     }
 
     actuals.slice().reverse().forEach(a => {
-        const dateVal = a.date || a.Date || '-';
-        const opVal = a.operator || a['OP Name'] || a.opName || '-';
+        let rawDate = a.date || a['Date'] || '';
+        let cleanDate = rawDate ? rawDate.split('T')[0] : '-';
         
-        // ดึงค่า Line และ Machine รองรับทุกรูปแบบตัวพิมพ์เล็ก/ใหญ่
-        const lineVal = a.line || a.Line || a['Line/MC'] || '-';
-        const mcVal = a.mcNo || a['Machine No.'] || a.machine || '';
+        const opval = a.operator || a['OP Name'] || '-';
+        const lineval = a.line || a['Line/MC'] || '-';
+        const mcval = a.mcNo || a['Machine No.'] || '';
+        const partval = a.partNo || a['Part No.'] || '-';
+        const lotval = a.lotNo || a['Lot No.'] || '-';
         
-        const partVal = a.partNo || a['Part No.'] || '-';
-        const lotVal = a.lotNo || a['Lot No.'] || '-';
-        
-        const qtyVal = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-        const ngVal = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
-        const remarkVal = a.remark || a.Remark || '-';
+        const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+        const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
+        const remarkval = a.remark || a['Remark'] || '-';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${dateval ? dateval.split('T')[0] : ''}</td>
-            <td>${opVal}</td>
-            <td><span class="badge bg-secondary">${lineVal}</span> ${mcVal ? '/ ' + mcVal : ''}</td>
-            <td class="fw-bold text-info">${partVal}</td>
-            <td>${lotVal}</td>
-            <td class="text-success fw-bold">${qtyVal.toLocaleString()}</td>
-            <td class="text-danger">${ngVal.toLocaleString()}</td>
-            <td class="small text-muted">${remarkVal}</td>
+            <td>${cleanDate}</td>
+            <td>${opval}</td>
+            <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
+            <td class="fw-bold">${partval}</td>
+            <td>${lotval}</td>
+            <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
+            <td class="text-danger">${ngval.toLocaleString()}</td>
+            <td class="small text-muted">${remarkval}</td>
         `;
         tbody.appendChild(tr);
     });
