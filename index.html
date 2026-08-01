@@ -1286,13 +1286,16 @@ document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
     
-    // โหลดข้อมูลประวัติ Q-Gate
+    // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
     renderQGate();
+    if (typeof checkAndLoadWipForQGate === 'function') {
+        checkAndLoadWipForQGate();
+    }
 });
 
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
-   const qgateHistory = qgate || [];
+    const qgateHistory = qgate || [];
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
     if(historyBody) {
@@ -1323,18 +1326,6 @@ function renderQGate() {
 }
 
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
-        document.addEventListener("DOMContentLoaded", function() {
-    const today = new Date().toISOString().split('T')[0];
-    if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
-    
-    // โหลดข้อมูลประวัติ Q-Gate
-    renderQGate();
-    
-    // 📌 เพิ่มตรงนี้: ให้โหลดรายชื่อ Part No. จาก WIP มาใส่ Dropdown ทันทีที่เปิดหน้าเว็บ
-    if (typeof checkAndLoadWipForQGate === 'function') {
-        checkAndLoadWipForQGate();
-    }
-});
 function submitQGateTransaction(e) {
     e.preventDefault();
     const date = document.getElementById('qgateDate').value;
@@ -1345,6 +1336,11 @@ function submitQGateTransaction(e) {
     const partNo = document.getElementById('qgatePartNo').value;
     const totalQty = parseInt(document.getElementById('qgateTotalQty').value);
     const ngQty = parseInt(document.getElementById('qgateNgQty').value);
+
+    if (!partNo) {
+        alert("กรุณาเลือก Part No. จาก WIP ที่ต้องการตรวจ!");
+        return;
+    }
 
     if (ngQty > totalQty) {
         alert("จำนวนของเสีย (NG) ต้องไม่มากกว่ายอดตรวจสอบทั้งหมด!");
@@ -1365,29 +1361,37 @@ function submitQGateTransaction(e) {
     };
 
     qgate.unshift(newItem);
-saveAll('saveQgate', newItem); // ส่งข้อมูลชิ้นใหม่ไปบันทึกลง Google Sheets
+    if (typeof saveAll === 'function') {
+        saveAll('saveQgate', newItem); // ส่งข้อมูลชิ้นใหม่ไปบันทึกลง Google Sheets
+    }
 
     alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
     document.getElementById('qgateForm').reset();
     document.getElementById('qgateDate').value = new Date().toISOString().split('T')[0];
+    
     renderQGate();
+    if (typeof checkAndLoadWipForQGate === 'function') {
+        checkAndLoadWipForQGate();
+    }
 }
 
 // 📌 ฟังก์ชันลบรายการ Q-Gate แบบใส่รหัสผ่าน
 function deleteQGateItem(id) {
     let password = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบข้อมูล Q-Gate:");
     
-    // กำหนดรหัสผ่าน (สามารถเปลี่ยนรหัสได้ตรงนี้ เช่น "1234")
     if (password === "1234") {
-       qgate = qgate.filter(item => item.id !== id);
-// หากต้องการให้บันทึกสถานะล่าสุดกลับไป สามารถปรับเพิ่ม Action Delete ใน Apps Script ได้ครับ
+        qgate = qgate.filter(item => item.id !== id);
         renderQGate();
+        if (typeof checkAndLoadWipForQGate === 'function') {
+            checkAndLoadWipForQGate();
+        }
         alert("ลบรายการ Q-Gate สำเร็จ");
     } else if (password !== null) {
         alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
     }
 }
-        // ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
+
+// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
 function checkAndLoadWipForQGate() {
     const selectPart = document.getElementById('qgatePartNo');
     if (!selectPart) return;
