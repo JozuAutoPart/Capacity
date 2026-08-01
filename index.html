@@ -2045,12 +2045,10 @@ function loadAllDataFromCloud() {
         .catch(err => console.error("Error loading plans:", err));
 
     // 2. ดึง Actuals
-    // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                // แปลงฟิลด์ข้อมูลให้รองรับทั้งพิมพ์เล็ก/ใหญ่
                 actuals = res.data.map(a => ({
                     date: a.date || a.Date || '',
                     operator: a.operator || a['OP Name'] || a.opName || '',
@@ -2065,23 +2063,59 @@ function loadAllDataFromCloud() {
 
                 renderActuals();
                 renderDashboard();
-                
-                if (typeof renderStock === 'function') {
-                    renderStock();
-                }
-                
-                // 📌 เพิ่มบรรทัดนี้: สั่งให้โหลดข้อมูลเข้า Dropdown ของ Q-Gate ทันที
-                if (typeof checkAndLoadWipForQGate === 'function') {
-                    checkAndLoadWipForQGate();
-                }
+                if (typeof renderStock === 'function') renderStock();
+                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
+
+    // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
+    fetch(scriptUrl + "?action=getQgate")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                qgate = res.data.map(q => ({
+                    id: q.id || Date.now(),
+                    date: q.date || q['วันที่ตรวจ'] || '',
+                    timeRange: q.timeRange || q['เวลา'] || '',
+                    inspector: q.inspector || q['พนักงานตรวจ'] || '',
+                    partNo: q.partNo || q['Part No.'] || '',
+                    totalQty: Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || 0)),
+                    ngQty: Number(q.ngQty !== undefined ? q.ngQty : (q['ของเสีย (NG)'] || 0)),
+                    passQty: Number(q.passQty !== undefined ? q.passQty : (q['ผ่านเข้า FG (Pass)'] || 0))
+                }));
+
+                if (typeof renderQGate === 'function') renderQGate();
+                if (typeof renderStock === 'function') renderStock();
+            }
+        })
+        .catch(err => console.error("Error loading qgate:", err));
+
+    // 4. ดึง Delivery (เพิ่มเข้ามาใหม่ เพื่อให้ยอดส่งมอบไม่หายตอน F5)
+    fetch(scriptUrl + "?action=getDeliveries")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                deliveries = res.data.map(d => ({
+                    id: d.id || Date.now(),
+                    date: d.date || d['วันที่ส่งมอบ'] || '',
+                    partNo: d.partNo || d['Part No.'] || '',
+                    qty: Number(d.qty !== undefined ? d.qty : (d['จำนวนส่งมอบ'] || 0)),
+                    customer: d.customer || d['ลูกค้า'] || '-'
+                }));
+
+                if (typeof renderDelivery === 'function') renderDelivery();
+                if (typeof loadDeliveryParts === 'function') loadDeliveryParts();
+                if (typeof renderStock === 'function') renderStock();
+            }
+        })
+        .catch(err => console.error("Error loading deliveries:", err));
 }
+
 // สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     loadAllDataFromCloud();
 });
-    </script>
+</script>
 </body>
 </html>
