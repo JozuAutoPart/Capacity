@@ -2038,7 +2038,7 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-    // 2. ดึง Actuals
+     // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
@@ -2062,6 +2062,7 @@ function loadAllDataFromCloud() {
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
+rr));
 
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
