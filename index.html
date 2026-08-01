@@ -1930,6 +1930,7 @@ function loadMaterialStock() {
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
 // // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
+// สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
 function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -1950,11 +1951,22 @@ function loadAllDataFromCloud() {
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                actuals = res.data;
+                // แปลงฟิลด์ข้อมูลให้รองรับทั้งพิมพ์เล็ก/ใหญ่ให้เป็นมาตรฐานเดียวกัน
+                actuals = res.data.map(a => ({
+                    date: a.date || a.Date || '',
+                    operator: a.operator || a['OP Name'] || a.opName || '',
+                    line: a.line || a.Line || a['Line/MC'] || '',
+                    mcNo: a.mcNo || a['Machine No.'] || '',
+                    partNo: a.partNo || a['Part No.'] || '',
+                    lotNo: a.lotNo || a['Lot No.'] || '',
+                    qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                    ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
+                    remark: a.remark || a.Remark || ''
+                }));
+
                 renderActuals();
                 renderDashboard();
                 
-                // เพิ่มการสั่งคำนวณและเรนเดอร์ Stock WIP ตรงนี้เพื่อให้ข้อมูลอัปเดตทันที
                 if (typeof renderStock === 'function') {
                     renderStock();
                 }
