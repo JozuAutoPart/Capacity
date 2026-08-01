@@ -884,41 +884,51 @@
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => String(p.Line || '').trim() === String(currentFilterLine).trim());
+    let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => {
+        const pLine = String(p.line || p.Line || '').trim();
+        return pLine === String(currentFilterLine).trim();
+    });
 
     let totalPlan = 0;
     let totalActual = 0;
 
     filteredPlans.forEach(plan => {
-        // ตัดช่องว่างทิ้งทั้งสองฝั่ง เพื่อให้จับคู่ Part No. และ Line ได้แม่นยำ 100%
-        const planLine = String(plan.Line || '').trim();
-        const planPart = String(plan["Part No."] || '').trim();
+        const planLine = String(plan.line || plan.Line || '').trim();
+        const planPart = String(plan.partNo || plan["Part No."] || '').trim();
 
+        // กรองข้อมูลประวัติการผลิตที่ตรงกับแผนนี้
         const actForPlan = actuals.filter(a => {
             const aLine = String(a.line || a.Line || '').trim();
             const aPart = String(a.partNo || a['Part No.'] || '').trim();
             return aLine === planLine && aPart === planPart;
         });
         
+        // รวมยอด Actual OK
         const actualOkSum = actForPlan.reduce((sum, a) => {
-            let rawQty = a.qty !== undefined ? a.qty : (a['OK Qty'] !== undefined ? a['OK Qty'] : a.OKQty);
+            let rawQty = a.qty !== undefined ? a.qty : (a['OK Qty'] !== undefined ? a['OK Qty'] : (a.OKQty || 0));
             let val = Number(rawQty);
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const planQty = Number(plan["Plan Qty"] || 0);
+        const planQty = Number(plan.qty || plan["Plan Qty"] || 0);
         totalPlan += planQty;
         totalActual += actualOkSum;
 
         const progress = planQty > 0 ? Math.min(100, Math.round((actualOkSum / planQty) * 100)) : 0;
+        
+        const startVal = plan.date || plan.Start || '-';
+        const finishVal = plan.finish || plan.Finish || startVal;
+        const lineVal = plan.line || plan.Line || '-';
+        const partVal = plan.partNo || plan["Part No."] || '-';
+        const lotVal = plan.lotNo || plan["Lot No."] || '-';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${plan.Start}</td>
-            <td>${plan.Finish || plan.Start}</td>
-            <td><span class="badge bg-secondary">${plan.Line}</span></td>
-            <td class="fw-bold text-info">${plan["Part No."]}</td>
-            <td>${plan["Lot No."]}</td>
+            <td>${startVal}</td>
+            <td>${finishVal}</td>
+            <td><span class="badge bg-secondary">${lineVal}</span></td>
+            <td class="fw-bold text-info">${partVal}</td>
+            <td>${lotVal}</td>
             <td>${planQty.toLocaleString()}</td>
             <td class="text-success fw-bold">${actualOkSum.toLocaleString()}</td>
             <td>
