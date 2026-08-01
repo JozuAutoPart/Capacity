@@ -889,13 +889,14 @@
         return pLine === String(currentFilterLine).trim();
     });
 
-   let totalPlan = 0;
+    let totalPlan = 0;
     let totalActual = 0;
 
     filteredPlans.forEach(plan => {
         const planLine = String(plan.Line || plan.line || '').trim();
         const planPart = String(plan["Part No."] || plan.partNo || '').trim();
 
+        // กรองข้อมูลประวัติการผลิต โดยตัดเอาเฉพาะชื่อ Line หน้าเครื่องหมาย / มาเทียบ
         const actForPlan = actuals.filter(a => {
             let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
             let aLine = String(aLineRaw).split('/')[0].trim(); 
@@ -903,6 +904,7 @@
             return aLine === planLine && aPart === planPart;
         });
         
+        // รวมยอด Actual OK
         const actualOkSum = actForPlan.reduce((sum, a) => {
             let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
             let val = Number(rawQty);
@@ -939,37 +941,14 @@
         tbody.appendChild(tr);
     });
 
-    // อัปเดตตัวเลขการ์ดสรุปด้านบนทั้งหมดอย่างปลอดภัย
     const totalPlanEl = document.getElementById('dashTotalPlan');
     const totalActualEl = document.getElementById('dashTotalActual');
     const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
 
     if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
     if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-    
-    // คำนวณผลต่างและแสดงผลทันที
-    const diffValue = totalPlan - totalActual;
-    if (dashDiffBalanceEl) {
-        dashDiffBalanceEl.innerText = diffValue.toLocaleString();
-    } else {
-        // ถ้าหา ID ไม่เจอ ให้ดึงจากการ์ดใบที่ 3 แทนเพื่อความชัวร์
-        const cards = document.querySelectorAll('.card h3, .card div span');
-        if (cards.length > 2) {
-            // ป้องกันกรณีเปลี่ยน Element แวะหากล่อง Diff Balance
-        }
-    }
-// อัปเดตตัวเลขการ์ดสรุปด้านบนทั้งหมดแบบตรงจุด
-    const totalPlanEl = document.getElementById('dashTotalPlan');
-    const totalActualEl = document.getElementById('dashTotalActual');
-   const dashDiffBalanceEl = document.querySelectorAll('.card')[2]?.querySelector('h3, div, span') || document.getElementById('dashDiffBalance');
-    if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
-    if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-    
-    // คำนวณผลต่างตรงนี้แล้วยัดใส่ช่อง Diff Balance ทันที
-    const diffValue = totalPlan - totalActual;
-    if (dashDiffBalanceEl) {
-        dashDiffBalanceEl.innerText = diffValue.toLocaleString();
-    }
+    if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
+}
         // --- TAB 2: CAPACITY ---
         function renderCapacity() {
             const tbody = document.getElementById('capacityTableBody');
