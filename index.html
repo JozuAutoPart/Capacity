@@ -2105,6 +2105,25 @@ function loadAllDataFromCloud() {
                 }
             })
             .catch(err => console.error("Error loading deliveries:", err));
+    // ดึงข้อมูล BMS (รับ-จ่าย Material) จาก Google Sheets
+    fetch(scriptUrl + "?action=getBms")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                bms = res.data.map(item => ({
+                    id: item.id || Date.now(),
+                    type: item.type || item['type'] || 'IN',
+                    date: item.date || item['date'] || '',
+                    partNo: item.partNo || item['partNo'] || '',
+                    typeSize: item.typeSize || item['typeSize'] || '',
+                    qty: Number(item.qty !== undefined ? item.qty : (item['qty'] || 0)),
+                    detail: item.detail || item['detail'] || ''
+                }));
+                materialHistory = bms; // อัปเดตข้อมูลเข้าตัวแปรประวัติ
+                if (typeof loadMaterialStock === 'function') loadMaterialStock();
+            }
+        })
+        .catch(err => console.error("Error loading BMS:", err));
 }
 
 // สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
