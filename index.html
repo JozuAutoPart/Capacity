@@ -1929,7 +1929,7 @@ function loadMaterialStock() {
     }
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
- // ฟังก์ชันดึงข้อมูลแบบรวบยอดทั้ง Plans และ Actuals ในชุดเดียว
+// // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
 function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -1953,11 +1953,15 @@ function loadAllDataFromCloud() {
                 actuals = res.data;
                 renderActuals();
                 renderDashboard();
+                
+                // เพิ่มการสั่งคำนวณและเรนเดอร์ Stock WIP ตรงนี้เพื่อให้ข้อมูลอัปเดตทันที
+                if (typeof renderStock === 'function') {
+                    renderStock();
+                }
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
 }
-
 // สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     loadAllDataFromCloud();
