@@ -1465,15 +1465,12 @@ function checkAndLoadWipForQGate() {
             wipTbody.innerHTML = '';
             fgTbody.innerHTML = '';
 
-            // ดึงค่าคำค้นหาจากช่อง Input ของ WIP และ FG (รองรับทั้งสองฝั่ง)
             const wipSearchInput = document.querySelector('#wipSearchInput') || document.querySelector('input[placeholder*="WIP"]') || document.querySelector('.wip-search');
             const fgSearchInput = document.querySelector('#fgSearchInput') || document.querySelector('input[placeholder*="Part No."]') || document.querySelector('.fg-search');
             
-            // ดึงค่าข้อความค้นหา (ถ้ามี) แล้วแปลงเป็นตัวพิมพ์เล็กเพื่อเทียบคำ
             const wipKeyword = wipSearchInput ? wipSearchInput.value.toLowerCase().trim() : '';
             const fgKeyword = fgSearchInput ? fgSearchInput.value.toLowerCase().trim() : '';
 
-            // ดึง Part No. จากทุกส่วนรองรับทั้งพิมพ์เล็ก/ใหญ่
             const partsSet = new Set([
                 ...actuals.map(a => a.partNo || a['Part No.'] || ''),
                 ...qgate.map(q => q.partNo || q['Part No.'] || ''),
@@ -1484,21 +1481,36 @@ function checkAndLoadWipForQGate() {
                 if(!partNo) return;
                 const pNoLower = partNo.toLowerCase();
 
+                // คำนวณยอดรวมการผลิตเข้า WIP
+                const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                // ดึงยอดตรวจ Q-Gate ทั้งหมด (ใช้ totalQty หรือ Check Qty เป็นยอดที่ตัดออกจาก WIP)
+                const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || q.checkQty || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const currentWip = totalIn - totalTransferred;
+
+                // ดึงยอดผ่าน QC เข้า FG (Pass Qty)
+                const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                    let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
+                    let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const currentFg = fgPass - fgDelivered;
+
                 // --- WIP Section ---
                 const matchWip = !wipKeyword || pNoLower.includes(wipKeyword);
                 if (matchWip) {
-                    const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
-                        let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
-
-                    const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
-                        let val = Number(q.checkQty !== undefined ? q.checkQty : (q['Check Qty'] || 0));
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
-
-                    const currentWip = totalIn - totalTransferred;
-
                     const trWip = document.createElement('tr');
                     trWip.innerHTML = `
                         <td class="fw-bold text-info">${partNo}</td>
@@ -1512,18 +1524,6 @@ function checkAndLoadWipForQGate() {
                 // --- FG Section ---
                 const matchFg = !fgKeyword || pNoLower.includes(fgKeyword);
                 if (matchFg) {
-                    const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
-                        let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
-
-                    const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
-                        let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
-
-                    const currentFg = fgPass - fgDelivered;
-
                     const trFg = document.createElement('tr');
                     trFg.innerHTML = `
                         <td class="fw-bold text-info">${partNo}</td>
