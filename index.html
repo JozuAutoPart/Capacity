@@ -1125,20 +1125,18 @@ function renderActuals() {
     }
 
     actuals.slice().reverse().forEach(a => {
-        // ดึงค่าแบบครอบจักรวาล รองรับทุกชื่อคีย์ที่เป็นไปได้
         const dateVal = a.date || a.Date || '-';
         const opVal = a.operator || a['OP Name'] || a.opName || '-';
-        const lineVal = a.line || a.Line || '-';
+        
+        // ดึงค่า Line และ Machine รองรับทุกรูปแบบตัวพิมพ์เล็ก/ใหญ่
+        const lineVal = a.line || a.Line || a['Line/MC'] || '-';
         const mcVal = a.mcNo || a['Machine No.'] || a.machine || '';
+        
         const partVal = a.partNo || a['Part No.'] || '-';
         const lotVal = a.lotNo || a['Lot No.'] || '-';
         
-        // แปลงตัวเลขจำนวนผลิต ป้องกันค่า NaN
-        let rawQty = a.qty !== undefined ? a.qty : (a['OK Qty'] !== undefined ? a['OK Qty'] : a.OKQty);
-        let rawNg = a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] !== undefined ? a['NG Qty'] : a.NGCQty);
-        
-        const qtyVal = Number(rawQty) || 0;
-        const ngVal = Number(rawNg) || 0;
+        const qtyVal = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+        const ngVal = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
         const remarkVal = a.remark || a.Remark || '-';
 
         const tr = document.createElement('tr');
