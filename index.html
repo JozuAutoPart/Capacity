@@ -1227,7 +1227,7 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
-        // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดตอนเปิดหน้าเว็บ
+// ฟังก์ชั่นสำหรับดึงข้อมูลทั้งหมดเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -1240,9 +1240,35 @@ function loadAllData() {
             if (data.plans) plans = data.plans;
             if (data.actuals) actuals = data.actuals;
             
+            // คำนวณรวบยอด actuals เพื่อสร้าง Stock WIP อัตโนมัติ
+            if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
+                wipStock = [];
+                actuals.forEach(a => {
+                    const pNo = a.partNo || a['Part No.'] || '';
+                    const lNo = a.lotNo || a['Lot No.'] || '';
+                    const okQty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    
+                    if (pNo) {
+                        let existing = wipStock.find(w => w.partNo === pNo && w.lotNo === lNo);
+                        if (existing) {
+                            existing.qty += okQty;
+                        } else {
+                            wipStock.push({
+                                line: a.line || a.Line || '',
+                                partNo: pNo,
+                                lotNo: lNo,
+                                qty: okQty
+                            });
+                        }
+                    }
+                });
+            }
+
             // สั่งเรนเดอร์หน้าจอใหม่ทั้งหมด
             renderDashboard();
             renderActuals();
+            if (typeof renderWipStock === 'function') renderWipStock();
+            if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
         })
         .catch(err => console.error("Error loading data:", err));
 }
