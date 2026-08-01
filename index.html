@@ -1990,11 +1990,12 @@ function loadAllDataFromCloud() {
         .catch(err => console.error("Error loading plans:", err));
 
     // 2. ดึง Actuals
+    // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                // แปลงฟิลด์ข้อมูลให้รองรับทั้งพิมพ์เล็ก/ใหญ่ให้เป็นมาตรฐานเดียวกัน
+                // แปลงฟิลด์ข้อมูลให้รองรับทั้งพิมพ์เล็ก/ใหญ่
                 actuals = res.data.map(a => ({
                     date: a.date || a.Date || '',
                     operator: a.operator || a['OP Name'] || a.opName || '',
@@ -2012,6 +2013,11 @@ function loadAllDataFromCloud() {
                 
                 if (typeof renderStock === 'function') {
                     renderStock();
+                }
+                
+                // 📌 เพิ่มบรรทัดนี้: สั่งให้โหลดข้อมูลเข้า Dropdown ของ Q-Gate ทันที
+                if (typeof checkAndLoadWipForQGate === 'function') {
+                    checkAndLoadWipForQGate();
                 }
             }
         })
