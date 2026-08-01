@@ -947,7 +947,7 @@
 
     if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
     if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-    if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
+    if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = (totalPlan - totalActual).toLocaleString();
 }
         // --- TAB 2: CAPACITY ---
         function renderCapacity() {
