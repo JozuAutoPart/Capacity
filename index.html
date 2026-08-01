@@ -1798,6 +1798,28 @@ function loadMaterialStock() {
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
 loadAllDataFromCloud();
+        // ฟังก์ชันโหลดข้อมูล Actual จาก Google Sheets มาเก็บไว้แล้วสั่งวาดหน้าจอใหม่
+function fetchActualsAndRefresh() {
+    // แทนที่ GOOGLE_SCRIPT_URL ด้วยตัวแปร URL ของ Apps Script ของคุณมิว
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : ''; 
+    if (!scriptUrl) return;
+
+    fetch(scriptUrl + "?action=getActuals")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" || res.data) {
+                actuals = res.data || res;
+                renderActuals();
+                renderDashboard();
+            }
+        })
+        .catch(err => console.error("Error loading actuals:", err));
+}
+
+// สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ (หรือใส่ไว้ใน window.onload)
+window.addEventListener('DOMContentLoaded', () => {
+    fetchActualsAndRefresh();
+});
     </script>
 </body>
 </html>
