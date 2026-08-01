@@ -1052,8 +1052,8 @@ function renderPlans() {
     plans.forEach(plan => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${plan.Start || ''}</td>
-            <td>${plan.Finish || ''}</td>
+            <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
+            <td>${plan.Finish ? plan.Finish.split('T')[0] : ''}</td>
             <td><span class="badge bg-secondary">${plan.Line || ''}</span></td>
             <td class="fw-bold text-info">${plan["Part No."] || ''}</td>
             <td>${plan["Lot No."] || ''}</td>
