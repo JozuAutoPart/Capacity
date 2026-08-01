@@ -2870,7 +2870,7 @@ function checkAndLoadWipForQGate() {
         }
     });
 }
-       // --- TAB 6: STOCK WIP & FG ---
+      // --- TAB 6: STOCK WIP & FG ---
         function getFgBalances() {
             const fgMap = {};
             // รับเข้า FG จาก Q-Gate
@@ -2901,6 +2901,14 @@ function checkAndLoadWipForQGate() {
             wipTbody.innerHTML = '';
             fgTbody.innerHTML = '';
 
+            // ดึงค่าคำค้นหาจากช่อง Input ของ WIP และ FG (รองรับทั้งสองฝั่ง)
+            const wipSearchInput = document.querySelector('#wipSearchInput') || document.querySelector('input[placeholder*="WIP"]') || document.querySelector('.wip-search');
+            const fgSearchInput = document.querySelector('#fgSearchInput') || document.querySelector('input[placeholder*="Part No."]') || document.querySelector('.fg-search');
+            
+            // ดึงค่าข้อความค้นหา (ถ้ามี) แล้วแปลงเป็นตัวพิมพ์เล็กเพื่อเทียบคำ
+            const wipKeyword = wipSearchInput ? wipSearchInput.value.toLowerCase().trim() : '';
+            const fgKeyword = fgSearchInput ? fgSearchInput.value.toLowerCase().trim() : '';
+
             // ดึง Part No. จากทุกส่วนรองรับทั้งพิมพ์เล็ก/ใหญ่
             const partsSet = new Set([
                 ...actuals.map(a => a.partNo || a['Part No.'] || ''),
@@ -2910,51 +2918,58 @@ function checkAndLoadWipForQGate() {
 
             partsSet.forEach(partNo => {
                 if(!partNo) return;
+                const pNoLower = partNo.toLowerCase();
 
-                // WIP Summary (รองรับทุกรูปแบบคีย์)
-                const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
-                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                // --- WIP Section ---
+                const matchWip = !wipKeyword || pNoLower.includes(wipKeyword);
+                if (matchWip) {
+                    const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+                        let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
-                const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
-                    let val = Number(q.checkQty !== undefined ? q.checkQty : (q['Check Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                    const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                        let val = Number(q.checkQty !== undefined ? q.checkQty : (q['Check Qty'] || 0));
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
-                const currentWip = totalIn - totalTransferred;
+                    const currentWip = totalIn - totalTransferred;
 
-                const trWip = document.createElement('tr');
-                trWip.innerHTML = `
-                    <td class="fw-bold text-info">${partNo}</td>
-                    <td>${totalIn.toLocaleString()}</td>
-                    <td>${totalTransferred.toLocaleString()}</td>
-                    <td class="fw-bold ${currentWip > 0 ? 'text-warning' : ''}">${currentWip.toLocaleString()}</td>
-                `;
-                wipTbody.appendChild(trWip);
+                    const trWip = document.createElement('tr');
+                    trWip.innerHTML = `
+                        <td class="fw-bold text-info">${partNo}</td>
+                        <td>${totalIn.toLocaleString()}</td>
+                        <td>${totalTransferred.toLocaleString()}</td>
+                        <td class="fw-bold ${currentWip > 0 ? 'text-warning' : ''}">${currentWip.toLocaleString()}</td>
+                    `;
+                    wipTbody.appendChild(trWip);
+                }
 
-                // FG Summary
-                const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
-                    let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                // --- FG Section ---
+                const matchFg = !fgKeyword || pNoLower.includes(fgKeyword);
+                if (matchFg) {
+                    const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                        let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
-                const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
-                    let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                    const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
+                        let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
-                const currentFg = fgPass - fgDelivered;
+                    const currentFg = fgPass - fgDelivered;
 
-                const trFg = document.createElement('tr');
-                trFg.innerHTML = `
-                    <td class="fw-bold text-info">${partNo}</td>
-                    <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
-                    <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
-                    <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()}</td>
-                    <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
-                `;
-                fgTbody.appendChild(trFg);
+                    const trFg = document.createElement('tr');
+                    trFg.innerHTML = `
+                        <td class="fw-bold text-info">${partNo}</td>
+                        <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
+                        <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
+                        <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()}</td>
+                        <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
+                    `;
+                    fgTbody.appendChild(trFg);
+                }
             });
         }
       // --- TAB 7: DELIVERY (การส่งมอบ) ---
