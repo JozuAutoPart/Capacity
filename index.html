@@ -1075,12 +1075,14 @@ function submitPlan(e) {
         }
 
        // --- TAB 4: ACTUAL PRODUCTION ---
+// ฟังก์ชันตรวจสอบและโหลดแผนการผลิต (กรองตัวที่ผลิตครบตามแผนออกแล้ว)
 function checkAndLoadPlans() {
     const line = document.getElementById('actualLine').value;
     const selectPart = document.getElementById('actualPartNo');
     selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
 
-    const linePlans = plans.filter(p => p.Line === line);
+    // กรองแผนเฉพาะ Line ที่เลือก
+    const linePlans = plans.filter(p => String(p.Line || p.line || '').trim() === String(line).trim());
     const alertBox = document.getElementById('actualAlert');
 
     if (linePlans.length === 0) {
@@ -1088,12 +1090,34 @@ function checkAndLoadPlans() {
         document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
     } else {
         alertBox.classList.add('d-none');
+        
         linePlans.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p["Part No."];
-            opt.dataset.lot = p["Lot No."];
-            opt.innerText = `${p["Part No."]} (Lot: ${p["Lot No."]})`;
-            selectPart.appendChild(opt);
+            const planPart = String(p["Part No."] || p.partNo || '').trim();
+            const planLot = String(p["Lot No."] || p.lotNo || '').trim();
+            const planQty = Number(p["Plan Qty"] || p.qty || 0);
+
+            // รวมยอดผลิตจริง (Actual OK) ของ Part และ Lot นี้
+            const actMatched = actuals.filter(a => {
+                let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
+                let aLine = String(aLineRaw).split('/')[0].trim();
+                let aPart = String(a["Part No."] || a.partNo || '').trim();
+                let aLot = String(a["Lot No."] || a.lotNo || '').trim();
+                return aLine === line && aPart === planPart && aLot === planLot;
+            });
+
+            const totalActualOk = actMatched.reduce((sum, a) => {
+                let val = Number(a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty || 0));
+                return sum + (isNaN(val) ? 0 : val);
+            }, 0);
+
+            // เงื่อนไข: ถ้ายังผลิตไม่ครบตามแผน ถึงจะแสดงให้เลือกใน Dropdown
+            if (totalActualOk < planQty) {
+                const opt = document.createElement('option');
+                opt.value = planPart;
+                opt.dataset.lot = planLot;
+                opt.innerText = `${planPart} (Lot: ${planLot} - คงเหลือผลิตอีก ${(planQty - totalActualOk).toLocaleString()} ชิ้น)`;
+                selectPart.appendChild(opt);
+            }
         });
     }
 }
