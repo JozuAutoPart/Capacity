@@ -2133,7 +2133,7 @@ function loadAllDataFromCloud() {
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
                 
-                // 🟢 เพิ่มบรรทัดนี้ เพื่อสั่งให้หน้า Capacity วาดข้อมูลทันทีที่โหลดเสร็จ
+                // 🟢 เพิ่มบรรทัดนี้ตรงนี้ครับ เพื่อบังคับให้วาดหน้า Capacity ทันที
                 if (typeof renderCapacity === 'function') {
                     renderCapacity();
                 }
