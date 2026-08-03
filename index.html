@@ -1672,7 +1672,7 @@ function deleteDelivery(id) {
     }
 }
 
-       // --- TAB 8: DIE MAINTENANCE & PM ---
+      // --- TAB 8: DIE MAINTENANCE & PM ---
 function submitDieBm(e) {
     e.preventDefault();
     const bm = {
@@ -1684,7 +1684,7 @@ function submitDieBm(e) {
     };
     bms.push(bm);
     
-    // บันทึกลง Google Sheets (BMS)
+    // บันทึกข้อมูลลง Google Sheets ทันที
     if (typeof saveToCloud === 'function') {
         saveToCloud('saveBms', bm);
     }
@@ -1754,25 +1754,25 @@ function renderDiePM() {
                 <button class="btn btn-outline-success btn-sm" onclick="resetDiePm('${partNo}')"><i class="fas fa-check me-1"></i>Reset PM</button>
             </td>
         `;
-        // ฟังก์ชันดึงประวัติ BMS / Die Maintenance มาแสดงที่ตารางด้านล่าง
-function renderBmsHistory() {
-    const bmTbody = document.getElementById('dieBmTableBody');
-    if (!bmTbody) return;
-    bmTbody.innerHTML = '';
+        pmTbody.appendChild(tr);
+    });
 
-    // ถ้าใช้ตัวแปร bms ที่ดึงมาจากคลาวด์แล้ว สามารถวนลูปแสดงผลได้เลย
-    if (typeof bms !== 'undefined' && Array.isArray(bms)) {
-        bms.slice().reverse().forEach(b => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${b.Date || b.date || ''}</td>
-                <td class="fw-bold text-info">${b['Part No.'] || b.partNo || ''}</td>
-                <td class="text-danger">${b.Problem || b.problem || ''}</td>
-                <td>${b.Reporter || b.reporter || ''}</td>
-            `;
-            bmTbody.appendChild(tr);
-        });
-    }
+    const dueEl = document.getElementById('diePmDueCount');
+    const nearEl = document.getElementById('diePmNearCount');
+    if (dueEl) dueEl.innerText = pmDueCount;
+    if (nearEl) nearEl.innerText = pmNearCount;
+
+    // แสดงประวัติการซ่อมบำรุงจาก Google Sheets
+    bms.slice().reverse().forEach(b => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${b.date || b.Date || ''}</td>
+            <td class="fw-bold text-info">${b.partNo || b['Part No.'] || ''}</td>
+            <td class="text-danger">${b.problem || b.Problem || ''}</td>
+            <td>${b.reporter || b.Reporter || ''}</td>
+        `;
+        bmTbody.appendChild(tr);
+    });
 }
         pmTbody.appendChild(tr);
     });
