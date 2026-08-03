@@ -1725,11 +1725,14 @@ function renderDiePM() {
     let pmDueCount = 0;
     let pmNearCount = 0;
 
-    Object.keys(dieStrokes).forEach(partNo => {
+    OObject.keys(dieStrokes).forEach(partNo => {
         const item = dieStrokes[partNo];
         const strokes = item.strokes;
-        const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
+        
+        // 🟢 เพิ่มบรรทัดนี้: ถ้ายังไม่ถึง 85% (สถานะ OK ปกติ) ให้ข้ามการแสดงผลไป ไม่ให้ขึ้นรกหน้าจอ
+        if (strokes < PM_LIMIT * 0.85) return;
 
+        const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
         let statusBadge = '<span class="badge bg-success">OK</span>';
         if(strokes >= PM_LIMIT) {
             statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
