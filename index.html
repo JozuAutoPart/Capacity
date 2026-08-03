@@ -1698,55 +1698,66 @@ function deleteDelivery(id) {
             }
         }
 
-        function renderDiePM() {
-            const pmTbody = document.getElementById('diePmTableBody');
-            const bmTbody = document.getElementById('dieBmTableBody');
-            pmTbody.innerHTML = '';
-            bmTbody.innerHTML = '';
+       function renderDiePM() {
+    const pmtbody = document.getElementById('diePmTableBody');
+    if (!pmtbody) return;
 
-            const dieStrokes = {};
-            actuals.forEach(a => {
-                if(a.pmReset) return;
-                if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line, strokes: 0 };
-                dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
-            });
+    pmtbody.innerHTML = '';
 
-            let pmDueCount = 0;
-            let pmNearCount = 0;
+    // สร้างข้อมูล Strokes จาก actuals
+    const dieStrokes = {};
+    actuals.forEach(a => {
+        if (a.aPmReset) return;
+        if (!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
+        dieStrokes[a.partNo].strokes += (Number(a.q.qty) + Number(a.ngQty) || 0);
+    });
 
-            Object.keys(dieStrokes).forEach(partNo => {
-                const item = dieStrokes[partNo];
-                const strokes = item.strokes;
-                const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
+    let pmDueCount = 0;
+    let pmNearCount = 0;
 
-                let statusBadge = '<span class="badge bg-success">OK</span>';
-                if(strokes >= PM_LIMIT) {
-                    statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
-                    pmDueCount++;
-                } else if(strokes >= PM_LIMIT * 0.85) {
-                    statusBadge = '<span class="badge bg-warning text-dark">NEAR PM</span>';
-                    pmNearCount++;
-                }
+    Object.keys(dieStrokes).forEach(partNo => {
+        const item = dieStrokes[partNo];
+        const strokes = item.strokes;
+        
+        // 🟢 เงื่อนไขกรอง: ถ้ายังไม่ถึง 85% (สถานะ OK) จะไม่นำมาแสดงในตาราง
+        if (strokes < PM_LIMIT * 0.85) return;
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="fw-bold text-info">${partNo}</td>
-                    <td>${item.line}</td>
-                    <td>${strokes.toLocaleString()}</td>
-                    <td>${PM_LIMIT.toLocaleString()}</td>
-                    <td style="width: 150px;">
-                        <div class="progress" style="height: 12px;">
-                            <div class="progress-bar ${strokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${progress}%;"></div>
-                        </div>
-                    </td>
-                    <td>${statusBadge}</td>
-                    <td>
-                        <button class="btn btn-outline-success btn-sm" onclick="resetDiePm('${partNo}')"><i class="fas fa-check me-1"></i>Reset PM</button>
-                    </td>
-                `;
-                pmTbody.appendChild(tr);
-            });
+        const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
 
+        let statusBadge = '<span class="badge bg-success">OK</span>';
+        let progressBarHtml = '';
+
+        if(strokes >= PM_LIMIT) {
+            statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
+            pmDueCount++;
+            progressBarHtml = `<div class="progress" style="height: 12px;"><div class="progress-bar bg-danger" role="progressbar" style="width: ${progress}%;"></div></div>`;
+        } else if(strokes >= PM_LIMIT * 0.85) {
+            statusBadge = '<span class="badge bg-warning text-dark">NEAR PM</span>';
+            pmNearCount++;
+            progressBarHtml = `<div class="progress" style="height: 12px;"><div class="progress-bar bg-warning" role="progressbar" style="width: ${progress}%;"></div></div>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="fw-bold text-info">${partNo}</td>
+            <td>${item.line}</td>
+            <td>${strokes.toLocaleString()}</td>
+            <td>${PM_LIMIT.toLocaleString()}</td>
+            <td style="width: 150px;">
+                ${progressBarHtml}
+            </td>
+            <td>${statusBadge}</td>
+            <td>
+                <button class="btn btn-outline-success btn-sm" onclick="resetDiePm('${partNo}')"><i class="fas fa-check me-1"></i>Reset PM</button>
+            </td>
+        `;
+        pmtbody.appendChild(tr);
+    });
+
+    // อัปเดตตัวเลขแจ้งเตือนมุมขวาบนของตาราง PM
+    document.getElementById('diePmDueCount').innerText = pmDueCount;
+    document.getElementById('diePmNearCount').innerText = pmNearCount;
+}
             document.getElementById('diePmDueCount').innerText = pmDueCount;
             document.getElementById('diePmNearCount').innerText = pmNearCount;
 
