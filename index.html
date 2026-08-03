@@ -2128,10 +2128,14 @@ function loadAllDataFromCloud() {
                 renderDashboard();
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+                
+                // 🟢 เพิ่มบรรทัดนี้ เพื่อสั่งให้หน้า Capacity วาดข้อมูลทันทีที่โหลดเสร็จ
+                if (typeof renderCapacity === 'function') {
+                    renderCapacity();
+                }
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
-
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
         .then(res => res.json())
