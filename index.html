@@ -673,9 +673,12 @@
                 <div class="row g-3">
                     <div class="col-md-7">
                         <div class="card p-3 mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="m-0"><i class="fas fa-shield-alt me-2 text-warning"></i>ระบบติดตาม Preventative Maintenance (Die PM)</h5>
-                                <div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                             <h5 class="m-0"><i class="fas fa-history me-2 text-info"></i>ประวัติการซ่อมแม่พิมพ์</h5>
+                               <button class="btn btn-outline-success btn-sm" onclick="exportExcel('die_bm')">
+                             <i class="fas fa-file-excel me-1"></i> Export ประวัติซ่อม (Excel)
+                             </button>
+                            </div>
                                     <span class="badge bg-danger me-1">PM Due: <span id="diePmDueCount">0</span></span>
                                     <span class="badge bg-warning text-dark">Near PM: <span id="diePmNearCount">0</span></span>
                                 </div>
