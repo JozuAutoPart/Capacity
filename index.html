@@ -960,11 +960,17 @@ function renderCapacity() {
     
     tbody.innerHTML = '';
 
-    // ดึงข้อมูลจากตัวแปร actuals ที่โหลดมาจากชีต ACTUAL PRODUCTION
+    // ดึงข้อมูลจากตัวแปร actuals หรือดึงจาก localStorage เผื่อมีข้อมูลค้างอยู่
     let currentActuals = window.actuals || [];
+    if (currentActuals.length === 0) {
+        try {
+            let saved = localStorage.getItem('actuals');
+            if (saved) currentActuals = JSON.parse(saved);
+        } catch (e) {}
+    }
 
     if (currentActuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีข้อมูลในชีต ACTUAL PRODUCTION สำหรับคำนวณ Capacity</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">กำลังโหลดข้อมูลการผลิต หรือยังไม่มีการบันทึกข้อมูล Actual</td></tr>`;
         if (overallSpan) overallSpan.innerText = '0%';
         return;
     }
