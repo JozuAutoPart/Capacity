@@ -1706,40 +1706,43 @@ function resetDiePm(partNo) {
         renderDiePM();
     }
 }
-
 function renderDiePM() {
-    const pmTbody = document.getElementById('diePmTableBody');
-    const bmTbody = document.getElementById('dieBmTableBody');
-    if (!pmTbody || !bmTbody) return;
-    
-    pmTbody.innerHTML = '';
-    bmTbody.innerHTML = '';
+    const pmtbody = document.getElementById('diePmTableBody');
+    if (!pmtbody) return;
 
+    pmtbody.innerHTML = '';
+
+    // สร้างข้อมูล Strokes จาก actuals
     const dieStrokes = {};
     actuals.forEach(a => {
-        if(a.pmReset) return;
-        if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
-        dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
+        if (a.aPmReset) return;
+        if (!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
+        dieStrokes[a.partNo].strokes += (Number(a.q.qty) + Number(a.ngQty) || 0);
     });
 
     let pmDueCount = 0;
     let pmNearCount = 0;
 
-    OObject.keys(dieStrokes).forEach(partNo => {
+    Object.keys(dieStrokes).forEach(partNo => {
         const item = dieStrokes[partNo];
         const strokes = item.strokes;
         
-        // 🟢 เพิ่มบรรทัดนี้: ถ้ายังไม่ถึง 85% (สถานะ OK ปกติ) ให้ข้ามการแสดงผลไป ไม่ให้ขึ้นรกหน้าจอ
+        // 🟢 เงื่อนไขซ่อน: ถ้ายังไม่ถึง 85% (สถานะ OK ปกติ) ให้ข้ามการแสดงผล ไม่ให้ขึ้นโชว์ 200 รายการรกหน้าจอ
         if (strokes < PM_LIMIT * 0.85) return;
 
         const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
+
         let statusBadge = '<span class="badge bg-success">OK</span>';
+        let progressBarHtml = ''; // ค่าเริ่มต้นไม่มีหลอดสี
+
         if(strokes >= PM_LIMIT) {
             statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
             pmDueCount++;
+            progressBarHtml = `<div class="progress" style="height: 12px;"><div class="progress-bar bg-danger" role="progressbar" style="width: ${progress}%;"></div></div>`;
         } else if(strokes >= PM_LIMIT * 0.85) {
             statusBadge = '<span class="badge bg-warning text-dark">NEAR PM</span>';
             pmNearCount++;
+            progressBarHtml = `<div class="progress" style="height: 12px;"><div class="progress-bar bg-warning" role="progressbar" style="width: ${progress}%;"></div></div>`;
         }
 
         const tr = document.createElement('tr');
@@ -1756,9 +1759,13 @@ function renderDiePM() {
                 <button class="btn btn-outline-success btn-sm" onclick="resetDiePm('${partNo}')"><i class="fas fa-check me-1"></i>Reset PM</button>
             </td>
         `;
-        pmTbody.appendChild(tr);
+        pmtbody.appendChild(tr);
     });
 
+    // อัปเดตตัวเลขแจ้งเตือนด้านบน
+    document.getElementById('diePmDueCount').innerText = pmDueCount;
+    document.getElementById('diePmNearCount').innerText = pmNearCount;
+}
     const dueEl = document.getElementById('diePmDueCount');
     const nearEl = document.getElementById('diePmNearCount');
     if (dueEl) dueEl.innerText = pmDueCount;
