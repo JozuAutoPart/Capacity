@@ -176,7 +176,7 @@
                                     <th>Actual Produced (Strokes)</th>
                                     <th>Max Capacity (Strokes)</th>
                                     <th>Utilization (%)</th>
-                                    <th>Status</th>
+                                    <th>Status</th>   
                                 </tr>
                             </thead>
                             <tbody id="capacityTableBody"></tbody>
@@ -2155,6 +2155,8 @@ function loadAllDataFromCloud() {
                 renderDashboard();
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+                if (typeof renderCapacity === 'function') {
+                    renderCapacity();
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
