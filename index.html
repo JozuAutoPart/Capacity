@@ -950,8 +950,7 @@
     if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
 }
         // --- TAB 2: CAPACITY ---
-        // กำหนดชั่วโมงมาตรฐานต่อเดือน
-const NORMAL_HOURS_PER_MONTH = 176;
+      const NORMAL_HOURS_PER_MONTH = 176;
 const OT_HOURS_PER_MONTH = 231;
 
 function renderCapacity() {
@@ -961,18 +960,26 @@ function renderCapacity() {
     
     tbody.innerHTML = '';
 
-    if (!actuals || actuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีข้อมูลการผลิตสำหรับคำนวณ Capacity</td></tr>`;
+    // เช็กว่ามีข้อมูล actuals หรือไม่ ถ้าไม่มีให้ลองดึงจาก localStorage เผื่อมีข้อมูลค้างอยู่
+    let currentActuals = window.actuals || [];
+    if (currentActuals.length === 0) {
+        try {
+            let saved = localStorage.getItem('actuals');
+            if (saved) currentActuals = JSON.parse(saved);
+        } catch (e) {}
+    }
+
+    if (currentActuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีข้อมูลการผลิตสำหรับคำนวณ Capacity (กำลังรอข้อมูลจาก Google Sheets)</td></tr>`;
         if (overallSpan) overallSpan.innerText = '0%';
         return;
     }
 
-    // จัดกลุ่มข้อมูลตาม Line และ Machine No.
     let machineMap = {};
     let totalActualAll = 0;
     let totalMaxAll = 0;
 
-    actuals.forEach(a => {
+    currentActuals.forEach(a => {
         let line = a.line || a['Line/MC'] || 'Unknown Line';
         let mcNo = a.mcNo || a['Machine No.'] || 'MC-01';
         let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
@@ -983,8 +990,7 @@ function renderCapacity() {
                 line: line,
                 mcNo: mcNo,
                 actualQty: 0,
-                // กำหนด Max Capacity ตั้งต้น (เช่น อิงจาก Normal 176 ชม. หรือค่ามาตรฐานเครื่อง สมมติฐานที่ 50,000 Strokes ต่อเดือน หรือปรับตามจริง)
-                maxCapacity: 50000 
+                maxCapacity: 50000 // ค่ามาตรฐาน Max Capacity ต่อเดือน (ปรับเปลี่ยนได้ครับ)
             };
         }
         machineMap[key].actualQty += qty;
@@ -999,12 +1005,11 @@ function renderCapacity() {
         totalActualAll += item.actualQty;
         totalMaxAll += item.maxCapacity;
 
-        // กำหนดสี Status ตามเปอร์เซ็นต์
         let badgeClass = 'bg-success';
-        let statusText = 'Normal (176 Hr)';
+        let statusText = `Normal (${NORMAL_HOURS_PER_MONTH} ชม.)`;
         if (utilPercent > 90) {
             badgeClass = 'bg-warning text-dark';
-            statusText = 'OT Active (231 Hr)';
+            statusText = `OT Active (${OT_HOURS_PER_MONTH} ชม.)`;
         }
 
         trHtml += `
@@ -1013,8 +1018,8 @@ function renderCapacity() {
                 <td class="fw-bold">${item.mcNo}</td>
                 <td class="text-success fw-bold">${item.actualQty.toLocaleString()}</td>
                 <td>
-                    <div class="small text-muted">Normal: 176 ชม.</div>
-                    <div class="small text-muted">OT: 231 ชม.</div>
+                    <div class="small text-muted">Normal: ${NORMAL_HOURS_PER_MONTH} ชม.</div>
+                    <div class="small text-muted">OT: ${OT_HOURS_PER_MONTH} ชม.</div>
                     <div>${item.maxCapacity.toLocaleString()} Strokes</div>
                 </td>
                 <td>
@@ -1032,7 +1037,6 @@ function renderCapacity() {
 
     tbody.innerHTML = trHtml;
 
-    // คำนวณ Overall Cap รวมทั้งหมด
     let overallPercent = totalMaxAll > 0 ? Math.min(Math.round((totalActualAll / totalMaxAll) * 100), 100) : 0;
     if (overallSpan) {
         overallSpan.innerText = overallPercent + '%';
