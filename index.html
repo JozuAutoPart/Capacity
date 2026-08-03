@@ -97,7 +97,7 @@
                 <button class="nav-link" id="delivery-tab" data-bs-toggle="tab" data-bs-target="#tab-delivery" type="button" onclick="loadDeliveryParts()"><i class="fas fa-truck me-2 text-primary"></i>Delivery (การส่งมอบ)</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button" onclick="renderDiePM(); renderBmsHistory();"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
+                <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
             </li>
         </ul>
 
@@ -1673,111 +1673,94 @@ function deleteDelivery(id) {
     }
 }
 
-       // --- TAB 8: DIE MAINTENANCE & PM ---
-function submitDieBm(e) {
-    e.preventDefault();
-    const bm = {
-        id: Date.now(),
-        date: document.getElementById('bmDate').value,
-        partNo: document.getElementById('bmPartNo').value.trim(),
-        problem: document.getElementById('bmProblem').value.trim(),
-        reporter: document.getElementById('bmReporter').value.trim()
-    };
-    bms.push(bm);
-    
-    // บันทึกลง Google Sheets (BMS)
-    if (typeof saveToCloud === 'function') {
-        saveToCloud('saveBms', bm);
-    }
-
-    renderDiePM();
-    document.getElementById('dieForm').reset();
-    document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
-}
-
-function resetDiePm(partNo) {
-    if(confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
-        actuals.forEach(a => {
-            if(a.partNo === partNo) a.pmReset = true;
-        });
-        if (typeof saveAll === 'function') {
+        // --- TAB 8: DIE MAINTENANCE & PM ---
+        function submitDieBm(e) {
+            e.preventDefault();
+            const bm = {
+                id: Date.now(),
+                date: document.getElementById('bmDate').value,
+                partNo: document.getElementById('bmPartNo').value.trim(),
+                problem: document.getElementById('bmProblem').value.trim(),
+                reporter: document.getElementById('bmReporter').value.trim()
+            };
+            bms.push(bm);
             saveAll();
-        }
-        renderDiePM();
-    }
-}
-
-function renderDiePM() {
-    const pmTbody = document.getElementById('diePmTableBody');
-    const bmTbody = document.getElementById('dieBmTableBody');
-    if (!pmTbody || !bmTbody) return;
-    
-    pmTbody.innerHTML = '';
-    bmTbody.innerHTML = '';
-
-    const dieStrokes = {};
-    actuals.forEach(a => {
-        if(a.pmReset) return;
-        if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
-        dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
-    });
-
-    let pmDueCount = 0;
-    let pmNearCount = 0;
-
-    Object.keys(dieStrokes).forEach(partNo => {
-        const item = dieStrokes[partNo];
-        const strokes = item.strokes;
-        
-        // 🟢 เพิ่มบรรทัดนี้: ถ้ายังไม่ถึง 85% (สถานะ OK ปกติ) ให้ข้ามการแสดงผลไป ไม่ให้ขึ้นรกหน้าจอ
-        if (strokes < PM_LIMIT * 0.85) return;
-
-        const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
-
-        let statusBadge = '<span class="badge bg-success">OK</span>';
-        if(strokes >= PM_LIMIT) {
-            statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
-            pmDueCount++;
-        } else if(strokes >= PM_LIMIT * 0.85) {
-            statusBadge = '<span class="badge bg-warning text-dark">NEAR PM</span>';
-            pmNearCount++;
+            document.getElementById('dieForm').reset();
+            document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
         }
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="fw-bold text-info">${partNo}</td>
-            <td>${item.line}</td>
-            <td>${strokes.toLocaleString()}</td>
-            <td>${PM_LIMIT.toLocaleString()}</td>
-            <td style="width: 150px;">
-                <div class="progress" style="height: 12px;">
-                    <div class="progress-bar ${strokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${progress}%;"></div>
-                </div>
-            </td>
-            <td>${statusBadge}</td>
-            <td>
-                <button class="btn btn-outline-success btn-sm" onclick="resetDiePm('${partNo}')"><i class="fas fa-check me-1"></i>Reset PM</button>
-            </td>
-        `;
-        pmTbody.appendChild(tr);
-    });
+        function resetDiePm(partNo) {
+            if(confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
+                actuals.forEach(a => {
+                    if(a.partNo === partNo) a.pmReset = true;
+                });
+                saveAll();
+            }
+        }
 
-    const dueEl = document.getElementById('diePmDueCount');
-    const nearEl = document.getElementById('diePmNearCount');
-    if (dueEl) dueEl.innerText = pmDueCount;
-    if (nearEl) nearEl.innerText = pmNearCount;
+        function renderDiePM() {
+            const pmTbody = document.getElementById('diePmTableBody');
+            const bmTbody = document.getElementById('dieBmTableBody');
+            pmTbody.innerHTML = '';
+            bmTbody.innerHTML = '';
 
-    bms.slice().reverse().forEach(b => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${b.date || ''}</td>
-            <td class="fw-bold text-info">${b.partNo || ''}</td>
-            <td class="text-danger">${b.problem || ''}</td>
-            <td>${b.reporter || ''}</td>
-        `;
-        bmTbody.appendChild(tr);
-    });
-}
+            const dieStrokes = {};
+            actuals.forEach(a => {
+                if(a.pmReset) return;
+                if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line, strokes: 0 };
+                dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
+            });
+
+            let pmDueCount = 0;
+            let pmNearCount = 0;
+
+            Object.keys(dieStrokes).forEach(partNo => {
+                const item = dieStrokes[partNo];
+                const strokes = item.strokes;
+                const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
+
+                let statusBadge = '<span class="badge bg-success">OK</span>';
+                if(strokes >= PM_LIMIT) {
+                    statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
+                    pmDueCount++;
+                } else if(strokes >= PM_LIMIT * 0.85) {
+                    statusBadge = '<span class="badge bg-warning text-dark">NEAR PM</span>';
+                    pmNearCount++;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-info">${partNo}</td>
+                    <td>${item.line}</td>
+                    <td>${strokes.toLocaleString()}</td>
+                    <td>${PM_LIMIT.toLocaleString()}</td>
+                    <td style="width: 150px;">
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar ${strokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${progress}%;"></div>
+                        </div>
+                    </td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn btn-outline-success btn-sm" onclick="resetDiePm('${partNo}')"><i class="fas fa-check me-1"></i>Reset PM</button>
+                    </td>
+                `;
+                pmTbody.appendChild(tr);
+            });
+
+            document.getElementById('diePmDueCount').innerText = pmDueCount;
+            document.getElementById('diePmNearCount').innerText = pmNearCount;
+
+            bms.slice().reverse().forEach(b => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${b.date}</td>
+                    <td class="fw-bold text-info">${b.partNo}</td>
+                    <td class="text-danger">${b.problem}</td>
+                    <td>${b.reporter}</td>
+                `;
+                bmTbody.appendChild(tr);
+            });
+        }
 
         // --- EXPORT TO EXCEL (SheetJS) ---
         function exportToExcelXLSX(type) {
@@ -2104,8 +2087,6 @@ function loadAllDataFromCloud() {
                 renderDashboard();
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-                if (typeof renderDiePM === 'function') renderDiePM();
-                if (typeof renderBmsHistory === 'function') renderBmsHistory();
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
