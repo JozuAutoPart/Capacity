@@ -796,8 +796,14 @@
             let jsonBms = await resBms.json();
             if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-            if (typeof renderAll === "function") {
-                renderAll();
+            if (typeof renderAll === 'function') {
+            renderAll();
+        }
+        
+        // 🟢 เพิ่มบรรทัดนี้เข้าไปตรงนี้ครับ
+        if (typeof renderCapacity === 'function') {
+            renderCapacity();
+        }
             }
         } catch (error) {
             console.error("Error loading data from cloud:", error);
