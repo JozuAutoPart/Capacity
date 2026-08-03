@@ -2281,6 +2281,25 @@ function loadAllDataFromCloud() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllDataFromCloud();
 });
+     // สั่งโหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
+    window.addEventListener('DOMContentLoaded', () => {
+        loadAllDataFromCloud();
+        if (typeof renderCapacity === 'function') {
+            renderCapacity();
+        }
+    });
+
+    // ดักจับการคลิกเปลี่ยนแท็บ เพื่อสั่งเรนเดอร์ข้อมูลหน้า Capacity ทันที
+    document.querySelectorAll('button[data-bs-toggle="pill"], .nav-link').forEach(menu => {
+        menu.addEventListener('click', function() {
+            let target = this.getAttribute('data-bs-target') || this.getAttribute('href');
+            if (target === '#tab-capacity') {
+                if (typeof renderCapacity === 'function') {
+                    renderCapacity();
+                }
+            }
+        });
+    }); 
 </script>
 </body>
 </html>
