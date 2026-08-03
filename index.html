@@ -76,7 +76,7 @@
                 <button class="nav-link active" id="dash-tab" data-bs-toggle="tab" data-bs-target="#tab-dash" type="button"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</button>
             </li>
             <li class="nav-item">
-               <button class="nav-link" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#tab-capacity" type="button" onclick="renderCapacity()"><i class="fas fa-microchip me-2"></i>Capacity</button>
+                <button class="nav-link" id="capacity-tab" data-bs-toggle="tab" data-bs-target="#tab-capacity" type="button"><i class="fas fa-microchip me-2"></i>Capacity</button>
             </li>
             <li class="nav-item">
     <button class="nav-link" id="material-tab" data-bs-toggle="tab" data-bs-target="#tab-material" type="button" onclick="loadMaterialStock()"><i class="fas fa-boxes me-2 text-warning"></i>รับ-จ่าย Material</button>
@@ -160,30 +160,30 @@
                 </div>
             </div>
 
-           <!-- TAB 2: CAPACITY -->
-<div class="tab-pane fade" id="tab-capacity">
-    <div class="card p-3 mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
-            <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle m-0">
-                <thead>
-                    <tr>
-                        <th>Line</th>
-                        <th>Machine No.</th>
-                        <th>Actual Produced (Strokes)</th>
-                        <th>Max Capacity (Strokes)</th>
-                        <th>Utilization (%)</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="capacityTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
+            <!-- TAB 2: CAPACITY -->
+            <div class="tab-pane fade" id="tab-capacity">
+                <div class="card p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
+                        <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle m-0">
+                            <thead>
+                                <tr>
+                                    <th>Line</th>
+                                    <th>Machine No.</th>
+                                    <th>Actual Produced (Strokes)</th>
+                                    <th>Max Capacity (Strokes)</th>
+                                    <th>Utilization (%)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="capacityTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 <!-- TAB: MATERIAL (รับ-จ่าย Material) -->
 <div class="tab-pane fade" id="tab-material">
     <div class="row g-3">
@@ -796,14 +796,8 @@
             let jsonBms = await resBms.json();
             if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-            if (typeof renderAll === 'function') {
-            renderAll();
-        }
-        
-        // 🟢 เพิ่มบรรทัดนี้เข้าไปตรงนี้ครับ
-        if (typeof renderCapacity === 'function') {
-            renderCapacity();
-        }
+            if (typeof renderAll === "function") {
+                renderAll();
             }
         } catch (error) {
             console.error("Error loading data from cloud:", error);
@@ -956,98 +950,53 @@
     if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
 }
         // --- TAB 2: CAPACITY ---
-     // กำหนดชั่วโมงมาตรฐานต่อเดือน
-const NORMAL_HOURS_PER_MONTH = 176;
-const OT_HOURS_PER_MONTH = 231;
+        function renderCapacity() {
+            const tbody = document.getElementById('capacityTableBody');
+            tbody.innerHTML = '';
 
-function renderCapacity() {
-    const tbody = document.getElementById('capacityTableBody');
-    const overallSpan = document.getElementById('overallUtilization');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
+            const lineMcs = {};
+            actuals.forEach(a => {
+                const key = `${a.line}|${a.mcNo || 'N/A'}`;
+                if(!lineMcs[key]) lineMcs[key] = { line: a.line, mcNo: a.mcNo || 'N/A', strokes: 0 };
+                lineMcs[key].strokes += (Number(a.qty) + Number(a.ngQty || 0));
+            });
 
-    // ดึงข้อมูล Actuals จากตัวแปรกลางของระบบ
-    let currentActuals = window.actuals || [];
+            let totalStrokes = 0;
+            let totalMaxCap = 0;
 
-    if (currentActuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีข้อมูลการผลิตในระบบ</td></tr>`;
-        if (overallSpan) overallSpan.innerText = '0%';
-        return;
-    }
+            const keys = Object.keys(lineMcs);
+            if(keys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">ยังไม่มีข้อมูลการผลิตเพื่อคำนวณ Capacity</td></tr>';
+                document.getElementById('overallUtilization').innerText = '0%';
+                return;
+            }
 
-    let machineMap = {};
-    let totalActualAll = 0;
-    let totalMaxAll = 0;
+            keys.forEach(k => {
+                const item = lineMcs[k];
+                totalStrokes += item.strokes;
+                totalMaxCap += MC_MAX_CAPACITY;
 
-    currentActuals.forEach(a => {
-        // ดึงค่า Line และ Machine No. จากข้อมูลจริงที่บันทึกมา
-        let lineCol = a.line || a['Line/MC'] || a.Line || 'Unknown Line';
-        let qtyVal = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                const util = Math.round((item.strokes / MC_MAX_CAPACITY) * 100);
+                let statusBadge = '<span class="badge bg-success">Normal</span>';
+                if(util > 90) statusBadge = '<span class="badge bg-danger animate-pulse">Overload</span>';
+                else if(util > 75) statusBadge = '<span class="badge bg-warning text-dark">High</span>';
 
-        // แยก Line กับ Machine No. ออกจากกัน (รองรับรูปแบบ "Line / Machine")
-        let parts = lineCol.split('/');
-        let line = parts[0] ? parts[0].trim() : 'Unknown Line';
-        let mcNo = parts[1] ? parts[1].trim() : (a.mcNo || a['Machine No.'] || 'MC-01');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.line}</td>
+                    <td>${item.mcNo}</td>
+                    <td>${item.strokes.toLocaleString()}</td>
+                    <td>${MC_MAX_CAPACITY.toLocaleString()}</td>
+                    <td class="fw-bold">${util}%</td>
+                    <td>${statusBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
 
-        let key = line + "_" + mcNo;
-        if (!machineMap[key]) {
-            machineMap[key] = {
-                line: line,
-                mcNo: mcNo,
-                actualQty: 0,
-                maxCapacity: 50000 // ค่ามาตรฐาน Max Capacity ต่อเดือน (สามารถปรับเปลี่ยนได้)
-            };
-        }
-        machineMap[key].actualQty += qtyVal;
-    });
-
-    let trHtml = '';
-
-    for (let key in machineMap) {
-        let item = machineMap[key];
-        let utilPercent = item.maxCapacity > 0 ? Math.min(Math.round((item.actualQty / item.maxCapacity) * 100), 100) : 0;
-        
-        totalActualAll += item.actualQty;
-        totalMaxAll += item.maxCapacity;
-
-        let badgeClass = 'bg-success';
-        let statusText = `Normal (${NORMAL_HOURS_PER_MONTH} ชม.)`;
-        if (utilPercent > 90) {
-            badgeClass = 'bg-warning text-dark';
-            statusText = `OT Active (${OT_HOURS_PER_MONTH} ชม.)`;
+            const overall = totalMaxCap > 0 ? Math.round((totalStrokes / totalMaxCap) * 100) : 0;
+            document.getElementById('overallUtilization').innerText = overall + '%';
         }
 
-        trHtml += `
-            <tr>
-                <td><span class="badge bg-secondary">${item.line}</span></td>
-                <td class="fw-bold">${item.mcNo}</td>
-                <td class="text-success fw-bold">${item.actualQty.toLocaleString()}</td>
-                <td>
-                    <div class="small text-muted">Normal: ${NORMAL_HOURS_PER_MONTH} ชม.</div>
-                    <div class="small text-muted">OT: ${OT_HOURS_PER_MONTH} ชม.</div>
-                    <div>${item.maxCapacity.toLocaleString()} Strokes</div>
-                </td>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <span class="me-2">${utilPercent}%</span>
-                        <div class="progress flex-grow-1" style="height: 8px;">
-                            <div class="progress-bar ${badgeClass}" role="progressbar" style="width: ${utilPercent}%"></div>
-                        </div>
-                    </div>
-                </td>
-                <td><span class="badge ${badgeClass}">${statusText}</span></td>
-            </tr>
-        `;
-    }
-
-    tbody.innerHTML = trHtml;
-
-    let overallPercent = totalMaxAll > 0 ? Math.min(Math.round((totalActualAll / totalMaxAll) * 100), 100) : 0;
-    if (overallSpan) {
-        overallSpan.innerText = overallPercent + '%';
-    }
-}
         // --- TAB 3: PLANNING ---
       // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
 function submitPlan(e) {
@@ -2117,7 +2066,7 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-   // 2. ดึง Actuals
+    // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
@@ -2138,14 +2087,10 @@ function loadAllDataFromCloud() {
                 renderDashboard();
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-                
-                // 🟢 เพิ่มบรรทัดนี้ เพื่อสั่งให้วาดหน้า Capacity ทันทีที่ข้อมูลดึงเสร็จ
-                if (typeof renderCapacity === 'function') {
-                    renderCapacity();
-                }
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
+
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
         .then(res => res.json())
