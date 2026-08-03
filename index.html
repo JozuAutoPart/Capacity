@@ -793,9 +793,8 @@
             if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
 
             let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
-            let jsonBms = await resBms.json();
-            if (jsonBms.status === "success") bms = jsonBms.data || [];
-
+        let jsonBms = await resBms.json();
+        if (jsonBms.status === "success") bms = jsonBms.data || [];
             if (typeof renderAll === "function") {
                 renderAll();
             }
