@@ -2111,7 +2111,7 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-    // 2. ดึง Actuals
+   // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
@@ -2133,7 +2133,7 @@ function loadAllDataFromCloud() {
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
                 
-                // 🟢 เพิ่มบรรทัดนี้ตรงนี้ครับ เพื่อบังคับให้วาดหน้า Capacity ทันที
+                // 🟢 เพิ่มบรรทัดนี้ เพื่อสั่งให้วาดหน้า Capacity ทันทีที่ข้อมูลดึงเสร็จ
                 if (typeof renderCapacity === 'function') {
                     renderCapacity();
                 }
