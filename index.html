@@ -2057,6 +2057,18 @@ function loadMaterialStock() {
         }
     }
 }
+        function deleteMaterialHistory(index) {
+    if (confirm('คุณต้องการลบประวัติรายการนี้ใช่หรือไม่?')) {
+        materialHistory.splice(index, 1);
+        
+        // ถ้าโปรเจกต์ของคุณมิวมีการเก็บบันทึกลง localStorage ให้สั่งเซฟอัปเดตด้วย
+        // localStorage.setItem('materialHistory', JSON.stringify(materialHistory));
+        
+        // เรียกฟังก์ชันโหลดหน้าจอสต็อกและประวัติใหม่
+        if (typeof loadMaterialStock === 'function') loadMaterialStock();
+        if (typeof renderMaterialHistory === 'function') renderMaterialHistory();
+    }
+}
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
 function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
