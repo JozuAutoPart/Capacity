@@ -950,7 +950,7 @@
     if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
 }
         // --- TAB 2: CAPACITY ---
-      const NORMAL_HOURS_PER_MONTH = 176;
+     const NORMAL_HOURS_PER_MONTH = 176;
 const OT_HOURS_PER_MONTH = 231;
 
 function renderCapacity() {
@@ -960,17 +960,11 @@ function renderCapacity() {
     
     tbody.innerHTML = '';
 
-    // เช็กว่ามีข้อมูล actuals หรือไม่ ถ้าไม่มีให้ลองดึงจาก localStorage เผื่อมีข้อมูลค้างอยู่
+    // ดึงข้อมูลจากตัวแปร actuals ที่โหลดมาจากชีต ACTUAL PRODUCTION
     let currentActuals = window.actuals || [];
-    if (currentActuals.length === 0) {
-        try {
-            let saved = localStorage.getItem('actuals');
-            if (saved) currentActuals = JSON.parse(saved);
-        } catch (e) {}
-    }
 
     if (currentActuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีข้อมูลการผลิตสำหรับคำนวณ Capacity (กำลังรอข้อมูลจาก Google Sheets)</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีข้อมูลในชีต ACTUAL PRODUCTION สำหรับคำนวณ Capacity</td></tr>`;
         if (overallSpan) overallSpan.innerText = '0%';
         return;
     }
@@ -990,7 +984,7 @@ function renderCapacity() {
                 line: line,
                 mcNo: mcNo,
                 actualQty: 0,
-                maxCapacity: 50000 // ค่ามาตรฐาน Max Capacity ต่อเดือน (ปรับเปลี่ยนได้ครับ)
+                maxCapacity: 50000 // ค่ามาตรฐาน Max Capacity ต่อเดือน
             };
         }
         machineMap[key].actualQty += qty;
