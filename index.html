@@ -950,53 +950,94 @@
     if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
 }
         // --- TAB 2: CAPACITY ---
-        function renderCapacity() {
-            const tbody = document.getElementById('capacityTableBody');
-            tbody.innerHTML = '';
+        // กำหนดชั่วโมงมาตรฐานต่อเดือน
+const NORMAL_HOURS_PER_MONTH = 176;
+const OT_HOURS_PER_MONTH = 231;
 
-            const lineMcs = {};
-            actuals.forEach(a => {
-                const key = `${a.line}|${a.mcNo || 'N/A'}`;
-                if(!lineMcs[key]) lineMcs[key] = { line: a.line, mcNo: a.mcNo || 'N/A', strokes: 0 };
-                lineMcs[key].strokes += (Number(a.qty) + Number(a.ngQty || 0));
-            });
+function renderCapacity() {
+    const tbody = document.getElementById('capacityTableBody');
+    const overallSpan = document.getElementById('overallUtilization');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
 
-            let totalStrokes = 0;
-            let totalMaxCap = 0;
+    if (!actuals || actuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีข้อมูลการผลิตสำหรับคำนวณ Capacity</td></tr>`;
+        if (overallSpan) overallSpan.innerText = '0%';
+        return;
+    }
 
-            const keys = Object.keys(lineMcs);
-            if(keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">ยังไม่มีข้อมูลการผลิตเพื่อคำนวณ Capacity</td></tr>';
-                document.getElementById('overallUtilization').innerText = '0%';
-                return;
-            }
+    // จัดกลุ่มข้อมูลตาม Line และ Machine No.
+    let machineMap = {};
+    let totalActualAll = 0;
+    let totalMaxAll = 0;
 
-            keys.forEach(k => {
-                const item = lineMcs[k];
-                totalStrokes += item.strokes;
-                totalMaxCap += MC_MAX_CAPACITY;
+    actuals.forEach(a => {
+        let line = a.line || a['Line/MC'] || 'Unknown Line';
+        let mcNo = a.mcNo || a['Machine No.'] || 'MC-01';
+        let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
 
-                const util = Math.round((item.strokes / MC_MAX_CAPACITY) * 100);
-                let statusBadge = '<span class="badge bg-success">Normal</span>';
-                if(util > 90) statusBadge = '<span class="badge bg-danger animate-pulse">Overload</span>';
-                else if(util > 75) statusBadge = '<span class="badge bg-warning text-dark">High</span>';
+        let key = line + "_" + mcNo;
+        if (!machineMap[key]) {
+            machineMap[key] = {
+                line: line,
+                mcNo: mcNo,
+                actualQty: 0,
+                // กำหนด Max Capacity ตั้งต้น (เช่น อิงจาก Normal 176 ชม. หรือค่ามาตรฐานเครื่อง สมมติฐานที่ 50,000 Strokes ต่อเดือน หรือปรับตามจริง)
+                maxCapacity: 50000 
+            };
+        }
+        machineMap[key].actualQty += qty;
+    });
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${item.line}</td>
-                    <td>${item.mcNo}</td>
-                    <td>${item.strokes.toLocaleString()}</td>
-                    <td>${MC_MAX_CAPACITY.toLocaleString()}</td>
-                    <td class="fw-bold">${util}%</td>
-                    <td>${statusBadge}</td>
-                `;
-                tbody.appendChild(tr);
-            });
+    let trHtml = '';
 
-            const overall = totalMaxCap > 0 ? Math.round((totalStrokes / totalMaxCap) * 100) : 0;
-            document.getElementById('overallUtilization').innerText = overall + '%';
+    for (let key in machineMap) {
+        let item = machineMap[key];
+        let utilPercent = item.maxCapacity > 0 ? Math.min(Math.round((item.actualQty / item.maxCapacity) * 100), 100) : 0;
+        
+        totalActualAll += item.actualQty;
+        totalMaxAll += item.maxCapacity;
+
+        // กำหนดสี Status ตามเปอร์เซ็นต์
+        let badgeClass = 'bg-success';
+        let statusText = 'Normal (176 Hr)';
+        if (utilPercent > 90) {
+            badgeClass = 'bg-warning text-dark';
+            statusText = 'OT Active (231 Hr)';
         }
 
+        trHtml += `
+            <tr>
+                <td><span class="badge bg-secondary">${item.line}</span></td>
+                <td class="fw-bold">${item.mcNo}</td>
+                <td class="text-success fw-bold">${item.actualQty.toLocaleString()}</td>
+                <td>
+                    <div class="small text-muted">Normal: 176 ชม.</div>
+                    <div class="small text-muted">OT: 231 ชม.</div>
+                    <div>${item.maxCapacity.toLocaleString()} Strokes</div>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">${utilPercent}%</span>
+                        <div class="progress flex-grow-1" style="height: 8px;">
+                            <div class="progress-bar ${badgeClass}" role="progressbar" style="width: ${utilPercent}%"></div>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="badge ${badgeClass}">${statusText}</span></td>
+            </tr>
+        `;
+    }
+
+    tbody.innerHTML = trHtml;
+
+    // คำนวณ Overall Cap รวมทั้งหมด
+    let overallPercent = totalMaxAll > 0 ? Math.min(Math.round((totalActualAll / totalMaxAll) * 100), 100) : 0;
+    if (overallSpan) {
+        overallSpan.innerText = overallPercent + '%';
+    }
+}
         // --- TAB 3: PLANNING ---
       // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
 function submitPlan(e) {
