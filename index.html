@@ -1770,7 +1770,7 @@ function renderDiePM() {
     bms.slice().reverse().forEach(b => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${b.date || ''}</td>
+            <td>${d.date ? d.date.split('T')[0] : ''}</td>
             <td class="fw-bold text-info">${b.partNo || ''}</td>
             <td class="text-danger">${b.problem || ''}</td>
             <td>${b.reporter || ''}</td>
