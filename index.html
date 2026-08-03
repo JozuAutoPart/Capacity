@@ -1646,7 +1646,7 @@ function renderDelivery() {
     deliveries.slice().reverse().forEach(d => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${d.date}</td>
+            <td>${d.date ? d.date.split('T')[0] : ''}</td>
             <td class="fw-bold text-info">${d.partNo}</td>
             <td class="text-primary fw-bold">${Number(d.qty).toLocaleString()}</td>
             <td>${d.customer}</td>
