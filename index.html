@@ -949,54 +949,78 @@
     if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
     if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
 }
-        // --- TAB 2: CAPACITY ---
-        function renderCapacity() {
-            const tbody = document.getElementById('capacityTableBody');
-            tbody.innerHTML = '';
+       // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
+const NORMAL_CAP_HOURS = 176;
+const OT_CAP_HOURS = 231;
 
-            const lineMcs = {};
-            actuals.forEach(a => {
-                const key = `${a.line}|${a.mcNo || 'N/A'}`;
-                if(!lineMcs[key]) lineMcs[key] = { line: a.line, mcNo: a.mcNo || 'N/A', strokes: 0 };
-                lineMcs[key].strokes += (Number(a.qty) + Number(a.ngQty || 0));
-            });
+function renderCapacityCharts() {
+    // สมมติฐานการดึงข้อมูลจาก actuals มาสะสมแยกตาม Line และ Machine รายเดือน
+    const capacityData = {};
 
-            let totalStrokes = 0;
-            let totalMaxCap = 0;
+    actuals.forEach(a => {
+        // ดึงเดือนจากวันที่บันทึก (เช่น YYYY-MM)
+        let month = a.date ? a.date.substring(0, 7) : 'Unknown';
+        let line = a.line || 'Unassigned Line';
+        let machine = a.machine || a.partNo || 'Machine';
+        let qty = Number(a.q.qty || 0) + Number(a.ngQty || 0);
 
-            const keys = Object.keys(lineMcs);
-            if(keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">ยังไม่มีข้อมูลการผลิตเพื่อคำนวณ Capacity</td></tr>';
-                document.getElementById('overallUtilization').innerText = '0%';
-                return;
+        if (!capacityData[line]) capacityData[line] = {};
+        if (!capacityData[line][month]) capacityData[line][month] = {};
+        if (!capacityData[line][month][machine]) capacityData[line][month][machine] = 0;
+
+        capacityData[line][month][machine] += qty;
+    });
+
+    // สร้างส่วนแสดงผลกราฟแยกตาม Line
+    const container = document.getElementById('capacityChartContainer'); // จุดที่จะวางกราฟใน HTML
+    if (!container) return;
+    container.innerHTML = '';
+
+    Object.keys(capacityData).forEach(line => {
+        let lineDiv = document.createElement('div');
+        lineDiv.className = 'card p-3 mb-3 shadow-sm bg-dark text-white';
+        lineDiv.innerHTML = `<h5>Line: ${line}</h5><canvas id="chart-${line.replace(/\s+/g, '')}"></canvas>`;
+        container.appendChild(lineDiv);
+
+        // จัดเตรียมข้อมูลสำหรับ Chart.js
+        let months = Object.keys(capacityData[line]);
+        // รวบรวมรายชื่อเครื่องจักรทั้งหมดใน Line นี้
+        let machines = [...new Set(months.flatMap(m => Object.keys(capacityData[line][m])))];
+
+        let datasets = machines.map((mach, idx) => {
+            let colorList = ['#36a2eb', '#ff6384', '#cc65fe', '#ffce56', '#4bc0c0'];
+            return {
+                label: mach,
+                data: months.map(m => capacityData[line][m][mach] || 0),
+                backgroundColor: colorList[idx % colorList.length],
+                borderColor: colorList[idx % colorList.length],
+                borderWidth: 1
+            };
+        });
+
+        // เรนเดอร์กราฟแท่ง/เส้นสะสมรายเดือนแยกตามเครื่องจักร
+        const ctx = document.getElementById(`chart-${line.replace(/\s+/g, '')}`).getContext('2d');
+        new Chart(ctx, {
+            type: 'bar', // หรือ 'line' ตามต้องการ
+            data: {
+                labels: months,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `Normal Cap: ${NORMAL_CAP_HOURS} ชม./เดือน | OT Cap: ${OT_CAP_HOURS} ชม./เดือน`
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
             }
-
-            keys.forEach(k => {
-                const item = lineMcs[k];
-                totalStrokes += item.strokes;
-                totalMaxCap += MC_MAX_CAPACITY;
-
-                const util = Math.round((item.strokes / MC_MAX_CAPACITY) * 100);
-                let statusBadge = '<span class="badge bg-success">Normal</span>';
-                if(util > 90) statusBadge = '<span class="badge bg-danger animate-pulse">Overload</span>';
-                else if(util > 75) statusBadge = '<span class="badge bg-warning text-dark">High</span>';
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${item.line}</td>
-                    <td>${item.mcNo}</td>
-                    <td>${item.strokes.toLocaleString()}</td>
-                    <td>${MC_MAX_CAPACITY.toLocaleString()}</td>
-                    <td class="fw-bold">${util}%</td>
-                    <td>${statusBadge}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            const overall = totalMaxCap > 0 ? Math.round((totalStrokes / totalMaxCap) * 100) : 0;
-            document.getElementById('overallUtilization').innerText = overall + '%';
-        }
-
+        });
+    });
+}
         // --- TAB 3: PLANNING ---
       // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
 function submitPlan(e) {
