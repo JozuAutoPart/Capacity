@@ -952,70 +952,138 @@
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
+// กำหนดสัดส่วน Stroke ต่อชั่วโมง (สามารถปรับเปลี่ยนตามหน้างานจริงได้ครับ เช่น 1 ชั่วโมงทำได้กี่ Stroke)
+const STROKES_PER_HOUR = 1000; 
 
-function renderCapacityCharts() {
-    // สมมติฐานการดึงข้อมูลจาก actuals มาสะสมแยกตาม Line และ Machine รายเดือน
-    const capacityData = {};
+function renderCapacity() {
+    const tbody = document.getElementById('capacityTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    // รวบรวมข้อมูลสะสมแยกตาม Line, Machine และ Month
+    let machineData = {};
+    let lineMonthlyData = {};
 
     actuals.forEach(a => {
-        // ดึงเดือนจากวันที่บันทึก (เช่น YYYY-MM)
-        let month = a.date ? a.date.substring(0, 7) : 'Unknown';
-        let line = a.line || 'Unassigned Line';
-        let machine = a.machine || a.partNo || 'Machine';
-        let qty = Number(a.q.qty || 0) + Number(a.ngQty || 0);
+        let line = a.line || 'Line A';
+        let machine = a.machine || a.partNo || 'Machine-1';
+        let month = a.date ? a.date.substring(0, 7) : '2026-08';
+        let strokes = Number(a.q.qty || 0) + Number(a.ngQty || 0);
 
-        if (!capacityData[line]) capacityData[line] = {};
-        if (!capacityData[line][month]) capacityData[line][month] = {};
-        if (!capacityData[line][month][machine]) capacityData[line][month][machine] = 0;
+        // 1. เก็บข้อมูลรวมรายเครื่องสำหรับตาราง
+        let key = line + '||' + machine;
+        if (!machineData[key]) {
+            machineData[key] = { line: line, machine: machine, actual: 0 };
+        }
+        machineData[key].actual += strokes;
 
-        capacityData[line][month][machine] += qty;
+        // 2. เก็บข้อมูลสะสมรายเดือนแยกตาม Line สำหรับทำกราฟ
+        if (!lineMonthlyData[line]) lineMonthlyData[line] = {};
+        if (!lineMonthlyData[line][month]) lineMonthlyData[line][month] = {};
+        if (!lineMonthlyData[line][month][machine]) lineMonthlyData[line][month][machine] = 0;
+        lineMonthlyData[line][month][machine] += strokes;
     });
 
-    // สร้างส่วนแสดงผลกราฟแยกตาม Line
-    const container = document.getElementById('capacityChartContainer'); // จุดที่จะวางกราฟใน HTML
-    if (!container) return;
-    container.innerHTML = '';
+    let totalActualAll = 0;
+    let totalMaxAll = 0;
 
-    Object.keys(capacityData).forEach(line => {
-        let lineDiv = document.createElement('div');
-        lineDiv.className = 'card p-3 mb-3 shadow-sm bg-dark text-white';
-        lineDiv.innerHTML = `<h5>Line: ${line}</h5><canvas id="chart-${line.replace(/\s+/g, '')}"></canvas>`;
-        container.appendChild(lineDiv);
+    // Max Capacity ต่อเดือนคิดจาก (Normal + OT) * ออัตรา Stroke ต่อชั่วโมง
+    const maxCapacityPerMonth = (NORMAL_CAP_HOURS + OT_CAP_HOURS) * STROKES_PER_HOUR;
 
-        // จัดเตรียมข้อมูลสำหรับ Chart.js
-        let months = Object.keys(capacityData[line]);
-        // รวบรวมรายชื่อเครื่องจักรทั้งหมดใน Line นี้
-        let machines = [...new Set(months.flatMap(m => Object.keys(capacityData[line][m])))];
+    Object.keys(machineData).forEach(key => {
+        let item = machineData[key];
+        // กำหนด Max Capacity (ตัวอย่างเทียบต่อเดือน)
+        let maxCap = maxCapacityPerMonth; 
+        let util = maxCap > 0 ? Math.min(100, Math.round((item.actual / maxCap) * 100)) : 0;
 
+        totalActualAll += item.actual;
+        totalMaxAll += maxCap;
+
+        let statusBadge = `<span class="badge bg-success">Normal</span>`;
+        if (util >= 100) {
+            statusBadge = `<span class="badge bg-danger">Over Capacity</span>`;
+        } else if (util >= 80) {
+            statusBadge = `<span class="badge bg-warning text-dark">High Load</span>`;
+        }
+
+        tbody.innerHTML += `
+            <tr>
+                <td class="fw-bold text-info">${item.line}</td>
+                <td>${item.machine}</td>
+                <td>${item.actual.toLocaleString()}</td>
+                <td>${maxCap.toLocaleString()}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">${util}%</span>
+                        <div class="progress flex-grow-1" style="height: 8px;">
+                            <div class="progress-bar ${util >= 100 ? 'bg-danger' : 'bg-primary'}" style="width: ${util}%;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td>${statusBadge}</td>
+            </tr>
+        `;
+    });
+
+    // อัปเดต Overall Cap มุมขวาบน
+    let overallUtil = totalMaxAll > 0 ? Math.min(100, Math.round((totalActualAll / totalMaxAll) * 100)) : 0;
+    const overallEl = document.getElementById('overallUtilization');
+    if (overallEl) overallEl.innerText = overallUtil + '%';
+
+    // สร้างพื้นที่แสดงกราฟราย Line (หากมี Container รองรับ)
+    renderCapacityCharts(lineMonthlyData);
+}
+
+function renderCapacityCharts(lineMonthlyData) {
+    let container = document.getElementById('capacityChartContainer');
+    if (!container) {
+        // ถ้ายังไม่มี HTML Container สำหรับกราฟ ให้สร้างเพิ่มให้อัตโนมัติใต้ตาราง
+        const cardTab = document.querySelector('#tab-capacity .card');
+        if (cardTab) {
+            container = document.createElement('div');
+            container.id = 'capacityChartContainer';
+            container.className = 'mt-4';
+            cardTab.appendChild(container);
+        } else {
+            return;
+        }
+    }
+    container.innerHTML = '<h5 class="mb-3"><i class="fas fa-chart-bar me-2"></i>กราฟสะสมกำลังการผลิตรายเดือน (แยกตาม Line)</h5>';
+
+    Object.keys(lineMonthlyData).forEach(line => {
+        let lineWrapper = document.createElement('div');
+        lineWrapper.className = 'card bg-dark text-white p-3 mb-3 border-secondary';
+        let canvasId = 'chart-line-' + line.replace(/\s+/g, '');
+        lineWrapper.innerHTML = `<h6 class="text-info">Line: ${line} (Norm: ${NORMAL_CAP_HOURS} ชม. | OT: ${OT_CAP_HOURS} ชม.)</h6><div style="position: relative; height:250px;"><canvas id="${canvasId}"></canvas></div>`;
+        container.appendChild(lineWrapper);
+
+        let months = Object.keys(lineMonthlyData[line]).sort();
+        let machines = [...new Set(months.flatMap(m => Object.keys(lineMonthlyData[line][m])))];
+
+        let colorPalette = ['#36a2eb', '#ff6384', '#cc65fe', '#ffce56', '#4bc0c0', '#9966ff'];
         let datasets = machines.map((mach, idx) => {
-            let colorList = ['#36a2eb', '#ff6384', '#cc65fe', '#ffce56', '#4bc0c0'];
             return {
                 label: mach,
-                data: months.map(m => capacityData[line][m][mach] || 0),
-                backgroundColor: colorList[idx % colorList.length],
-                borderColor: colorList[idx % colorList.length],
+                data: months.map(m => lineMonthlyData[line][m][mach] || 0),
+                backgroundColor: colorPalette[idx % colorPalette.length],
+                borderColor: colorPalette[idx % colorPalette.length],
                 borderWidth: 1
             };
         });
 
-        // เรนเดอร์กราฟแท่ง/เส้นสะสมรายเดือนแยกตามเครื่องจักร
-        const ctx = document.getElementById(`chart-${line.replace(/\s+/g, '')}`).getContext('2d');
+        const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
-            type: 'bar', // หรือ 'line' ตามต้องการ
-            data: {
-                labels: months,
-                datasets: datasets
-            },
+            type: 'bar',
+            data: { labels: months, datasets: datasets },
             options: {
                 responsive: true,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: `Normal Cap: ${NORMAL_CAP_HOURS} ชม./เดือน | OT Cap: ${OT_CAP_HOURS} ชม./เดือน`
-                    }
-                },
+                maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true }
+                    x: { ticks: { color: '#fff' }, grid: { color: '#444' } },
+                    y: { beginAtZero: true, ticks: { color: '#fff' }, grid: { color: '#444' } }
+                },
+                plugins: {
+                    legend: { labels: { color: '#fff' } }
                 }
             }
         });
