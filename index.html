@@ -1749,9 +1749,7 @@ function renderDiePM() {
             <td>${strokes.toLocaleString()}</td>
             <td>${PM_LIMIT.toLocaleString()}</td>
             <td style="width: 150px;">
-                <div class="progress" style="height: 12px;">
-                    <div class="progress-bar ${strokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${progress}%;"></div>
-                </div>
+                ${progressBarHtml}
             </td>
             <td>${statusBadge}</td>
             <td>
