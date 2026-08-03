@@ -99,6 +99,9 @@
             <li class="nav-item">
                 <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button" onclick="renderDiePM(); renderBmsHistory();"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
             </li>
+                <button class="btn btn-success btn-sm float-end" onclick="exportDieBmExcel()">
+                <i class="fas fa-file-excel me-1"></i> Export ประวัติซ่อม (Excel)
+                </button>
         </ul>
 
         <!-- Tab Contents -->
@@ -1827,6 +1830,14 @@ function renderDiePM() {
                     'Remark / DO': d.remark
                 }));
                 fileName = 'Delivery_Log.xlsx';
+                } else if (type === 'die_bm') {
+        data = bms.map(b => ({
+            'Date': b.date ? b.date.split('T')[0] : '',
+            'Part No.': b.partNo || b['Part No.'] || '',
+            'Problem': b.problem || b['Problem'] || '',
+            'Reporter': b.reporter || b['Reporter'] || ''
+        }));
+        filename = 'Die_Maintenance_History.xlsx';
             } else if(type === 'stock_fg') {
                 const partsSet = new Set([...qgate.map(q => q.partNo), ...deliveries.map(d => d.partNo)]);
                 partsSet.forEach(partNo => {
