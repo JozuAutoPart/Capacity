@@ -949,54 +949,122 @@
     if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
     if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
 }
-        // --- TAB 2: CAPACITY ---
-        function renderCapacity() {
-            const tbody = document.getElementById('capacityTableBody');
-            tbody.innerHTML = '';
+       // กำหนดชั่วโมงมาตรฐานต่อเดือน
+const NORMAL_HOURS_PER_MONTH = 176;
+const OT_HOURS_PER_MONTH = 231;
 
-            const lineMcs = {};
-            actuals.forEach(a => {
-                const key = `${a.line}|${a.mcNo || 'N/A'}`;
-                if(!lineMcs[key]) lineMcs[key] = { line: a.line, mcNo: a.mcNo || 'N/A', strokes: 0 };
-                lineMcs[key].strokes += (Number(a.qty) + Number(a.ngQty || 0));
-            });
+// ฟังก์ชันประมวลผล Capacity รายเดือน แยกตาม Line และ Machine
+function processMonthlyCapacity() {
+    if (!actuals || actuals.length === 0) return {};
 
-            let totalStrokes = 0;
-            let totalMaxCap = 0;
+    let monthlyData = {};
 
-            const keys = Object.keys(lineMcs);
-            if(keys.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">ยังไม่มีข้อมูลการผลิตเพื่อคำนวณ Capacity</td></tr>';
-                document.getElementById('overallUtilization').innerText = '0%';
-                return;
-            }
+    actuals.forEach(a => {
+        let rawDate = a.date || a['Date'] || '';
+        if (!rawDate) return;
+        
+        let monthKey = rawDate.substring(0, 7); // ดึงปี-เดือน เช่น "2026-08"
+        let line = a.line || a['Line/MC'] || 'Unknown Line';
+        let mcNo = a.mcNo || a['Machine No.'] || 'MC-01';
+        let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
 
-            keys.forEach(k => {
-                const item = lineMcs[k];
-                totalStrokes += item.strokes;
-                totalMaxCap += MC_MAX_CAPACITY;
-
-                const util = Math.round((item.strokes / MC_MAX_CAPACITY) * 100);
-                let statusBadge = '<span class="badge bg-success">Normal</span>';
-                if(util > 90) statusBadge = '<span class="badge bg-danger animate-pulse">Overload</span>';
-                else if(util > 75) statusBadge = '<span class="badge bg-warning text-dark">High</span>';
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${item.line}</td>
-                    <td>${item.mcNo}</td>
-                    <td>${item.strokes.toLocaleString()}</td>
-                    <td>${MC_MAX_CAPACITY.toLocaleString()}</td>
-                    <td class="fw-bold">${util}%</td>
-                    <td>${statusBadge}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            const overall = totalMaxCap > 0 ? Math.round((totalStrokes / totalMaxCap) * 100) : 0;
-            document.getElementById('overallUtilization').innerText = overall + '%';
+        if (!monthlyData[monthKey]) monthlyData[monthKey] = {};
+        if (!monthlyData[monthKey][line]) monthlyData[monthKey][line] = {};
+        if (!monthlyData[monthKey][line][mcNo]) {
+            monthlyData[monthKey][line][mcNo] = {
+                totalQty: 0,
+                normalCapacityHours: NORMAL_HOURS_PER_MONTH,
+                otCapacityHours: OT_HOURS_PER_MONTH
+            };
         }
 
+        // สะสมยอดผลิตรายเครื่อง
+        monthlyData[monthKey][line][mcNo].totalQty += qty;
+    });
+
+    return monthlyData;
+}
+
+// ฟังก์ชันแสดงผลหน้า Capacity แยกตาม Line และ Machine พร้อมคำนวณสัดส่วนเทียบกับเป้าหมาย
+function renderCapacity() {
+    const data = processMonthlyCapacity();
+    
+    let html = `
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> วิเคราะห์กำลังการผลิตรายเดือน (Normal: 176 ชม. / OT: 231 ชม.)</h5>
+            </div>
+            <div class="card-body">
+    `;
+
+    if (Object.keys(data).length === 0) {
+        html += `<p class="text-center text-muted py-4">ยังไม่มีข้อมูลการผลิตสำหรับคำนวณ Capacity</p>`;
+    } else {
+        for (let month in data) {
+            html += `<h4 class="text-primary mt-3 mb-3">📅 ประจำเดือน: ${month}</h4>`;
+            
+            for (let line in data[month]) {
+                html += `
+                    <div class="card border-secondary mb-3">
+                        <div class="card-header bg-secondary text-white fw-bold">
+                            🏭 Production Line: ${line}
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle text-center">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Machine No.</th>
+                                            <th>Actual Produced (Strokes)</th>
+                                            <th>Normal Cap (176 Hr)</th>
+                                            <th>OT Cap (231 Hr)</th>
+                                            <th>Status / Utilization</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                `;
+
+                for (let mcNo in data[month][line]) {
+                    let item = data[month][line][mcNo];
+                    // คำนวณเปอร์เซ็นต์คร่าวๆ เทียบกับ Normal Cap (สมมติฐานเป้าหมาย 176 ชม. อ้างอิงตามสัดส่วนงาน)
+                    let percent = Math.min(Math.round((item.totalQty / 10000) * 100), 100); // ปรับตัวหารตามความเหมาะสมของชิ้นงาน
+                    
+                    html += `
+                        <tr>
+                            <td class="fw-bold">${mcNo}</td>
+                            <td class="text-success fw-bold">${item.totalQty.toLocaleString()}</td>
+                            <td>${item.normalCapacityHours} ชม.</td>
+                            <td>${item.otCapacityHours} ชม.</td>
+                            <td>
+                                <div class="progress" style="height: 22px;">
+                                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${percent}%;" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100">
+                                        ${percent}% (${item.totalQty.toLocaleString()} Strokes)
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    html += `</div></div>`;
+    
+    // แสดงผลลงใน Container ของหน้า Capacity
+    const targetDiv = document.getElementById('capacityContainer') || document.getElementById('capacityViewArea'); 
+    if (targetDiv) {
+        targetDiv.innerHTML = html;
+    }
+}
         // --- TAB 3: PLANNING ---
       // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
 function submitPlan(e) {
