@@ -968,7 +968,7 @@ function renderCapacity() {
         let line = a.line || 'Line A';
         let machine = a.machine || a.partNo || 'Machine-1';
         let month = a.date ? a.date.substring(0, 7) : '2026-08';
-        let strokes = Number(a.q.qty || 0) + Number(a.ngQty || 0);
+        let strokes = Number(a.qty || 0) + Number(a.ngQty || 0);
 
         // 1. เก็บข้อมูลรวมรายเครื่องสำหรับตาราง
         let key = line + '||' + machine;
