@@ -1054,7 +1054,7 @@ function renderCapacityCharts(lineMonthlyData) {
         let lineWrapper = document.createElement('div');
         lineWrapper.className = 'card bg-dark text-white p-3 mb-3 border-secondary';
         let canvasId = 'chart-line-' + line.replace(/\s+/g, '');
-        lineWrapper.innerHTML = `<h6 class="text-info">Line: ${line} (Norm: ${NORMAL_CAP_HOURS} ชม. | OT: ${OT_CAP_HOURS} ชม.)</h6><div style="position: relative; height:250px;"><canvas id="${canvasId}"></canvas></div>`;
+        linewrapper.innerHTML = `<h6 class="text-info mb-2">Line: ${line} (Norm: ${NORMAL_CAP_HOURS} ชม. | OT: ${OT_CAP_HOURS} ชม.)</h6><div style="position: relative; height: 300px; width: 100%;"><canvas id="${canvasId}"></canvas></div>`;
         container.appendChild(lineWrapper);
 
         let months = Object.keys(lineMonthlyData[line]).sort();
@@ -1076,9 +1076,10 @@ function renderCapacityCharts(lineMonthlyData) {
             type: 'bar',
             data: { labels: months, datasets: datasets },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: { ... }
+}
                     x: { ticks: { color: '#fff' }, grid: { color: '#444' } },
                     y: { beginAtZero: true, ticks: { color: '#fff' }, grid: { color: '#444' } }
                 },
