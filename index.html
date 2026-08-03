@@ -2206,6 +2206,7 @@ function loadAllDataFromCloud() {
 
                 renderActuals();
                 renderDashboard();
+                if (typeof renderCapacity === 'function') { renderCapacity(); }
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
                 if (typeof renderDiePM === 'function') renderDiePM();
