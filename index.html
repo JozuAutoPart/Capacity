@@ -160,30 +160,30 @@
                 </div>
             </div>
 
-            <!-- TAB 2: CAPACITY -->
-            <div class="tab-pane fade" id="tab-capacity">
-                <div class="card p-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
-                        <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle m-0">
-                            <thead>
-                                <tr>
-                                    <th>Line</th>
-                                    <th>Machine No.</th>
-                                    <th>Actual Produced (Strokes)</th>
-                                    <th>Max Capacity (Strokes)</th>
-                                    <th>Utilization (%)</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="capacityTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+           <!-- TAB 2: CAPACITY -->
+<div class="tab-pane fade" id="tab-capacity">
+    <div class="card p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
+            <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle m-0">
+                <thead>
+                    <tr>
+                        <th>Line</th>
+                        <th>Machine No.</th>
+                        <th>Actual Produced (Strokes)</th>
+                        <th>Max Capacity (Strokes)</th>
+                        <th>Utilization (%)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="capacityTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 <!-- TAB: MATERIAL (รับ-จ่าย Material) -->
 <div class="tab-pane fade" id="tab-material">
     <div class="row g-3">
@@ -950,7 +950,8 @@
     if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
 }
         // --- TAB 2: CAPACITY ---
-     const NORMAL_HOURS_PER_MONTH = 176;
+     // กำหนดชั่วโมงมาตรฐานต่อเดือน
+const NORMAL_HOURS_PER_MONTH = 176;
 const OT_HOURS_PER_MONTH = 231;
 
 function renderCapacity() {
@@ -960,17 +961,11 @@ function renderCapacity() {
     
     tbody.innerHTML = '';
 
-    // ดึงข้อมูลจากตัวแปร actuals หรือดึงจาก localStorage เผื่อมีข้อมูลค้างอยู่
+    // ดึงข้อมูล Actuals จากตัวแปรกลางของระบบ
     let currentActuals = window.actuals || [];
-    if (currentActuals.length === 0) {
-        try {
-            let saved = localStorage.getItem('actuals');
-            if (saved) currentActuals = JSON.parse(saved);
-        } catch (e) {}
-    }
 
     if (currentActuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">กำลังโหลดข้อมูลการผลิต หรือยังไม่มีการบันทึกข้อมูล Actual</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีข้อมูลการผลิตในระบบ</td></tr>`;
         if (overallSpan) overallSpan.innerText = '0%';
         return;
     }
@@ -980,9 +975,14 @@ function renderCapacity() {
     let totalMaxAll = 0;
 
     currentActuals.forEach(a => {
-        let line = a.line || a['Line/MC'] || 'Unknown Line';
-        let mcNo = a.mcNo || a['Machine No.'] || 'MC-01';
-        let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+        // ดึงค่า Line และ Machine No. จากข้อมูลจริงที่บันทึกมา
+        let lineCol = a.line || a['Line/MC'] || a.Line || 'Unknown Line';
+        let qtyVal = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+
+        // แยก Line กับ Machine No. ออกจากกัน (รองรับรูปแบบ "Line / Machine")
+        let parts = lineCol.split('/');
+        let line = parts[0] ? parts[0].trim() : 'Unknown Line';
+        let mcNo = parts[1] ? parts[1].trim() : (a.mcNo || a['Machine No.'] || 'MC-01');
 
         let key = line + "_" + mcNo;
         if (!machineMap[key]) {
@@ -990,10 +990,10 @@ function renderCapacity() {
                 line: line,
                 mcNo: mcNo,
                 actualQty: 0,
-                maxCapacity: 50000 // ค่ามาตรฐาน Max Capacity ต่อเดือน
+                maxCapacity: 50000 // ค่ามาตรฐาน Max Capacity ต่อเดือน (สามารถปรับเปลี่ยนได้)
             };
         }
-        machineMap[key].actualQty += qty;
+        machineMap[key].actualQty += qtyVal;
     });
 
     let trHtml = '';
