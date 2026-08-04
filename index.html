@@ -449,7 +449,6 @@
                                             <th>OK Qty</th>
                                             <th>NG Qty</th>
                                             <th>Remark</th>
-                                            <th class="text-center">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="actualTableBody"></tbody>
@@ -1348,9 +1347,6 @@ function renderActuals() {
             <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
             <td class="text-danger">${ngval.toLocaleString()}</td>
             <td class="small text-muted">${remarkval}</td>
-             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${index})" title="ลบแผนนี้">
-                    <i class="fas fa-trash"></i>
-                </button>
         `;
         tbody.appendChild(tr);
     });
@@ -2315,22 +2311,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }); 
-        function deleteActuals(index) {
-    if (confirm("คุณต้องการลบประวัติการบันทึกการผลิตรายการนี้ใช่หรือไม่?")) {
-        // ลบข้อมูลออกจากอาร์เรย์ตาม index
-        actuals.splice(index, 1);
-        
-        // บันทึกข้อมูลใหม่ลง LocalStorage
-        localStorage.setItem('sys_actuals', JSON.stringify(actuals));
-        
-        // รีเฟรชหน้าจอแสดงผล
-        if (typeof renderActuals === 'function') renderActuals();
-        if (typeof renderDashboard === 'function') renderDashboard();
-        if (typeof renderWipStock === 'function') renderWipStock();
-        
-        alert("✔ ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
-    }
-}
 </script>
 </body>
 </html>
