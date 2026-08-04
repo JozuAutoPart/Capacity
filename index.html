@@ -1088,7 +1088,8 @@ function renderCapacityCharts(lineMonthlyData) {
             }
         });
     });
-}
+    myChart.update(); // <--- เพิ่มคำสั่งนี้เพื่อให้ Chart.js เรนเดอร์แท่งกราฟแสดงผลออกมาครับ
+    }
         // --- TAB 3: PLANNING ---
       // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
 function submitPlan(e) {
