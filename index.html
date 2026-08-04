@@ -1071,25 +1071,24 @@ function renderCapacityCharts(lineMonthlyData) {
             };
         });
 
-        const ctx = document.getElementById(canvasId).getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: { labels: months, datasets: datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { ticks: { color: '#fff' }, grid: { color: '#444' } },
-                    y: { beginAtZero: true, ticks: { color: '#fff' }, grid: { color: '#444' } }
-                },
-                plugins: {
-                    legend: { labels: { color: '#fff' } }
-                }
+       const ctx = document.getElementById(canvasId).getContext('2d');
+    const myChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: months, datasets: datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { ticks: { color: '#fff' }, grid: { color: '#444' } },
+                y: { beginAtZero: true, ticks: { color: '#fff' }, grid: { color: '#444' } }
+            },
+            plugins: {
+                legend: { labels: { color: '#fff' } }
             }
-        });
+        }
     });
-    myChart.update(); // <--- เพิ่มคำสั่งนี้เพื่อให้ Chart.js เรนเดอร์แท่งกราฟแสดงผลออกมาครับ
-    }
+    myChart.update();
+});
         // --- TAB 3: PLANNING ---
       // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
 function submitPlan(e) {
