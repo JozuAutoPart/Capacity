@@ -668,138 +668,104 @@
             </div>
 
             <!-- TAB 8: DIE MAINTENANCE & PM -->
-            <!-- HTML Structure สำหรับหน้า Die Maintenance & PM -->
-<div class="row g-4">
-    
-    <!-- ฝั่งซ้าย: ระบบติดตาม Preventative Maintenance (Die PM) -->
-    <div class="col-lg-7">
-        <div class="card bg-dark text-white p-3 border-secondary mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="text-info m-0"><i class="fas fa-shield-alt me-2"></i>ระบบติดตาม Preventative Maintenance (Die PM)</h5>
-                <div>
-                    <span class="badge bg-danger me-1" id="pmDueCount">PM Due: 0</span>
-                    <span class="badge bg-warning text-dark" id="nearPmCount">Near PM: 0</span>
+            <div class="tab-pane fade" id="tab-die">
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <div class="card p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="m-0"><i class="fas fa-shield-alt me-2 text-warning"></i>ระบบติดตาม Preventative Maintenance (Die PM)</h5>
+                                <div>
+                                    <span class="badge bg-danger me-1">PM Due: <span id="diePmDueCount">0</span></span>
+                                    <span class="badge bg-warning text-dark">Near PM: <span id="diePmNearCount">0</span></span>
+                                </div>
+                            </div>
+                            <small class="text-muted mb-3 d-block">กำหนดรอบบำรุงรักษาแม่พิมพ์ (PM Limit) ทุกๆ 40,000 Strokes</small>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle m-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Part No.</th>
+                                            <th>Line</th>
+                                            <th>Stroke สะสม</th>
+                                            <th>PM Limit</th>
+                                            <th>PM Progress</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="diePmTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5">
+                        <div class="card p-3 mb-3">
+                            <h5 class="mb-3"><i class="fas fa-wrench me-2"></i>บันทึกการแจ้งซ่อม / Breakdown (BM)</h5>
+                            <form id="dieForm" onsubmit="submitDieBm(event)">
+                                <div class="mb-2">
+                                    <label class="form-label small">วันที่เกิดปัญหา</label>
+                                    <input type="date" id="bmDate" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Part No. แม่พิมพ์</label>
+                                    <input type="text" id="bmPartNo" class="form-control form-control-sm" placeholder="เช่น 17154-0T040" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">อาการเสีย / รายละเอียดปัญหา</label>
+                                    <textarea id="bmProblem" class="form-control form-control-sm" rows="2" placeholder="เช่น แม่พิมพ์แตก, ชิ้นงานเป็นรอย" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small">ผู้แจ้งซ่อม</label>
+                                    <input type="text" id="bmReporter" class="form-control form-control-sm" placeholder="เช่น ช่างสมศักดิ์" required>
+                                </div>
+                                <button type="submit" class="btn btn-danger btn-sm w-100"><i class="fas fa-exclamation-triangle me-1"></i> บันทึกแจ้งซ่อม (Breakdown)</button>
+                            </form>
+                        </div>
+
+                        <div class="card p-3">
+                            <h5 class="mb-3"><i class="fas fa-history me-2"></i>ประวัติการซ่อมแม่พิมพ์</h5>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover align-middle m-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Part No.</th>
+                                            <th>Problem</th>
+                                            <th>Reporter</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dieBmTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <p class="text-muted small">กำหนดรอบบำรุงรักษาแม่พิมพ์ (PM Limit) ทุกๆ 40,000 Strokes</p>
-            
-            <div class="table-responsive">
-                <table class="table table-dark table-striped align-middle">
-                    <thead>
-                        <tr>
-                            <th>Part No.</th>
-                            <th>Line</th>
-                            <th>Stroke สะสม</th>
-                            <th>PM Limit</th>
-                            <th>PM Progress</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pmTableBody">
-                        <!-- ข้อมูลจะถูกเรนเดอร์ด้วย JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
-        <!-- ประวัติการซ่อมแม่พิมพ์ -->
-        <div class="card bg-dark text-white p-3 border-secondary">
-            <h5 class="text-info mb-3"><i class="fas fa-history me-2"></i>ประวัติการซ่อมแม่พิมพ์</h5>
-            <div class="table-responsive">
-                <table class="table table-dark table-striped align-middle">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Part No.</th>
-                            <th>Problem</th>
-                            <th>Reporter</th>
-                            <th>Technician</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bmHistoryTableBody">
-                        <!-- ประวัติการซ่อมจะแสดงที่นี่ -->
-                    </tbody>
-                </table>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="clearModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ยืนยันการลบข้อมูลทั้งหมด</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    การดำเนินการนี้จะทำการลบข้อมูลแผนการผลิต ประวัติการผลิต ประวัติ Q-Gate ประวัติการส่งมอบ และประวัติ PM ทั้งหมดในระบบ และไม่สามารถกู้คืนได้
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="clearAllData()">ยืนยันลบทั้งหมด</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- ฝั่งขวา: บันทึกการแจ้งซ่อม / Breakdown (BM) พร้อมแยกช่องผู้แจ้งและผู้ซ่อม -->
-    <div class="col-lg-5">
-        <div class="card bg-dark text-white p-3 border-secondary">
-            <h5 class="text-info mb-3"><i class="fas fa-tools me-2"></i>บันทึกการแจ้งซ่อม / Breakdown (BM)</h5>
-            
-            <form id="bmForm" onsubmit="submitBM(event)">
-                <div class="mb-3">
-                    <label class="form-label">วันที่เกิดปัญหา</label>
-                    <input type="date" class="form-control" id="bmDate" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Part No. แม่พิมพ์</label>
-                    <input type="text" class="form-control" id="bmPartNo" placeholder="เช่น 17154-0T040" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">อาการเสีย / รายละเอียดปัญหา</label>
-                    <textarea class="form-control" id="bmProblem" rows="3" placeholder="เช่น แม่พิมพ์แตก, ชิ้นงานเป็นรอย" required></textarea>
-                </div>
-
-                <!-- ส่วนที่ 1: ผู้แจ้งซ่อม -->
-                <div class="mb-3">
-                    <label class="form-label text-warning">ผู้แจ้งซ่อม (Reporter)</label>
-                    <input type="text" class="form-control" id="bmReporter" placeholder="เช่น ชื่อผู้แจ้ง / แผนก" required>
-                </div>
-
-                <!-- ส่วนที่ 2: ผู้ซ่อม / ช่างผู้ดำเนินการ -->
-                <div class="mb-3">
-                    <label class="form-label text-success">ผู้ซ่อม / ช่างผู้ดำเนินการ (Technician)</label>
-                    <input type="text" class="form-control" id="bmTechnician" placeholder="เช่น ชื่อช่างซ่อมบำรุง" required>
-                </div>
-
-                <button type="submit" class="btn btn-danger w-100">
-                    <i class="fas fa-save me-2"></i>บันทึกแจ้งซ่อม (Breakdown)
-                </button>
-            </form>
-        </div>
-    </div>
-
-</div>
-
-<script>
-// ฟังก์ชันตัวอย่างสำหรับการกดส่งข้อมูล Breakdown ที่เชื่อมโยงกับฟิลด์ใหม่
-function submitBM(e) {
-    e.preventDefault();
-
-    const bmData = {
-        date: document.getElementById('bmDate').value,
-        partNo: document.getElementById('bmPartNo').value.trim(),
-        problem: document.getElementById('bmProblem').value.trim(),
-        reporter: document.getElementById('bmReporter').value.trim(),
-        technician: document.getElementById('bmTechnician').value.trim()
-    };
-
-    // ตัวอย่างการส่งข้อมูลไปบันทึกผ่าน Apps Script หรืออัปเดตตาราง
-    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
-    if(scriptUrl) {
-        fetch(scriptUrl, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'saveBM', data: bmData })
-        })
-        .then(res => res.json())
-        .then(result => {
-            alert('บันทึกข้อมูลการซ่อมเรียบร้อยแล้ว');
-            document.getElementById('bmForm').reset();
-            // โหลดข้อมูลตารางใหม่ตามต้องการ
-        })
-        .catch(err => console.error(err));
-    } else {
-        console.log("BM Data:", bmData);
-        alert('บันทึกข้อมูลจำลองสำเร็จ');
-    }
-}
-</script>
+    <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLVXRo080-Ov6x_qexlga5-H_35aod-6N0ZGQhg1q2cQMnb8ZZikP0MQS3iKE_zRoFCw/exec";
     
     let plans = [];
