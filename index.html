@@ -449,7 +449,6 @@
                                             <th>OK Qty</th>
                                             <th>NG Qty</th>
                                             <th>Remark</th>
-                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="actualTableBody"></tbody>
@@ -2311,19 +2310,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-    });
-});
-
-// --- ฟังก์ชันสำหรับลบประวัติการบันทึกการผลิตของพนักงานรายแถว ---
-function deleteActualRecord(index) {
-    if (confirm("คุณต้องการลบประวัติการบันทึกการผลิตรายการนี้ใช่หรือไม่?")) {
-        actuals.splice(index, 1);
-        localStorage.setItem('sys_actuals', JSON.stringify(actuals));
-        if (typeof renderActuals === 'function') renderActuals();
-        if (typeof renderDashboard === 'function') renderDashboard();
-        alert("ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
-    }
-}
-</script> <!-- ปิดแท็ก script -->
+    }); 
+</script>
 </body>
 </html>
