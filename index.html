@@ -449,7 +449,6 @@
                                             <th>OK Qty</th>
                                             <th>NG Qty</th>
                                             <th>Remark</th>
-                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="actualTableBody"></tbody>
@@ -1340,19 +1339,14 @@ function renderActuals() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-           <td>${cleanDate}</td>
+            <td>${cleanDate}</td>
             <td>${opval}</td>
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
-            <td class="fw-bold text-info">${partval}</td>
+            <td class="fw-bold">${partval}</td>
             <td>${lotval}</td>
             <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
             <td class="text-danger">${ngval.toLocaleString()}</td>
             <td class="small text-muted">${remarkval}</td>
-            <td class="text-center">
-                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActualRecord(${index})" title="ลบรายการ">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -2317,15 +2311,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }); 
-        function deleteActualRecord(index) {
-    if (confirm("คุณต้องการลบประวัติการบันทึกการผลิตรายการนี้ใช่หรือไม่?")) {
-        actuals.splice(index, 1);
-        localStorage.setItem('sys_actuals', JSON.stringify(actuals));
-        if (typeof renderActuals === 'function') renderActuals();
-        if (typeof renderDashboard === 'function') renderDashboard();
-        alert("ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
-    }
-}
 </script>
 </body>
 </html>
