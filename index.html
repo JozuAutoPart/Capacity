@@ -1007,14 +1007,21 @@ document.addEventListener("DOMContentLoaded", function() {
         tbody.appendChild(tr);
     });
 
-    const totalPlanEl = document.getElementById('dashTotalPlan');
+   const totalPlanEl = document.getElementById('dashTotalPlan');
     const totalActualEl = document.getElementById('dashTotalActual');
     const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
 
     if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
     if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-    if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
-}
+    
+    if (dashDiffBalanceEl) {
+        const diff = totalPlan - totalActual;
+        if (diff < 0) {
+            dashDiffBalanceEl.innerText = `เกิน ${Math.abs(diff).toLocaleString()}`;
+        } else {
+            dashDiffBalanceEl.innerText = diff.toLocaleString();
+        }
+    }
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
