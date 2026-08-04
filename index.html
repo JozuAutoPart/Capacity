@@ -449,6 +449,7 @@
                                             <th>OK Qty</th>
                                             <th>NG Qty</th>
                                             <th>Remark</th>
+                                            <th class="text-center">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="actualTableBody"></tbody>
@@ -1347,6 +1348,9 @@ function renderActuals() {
             <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
             <td class="text-danger">${ngval.toLocaleString()}</td>
             <td class="small text-muted">${remarkval}</td>
+             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${actuals.id})" title="ลบแผนนี้">
+                    <i class="fas fa-trash"></i>
+                </button>
         `;
         tbody.appendChild(tr);
     });
