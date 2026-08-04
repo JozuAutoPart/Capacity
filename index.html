@@ -1956,36 +1956,41 @@ function renderDiePM() {
 
       // 📌 ฟังก์ชันลบข้อมูลในระบบทั้งหมด (ต้องใส่รหัสผ่านผู้ดูแลระบบ)
 function clearAllData() {
-    let password = prompt("⚠️ คำเตือนสำคัญ: คุณกำลังจะล้างข้อมูลทั้งหมดในระบบ!\n\nกรุณากรอกรหัสผ่านผู้ดูแลเพื่อยืนยัน:");
+    let password = prompt("⚠️ คำเตือนสำคัญ: คุณกำลังจะล้างข้อมูลทั้งหมดในระบบ รวมถึง Stock WIP และ FG !\n\nกรุณากรอกรหัสผ่านผู้ดูแลเพื่อยืนยัน:");
     
     if (password === "1234") {
-        if (confirm("ยืนยันอีกครั้ง! ข้อมูลประวัติการผลิต, แผนผลิต, Capacity, สต็อก Material และ Q-Gate ทั้งหมดจะถูกลบและไม่สามารถกู้คืนได้ คุณต้องการลบใช่หรือไม่?")) {
-            // ล้างข้อมูลใน localStorage ทั้งหมดที่เกี่ยวข้อง
+        if (confirm("ยืนยันอีกครั้ง! ข้อมูลแผนผลิต, ประวัติการผลิต, Capacity, สต็อก Material, Q-Gate, Delivery, Die PM และ Stock WIP & FG ทั้งหมดจะถูกลบและไม่สามารถกู้คืนได้ คุณต้องการลบใช่หรือไม่?")) {
+            
+            // 1. ล้างข้อมูลใน localStorage ทั้งหมด
             localStorage.removeItem('sys_plans');
             localStorage.removeItem('sys_actuals');
             localStorage.removeItem('sys_qgate');
             localStorage.removeItem('sys_deliveries');
             localStorage.removeItem('sys_bms');
             localStorage.removeItem('sys_material_history');
-            localStorage.removeItem('sys_capacity'); // เพิ่มการล้าง Capacity
+            localStorage.removeItem('sys_capacity');
+            localStorage.removeItem('sys_wip');
+            localStorage.removeItem('sys_fg');
 
-            // รีเซ็ตตัวแปรในหน่วยความจำ
+            // 2. รีเซ็ตตัวแปรในหน่วยความจำทุกหน้า
             if (typeof plans !== 'undefined') plans = [];
-            if (typeof capacityData !== 'undefined') capacityData = []; // เพิ่มรีเซ็ต Capacity
+            if (typeof capacityData !== 'undefined') capacityData = [];
             if (typeof actuals !== 'undefined') actuals = [];
             if (typeof qgate !== 'undefined') qgate = [];
             if (typeof deliveries !== 'undefined') deliveries = [];
             if (typeof bms !== 'undefined') bms = [];
             if (typeof materialHistory !== 'undefined') materialHistory = [];
+            if (typeof wipData !== 'undefined') wipData = [];
+            if (typeof fgData !== 'undefined') fgData = [];
 
-            // เรียกโหลดข้อมูลหน้าจอใหม่ทุกส่วน
+            // 3. รีเฟรชหน้าจอและโหลดข้อมูลใหม่ทุกส่วน
             if (typeof renderAll === 'function') renderAll();
-            if (typeof renderDashboard === 'function') renderDashboard(); // รีเฟรชหน้า Dashboard
-            if (typeof renderCapacity === 'function') renderCapacity(); // รีเฟรชหน้า Capacity
+            if (typeof renderDashboard === 'function') renderDashboard();
+            if (typeof renderCapacity === 'function') renderCapacity();
             if (typeof loadMaterialStock === 'function') loadMaterialStock();
             if (typeof renderQgate === 'function') renderQgate();
 
-            alert("✔ ลบข้อมูลในระบบทั้งหมดเรียบร้อยแล้ว");
+            alert("✔ ลบข้อมูลในระบบและ Stock WIP & FG ทั้งหมดเรียบร้อยแล้ว");
         }
     } else if (password !== null) {
         alert("❌ รหัสผ่านไม่ถูกต้อง! ระบบยกเลิกการลบข้อมูล");
