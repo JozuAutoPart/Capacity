@@ -145,18 +145,17 @@
                     <div class="table-responsive">
                         <table class="table table-dark table-hover align-middle m-0">
                             <thead>
-    <tr>
-        <th>Start Date</th>
-        <th>Finish Date</th>
-        <th>Line</th>
-        <th>Part No.</th>
-        <th>Lot No.</th>
-        <th>Plan Qty</th>
-        <th>Actual OK</th>
-        <th>Progress</th>
-        <th>Action</th> <!-- เพิ่มคอลัมน์ปุ่มจัดการ -->
-    </tr>
-</thead>
+                                <tr>
+                                    <th>Start Date</th>
+                                    <th>Finish Date</th>
+                                    <th>Line</th>
+                                    <th>Part No.</th>
+                                    <th>Lot No.</th>
+                                    <th>Plan Qty</th>
+                                    <th>Actual OK</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
                             <tbody id="dashTableBody"></tbody>
                         </table>
                     </div>
@@ -882,7 +881,7 @@
             renderDashboard();
         }
 
-   function renderDashboard() {
+    function renderDashboard() {
     const tbody = document.getElementById('dashTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -895,7 +894,7 @@
     let totalPlan = 0;
     let totalActual = 0;
 
-    filteredPlans.forEach((plan, index) => {
+    filteredPlans.forEach(plan => {
         const planLine = String(plan.Line || plan.line || '').trim();
         const planPart = String(plan["Part No."] || plan.partNo || '').trim();
 
@@ -940,43 +939,10 @@
                     <div class="progress-bar ${progress >= 100 ? 'bg-success' : 'bg-info'}" role="progressbar" style="width: ${progress}%;">${progress}%</div>
                 </div>
             </td>
-            <td>
-                <button class="btn btn-outline-danger btn-sm" onclick="deletePlanItem('${partVal}', '${lotVal}')">
-                    <i class="fas fa-trash-alt"></i> ลบ
-                </button>
-            </td>
         `;
         tbody.appendChild(tr);
     });
 
-    // อัปเดตตัวเลขสรุปการ์ดด้านบน Dashboard
-    const totalPlanEl = document.getElementById('dashTotalPlan');
-    const totalActualEl = document.getElementById('dashTotalActual');
-    const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
-
-    if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
-    if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-    
-    if (dashDiffBalanceEl) {
-        const diff = totalPlan - totalActual;
-        if (diff < 0) {
-            dashDiffBalanceEl.innerText = `เกิน ${Math.abs(diff).toLocaleString()}`;
-            dashDiffBalanceEl.className = "text-success fw-bold mb-0";
-        } else {
-            dashDiffBalanceEl.innerText = diff.toLocaleString();
-            dashDiffBalanceEl.className = "text-warning fw-bold mb-0";
-        }
-    }
-}
-
-// เพิ่มฟังก์ชันสำหรับลบรายการแผนผลิต
-function deletePlanItem(partNo, lotNo) {
-    if (confirm(`คุณต้องการลบรายการ Part No: ${partNo} (Lot: ${lotNo}) ใช่หรือไม่?`)) {
-        plans = plans.filter(p => !(String(p["Part No."] || p.partNo || '') === partNo && String(p["Lot No."] || p.lotNo || '') === lotNo));
-        renderDashboard();
-        alert('ลบข้อมูลเรียบร้อยแล้ว');
-    }
-}
     const totalPlanEl = document.getElementById('dashTotalPlan');
     const totalActualEl = document.getElementById('dashTotalActual');
     const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
