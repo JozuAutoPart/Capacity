@@ -1340,14 +1340,19 @@ function renderActuals() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${cleanDate}</td>
+           <td>${cleanDate}</td>
             <td>${opval}</td>
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
-            <td class="fw-bold">${partval}</td>
+            <td class="fw-bold text-info">${partval}</td>
             <td>${lotval}</td>
             <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
             <td class="text-danger">${ngval.toLocaleString()}</td>
             <td class="small text-muted">${remarkval}</td>
+            <td class="text-center">
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActualRecord(${index})" title="ลบรายการ">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
         `;
         tbody.appendChild(tr);
     });
