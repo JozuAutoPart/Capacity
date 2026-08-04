@@ -107,124 +107,60 @@
         <div class="tab-content" id="mainTabsContent">
 
             <!-- TAB 1: DASHBOARD -->
-           <!-- โครงสร้าง HTML สำหรับหน้า Dashboard (นำไปแทนที่ส่วน Dashboard เดิม) -->
-<div id="dashboard-section" class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="text-info m-0"><i class="fas fa-chart-line me-2"></i>ภาพรวมการผลิต (Dashboard)</h5>
-        <!-- ตัวกรอง Line เลือกดูข้อมูล -->
-        <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-info active" onclick="filterDashboard('ALL')">ALL</button>
-            <button type="button" class="btn btn-outline-info" onclick="filterDashboard('Line A')">Line A</button>
-            <button type="button" class="btn btn-outline-info" onclick="filterDashboard('Line C1')">Line C1</button>
-            <button type="button" class="btn btn-outline-info" onclick="filterDashboard('Line C2')">Line C2</button>
-        </div>
-    </div>
+            <div class="tab-pane fade show active" id="tab-dash">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0">ภาพรวมการผลิต (Dashboard)</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-info btn-sm active" onclick="filterDashboard('ALL', this)">ALL</button>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line A', this)">Line A</button>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line Q', this)">Line Q</button>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C1', this)">Line C1</button>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C2', this)">Line C2</button>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C3', this)">Line C3</button>
+                    </div>
+                </div>
 
-    <!-- การ์ดสรุปตัวเลข 4 ช่อง (เพิ่มช่องอัตราความสำเร็จ Achievement %) -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card bg-dark text-white p-3 border-primary">
-                <h6 class="text-muted mb-1">แผนการผลิตทั้งหมด (Plan)</h6>
-                <h3 class="text-primary fw-bold mb-0" id="dashTotalPlan">220,000</h3>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card p-3 border-start border-4 border-info">
+                            <span class="text-muted small">แผนการผลิตทั้งหมด (Plan)</span>
+                            <h3 class="fw-bold text-info m-0" id="dashTotalPlan">0</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3 border-start border-4 border-success">
+                            <span class="text-muted small">ยอดผลิตได้จริง (Actual OK)</span>
+                            <h3 class="fw-bold text-success m-0" id="dashTotalActual">0</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3 border-start border-4 border-warning">
+                            <span class="text-muted small">คงเหลือค้างผลิต (Diff Balance)</span>
+                            <h3 class="fw-bold text-warning m-0" id="dashTotalDiff">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-3">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle m-0">
+                            <thead>
+                                <tr>
+                                    <th>Start Date</th>
+                                    <th>Finish Date</th>
+                                    <th>Line</th>
+                                    <th>Part No.</th>
+                                    <th>Lot No.</th>
+                                    <th>Plan Qty</th>
+                                    <th>Actual OK</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-dark text-white p-3 border-success">
-                <h6 class="text-muted mb-1">ยอดผลิตได้จริง (Actual OK)</h6>
-                <h3 class="text-success fw-bold mb-0" id="dashTotalActual">270,000</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-dark text-white p-3 border-warning">
-                <h6 class="text-muted mb-1">คงเหลือค้างผลิต (Diff Balance)</h6>
-                <h3 class="text-warning fw-bold mb-0" id="dashTotalDiff">0</h3>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-dark text-white p-3 border-info">
-                <h6 class="text-muted mb-1">อัตราความสำเร็จ (Achievement)</h6>
-                <h3 class="text-info fw-bold mb-0" id="dashAchievement">122.7%</h3>
-            </div>
-        </div>
-    </div>
-
-    <!-- กราฟสรุปภาพรวมรายเดือน / แยกตาม Line บน Dashboard -->
-    <div class="card bg-dark text-white p-3 border-secondary mb-4">
-        <h6 class="text-info mb-3"><i class="fas fa-chart-bar me-2"></i>กราฟเปรียบเทียบแผนผลิต (Plan) กับ ยอดผลิตจริง (Actual)</h6>
-        <div style="position: relative; height: 280px; width: 100%;">
-            <canvas id="dashboardSummaryChart"></canvas>
-        </div>
-    </div>
-
-    <!-- ตารางแสดงรายละเอียดการผลิต -->
-    <div class="card bg-dark text-white p-3 border-secondary">
-        <h6 class="text-info mb-3"><i class="fas fa-table me-2"></i>รายการแผนงานและการผลิต</h6>
-        <div class="table-responsive">
-            <table class="table table-dark table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Start Date</th>
-                        <th>Finish Date</th>
-                        <th>Line</th>
-                        <th>Part No.</th>
-                        <th>Lot No.</th>
-                        <th>Plan Qty</th>
-                        <th>Actual OK</th>
-                        <th>Progress</th>
-                    </tr>
-                </thead>
-                <tbody id="dashboardTableBody">
-                    <!-- ข้อมูลดึงมาแสดงด้วย JavaScript -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<script>
-// ฟังก์ชันตัวอย่างสำหรับเรนเดอร์กราฟภาพรวมหน้า Dashboard ด้วย Chart.js
-function renderDashboardChart() {
-    const ctx = document.getElementById('dashboardSummaryChart').getContext('2d');
-    
-    // ตัวอย่างข้อมูลจำลองสำหรับแสดงผลกราฟเปรียบเทียบ
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Line A / JP-040', 'Line C2 / JP-058'],
-            datasets: [
-                {
-                    label: 'Plan Qty',
-                    data: [150000, 70000],
-                    backgroundColor: '#0dcaf0',
-                    borderRadius: 4
-                },
-                {
-                    label: 'Actual OK',
-                    data: [180000, 90000],
-                    backgroundColor: '#198754',
-                    borderRadius: 4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { ticks: { color: '#fff' }, grid: { color: '#444' } },
-                y: { beginAtZero: true, ticks: { color: '#fff' }, grid: { color: '#444' } }
-            },
-            plugins: {
-                legend: { labels: { color: '#fff' } }
-            }
-        }
-    });
-}
-
-// เรียกใช้งานเมื่อโหลดหน้าเว็บ
-document.addEventListener("DOMContentLoaded", function() {
-    renderDashboardChart();
-});
-</script>
 
             <!-- TAB 2: CAPACITY -->
             <div class="tab-pane fade" id="tab-capacity">
@@ -1007,21 +943,14 @@ document.addEventListener("DOMContentLoaded", function() {
         tbody.appendChild(tr);
     });
 
-   const totalPlanEl = document.getElementById('dashTotalPlan');
+    const totalPlanEl = document.getElementById('dashTotalPlan');
     const totalActualEl = document.getElementById('dashTotalActual');
     const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
 
     if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
     if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-    
-    if (dashDiffBalanceEl) {
-        const diff = totalPlan - totalActual;
-        if (diff < 0) {
-            dashDiffBalanceEl.innerText = `เกิน ${Math.abs(diff).toLocaleString()}`;
-        } else {
-            dashDiffBalanceEl.innerText = diff.toLocaleString();
-        }
-    }
+    if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
+}
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
