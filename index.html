@@ -2312,6 +2312,15 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }); 
+        function deleteActualRecord(index) {
+    if (confirm("คุณต้องการลบประวัติการบันทึกการผลิตรายการนี้ใช่หรือไม่?")) {
+        actuals.splice(index, 1);
+        localStorage.setItem('sys_actuals', JSON.stringify(actuals));
+        if (typeof renderActuals === 'function') renderActuals();
+        if (typeof renderDashboard === 'function') renderDashboard();
+        alert("ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
+    }
+}
 </script>
 </body>
 </html>
