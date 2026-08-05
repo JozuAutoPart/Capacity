@@ -1773,9 +1773,11 @@ function deleteDelivery(id) {
     }
 }
 
-// --- TAB 8: DIE MAINTENANCE & PM ---
+// --- TAB 8: DIE MAINTENANCE & PM (แก้ไขให้แยกข้อมูลเฉพาะ BMS ไม่ปนกับ Material) ---
 function submitDieBm(e) {
     e.preventDefault();
+    
+    // ดึงค่าเฉพาะช่องฟอร์ม Die Maintenance
     const bm = {
         id: Date.now(),
         date: document.getElementById('bmDate').value,
@@ -1783,12 +1785,13 @@ function submitDieBm(e) {
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim()
     };
-    bms.push(bm);
     
-    // บันทึกลง LocalStorage
-    localStorage.setItem('sys_bms', JSON.stringify(bms));
-
-    // บันทึกลง Google Sheets (BMS)
+    // ใช้ตัวแปรเก็บข้อมูลเฉพาะของ BMS (เช่น sys_bms)
+    let bmsList = JSON.parse(localStorage.getItem('sys_bms')) || [];
+    bmsList.push(bm);
+    localStorage.setItem('sys_bms', JSON.stringify(bmsList));
+    
+    // บันทึกลง Google Sheets (ถ้ามีฟังก์ชันรองรับ)
     if (typeof saveToCloud === 'function') {
         saveToCloud('saveBms', bm);
     }
@@ -1798,28 +1801,15 @@ function submitDieBm(e) {
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
 }
 
-function resetDiePm(partNo) {
-    if(confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
-        actuals.forEach(a => {
-            if(a.partNo === partNo) a.pmReset = true;
-        });
-        if (typeof saveAll === 'function') {
-            saveAll();
-        }
-        renderDiePM();
-    }
-}
-
-// ฟังก์ชันสำหรับลบประวัติการแจ้งซ่อม (Breakdown) รายแถว
+// ฟังก์ชันลบประวัติเฉพาะหน้า BMS
 function deleteBmRecord(index) {
     if (confirm("คุณต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
-        // เนื่องจากตอนแสดงผลเราใช้ .slice().reverse() ตำแหน่ง index ในหน้าจอจะสลับกับในอาเรย์จริง
-        // จึงต้องคำนวณ index จริงในอาเรย์ bms ให้ถูกต้อง
-        const actualIndex = bms.length - 1 - index;
+        let bmsList = JSON.parse(localStorage.getItem('sys_bms')) || [];
+        const actualIndex = bmsList.length - 1 - index;
         
-        if (actualIndex >= 0 && actualIndex < bms.length) {
-            bms.splice(actualIndex, 1);
-            localStorage.setItem('sys_bms', JSON.stringify(bms));
+        if (actualIndex >= 0 && actualIndex < bmsList.length) {
+            bmsList.splice(actualIndex, 1);
+            localStorage.setItem('sys_bms', JSON.stringify(bmsList));
             
             renderDiePM();
             alert("✔ ลบประวัติการซ่อมเรียบร้อยแล้ว");
@@ -1835,12 +1825,15 @@ function renderDiePM() {
     pmTbody.innerHTML = '';
     bmTbody.innerHTML = '';
 
+    // คำนวณ Stroke ปกติ
     const dieStrokes = {};
-    actuals.forEach(a => {
-        if(a.pmReset) return;
-        if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
-        dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
-    });
+    if (typeof actuals !== 'undefined') {
+        actuals.forEach(a => {
+            if(a.pmReset) return;
+            if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
+            dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
+        });
+    }
 
     let pmDueCount = 0;
     let pmNearCount = 0;
@@ -1886,8 +1879,9 @@ function renderDiePM() {
     if (dueEl) dueEl.innerText = pmDueCount;
     if (nearEl) nearEl.innerText = pmNearCount;
 
-    // วนลูปแสดงประวัติซ่อมพร้อมเพิ่มปุ่มถังขยะในคอลัมน์ Action
-    bms.slice().reverse().forEach((b, index) => {
+    // ดึงเฉพาะข้อมูล bms มาแสดงผลในตารางประวัติซ่อม (ตัดปัญหาข้อมูล Material ปะปน)
+    let bmsList = JSON.parse(localStorage.getItem('sys_bms')) || [];
+    bmsList.slice().reverse().forEach((b, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${b.date || ''}</td>
