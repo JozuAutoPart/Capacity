@@ -1773,7 +1773,7 @@ function deleteDelivery(id) {
     }
 }
 
-       // --- TAB 8: DIE MAINTENANCE & PM ---
+      // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
     const bm = {
@@ -1783,11 +1783,17 @@ function submitDieBm(e) {
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim()
     };
-    bms.push(bm);
     
-    // บันทึกลง Google Sheets (BMS)
+    // ใช้ตัวแปรเฉพาะสำหรับเก็บประวัติซ่อมแม่พิมพ์ (ไม่ปะปนกับ Material)
+    if (typeof dieBms === 'undefined') {
+        window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+    }
+    dieBms.push(bm);
+    localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+    
+    // บันทึกลง Google Sheets ไปยังชีท DIE MAINTENANCE & PM โดยตรง
     if (typeof saveToCloud === 'function') {
-        saveToCloud('saveBms', bm);
+        saveToCloud('saveDieMaintenance', bm);
     }
 
     renderDiePM();
@@ -1829,7 +1835,6 @@ function renderDiePM() {
         const item = dieStrokes[partNo];
         const strokes = item.strokes;
         
-        // 🟢 เพิ่มบรรทัดนี้: ถ้ายังไม่ถึง 85% (สถานะ OK ปกติ) ให้ข้ามการแสดงผลไป ไม่ให้ขึ้นรกหน้าจอ
         if (strokes < PM_LIMIT * 0.85) return;
 
         const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
@@ -1867,18 +1872,43 @@ function renderDiePM() {
     if (dueEl) dueEl.innerText = pmDueCount;
     if (nearEl) nearEl.innerText = pmNearCount;
 
-    bms.slice().reverse().forEach(b => {
+    // ดึงข้อมูลเฉพาะจากตัวแปร dieBms มาแสดงผล (ตัดปัญหาข้อมูล Material ปะปน)
+    if (typeof dieBms === 'undefined') {
+        window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+    }
+    
+    dieBms.slice().reverse().forEach((b, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${b.date || ''}</td>
             <td class="fw-bold text-info">${b.partNo || ''}</td>
             <td class="text-danger">${b.problem || ''}</td>
             <td>${b.reporter || ''}</td>
+            <td class="text-center">
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteDieBmRecord(${index})" title="ลบรายการ">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
         `;
         bmTbody.appendChild(tr);
     });
 }
 
+// เพิ่มฟังก์ชันลบเฉพาะรายการของหน้า Die Maintenance
+function deleteDieBmRecord(index) {
+    if (confirm("คุณต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
+        if (typeof dieBms === 'undefined') {
+            window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+        }
+        const actualIndex = dieBms.length - 1 - index;
+        if (actualIndex >= 0 && actualIndex < dieBms.length) {
+            dieBms.splice(actualIndex, 1);
+            localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+            renderDiePM();
+            alert("✔ ลบประวัติเรียบร้อยแล้ว");
+        }
+    }
+}
         // --- EXPORT TO EXCEL (SheetJS) ---
         function exportToExcelXLSX(type) {
             let data = [];
