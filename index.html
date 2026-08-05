@@ -1424,7 +1424,7 @@ window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
      // ==========================================
-// 📌 ระบบจัดการ Q-Gate Inspection & History
+// 📌 ระบบจัดการ Q-Gate Inspection & History (อัปเดตระบบกรองตาม Line การผลิต)
 // ==========================================
 
 // ตั้งค่าวันที่ปัจจุบันเมื่อเปิดหน้าเว็บ
@@ -1432,7 +1432,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
     
-    // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
+    // โหลดข้อมูลประวัติ Q-Gate และเตรียมโหลด Line
     renderQGate();
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
@@ -1455,7 +1455,7 @@ function renderQGate() {
                         <td>${item.date ? item.date.split('T')[0] : ''}</td>
                         <td><small class="text-warning">${item.timeRange || '-'}</small></td>
                         <td>${item.inspector}</td>
-                        <td class="fw-bold">${item.partNo}</td>
+                        <td class="fw-bold">${item.partNo} ${item.line ? `<br><small class="badge bg-secondary">${item.line}</small>` : ''}</td>
                         <td>${item.totalQty}</td>
                         <td class="text-danger">${item.ngQty}</td>
                         <td class="text-success fw-bold">${item.passQty}</td>
@@ -1471,7 +1471,91 @@ function renderQGate() {
     }
 }
 
-// ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
+// 📌 ฟังก์ชันทำงานเมื่อพนักงานเปลี่ยน Line การผลิต (กรอง Part No. ให้แคบลง)
+function filterQGateParts() {
+    const selectedLine = document.getElementById('qgateLineFilter').value;
+    const selectPart = document.getElementById('qgatePartNo');
+    const wipBalanceEl = document.getElementById('qgateWipBalance');
+    
+    if (!selectPart) return;
+    
+    selectPart.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
+    if (wipBalanceEl) wipBalanceEl.innerText = 'คงเหลือใน WIP: 0 ชิ้น';
+
+    if (!selectedLine) return;
+
+    // คำนวณยอด WIP แยกตาม Line และ Part No.
+    const wipMap = {};
+
+    // 1. ยอดเข้าจาก actuals (กรองเฉพาะ Line ที่เลือก)
+    if (typeof actuals !== 'undefined') {
+        actuals.forEach(a => {
+            let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
+            let aLine = String(aLineRaw).split('/')[0].trim();
+            
+            if (aLine === selectedLine) {
+                let pNo = a.partNo || a['Part No.'] || '';
+                let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                if (pNo) {
+                    wipMap[pNo] = (wipMap[pNo] || 0) + qty;
+                }
+            }
+        });
+    }
+
+    // 2. หักยอดที่ตรวจ Q-Gate ไปแล้วของไลน์นั้นๆ
+    if (typeof qgate !== 'undefined') {
+        qgate.forEach(q => {
+            if (q.line === selectedLine) {
+                let pNo = q.partNo || q['Part No.'] || '';
+                let qty = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || 0));
+                if (pNo) {
+                    wipMap[pNo] = (wipMap[pNo] || 0) - qty;
+                }
+            }
+        });
+    }
+
+    // 3. แสดงเฉพาะตัวที่มี WIP คงเหลือมากกว่า 0 ในไลน์ที่เลือก
+    let hasItem = false;
+    Object.keys(wipMap).forEach(partNo => {
+        let currentWip = wipMap[partNo];
+        if (currentWip > 0) {
+            hasItem = true;
+            const opt = document.createElement('option');
+            opt.value = partNo;
+            opt.setAttribute('data-wip', currentWip);
+            opt.innerText = `${partNo} (คงเหลือใน WIP: ${currentWip.toLocaleString()} ชิ้น)`;
+            selectPart.appendChild(opt);
+        }
+    });
+
+    if (!hasItem) {
+        selectPart.innerHTML = '<option value="">-- ไม่พบ Part No. ที่มี WIP ใน Line นี้ --</option>';
+    }
+}
+
+// 📌 ฟังก์ชันอัปเดตยอดคงเหลือเมื่อเลือก Part No. แล้ว
+function updateQGateWipInfo() {
+    const selectPart = document.getElementById('qgatePartNo');
+    const wipBalanceEl = document.getElementById('qgateWipBalance');
+    const totalQtyInput = document.getElementById('qgateTotalQty');
+    
+    if (!selectPart) return;
+    
+    const selectedOption = selectPart.options[selectPart.selectedIndex];
+    const wipQty = selectedOption ? Number(selectedOption.getAttribute('data-wip') || 0) : 0;
+    
+    if (wipBalanceEl) {
+        wipBalanceEl.innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
+    }
+    if (totalQtyInput) {
+        totalQtyInput.max = wipQty;
+        totalQtyInput.placeholder = `สูงสุด ${wipQty} ชิ้น`;
+    }
+}
+
+// ฟังก์ชันบันทึกข้อมูล Q-Gate (บันทึก Line ติดไปกับข้อมูลด้วย)
 function submitQGateTransaction(e) {
     e.preventDefault();
     const date = document.getElementById('qgateDate').value;
@@ -1479,12 +1563,27 @@ function submitQGateTransaction(e) {
     const endTime = document.getElementById('qgateEndTime').value;
     const timeRange = `${startTime} - ${endTime}`;
     const inspector = document.getElementById('qgateInspector').value.trim();
+    const line = document.getElementById('qgateLineFilter').value;
     const partNo = document.getElementById('qgatePartNo').value;
     const totalQty = parseInt(document.getElementById('qgateTotalQty').value);
     const ngQty = parseInt(document.getElementById('qgateNgQty').value);
 
+    if (!line) {
+        alert("กรุณาเลือก Line การผลิตก่อน!");
+        return;
+    }
+
     if (!partNo) {
         alert("กรุณาเลือก Part No. จาก WIP ที่ต้องการตรวจ!");
+        return;
+    }
+
+    const selectPart = document.getElementById('qgatePartNo');
+    const selectedOption = selectPart.options[selectPart.selectedIndex];
+    const maxWip = Number(selectedOption ? selectedOption.getAttribute('data-wip') || 0 : 0);
+
+    if (totalQty > maxWip) {
+        alert(`จำนวนที่ตรวจสอบ (${totalQty.toLocaleString()}) ต้องไม่เกินยอดคงเหลือใน WIP (${maxWip.toLocaleString()})!`);
         return;
     }
 
@@ -1500,6 +1599,7 @@ function submitQGateTransaction(e) {
         date: date,
         timeRange: timeRange,
         inspector: inspector,
+        line: line,
         partNo: partNo,
         totalQty: totalQty,
         ngQty: ngQty,
@@ -1512,8 +1612,12 @@ function submitQGateTransaction(e) {
     }
 
     alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
+    
+    // รีเซ็ตฟอร์ม
     document.getElementById('qgateForm').reset();
     document.getElementById('qgateDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('qgatePartNo').innerHTML = '<option value="">-- กรุณาเลือก Line ก่อน --</option>';
+    document.getElementById('qgateWipBalance').innerText = 'คงเหลือใน WIP: 0 ชิ้น';
     
     renderQGate();
     if (typeof checkAndLoadWipForQGate === 'function') {
@@ -1528,57 +1632,26 @@ function deleteQGateItem(id) {
     if (password === "1234") {
         qgate = qgate.filter(item => item.id !== id);
         renderQGate();
-        if (typeof checkAndLoadWipForQGate === 'function') {
-            checkAndLoadWipForQGate();
+        
+        // รีเฟรชตัวเลือกใน Dropdown ใหม่
+        const currentLine = document.getElementById('qgateLineFilter').value;
+        if (currentLine) {
+            filterQGateParts();
         }
+        
         alert("ลบรายการ Q-Gate สำเร็จ");
     } else if (password !== null) {
         alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
     }
 }
 
-// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
+// ฟังก์ชันสำรอง (กรณีเรียกใช้งานแบบเดิม)
 function checkAndLoadWipForQGate() {
+    // ให้ระบบเคลียร์ค่ารอไว้เมื่อเปิดหน้า Tab
     const selectPart = document.getElementById('qgatePartNo');
-    if (!selectPart) return;
-    
-    selectPart.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
-
-    // คำนวณยอด WIP ปัจจุบันจาก actuals และ qgate
-    const wipMap = {};
-    
-    // ยอดเข้าจาก actuals
-    if (typeof actuals !== 'undefined') {
-        actuals.forEach(a => {
-            let pNo = a.partNo || a['Part No.'] || '';
-            let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-            if (pNo) {
-                wipMap[pNo] = (wipMap[pNo] || 0) + qty;
-            }
-        });
-    }
-
-    // หักยอดที่ตรวจ Q-Gate ไปแล้ว
-    if (typeof qgate !== 'undefined') {
-        qgate.forEach(q => {
-            let pNo = q.partNo || q['Part No.'] || '';
-            let qty = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || 0));
-            if (pNo) {
-                wipMap[pNo] = (wipMap[pNo] || 0) - qty;
-            }
-        });
-    }
-
-    // แสดงเฉพาะตัวที่มี WIP คงเหลือมากกว่า 0
-    Object.keys(wipMap).forEach(partNo => {
-        let currentWip = wipMap[partNo];
-        if (currentWip > 0) {
-            const opt = document.createElement('option');
-            opt.value = partNo;
-            opt.innerText = `${partNo} (คงเหลือใน WIP: ${currentWip.toLocaleString()} ชิ้น)`;
-            selectPart.appendChild(opt);
-        }
-    });
+    const lineFilter = document.getElementById('qgateLineFilter');
+    if (lineFilter) lineFilter.value = "";
+    if (selectPart) selectPart.innerHTML = '<option value="">-- กรุณาเลือก Line ก่อน --</option>';
 }
        // --- TAB 6: STOCK WIP & FG ---
         function getFgBalances() {
