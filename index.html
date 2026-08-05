@@ -880,20 +880,18 @@
             }
         }
 
-        // --- TAB 1: DASHBOARD ---
-        function filterDashboard(line, btn) {
-            currentFilterLine = line;
-            const buttons = btn.parentElement.querySelectorAll('button');
-            buttons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderDashboard();
-        }
+       // --- TAB 1: DASHBOARD ---
+let ppmChartInstance = null;
 
-    function renderDashboard() {
-    const tbody = document.getElementById('dashTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+function filterDashboard(line, btn) {
+    currentFilterLine = line;
+    const buttons = btn.parentElement.querySelectorAll('button');
+    buttons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderDashboard();
+}
 
+function renderDashboard() {
     let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => {
         const pLine = String(p.Line || p.line || '').trim();
         return pLine === String(currentFilterLine).trim();
@@ -901,12 +899,13 @@
 
     let totalPlan = 0;
     let totalActual = 0;
+    let totalNgFiltered = 0;
 
     filteredPlans.forEach(plan => {
         const planLine = String(plan.Line || plan.line || '').trim();
         const planPart = String(plan["Part No."] || plan.partNo || '').trim();
 
-        // กรองข้อมูลประวัติการผลิต โดยตัดเอาเฉพาะชื่อ Line หน้าเครื่องหมาย / มาเทียบ
+        // กรองข้อมูลประวัติการผลิต ตาม Line และ Part No.
         const actForPlan = actuals.filter(a => {
             let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
             let aLine = String(aLineRaw).split('/')[0].trim(); 
@@ -914,43 +913,26 @@
             return aLine === planLine && aPart === planPart;
         });
         
-        // รวมยอด Actual OK
+        // รวมยอด Actual OK และ NG
         const actualOkSum = actForPlan.reduce((sum, a) => {
             let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
             let val = Number(rawQty);
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
+        const actualNgSum = actForPlan.reduce((sum, a) => {
+            let rawNg = a["NG Qty"] !== undefined ? a["NG Qty"] : (a.ngQty !== undefined ? a.ngQty : 0);
+            let val = Number(rawNg);
+            return sum + (isNaN(val) ? 0 : val);
+        }, 0);
+
         const planQty = Number(plan["Plan Qty"] || plan.qty || 0);
         totalPlan += planQty;
         totalActual += actualOkSum;
-
-        const progress = planQty > 0 ? Math.min(100, Math.round((actualOkSum / planQty) * 100)) : 0;
-        
-        const startVal = plan.Start || plan.date || '-';
-        const finishVal = plan.Finish || plan.finish || startVal;
-        const lineVal = plan.Line || plan.line || '-';
-        const partVal = plan["Part No."] || plan.partNo || '-';
-        const lotVal = plan["Lot No."] || plan.lotNo || '-';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
-            <td>${plan.Finish ? plan.Finish.split('T')[0] : ''}</td>
-            <td><span class="badge bg-secondary">${lineVal}</span></td>
-            <td class="fw-bold text-info">${partVal}</td>
-            <td>${lotVal}</td>
-            <td>${planQty.toLocaleString()}</td>
-            <td class="text-success fw-bold">${actualOkSum.toLocaleString()}</td>
-            <td>
-                <div class="progress" style="height: 15px;">
-                    <div class="progress-bar ${progress >= 100 ? 'bg-success' : 'bg-info'}" role="progressbar" style="width: ${progress}%;">${progress}%</div>
-                </div>
-            </td>
-        `;
-        tbody.appendChild(tr);
+        totalNgFiltered += actualNgSum;
     });
 
+    // อัปเดตตัวเลขการ์ดสรุปด้านบน
     const totalPlanEl = document.getElementById('dashTotalPlan');
     const totalActualEl = document.getElementById('dashTotalActual');
     const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
@@ -958,6 +940,82 @@
     if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
     if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
     if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = Math.max(0, totalPlan - totalActual).toLocaleString();
+
+    // คำนวณและเรนเดอร์กราฟโดนัท PPM ตามฟิลเตอร์ไลน์ผลิต
+    renderDashboardPpmChart(totalActual, totalNgFiltered);
+}
+
+function renderDashboardPpmChart(totalProduction, totalNg) {
+    const targetPpm = 250;
+    const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
+
+    // อัปเดตข้อความสถิติ
+    const lblTotalProd = document.getElementById('lblTotalProd');
+    const lblTotalNg = document.getElementById('lblTotalNg');
+    const lblPpm = document.getElementById('lblActualPpm');
+    const badgeStatus = document.getElementById('badgePpmStatus');
+
+    if (lblTotalProd) lblTotalProd.innerText = totalProduction.toLocaleString();
+    if (lblTotalNg) lblTotalNg.innerText = totalNg.toLocaleString();
+    if (lblPpm) {
+        lblPpm.innerText = actualPpm.toLocaleString() + " PPM";
+        if (actualPpm <= targetPpm) {
+            lblPpm.className = "fw-bold text-success mb-0";
+            if (badgeStatus) {
+                badgeStatus.className = "badge bg-success fs-6";
+                badgeStatus.innerText = `Status: ผ่านเป้าหมาย (≤ ${targetPpm} PPM)`;
+            }
+        } else {
+            lblPpm.className = "fw-bold text-danger mb-0";
+            if (badgeStatus) {
+                badgeStatus.className = "badge bg-danger fs-6";
+                badgeStatus.innerText = `Status: เกินเป้าหมาย (> ${targetPpm} PPM)`;
+            }
+        }
+    }
+
+    // วาดกราฟโดนัท (Doughnut Chart)
+    const canvasEl = document.getElementById('defectPpmChart');
+    if (!canvasEl) return;
+    const ctx = canvasEl.getContext('2d');
+    
+    const goodQty = Math.max(0, totalProduction - totalNg);
+
+    if (ppmChartInstance) {
+        ppmChartInstance.destroy();
+    }
+
+    ppmChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Good Qty', 'NG Qty (ของเสีย)'],
+            datasets: [{
+                data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
+                backgroundColor: ['#28a745', '#dc3545'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#ffffff' }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.raw || 0;
+                            return ` ${label}: ${value.toLocaleString()} ชิ้น`;
+                        }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
 }
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
