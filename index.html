@@ -101,11 +101,7 @@
             <li class="nav-item">
                 <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button" onclick="renderDiePM(); renderBmsHistory();"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
             </li>
-            <li class="nav-item">
-               <button class="nav-link btn ..." onclick="switchTab('forecast')"><i class="fas fa-calendar-alt me-1"></i> Forecast</button>
-            </li>
         </ul>
-        
 
         <!-- Tab Contents -->
         <div class="tab-content" id="mainTabsContent">
@@ -121,7 +117,6 @@
                         <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C1', this)">Line C1</button>
                         <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C2', this)">Line C2</button>
                         <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C3', this)">Line C3</button>
-                  
                     </div>
                 </div>
 
@@ -145,12 +140,7 @@
                         </div>
                     </div>
                 </div>
-<div id="tab-forecast" class="tab-content" style="display: none;">
-    <!-- เอาโค้ดฟอร์มและตาราง Forecast ทั้งหมดมาวางไว้ตรงนี้ -->
-    <div class="row">
-        <!-- ฟอร์มและตาราง Forecast -->
-    </div>
-</div>
+
                 <div class="card p-3">
                     <div class="table-responsive">
                         <table class="table table-dark table-hover align-middle m-0">
@@ -171,67 +161,7 @@
                     </div>
                 </div>
             </div>
-<div class="card bg-dark text-white mt-4 p-3 border-secondary">
-    <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>รายงานเปรียบเทียบการผลิตจริง (Actual) กับแผนพยากรณ์ (Forecast)</h5>
-    <div class="table-responsive">
-        <table class="table table-dark table-striped table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>Part No.</th>
-                    <th class="text-end">Forecast Qty</th>
-                    <th class="text-end">Actual (OK)</th>
-                    <th class="text-end">Diff (Balance)</th>
-                    <th class="text-center">Achievement (%)</th>
-                </tr>
-            </thead>
-            <tbody id="dashboardComparisonTableBody">
-                <!-- ข้อมูลจะถูก render อัตโนมัติจาก JavaScript -->
-            </tbody>
-        </table>
-    </div>
-</div>
-            <div class="row">
-    <!-- ฟอร์มบันทึก Forecast -->
-    <div class="col-md-4">
-        <div class="card bg-dark text-white p-3 border-secondary">
-            <h5>บันทึกแผน Forecast</h5>
-            <form id="forecastForm" onsubmit="submitForecast(event)">
-                <div class="mb-2">
-                    <label>วันที่ / เดือน</label>
-                    <input type="date" id="fcDate" class="form-control bg-secondary text-white border-0" required>
-                </div>
-                <div class="mb-2">
-                    <label>Part No.</label>
-                    <input type="text" id="fcPartNo" class="form-control bg-secondary text-white border-0" placeholder="เช่น 17154-0T040" required>
-                </div>
-                <div class="mb-3">
-                    <label>จำนวน Forecast Qty</label>
-                    <input type="number" id="fcQty" class="form-control bg-secondary text-white border-0" value="0" required>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">บันทึก Forecast</button>
-            </form>
-        </div>
-    </div>
-    <!-- ตารางแสดงรายการ Forecast -->
-    <div class="col-md-8">
-        <div class="card bg-dark text-white p-3 border-secondary">
-            <h5>รายการ Forecast ทั้งหมด</h5>
-            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                <table class="table table-dark table-striped">
-                    <thead>
-                        <tr>
-                            <th>วันที่</th>
-                            <th>Part No.</th>
-                            <th class="text-end">Forecast Qty</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="forecastTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+
             <!-- TAB 2: CAPACITY -->
             <div class="tab-pane fade" id="tab-capacity">
                 <div class="card p-3 mb-3">
@@ -875,76 +805,7 @@
             console.error("Error loading data from cloud:", error);
         }
     }
-let forecasts = [];
 
-// ฟังก์ชันโหลดข้อมูล Forecast จาก Google Sheets
-function loadForecastsFromCloud() {
-    fetch(CLOUD_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: "getForecasts" })
-    })
-    .then(res => res.json())
-    .then(res => {
-        if (res.status === "success" && Array.isArray(res.data)) {
-            forecasts = res.data;
-            renderForecastTable();
-            renderDashboardSummary(); // อัปเดตหน้า Dashboard ทันทีที่โหลดเสร็จ
-        }
-    })
-    .catch(err => console.error("Error loading Forecasts:", err));
-}
-
-// ฟังก์ชันบันทึก Forecast
-function submitForecast(e) {
-    e.preventDefault();
-    const fc = {
-        id: Date.now(),
-        date: document.getElementById('fcDate').value,
-        partNo: document.getElementById('fcPartNo').value.trim(),
-        forecastQty: Number(document.getElementById('fcQty').value) || 0
-    };
-    
-    forecasts.push(fc);
-    
-    if (typeof saveToCloud === 'function') {
-        saveToCloud('saveForecast', fc);
-    }
-
-    renderForecastTable();
-    renderDashboardSummary();
-    document.getElementById('forecastForm').reset();
-    document.getElementById('fcDate').value = new Date().toISOString().split('T')[0];
-}
-
-function renderForecastTable() {
-    const tbody = document.getElementById('forecastTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    forecasts.forEach((f, index) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${f.date || ''}</td>
-            <td class="fw-bold text-info">${f.partNo || ''}</td>
-            <td class="text-end">${Number(f.forecastQty || 0).toLocaleString()}</td>
-            <td class="text-center">
-                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteForecast(${index})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function deleteForecast(index) {
-    if (confirm("ต้องการลบข้อมูล Forecast รายการนี้ใช่หรือไม่?")) {
-        forecasts.splice(index, 1);
-        renderForecastTable();
-        renderDashboardSummary();
-        alert("✔ ลบข้อมูลเรียบร้อย");
-    }
-}
         const PM_LIMIT = 40000;
         const MC_MAX_CAPACITY = 50000;
 
@@ -2501,61 +2362,6 @@ function deleteActuals(index) {
         
         alert("✔ ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
     }
-}
-        function renderDashboardSummary() {
-    // 1. คำนวณยอดรวมภาพรวมการ์ดบน Dashboard
-    let totalForecast = forecasts.reduce((sum, f) => sum + Number(f.forecastQty || 0), 0);
-    let totalActual = actuals.reduce((sum, a) => sum + Number(a.qty || 0), 0);
-    let diffBalance = totalActual - totalForecast;
-
-    // อัปเดตตัวเลขลงในการ์ด Dashboard (อ้างอิงตาม ID ของการ์ดเดิมหรือปรับเพิ่ม ID)
-    const cardPlan = document.getElementById('dashTotalPlan'); // หรือการ์ด Plan เดิม
-    const cardActual = document.getElementById('dashTotalActual');
-    const cardDiff = document.getElementById('dashDiffBalance');
-
-    if (cardActual) cardActual.innerText = totalActual.toLocaleString();
-    if (cardDiff) {
-        cardDiff.innerText = diffBalance.toLocaleString();
-        cardDiff.className = diffBalance >= 0 ? "text-success fw-bold" : "text-danger fw-bold";
-    }
-
-    // 2. สร้างตารางเปรียบเทียบ Actual vs Forecast ราย Part No. โชว์ที่หน้า Dashboard
-    const dashTableBody = document.getElementById('dashboardComparisonTableBody');
-    if (!dashTableBody) return;
-    dashTableBody.innerHTML = '';
-
-    // รวมกลุ่มข้อมูลตาม Part No.
-    const partSummary = {};
-
-    forecasts.forEach(f => {
-        if (!partSummary[f.partNo]) partSummary[f.partNo] = { forecast: 0, actual: 0 };
-        partSummary[f.partNo].forecast += Number(f.forecastQty || 0);
-    });
-
-    actuals.forEach(a => {
-        if (!partSummary[a.partNo]) partSummary[a.partNo] = { forecast: 0, actual: 0 };
-        partSummary[a.partNo].actual += Number(a.qty || 0);
-    });
-
-    Object.keys(partSummary).forEach(partNo => {
-        const item = partSummary[partNo];
-        const diff = item.actual - item.forecast;
-        const percent = item.forecast > 0 ? Math.round((item.actual / item.forecast) * 100) : (item.actual > 0 ? 100 : 0);
-
-        let badgeClass = "bg-success";
-        if (percent < 80) badgeClass = "bg-danger";
-        else if (percent < 100) badgeClass = "bg-warning text-dark";
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="fw-bold text-info">${partNo}</td>
-            <td class="text-end">${item.forecast.toLocaleString()}</td>
-            <td class="text-end">${item.actual.toLocaleString()}</td>
-            <td class="text-end ${diff >= 0 ? 'text-success' : 'text-danger'}">${diff >= 0 ? '+' + diff.toLocaleString() : diff.toLocaleString()}</td>
-            <td class="text-center"><span class="badge ${badgeClass}">${percent}%</span></td>
-        `;
-        dashTableBody.appendChild(tr);
-    });
 }
 </script>
 </body>
