@@ -1773,7 +1773,7 @@ function deleteDelivery(id) {
     }
 }
 
-       // --- TAB 8: DIE MAINTENANCE & PM ---
+// --- TAB 8: DIE MAINTENANCE & PM ---
 function submitDieBm(e) {
     e.preventDefault();
     const bm = {
@@ -1785,6 +1785,9 @@ function submitDieBm(e) {
     };
     bms.push(bm);
     
+    // บันทึกลง LocalStorage
+    localStorage.setItem('sys_bms', JSON.stringify(bms));
+
     // บันทึกลง Google Sheets (BMS)
     if (typeof saveToCloud === 'function') {
         saveToCloud('saveBms', bm);
@@ -1804,6 +1807,23 @@ function resetDiePm(partNo) {
             saveAll();
         }
         renderDiePM();
+    }
+}
+
+// ฟังก์ชันสำหรับลบประวัติการแจ้งซ่อม (Breakdown) รายแถว
+function deleteBmRecord(index) {
+    if (confirm("คุณต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
+        // เนื่องจากตอนแสดงผลเราใช้ .slice().reverse() ตำแหน่ง index ในหน้าจอจะสลับกับในอาเรย์จริง
+        // จึงต้องคำนวณ index จริงในอาเรย์ bms ให้ถูกต้อง
+        const actualIndex = bms.length - 1 - index;
+        
+        if (actualIndex >= 0 && actualIndex < bms.length) {
+            bms.splice(actualIndex, 1);
+            localStorage.setItem('sys_bms', JSON.stringify(bms));
+            
+            renderDiePM();
+            alert("✔ ลบประวัติการซ่อมเรียบร้อยแล้ว");
+        }
     }
 }
 
@@ -1829,7 +1849,6 @@ function renderDiePM() {
         const item = dieStrokes[partNo];
         const strokes = item.strokes;
         
-        // 🟢 เพิ่มบรรทัดนี้: ถ้ายังไม่ถึง 85% (สถานะ OK ปกติ) ให้ข้ามการแสดงผลไป ไม่ให้ขึ้นรกหน้าจอ
         if (strokes < PM_LIMIT * 0.85) return;
 
         const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
@@ -1867,18 +1886,23 @@ function renderDiePM() {
     if (dueEl) dueEl.innerText = pmDueCount;
     if (nearEl) nearEl.innerText = pmNearCount;
 
-    bms.slice().reverse().forEach(b => {
+    // วนลูปแสดงประวัติซ่อมพร้อมเพิ่มปุ่มถังขยะในคอลัมน์ Action
+    bms.slice().reverse().forEach((b, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${b.date || ''}</td>
             <td class="fw-bold text-info">${b.partNo || ''}</td>
             <td class="text-danger">${b.problem || ''}</td>
             <td>${b.reporter || ''}</td>
+            <td class="text-center">
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteBmRecord(${index})" title="ลบรายการซ่อม">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
         `;
         bmTbody.appendChild(tr);
     });
 }
-
         // --- EXPORT TO EXCEL (SheetJS) ---
         function exportToExcelXLSX(type) {
             let data = [];
