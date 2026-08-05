@@ -101,7 +101,11 @@
             <li class="nav-item">
                 <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button" onclick="renderDiePM(); renderBmsHistory();"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
             </li>
+            <li class="nav-item">
+               <button class="nav-link btn ..." onclick="switchTab('forecast')"><i class="fas fa-calendar-alt me-1"></i> Forecast</button>
+            </li>
         </ul>
+        
 
         <!-- Tab Contents -->
         <div class="tab-content" id="mainTabsContent">
@@ -117,6 +121,7 @@
                         <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C1', this)">Line C1</button>
                         <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C2', this)">Line C2</button>
                         <button type="button" class="btn btn-outline-info btn-sm" onclick="filterDashboard('Line C3', this)">Line C3</button>
+                  
                     </div>
                 </div>
 
@@ -140,7 +145,12 @@
                         </div>
                     </div>
                 </div>
-
+<div id="tab-forecast" class="tab-content" style="display: none;">
+    <!-- เอาโค้ดฟอร์มและตาราง Forecast ทั้งหมดมาวางไว้ตรงนี้ -->
+    <div class="row">
+        <!-- ฟอร์มและตาราง Forecast -->
+    </div>
+</div>
                 <div class="card p-3">
                     <div class="table-responsive">
                         <table class="table table-dark table-hover align-middle m-0">
