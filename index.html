@@ -2358,6 +2358,34 @@ function deleteActuals(index) {
         alert("✔ ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
     }
 }
+        // ฟังก์ชันสำหรับลบประวัติการซ่อมรายแถว (รองรับการลบบน Cloud และ LocalStorage)
+function deleteBmRecord(index) {
+    if (confirm("คุณต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
+        // คำนวณ index จริงเนื่องจากเราใช้ .slice().reverse()
+        const actualIndex = bms.length - 1 - index;
+        
+        if (actualIndex >= 0 && actualIndex < bms.length) {
+            const deletedItem = bms[actualIndex];
+            
+            // 1. ลบออกจากอาเรย์ในเครื่อง
+            bms.splice(actualIndex, 1);
+            
+            // 2. บันทึก LocalStorage ใหม่
+            localStorage.setItem('sys_bms', JSON.stringify(bms));
+            
+            // 3. ส่งคำสั่งไปลบบน Cloud (Google Sheets) ถ้ามีฟังก์ชันรองรับ
+            if (typeof saveToCloud === 'function' && deletedItem.id) {
+                saveToCloud('deleteBms', { id: deletedItem.id });
+            } else if (typeof saveAll === 'function') {
+                saveAll();
+            }
+            
+            // 4. รีเฟรชตารางแสดงผลใหม่
+            renderDiePM();
+            alert("✔ ลบประวัติการซ่อมเรียบร้อยแล้ว");
+        }
+    }
+}
 </script>
 </body>
 </html>
