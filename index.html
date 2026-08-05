@@ -1909,58 +1909,58 @@ function deleteDieBmRecord(index) {
         }
     }
 }
-        // --- EXPORT TO EXCEL (SheetJS) ---
+       // --- EXPORT TO EXCEL (SheetJS) ---
 function exportToExcelXLSX(type) {
     let data = [];
     let fileName = 'export.xlsx';
 
     if(type === 'plans') {
         data = plans.map(p => ({
-            'Start Date': p.start || p.startDate || p.date || '',
-            'Finish Date': p.finish || p.finishDate || '',
-            'Line': p.line || '',
-            'Part No.': p.partNo || '',
-            'Lot No.': p.lotNo || '',
-            'Plan Qty': p.planQty || p.qty || 0
+            'Start Date': p.Start || p.start || p.startDate || p.date || '',
+            'Finish Date': p.Finish || p.finish || p.finishDate || '',
+            'Line': p.Line || p.line || '',
+            'Part No.': p['Part No.'] || p.partNo || '',
+            'Lot No.': p['Lot No.'] || p.lotNo || '',
+            'Plan Qty': p['Plan Qty'] || p.planQty || p.qty || 0
         }));
         fileName = 'Production_Plans.xlsx';
     } else if(type === 'actuals') {
         data = actuals.map(a => ({
-            'Date': a.date,
-            'Operator': a.operator,
-            'Line': a.line,
-            'Machine No.': a.mcNo,
-            'Part No.': a.partNo,
-            'Lot No.': a.lotNo,
-            'OK Qty': a.qty,
-            'NG Qty': a.ngQty,
-            'Remark': a.remark
+            'Date': a.Date || a.date,
+            'Operator': a.Operator || a.operator,
+            'Line': a.Line || a.line,
+            'Machine No.': a['Machine No.'] || a.mcNo,
+            'Part No.': a['Part No.'] || a.partNo,
+            'Lot No.': a['Lot No.'] || a.lotNo,
+            'OK Qty': a['OK Qty'] || a.qty,
+            'NG Qty': a['NG Qty'] || a.ngQty,
+            'Remark': a.Remark || a.remark
         }));
         fileName = 'Production_Actuals.xlsx';
     } else if(type === 'qgate') {
         data = qgate.map(q => ({
-            'Date': q.date,
-            'Inspector': q.inspector,
-            'Part No.': q.partNo,
-            'Checked Qty': q.checkQty,
-            'NG Qty': q.ngQty,
-            'Pass Qty (FG)': q.passQty
+            'Date': q.Date || q.date,
+            'Inspector': q.Inspector || q.inspector,
+            'Part No.': q['Part No.'] || q.partNo,
+            'Checked Qty': q['Checked Qty'] || q.checkQty,
+            'NG Qty': q['NG Qty'] || q.ngQty,
+            'Pass Qty (FG)': q['Pass Qty (FG)'] || q.passQty
         }));
         fileName = 'QGate_Inspections.xlsx';
     } else if(type === 'delivery') {
         data = deliveries.map(d => ({
-            'Delivery Date': d.date,
-            'Part No.': d.partNo,
-            'Delivery Qty': d.qty,
-            'Customer': d.customer,
-            'Remark / DO': d.remark
+            'Delivery Date': d['Delivery Date'] || d.date,
+            'Part No.': d['Part No.'] || d.partNo,
+            'Delivery Qty': d['Delivery Qty'] || d.qty,
+            'Customer': d.Customer || d.customer,
+            'Remark / DO': d['Remark / DO'] || d.remark
         }));
         fileName = 'Delivery_Log.xlsx';
     } else if(type === 'stock_fg') {
-        const partsSet = new Set([...qgate.map(q => q.partNo), ...deliveries.map(d => d.partNo)]);
+        const partsSet = new Set([...qgate.map(q => q.partNo || q['Part No.']), ...deliveries.map(d => d.partNo || d['Part No.'])]);
         partsSet.forEach(partNo => {
-            const fgPass = qgate.filter(q => q.partNo === partNo).reduce((sum, q) => sum + Number(q.passQty), 0);
-            const fgDelivered = deliveries.filter(d => d.partNo === partNo).reduce((sum, d) => sum + Number(d.qty), 0);
+            const fgPass = qgate.filter(q => (q.partNo === partNo || q['Part No.'] === partNo)).reduce((sum, q) => sum + Number(q['Pass Qty (FG)'] || q.passQty || 0), 0);
+            const fgDelivered = deliveries.filter(d => (d.partNo === partNo || d['Part No.'] === partNo)).reduce((sum, d) => sum + Number(d['Delivery Qty'] || d.qty || 0), 0);
             const currentFg = fgPass - fgDelivered;
             data.push({
                 'Part No.': partNo,
