@@ -495,13 +495,28 @@
                         <label class="form-label small">ชื่อพนักงานตรวจสอบ (Inspector)</label>
                         <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น นายสมศักดิ์ (QC-01)" required>
                     </div>
+
+                    <!-- 📌 เพิ่มตัวเลือก Line การผลิตเพื่อกรอง Part No. ให้แคบลง -->
                     <div class="mb-2">
-                        <label class="form-label small">Part No. (ตรวจจาก WIP)</label>
-                        <select id="qgatePartNo" class="form-select form-select-sm" required>
-                            <option value="">-- เลือก Part No. ที่มีใน WIP --</option>
+                        <label class="form-label small text-warning fw-bold">1. เลือก Line การผลิต</label>
+                        <select id="qgateLineFilter" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="filterQGateParts()" required>
+                            <option value="">-- เลือก Line ก่อน --</option>
+                            <option value="Line A">Line A</option>
+                            <option value="Line Q">Line Q</option>
+                            <option value="Line C1">Line C1</option>
+                            <option value="Line C2">Line C2</option>
+                            <option value="Line C3">Line C3</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">2. Part No. (ตรวจจาก WIP)</label>
+                        <select id="qgatePartNo" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="updateQGateWipInfo()" required>
+                            <option value="">-- กรุณาเลือก Line ก่อน --</option>
                         </select>
                         <small class="text-muted" id="qgateWipBalance">คงเหลือใน WIP: 0 ชิ้น</small>
                     </div>
+
                     <div class="mb-2">
                         <label class="form-label small">จำนวนที่ตรวจสอบ</label>
                         <input type="number" id="qgateTotalQty" class="form-control form-control-sm" placeholder="0" min="1" required>
@@ -1629,6 +1644,53 @@ function checkAndLoadWipForQGate() {
             selectPart.appendChild(opt);
         }
     });
+}
+        // ฟังก์ชันทำงานเมื่อพนักงานเปลี่ยน Line
+function filterQGateParts() {
+    const selectedLine = document.getElementById('qgateLineFilter').value;
+    const partSelect = document.getElementById('qgatePartSelect');
+    
+    // ล้างตัวเลือกเก่า
+    partSelect.innerHTML = '<option value="">-- เลือก Part No. --</option>';
+    document.getElementById('qgateWipHint').innerText = 'คงเหลือใน WIP: 0 ชิ้น';
+
+    if (!selectedLine) return;
+
+    // กรองหา Part No. ที่มีอยู่ใน WIP หรือ Actual Production เฉพาะ Line ที่เลือก
+    // (สมมติฐานดึงจากข้อมูล WIP หรือ Actuals ที่ผูกกับ Line นั้นๆ)
+    const availableParts = new Set();
+    
+    // ตัวอย่างการค้นหาจากรายการ Actuals หรือ Stock WIP ที่ตรงกับ Line
+    if (typeof actuals !== 'undefined') {
+        actuals.forEach(a => {
+            let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
+            let aLine = String(aLineRaw).split('/')[0].trim();
+            if (aLine === selectedLine) {
+                let pNo = a["Part No."] || a.partNo;
+                if (pNo) availableParts.add(pNo);
+            }
+        });
+    }
+
+    // เติมตัวเลือก Part No. ลงใน Dropdown
+    if (availableParts.size === 0) {
+        partSelect.innerHTML = '<option value="">-- ไม่พบ Part No. ใน Line นี้ --</option>';
+    } else {
+        availableParts.forEach(partNo => {
+            const opt = document.createElement('option');
+            opt.value = partNo;
+            opt.innerText = partNo;
+            partSelect.appendChild(opt);
+        });
+    }
+}
+
+function updateQGateWipInfo() {
+    const selectedPart = document.getElementById('qgatePartSelect').value;
+    // คำนวณจำนวนคงเหลือใน WIP ของพาร์ทนั้นๆ มาแสดงที่ hint
+    let wipQty = 0; 
+    // ใส่โค้ดคำนวณยอดคงเหลือ WIP ตามจริงตรงนี้ได้เลยครับ
+    document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
 }
        // --- TAB 6: STOCK WIP & FG ---
         function getFgBalances() {
