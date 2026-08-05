@@ -1773,7 +1773,7 @@ function deleteDelivery(id) {
     }
 }
 
-// --- TAB 8: DIE MAINTENANCE & PM (แก้ไขให้แยกข้อมูลเฉพาะ BMS ไม่ปนกับ Material) ---
+// --- TAB 8: DIE MAINTENANCE & PM (เปลี่ยนชื่อเป็น DIE MAINTENANCE & PM) ---
 function submitDieBm(e) {
     e.preventDefault();
     
@@ -1786,14 +1786,14 @@ function submitDieBm(e) {
         reporter: document.getElementById('bmReporter').value.trim()
     };
     
-    // ใช้ตัวแปรเก็บข้อมูลเฉพาะของ BMS (เช่น sys_bms)
-    let bmsList = JSON.parse(localStorage.getItem('sys_bms')) || [];
+    // ใช้ตัวแปรเก็บข้อมูลเฉพาะของ Die Maintenance (เช่น sys_die_maintenance)
+    let bmsList = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
     bmsList.push(bm);
-    localStorage.setItem('sys_bms', JSON.stringify(bmsList));
+    localStorage.setItem('sys_die_maintenance', JSON.stringify(bmsList));
     
-    // บันทึกลง Google Sheets (ถ้ามีฟังก์ชันรองรับ)
+    // ส่งข้อมูลไปบันทึกใน Google Sheets ด้วย Action ชื่อใหม่ 'saveDieMaintenance'
     if (typeof saveToCloud === 'function') {
-        saveToCloud('saveBms', bm);
+        saveToCloud('saveDieMaintenance', bm);
     }
 
     renderDiePM();
@@ -1801,15 +1801,15 @@ function submitDieBm(e) {
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
 }
 
-// ฟังก์ชันลบประวัติเฉพาะหน้า BMS
+// ฟังก์ชันลบประวัติเฉพาะหน้า Die Maintenance
 function deleteBmRecord(index) {
     if (confirm("คุณต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
-        let bmsList = JSON.parse(localStorage.getItem('sys_bms')) || [];
+        let bmsList = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
         const actualIndex = bmsList.length - 1 - index;
         
         if (actualIndex >= 0 && actualIndex < bmsList.length) {
             bmsList.splice(actualIndex, 1);
-            localStorage.setItem('sys_bms', JSON.stringify(bmsList));
+            localStorage.setItem('sys_die_maintenance', JSON.stringify(bmsList));
             
             renderDiePM();
             alert("✔ ลบประวัติการซ่อมเรียบร้อยแล้ว");
@@ -1879,8 +1879,8 @@ function renderDiePM() {
     if (dueEl) dueEl.innerText = pmDueCount;
     if (nearEl) nearEl.innerText = pmNearCount;
 
-    // ดึงเฉพาะข้อมูล bms มาแสดงผลในตารางประวัติซ่อม (ตัดปัญหาข้อมูล Material ปะปน)
-    let bmsList = JSON.parse(localStorage.getItem('sys_bms')) || [];
+    // ดึงข้อมูลเฉพาะจาก Key 'sys_die_maintenance' มาแสดงผล
+    let bmsList = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
     bmsList.slice().reverse().forEach((b, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
