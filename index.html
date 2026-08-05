@@ -1802,21 +1802,30 @@ function submitDieBm(e) {
 }
 
 // ฟังก์ชันลบประวัติเฉพาะหน้า Die Maintenance
+// ฟังก์ชันลบประวัติเฉพาะหน้า Die Maintenance (รองรับการลบบน Google Sheets)
 function deleteBmRecord(index) {
     if (confirm("คุณต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
         let bmsList = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
         const actualIndex = bmsList.length - 1 - index;
         
         if (actualIndex >= 0 && actualIndex < bmsList.length) {
+            const deletedItem = bmsList[actualIndex];
+            
+            // 1. ลบออกจากอาเรย์ในเครื่อง
             bmsList.splice(actualIndex, 1);
             localStorage.setItem('sys_die_maintenance', JSON.stringify(bmsList));
             
+            // 2. ส่งคำสั่งไปลบบน Google Sheets
+            if (typeof saveToCloud === 'function' && deletedItem.id) {
+                saveToCloud('deleteDieMaintenance', { id: deletedItem.id });
+            }
+            
+            // 3. รีเฟรชตารางแสดงผลใหม่
             renderDiePM();
             alert("✔ ลบประวัติการซ่อมเรียบร้อยแล้ว");
         }
     }
 }
-
 function renderDiePM() {
     const pmTbody = document.getElementById('diePmTableBody');
     const bmTbody = document.getElementById('dieBmTableBody');
