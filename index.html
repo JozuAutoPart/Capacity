@@ -1773,11 +1773,9 @@ function deleteDelivery(id) {
     }
 }
 
-// --- TAB 8: DIE MAINTENANCE & PM (เปลี่ยนชื่อเป็น DIE MAINTENANCE & PM) ---
+       // --- TAB 8: DIE MAINTENANCE & PM ---
 function submitDieBm(e) {
     e.preventDefault();
-    
-    // ดึงค่าเฉพาะช่องฟอร์ม Die Maintenance
     const bm = {
         id: Date.now(),
         date: document.getElementById('bmDate').value,
@@ -1785,15 +1783,11 @@ function submitDieBm(e) {
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim()
     };
+    bms.push(bm);
     
-    // ใช้ตัวแปรเก็บข้อมูลเฉพาะของ Die Maintenance (เช่น sys_die_maintenance)
-    let bmsList = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-    bmsList.push(bm);
-    localStorage.setItem('sys_die_maintenance', JSON.stringify(bmsList));
-    
-    // ส่งข้อมูลไปบันทึกใน Google Sheets ด้วย Action ชื่อใหม่ 'saveDieMaintenance'
+    // บันทึกลง Google Sheets (BMS)
     if (typeof saveToCloud === 'function') {
-        saveToCloud('saveDieMaintenance', bm);
+        saveToCloud('saveBms', bm);
     }
 
     renderDiePM();
@@ -1801,31 +1795,18 @@ function submitDieBm(e) {
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
 }
 
-// ฟังก์ชันลบประวัติเฉพาะหน้า Die Maintenance
-// ฟังก์ชันลบประวัติเฉพาะหน้า Die Maintenance (รองรับการลบบน Google Sheets)
-function deleteBmRecord(index) {
-    if (confirm("คุณต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
-        let bmsList = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-        const actualIndex = bmsList.length - 1 - index;
-        
-        if (actualIndex >= 0 && actualIndex < bmsList.length) {
-            const deletedItem = bmsList[actualIndex];
-            
-            // 1. ลบออกจากอาเรย์ในเครื่อง
-            bmsList.splice(actualIndex, 1);
-            localStorage.setItem('sys_die_maintenance', JSON.stringify(bmsList));
-            
-            // 2. ส่งคำสั่งไปลบบน Google Sheets
-            if (typeof saveToCloud === 'function' && deletedItem.id) {
-                saveToCloud('deleteDieMaintenance', { id: deletedItem.id });
-            }
-            
-            // 3. รีเฟรชตารางแสดงผลใหม่
-            renderDiePM();
-            alert("✔ ลบประวัติการซ่อมเรียบร้อยแล้ว");
+function resetDiePm(partNo) {
+    if(confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
+        actuals.forEach(a => {
+            if(a.partNo === partNo) a.pmReset = true;
+        });
+        if (typeof saveAll === 'function') {
+            saveAll();
         }
+        renderDiePM();
     }
 }
+
 function renderDiePM() {
     const pmTbody = document.getElementById('diePmTableBody');
     const bmTbody = document.getElementById('dieBmTableBody');
@@ -1834,15 +1815,12 @@ function renderDiePM() {
     pmTbody.innerHTML = '';
     bmTbody.innerHTML = '';
 
-    // คำนวณ Stroke ปกติ
     const dieStrokes = {};
-    if (typeof actuals !== 'undefined') {
-        actuals.forEach(a => {
-            if(a.pmReset) return;
-            if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
-            dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
-        });
-    }
+    actuals.forEach(a => {
+        if(a.pmReset) return;
+        if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
+        dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
+    });
 
     let pmDueCount = 0;
     let pmNearCount = 0;
@@ -1851,6 +1829,7 @@ function renderDiePM() {
         const item = dieStrokes[partNo];
         const strokes = item.strokes;
         
+        // 🟢 เพิ่มบรรทัดนี้: ถ้ายังไม่ถึง 85% (สถานะ OK ปกติ) ให้ข้ามการแสดงผลไป ไม่ให้ขึ้นรกหน้าจอ
         if (strokes < PM_LIMIT * 0.85) return;
 
         const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
@@ -1888,24 +1867,18 @@ function renderDiePM() {
     if (dueEl) dueEl.innerText = pmDueCount;
     if (nearEl) nearEl.innerText = pmNearCount;
 
-    // ดึงข้อมูลเฉพาะจาก Key 'sys_die_maintenance' มาแสดงผล
-    let bmsList = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-    bmsList.slice().reverse().forEach((b, index) => {
+    bms.slice().reverse().forEach(b => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${b.date || ''}</td>
             <td class="fw-bold text-info">${b.partNo || ''}</td>
             <td class="text-danger">${b.problem || ''}</td>
             <td>${b.reporter || ''}</td>
-            <td class="text-center">
-                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteBmRecord(${index})" title="ลบรายการซ่อม">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
         `;
         bmTbody.appendChild(tr);
     });
 }
+
         // --- EXPORT TO EXCEL (SheetJS) ---
         function exportToExcelXLSX(type) {
             let data = [];
@@ -2359,34 +2332,6 @@ function deleteActuals(index) {
         if (typeof renderWipStock === 'function') renderWipStock();
         
         alert("✔ ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
-    }
-}
-        // ฟังก์ชันสำหรับลบประวัติการซ่อมรายแถว (รองรับการลบบน Cloud และ LocalStorage)
-function deleteBmRecord(index) {
-    if (confirm("คุณต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
-        // คำนวณ index จริงเนื่องจากเราใช้ .slice().reverse()
-        const actualIndex = bms.length - 1 - index;
-        
-        if (actualIndex >= 0 && actualIndex < bms.length) {
-            const deletedItem = bms[actualIndex];
-            
-            // 1. ลบออกจากอาเรย์ในเครื่อง
-            bms.splice(actualIndex, 1);
-            
-            // 2. บันทึก LocalStorage ใหม่
-            localStorage.setItem('sys_bms', JSON.stringify(bms));
-            
-            // 3. ส่งคำสั่งไปลบบน Cloud (Google Sheets) ถ้ามีฟังก์ชันรองรับ
-            if (typeof saveToCloud === 'function' && deletedItem.id) {
-                saveToCloud('deleteBms', { id: deletedItem.id });
-            } else if (typeof saveAll === 'function') {
-                saveAll();
-            }
-            
-            // 4. รีเฟรชตารางแสดงผลใหม่
-            renderDiePM();
-            alert("✔ ลบประวัติการซ่อมเรียบร้อยแล้ว");
-        }
     }
 }
 </script>
