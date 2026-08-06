@@ -627,69 +627,69 @@
             </div>
 
             <!-- TAB 7: DELIVERY (การส่งมอบสินค้า) -->
-            <div class="tab-pane fade" id="tab-delivery">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="card p-3 border-start border-4 border-primary">
-                            <h5 class="mb-3 text-primary"><i class="fas fa-truck-loading me-2"></i>บันทึกการส่งมอบสินค้า (Delivery)</h5>
-                            <form id="deliveryForm" onsubmit="submitDelivery(event)">
-                                <div class="mb-2">
-                                    <label class="form-label small">1. วันที่ส่งมอบ (Delivery Date)</label>
-                                    <input type="date" id="deliveryDate" class="form-control form-control-sm" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small text-info fw-bold">Part No. (เลือกจาก Stock FG)</label>
-                                    <select id="deliveryPartNo" class="form-select form-select-sm" onchange="updateFgMaxHint()" required>
-                                        <option value="">-- เลือก Part No. ที่มีใน Stock FG --</option>
-                                    </select>
-                                    <small id="fgMaxHint" class="text-info d-block mt-1">คงเหลือใน FG: 0 ชิ้น</small>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small text-primary fw-bold">2. จำนวนส่งมอบ (Delivery Qty)</label>
-                                    <input type="number" id="deliveryQty" class="form-control form-control-sm border-primary" placeholder="0" min="1" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">ชื่อลูกค้า / สถานที่ส่งมอบ</label>
-                                    <input type="text" id="deliveryCustomer" class="form-control form-control-sm" placeholder="เช่น บริษัท A จำกัด">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small">หมายเหตุ / เลขที่ DO</label>
-                                    <input type="text" id="deliveryRemark" class="form-control form-control-sm" placeholder="เช่น DO-69001">
-                                </div>
-                                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
-                                    <i class="fas fa-paper-plane me-1"></i> ยืนยันบันทึกส่งมอบ & ตัด Stock FG
-                                </button>
-                            </form>
-                        </div>
+<div class="tab-pane fade" id="tab-delivery">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card p-3 border-start border-4 border-primary">
+                <h5 class="mb-3 text-primary"><i class="fas fa-truck-loading me-2"></i>บันทึกการส่งมอบสินค้า (Delivery)</h5>
+                <form id="deliveryForm" onsubmit="submitDelivery(event)">
+                    <div class="mb-2">
+                        <label class="form-label small">1. วันที่ส่งมอบ (Delivery Date)</label>
+                        <input type="date" id="deliveryDate" class="form-control form-control-sm" required>
                     </div>
-                    <div class="col-md-8">
-                        <div class="card p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="m-0"><i class="fas fa-shipping-fast me-2 text-primary"></i>ประวัติการส่งมอบสินค้า (Delivery Log)</h5>
-                                <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('delivery')">
-                                    <i class="fas fa-file-excel me-1"></i> Export ประวัติการส่งมอบ
-                                </button>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-dark table-hover align-middle m-0">
-                                    <thead>
-                                        <tr>
-                                            <th>วันที่ส่งมอบ</th>
-                                            <th>Part No.</th>
-                                            <th>จำนวนส่งมอบ</th>
-                                            <th>ลูกค้า</th>
-                                            <th>หมายเหตุ / DO</th>
-                                            <th class="text-center">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="deliveryTableBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-info fw-bold">Part No. (พิมพ์ค้นหาจาก Stock FG)</label>
+                        <input type="text" id="deliveryPartNo" class="form-control form-control-sm bg-dark text-light border-secondary" list="deliveryPartList" placeholder="พิมพ์ค้นหา Part No. ใน Stock FG..." oninput="updateFgMaxHint()" required>
+                        <datalist id="deliveryPartList">
+                            <!-- รายการ Part No. จาก Stock FG จะถูกโหลดมาแสดงอัตโนมัติ -->
+                        </datalist>
+                        <small id="fgMaxHint" class="text-info d-block mt-1">คงเหลือใน FG: 0 ชิ้น</small>
                     </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-primary fw-bold">2. จำนวนส่งมอบ (Delivery Qty)</label>
+                        <input type="number" id="deliveryQty" class="form-control form-control-sm border-primary" placeholder="0" min="1" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">ชื่อลูกค้า / สถานที่ส่งมอบ</label>
+                        <input type="text" id="deliveryCustomer" class="form-control form-control-sm" placeholder="เช่น บริษัท A จำกัด">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">หมายเหตุ / เลขที่ DO</label>
+                        <input type="text" id="deliveryRemark" class="form-control form-control-sm" placeholder="เช่น DO-69001">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+                        <i class="fas fa-paper-plane me-1"></i> ยืนยันบันทึกส่งมอบ & ตัด Stock FG
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0"><i class="fas fa-shipping-fast me-2 text-primary"></i>ประวัติการส่งมอบสินค้า (Delivery Log)</h5>
+                    <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('delivery')">
+                        <i class="fas fa-file-excel me-1"></i> Export ประวัติการส่งมอบ
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead>
+                            <tr>
+                                <th>วันที่ส่งมอบ</th>
+                                <th>Part No.</th>
+                                <th>จำนวนส่งมอบ</th>
+                                <th>ลูกค้า</th>
+                                <th>หมายเหตุ / DO</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deliveryTableBody"></tbody>
+                    </table>
                 </div>
             </div>
-
+        </div>
+    </div>
+</div>
             <!-- TAB 8: DIE MAINTENANCE & PM -->
             <div class="tab-pane fade" id="tab-die">
                 <div class="row g-3">
@@ -1819,17 +1819,17 @@ function filterFgTable() {
       // --- TAB 7: DELIVERY (การส่งมอบ) ---
 function loadDeliveryParts() {
     const fgMap = getFgBalances();
-    const select = document.getElementById('deliveryPartNo');
-    if (!select) return;
+    const dataList = document.getElementById('deliveryPartList');
+    if (!dataList) return;
     
-    select.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน Stock FG --</option>';
+    dataList.innerHTML = '';
 
     Object.keys(fgMap).forEach(partNo => {
         if(fgMap[partNo] > 0) {
             const opt = document.createElement('option');
             opt.value = partNo;
-            opt.innerText = `${partNo} (คงเหลือ FG: ${fgMap[partNo].toLocaleString()})`;
-            select.appendChild(opt);
+            opt.innerText = `คงเหลือ FG: ${fgMap[partNo].toLocaleString()} ชิ้น`;
+            dataList.appendChild(opt);
         }
     });
     updateFgMaxHint();
@@ -1842,7 +1842,7 @@ function updateFgMaxHint() {
     
     if (!partNoEl || !hint || !qtyInput) return;
 
-    const partNo = partNoEl.value;
+    const partNo = partNoEl.value.trim();
     const fgMap = getFgBalances();
     const available = fgMap[partNo] || 0;
     
@@ -1852,16 +1852,21 @@ function updateFgMaxHint() {
 
 function submitDelivery(e) {
     e.preventDefault();
-    const partNo = document.getElementById('deliveryPartNo').value;
+    const partNo = document.getElementById('deliveryPartNo').value.trim();
     const deliveryQty = Number(document.getElementById('deliveryQty').value);
 
     if (!partNo) {
-        alert("กรุณาเลือก Part No. ที่ต้องการส่งมอบ!");
+        alert("กรุณากรอกหรือเลือก Part No. ที่ต้องการส่งมอบ!");
         return;
     }
 
     const fgMap = getFgBalances();
     const currentStock = fgMap[partNo] || 0;
+
+    if (currentStock <= 0) {
+        alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG หรือพิมพ์ชื่อไม่ถูกต้อง!`);
+        return;
+    }
 
     if(deliveryQty > currentStock) {
         alert(`จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
@@ -1886,7 +1891,7 @@ function submitDelivery(e) {
     document.getElementById('deliveryForm').reset();
     document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
     
-    // อัปเดตการแสดงผลตารางและ Dropdown ทันที
+    // อัปเดตการแสดงผลตารางและรายการค้นหาทันที
     renderDelivery();
     loadDeliveryParts();
     if (typeof renderStock === 'function') {
@@ -1936,7 +1941,6 @@ function deleteDelivery(id) {
         alert("ยกเลิกการส่งมอบสำเร็จ");
     }
 }
-
       // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
