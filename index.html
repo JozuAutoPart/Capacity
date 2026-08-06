@@ -1692,31 +1692,31 @@ function updateQGateWipInfo() {
     // ใส่โค้ดคำนวณยอดคงเหลือ WIP ตามจริงตรงนี้ได้เลยครับ
     document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
 }
-       // --- TAB 6: STOCK WIP & FG ---
-        function getFgBalances() {
-            const fgMap = {};
-            // รับเข้า FG จาก Q-Gate
-            qgate.forEach(q => {
-                const pNo = q.partNo || q['Part No.'] || '';
-                const pQty = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
-                if(pNo) {
-                    if(!fgMap[pNo]) fgMap[pNo] = 0;
-                    fgMap[pNo] += pQty;
-                }
-            });
-            // ตัดส่งมอบออก (Delivery)
-            deliveries.forEach(d => {
-                const pNo = d.partNo || d['Part No.'] || '';
-                const dQty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
-                if(pNo) {
-                    if(!fgMap[pNo]) fgMap[pNo] = 0;
-                    fgMap[pNo] -= dQty;
-                }
-            });
-            return fgMap;
+      // --- TAB 6: STOCK WIP & FG ---
+function getFgBalances() {
+    const fgMap = {};
+    // รับเข้า FG จาก Q-Gate
+    qgate.forEach(q => {
+        const pNo = q.partNo || q['Part No.'] || '';
+        const pQty = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
+        if(pNo) {
+            if(!fgMap[pNo]) fgMap[pNo] = 0;
+            fgMap[pNo] += pQty;
         }
+    });
+    // ตัดส่งมอบออก (Delivery)
+    deliveries.forEach(d => {
+        const pNo = d.partNo || d['Part No.'] || '';
+        const dQty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
+        if(pNo) {
+            if(!fgMap[pNo]) fgMap[pNo] = 0;
+            fgMap[pNo] -= dQty;
+        }
+    });
+    return fgMap;
+}
 
-        function renderStock() {
+function renderStock() {
     const wipTbody = document.getElementById('wipTableBody');
     const fgTbody = document.getElementById('fgTableBody');
     if (!wipTbody || !fgTbody) return;
@@ -1739,7 +1739,7 @@ function updateQGateWipInfo() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // WIP Summary (ยอดตัดโอนออกไป FG - แก้ไขให้ดึงจากยอดตรวจทั้งหมดหรือ Pass+NG ของ Q-Gate)
+        // WIP Summary (ยอดตัดโอนออกไป FG)
         const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
             let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
             return sum + (isNaN(val) ? 0 : val);
@@ -1778,6 +1778,42 @@ function updateQGateWipInfo() {
             <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
         `;
         fgTbody.appendChild(trFg);
+    });
+}
+
+// 📌 ฟังก์ชันกรองตาราง Stock WIP แบบแม่นยำ
+function filterWipTable() {
+    const filter = document.getElementById('searchWipInput').value.toUpperCase();
+    const rows = document.querySelectorAll('#wipTableBody tr');
+
+    rows.forEach(row => {
+        const partNoCell = row.cells[0];
+        if (partNoCell) {
+            const textValue = partNoCell.textContent || partNoCell.innerText;
+            if (textValue.toUpperCase().includes(filter)) {
+                row.style.display = ""; 
+            } else {
+                row.style.display = "none"; 
+            }
+        }
+    });
+}
+
+// 📌 ฟังก์ชันกรองตาราง Stock FG แบบแม่นยำ
+function filterFgTable() {
+    const filter = document.getElementById('searchFgInput').value.toUpperCase();
+    const rows = document.querySelectorAll('#fgTableBody tr');
+
+    rows.forEach(row => {
+        const partNoCell = row.cells[0];
+        if (partNoCell) {
+            const textValue = partNoCell.textContent || partNoCell.innerText;
+            if (textValue.toUpperCase().includes(filter)) {
+                row.style.display = ""; 
+            } else {
+                row.style.display = "none"; 
+            }
+        }
     });
 }
       // --- TAB 7: DELIVERY (การส่งมอบ) ---
