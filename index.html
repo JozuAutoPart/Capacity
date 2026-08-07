@@ -948,16 +948,27 @@ function renderDashboard() {
     });
 
     // อัปเดตตัวเลขการ์ดสรุปด้านบน
-    const totalPlanEl = document.getElementById('dashTotalPlan');
-    const totalActualEl = document.getElementById('dashTotalActual');
-    const dashDiffBalanceEl = document.getElementById('dashDiffBalance');
+const totalPlanEl = document.getElementById('dashTotalPlan');
+const totalActualEl = document.getElementById('dashTotalActual');
 
-    if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
-    if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-   if (dashDiffBalanceEl) {
-    let result = totalPlan - totalActual;
-    console.log("Plan:", totalPlan, "Actual:", totalActual, "Diff:", result); // ดูค่าใน F12 Console
-    dashDiffBalanceEl.innerText = result.toLocaleString();
+if (totalPlanEl) totalPlanEl.innerText = Number(totalPlan).toLocaleString();
+if (totalActualEl) totalActualEl.innerText = Number(totalActual).toLocaleString();
+
+// คำนวณและอัปเดตยอดค้างผลิต (Diff Balance) แบบค้นหา ID หรือตำแหน่งที่ถูกต้อง
+const diffValue = Number(totalPlan) - Number(totalActual);
+const dashDiffBalanceEl = document.getElementById('dashDiffBalance') || document.querySelector('#dashDiffBalance, [id*="Diff"], [id*="diff"]');
+
+if (dashDiffBalanceEl) {
+    dashDiffBalanceEl.innerText = diffValue.toLocaleString();
+} else {
+    // กรณีหา ID ไม่เจอ ให้ดึงจากการ์ดช่องที่ 3 (คงเหลือค้างผลิต) โดยตรง
+    const cards = document.querySelectorAll('.card, div[style*="border"], div[class*="col"]');
+    cards.forEach(card => {
+        if (card.innerText.includes('คงเหลือค้างผลิต') || card.innerText.includes('Diff Balance')) {
+            const targetNumEl = card.querySelector('h3, h4, h5, span, div:not(:empty)');
+            if (targetNumEl) targetNumEl.innerText = diffValue.toLocaleString();
+        }
+    });
 }
     // คำนวณและเรนเดอร์กราฟโดนัท PPM ตามฟิลเตอร์ไลน์ผลิต
     renderDashboardPpmChart(totalActual, totalNgFiltered);
