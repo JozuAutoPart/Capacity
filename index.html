@@ -941,7 +941,7 @@ function renderDashboard() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const planQty = Number(plan["Plan Qty"] || plan.qty || 0);
+        const planQty = Number(plan["Plan Qty"] !== undefined ? plan["Plan Qty"] : (plan.planQty !== undefined ? plan.planQty : (plan.plan || 0)));
         totalPlan += planQty;
         totalActual += actualOkSum;
         totalNgFiltered += actualNgSum;
