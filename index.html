@@ -954,7 +954,11 @@ function renderDashboard() {
 
     if (totalPlanEl) totalPlanEl.innerText = totalPlan.toLocaleString();
     if (totalActualEl) totalActualEl.innerText = totalActual.toLocaleString();
-    if (dashDiffBalanceEl) dashDiffBalanceEl.innerText = (totalPlan - totalActual).toLocaleString();
+   if (dashDiffBalanceEl) {
+    let result = totalPlan - totalActual;
+    console.log("Plan:", totalPlan, "Actual:", totalActual, "Diff:", result); // ดูค่าใน F12 Console
+    dashDiffBalanceEl.innerText = result.toLocaleString();
+}
     // คำนวณและเรนเดอร์กราฟโดนัท PPM ตามฟิลเตอร์ไลน์ผลิต
     renderDashboardPpmChart(totalActual, totalNgFiltered);
 }
