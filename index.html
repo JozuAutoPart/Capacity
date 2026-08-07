@@ -1061,15 +1061,14 @@ function renderCapacity() {
     let machineData = {};
     let lineMonthlyData = {};
 
-    actuals.forEach(a => {
-        let line = a.line || 'Line A';
-        let machine = a.machine || a.partNo || 'Machine-1';
+   actuals.forEach(a => {
+        let line = a.line || a.Line || 'Line A';
+        let machine = a.machine || a["Machine"] || 'Machine-1'; // 📌 เอา a.partNo ออก ป้องกันดึงค่าผิด
         let month = a.date ? a.date.substring(0, 7) : '2026-08';
         
-        // 📌 เพิ่มเงื่อนไข: หากเป็นวันที่ 1 ของเดือน ให้ค่า Actual เป็น 0 ทันที
+        // เงื่อนไขวันที่ 1 ของเดือน
         const isFirstDayOfMonth = new Date().getDate() === 1;
         let strokes = isFirstDayOfMonth ? 0 : (Number(a.qty || 0) + Number(a.ngQty || 0));
-
         // 1. เก็บข้อมูลรวมรายเครื่องสำหรับตาราง
         let key = line + '||' + machine;
         if (!machineData[key]) {
