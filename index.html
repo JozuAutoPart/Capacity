@@ -69,10 +69,6 @@
                 <button class="btn btn-outline-danger btn-sm" onclick="showClearModal()">
                     <i class="fas fa-trash-alt me-1"></i> ลบข้อมูลในระบบ
                 </button>
-                <input type="file" id="masterExcelFile" class="d-none" accept=".xlsx, .xls" onchange="loadMasterExcel(event)">
-<button class="btn btn-outline-warning btn-sm" onclick="document.getElementById('masterExcelFile').click()">
-    <i class="fas fa-file-excel me-1"></i> อัปโหลด Master Barcode
-</button>
             </div>
         </div>
 
@@ -639,7 +635,7 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (พิมพ์ค้นหาจาก Stock FG)</label>
-                        <input type="text" id="deliveryPartNo" ... placeholder="..." oninput="checkBarcode(this)">
+                        <input type="text" id="deliveryPartNo" class="form-control form-control-sm bg-dark text-light border-secondary" list="deliveryPartList" placeholder="พิมพ์ค้นหา Part No. ใน Stock FG..." oninput="updateFgMaxHint()" required>
                         <datalist id="deliveryPartList">
                             <!-- รายการ Part No. จาก Stock FG จะถูกโหลดมาแสดงอัตโนมัติ -->
                         </datalist>
@@ -1932,8 +1928,8 @@ function updateFgMaxHint() {
     const qtyInput = document.getElementById('deliveryQty');
     
     if (!partNoEl || !hint || !qtyInput) return;
-let rawInput = partNoEl.value.trim();
-const partNo = convertBarcodeToPartNo(rawInput); // แปลงรหัสย่อให้เป็น Part No. จริงก่อนเช็กสต็อก
+
+    const partNo = partNoEl.value.trim();
     const fgMap = getFgBalances();
     const available = fgMap[partNo] || 0;
     
@@ -1983,18 +1979,17 @@ if (deliveryPartInputEl) {
         if (e.key === 'Enter') {
             e.preventDefault();
             let rawBarcode = deliveryPartInputEl.value.trim();
-            let convertedBarcode = convertBarcodeToPartNo(rawBarcode); // แปลงทันที
+            
             let parts = rawBarcode.split('-');
             let partNo = "";
             let scannedQty = 0;
 
-           if (parts.length > 1) {
-            scannedQty = parseInt(parts.pop()) || 0;
-            let shortPart = parts.join('-');
-            partNo = convertBarcodeToPartNo(shortPart); // แปลงรหัสย่อให้เป็น Part No. จริงจาก Excel
-        } else {
-            partNo = convertBarcodeToPartNo(rawBarcode); // แปลงรหัสย่อกรณีสแกนแบบไม่มีจำนวนต่อท้าย
-        }
+            if (parts.length > 1) {
+                scannedQty = parseInt(parts.pop()) || 0;
+                partNo = parts.join('-'); 
+            } else {
+                partNo = rawBarcode; 
+            }
 
             deliveryPartInputEl.value = partNo;
 
@@ -2755,105 +2750,6 @@ function deleteActuals(index) {
             XLSX.utils.book_append_sheet(wb, ws, "Q-Gate History");
             XLSX.writeFile(wb, "Q-Gate_History_" + new Date().toISOString().slice(0,10) + ".xlsx");
         }
-      
-// 1. โหลดข้อมูลเดิมจากความจำเครื่องอัตโนมัติ
-if (typeof masterPartsDatabase === 'undefined') {
-    var masterPartsDatabase = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-}
-
-// 2. ระบบผูกปุ่มอัปโหลดอัตโนมัติเมื่อเปิดหน้าเว็บ
-window.addEventListener('DOMContentLoaded', () => {
-    if (masterPartsDatabase.length > 0) {
-        console.log("✓ โหลด Master Barcode สำเร็จ: " + masterPartsDatabase.length + " รายการ");
-    }
-    
-    let fileInput = document.getElementById('masterExcelFile');
-    if (fileInput) {
-        fileInput.addEventListener('change', loadMasterExcel);
-    }
-});
-
-// 3. ฟังก์ชันโหลดไฟล์ Excel
-function loadMasterExcel(event) {
-    alert("🎯 ปุ่มทำงานแล้ว! กำลังอ่านไฟล์..."); // แจ้งเตือนทันทีเพื่อเช็กว่าปุ่มเชื่อมติดไหม
-    
-    let file = event.target.files[0];
-    if (!file) {
-        alert("⚠️ ไม่พบไฟล์ที่เลือกครับ");
-        return;
-    }
-
-    let reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            let data = new Uint8Array(e.target.result);
-            let workbook = XLSX.read(data, { type: 'array' });
-            let firstSheetName = workbook.SheetNames[0];
-            let worksheet = workbook.Sheets[firstSheetName];
-            
-            let rawData = XLSX.utils.sheet_to_json(worksheet);
-            
-            if (rawData.length === 0) {
-                alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel หรือรูปแบบตารางไม่ถูกต้อง");
-                return;
-            }
-            
-            masterPartsDatabase = rawData.map(item => {
-                let newItem = {};
-                for (let key in item) {
-                    let cleanKey = key.trim().toLowerCase();
-                    newItem[cleanKey] = String(item[key]).trim();
-                }
-                return newItem;
-            });
-            
-            localStorage.setItem('masterPartsDatabase', JSON.stringify(masterPartsDatabase));
-            alert("✓ บันทึกข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
-        } catch (err) {
-            console.error(err);
-            alert("❌ เกิดข้อผิดพลาด: " + err.message);
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-// 4. ฟังก์ชันแปลงรหัสบาร์โค้ด
-function convertBarcodeToPartNo(scanInput) {
-    if (!scanInput) return '';
-    let code = String(scanInput).trim().toLowerCase();
-    
-    let found = masterPartsDatabase.find(item => {
-        let bc = item.barcode || item['bar code'] || '';
-        let pn = item.partno || item['part no'] || '';
-        return bc === code || pn === code;
-    });
-    
-    if (found) {
-        return found.partno || found['part no'] || found.barcode;
-    }
-    return scanInput;
-}
-// ฟังก์ชันตรวจสอบและแปลงบาร์โค้ดทันทีเมื่อพิมพ์
-function checkBarcode(inputElem) {
-    let val = inputElem.value;
-    if (!val) return;
-    let code = String(val).trim().toLowerCase();
-    
-    // ค้นหาในฐานข้อมูล Master Barcode
-    let found = masterPartsDatabase.find(item => {
-        let bc = item.barcode || item['bar code'] || '';
-        let pn = item.partno || item['part no'] || '';
-        return bc.toLowerCase() === code || pn.toLowerCase() === code;
-    });
-    
-    if (found) {
-        let actualPartNo = found.partno || found['part no'] || found.barcode;
-        if (inputElem.value !== actualPartNo) {
-            inputElem.value = actualPartNo;
-            inputElem.dispatchEvent(new Event('input'));
-            inputElem.dispatchEvent(new Event('change'));
-        }
-    }
-}
 </script>
 </body>
 </html>
