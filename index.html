@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และบันทึกอัตโนมัติทันที
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และกดบันทึกแบบจำลองการคลิก
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1909,7 +1909,6 @@ if (deliveryPartInputEl) {
             e.preventDefault();
             let rawBarcode = deliveryPartInputEl.value.trim();
             
-            // ตัดแบ่งด้วยเครื่องหมาย '-' เช่น "17154-0T040-18"
             let parts = rawBarcode.split('-');
             let partNo = "";
             let scannedQty = 0;
@@ -1921,37 +1920,41 @@ if (deliveryPartInputEl) {
                 partNo = rawBarcode; 
             }
 
-            // คืนค่า Part No. ที่ตัดจำนวนออกแล้วกลับไปใส่ในช่องพิมพ์
             deliveryPartInputEl.value = partNo;
 
             const fgMap = fgBalances();
             const available = fgMap[partNo] || 0;
 
             if (available > 0) {
-                playBeep('success'); // เสียงติ๊ง (มีสินค้า)
+                playBeep('success');
                 
-                // ดึงช่องจำนวนส่งมอบมาเซ็ตค่าตามที่สแกนมาได้ทันที
                 const qtyInput = document.getElementById('deliveryQty');
                 if (qtyInput) {
-                    let finalQty = scannedQty > 0 ? Math.min(scannedQty, available) : available;
-                    qtyInput.value = finalQty;
+                    qtyInput.value = (scannedQty > 0) ? Math.min(scannedQty, available) : available;
                 }
 
-                // อัปเดตข้อความแสดงยอดคงเหลือใน FG
                 const hint = document.getElementById('fgMaxHint');
                 if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-                // สั่งบันทึกและตัด Stock อัตโนมัติทันที
+                // เปลี่ยนวิธีเรียกบันทึก: ให้หาปุ่มบันทึกในหน้าจอแล้วสั่ง .click()
                 setTimeout(() => {
-                    if (typeof submitDelivery === 'function') {
+                    // ลองหาปุ่มที่น่าจะเป็นปุ่มบันทึก (โดยปกติจะมี class หรือ ID ปุ่ม)
+                    // ถ้าในหน้าเว็บมีปุ่มที่กดแล้วบันทึก ให้ใส่ ID หรือ selector แทนคำว่า #btnSave ถ้าทราบ ID ให้บอกผมได้เลยครับ
+                    const saveButton = document.querySelector('button[type="submit"]') || document.querySelector('.btn-primary');
+                    if (saveButton) {
+                        saveButton.click();
+                    } else {
+                        // ถ้าหาปุ่มไม่เจอ ให้เรียก function เดิม
                         submitDelivery({ preventDefault: () => {} });
-                        deliveryPartInputEl.focus();
-                        deliveryPartInputEl.select();
                     }
-                }, 100);
+                    
+                    // กลับไปโฟกัสที่ช่องยิง
+                    deliveryPartInputEl.focus();
+                    deliveryPartInputEl.select();
+                }, 200);
 
             } else {
-                playBeep('error'); // เสียงเตือน (ไม่มีสินค้า)
+                playBeep('error');
                 alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG!`);
                 deliveryPartInputEl.focus();
                 deliveryPartInputEl.select();
