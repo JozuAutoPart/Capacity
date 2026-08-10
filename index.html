@@ -639,7 +639,7 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (พิมพ์ค้นหาจาก Stock FG)</label>
-                        <input type="text" id="deliveryPartNo" class="form-control form-control-sm bg-dark text-light border-secondary" list="deliveryPartList" placeholder="พิมพ์ค้นหา Part No. ใน Stock FG..." oninput="updateFgMaxHint()" required>
+                        <input type="text" id="deliveryPartNo" ... placeholder="..." oninput="checkBarcode(this)">
                         <datalist id="deliveryPartList">
                             <!-- รายการ Part No. จาก Stock FG จะถูกโหลดมาแสดงอัตโนมัติ -->
                         </datalist>
@@ -2832,21 +2832,28 @@ function convertBarcodeToPartNo(scanInput) {
     }
     return scanInput;
 }
-// ดักจับการพิมพ์หรือสแกนบาร์โค้ดในหน้า Delivery ทันทีแบบเรียลไทม์
-document.addEventListener('DOMContentLoaded', () => {
-    let inputs = document.querySelectorAll('input');
-    inputs.forEach(input => {
-        if (input.placeholder && (input.placeholder.includes('พิมพ์ค้นหา') || input.placeholder.includes('Stock FG'))) {
-            // เมื่อมีการพิมพ์หรือเปลี่ยนค่า ให้แปลงรหัสทันที
-            input.addEventListener('input', function() {
-                let converted = convertBarcodeToPartNo(this.value);
-                if (converted !== this.value) {
-                    this.value = converted;
-                }
-            });
-        }
+// ฟังก์ชันตรวจสอบและแปลงบาร์โค้ดทันทีเมื่อพิมพ์
+function checkBarcode(inputElem) {
+    let val = inputElem.value;
+    if (!val) return;
+    let code = String(val).trim().toLowerCase();
+    
+    // ค้นหาในฐานข้อมูล Master Barcode
+    let found = masterPartsDatabase.find(item => {
+        let bc = item.barcode || item['bar code'] || '';
+        let pn = item.partno || item['part no'] || '';
+        return bc.toLowerCase() === code || pn.toLowerCase() === code;
     });
-});
+    
+    if (found) {
+        let actualPartNo = found.partno || found['part no'] || found.barcode;
+        if (inputElem.value !== actualPartNo) {
+            inputElem.value = actualPartNo;
+            inputElem.dispatchEvent(new Event('input'));
+            inputElem.dispatchEvent(new Event('change'));
+        }
+    }
+}
 </script>
 </body>
 </html>
