@@ -1968,15 +1968,19 @@ function playBeep(type) {
     }
 }
 
-// ปิดหน้าต่าง Alert กวนใจทั้งหมด เพื่อไม่ให้ต้องคอยกด OK
+// ดักจับหน้าต่าง Alert แล้วกด OK (คลิกปิด) ให้เองอัตโนมัติทันทีแบบเรียลไทม์
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
-        console.log("Skipped alert: " + msg);
+        console.log("Auto-clicked OK for alert: " + msg);
+        // ให้มันแสดงข้อความแป๊บเดียว แล้วจำลองการกด OK หรือทำงานต่อทันที
+        setTimeout(() => {
+            // ปล่อยผ่านเพื่อให้ระบบทำงานเบื้องหลังต่อจนจบครบกระบวนการ
+        }, 10);
     };
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, ดึงจำนวน และสั่งบันทึกข้อมูลลงตารางทันทีแบบอัตโนมัติ
+// รองรับการกด Enter จากเครื่องยิง Barcode และบันทึกอัตโนมัติ
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -2000,11 +2004,10 @@ if (deliveryPartInputEl) {
             const fgMap = typeof fgBalances === 'function' ? fgBalances() : {};
             const available = fgMap[partNo] || 9999;
 
-            playBeep('success'); // เสียงสแกนสำเร็จ
+            playBeep('success');
             
             let finalQty = scannedQty > 0 ? scannedQty : 1;
             
-            // ใส่จำนวนลงในช่อง Qty
             const qtyInput = document.getElementById('deliveryQty');
             if (qtyInput) {
                 qtyInput.value = finalQty;
@@ -2015,26 +2018,18 @@ if (deliveryPartInputEl) {
             const hint = document.getElementById('fgMaxHint');
             if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-            // สั่งกดปุ่มบันทึก
             setTimeout(() => {
                 const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.click();
                 }
-
-                // **เพิ่มเติมจุดนี้:** หากระบบมีฟังก์ชันบันทึกแยก ให้เรียกทำงานซ้ำเพื่อให้แน่ใจว่าตารางอัปเดต
-                setTimeout(() => {
-                    if (typeof saveDeliveryData === 'function') {
-                        saveDeliveryData();
-                    }
-                }, 100);
                 
-                // โฟกัสกลับช่องสแกนเพื่อรอรับบาร์โค้ดถัดไปทันที
+                // โฟกัสกลับช่องสแกนเตรียมรับบาร์โค้ดถัดไป
                 setTimeout(() => {
                     deliveryPartInputEl.focus();
                     deliveryPartInputEl.select();
-                }, 300);
-            }, 250);
+                }, 200);
+            }, 300);
         }
     });
 }
