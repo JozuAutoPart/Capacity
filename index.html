@@ -1873,43 +1873,56 @@ function updateFgMaxHint() {
     hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
     qtyInput.max = available;
 }
-// รองรับการกด Enter จากเครื่องยิง Barcode ที่ช่อง Part No. หน้า Delivery
-const deliveryPartInput = document.getElementById('deliveryPartNo');
-if (deliveryPartInput) {
-    deliveryPartInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            // เมื่อยิงบาร์โค้ดเสร็จ ให้โฟกัสข้ามไปที่ช่องจำนวนส่งมอบทันที
-            const qtyInput = document.getElementById('deliveryQty');
-            if (qtyInput) {
-                qtyInput.focus();
-                qtyInput.select();
-            }
+// ฟังก์ชันสร้างเสียงแจ้งเตือนแบบ Web Audio API
+function playBeep(type) {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'success') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        } else {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
         }
-    });
+    } catch (e) {
+        console.log('Audio not supported');
+    }
 }
-        // อัปเดตส่วนกด Enter ที่ช่อง Part No. ให้เช็คและส่งเสียงเตือน
-const deliveryPartInput = document.getElementById('deliveryPartNo');
-if (deliveryPartInput) {
-    deliveryPartInput.addEventListener('keypress', function(e) {
+
+// รองรับการกด Enter จากเครื่องยิง Barcode และเช็คสต็อก FG พร้อมเสียงเตือน
+const deliveryPartInputEl = document.getElementById('deliveryPartNo');
+if (deliveryPartInputEl) {
+    deliveryPartInputEl.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            const partNo = deliveryPartInput.value.trim();
+            const partNo = deliveryPartInputEl.value.trim();
             const fgMap = fgBalances();
             const available = fgMap[partNo] || 0;
 
             if (available > 0) {
-                playBeep('success'); // มีของใน Stock FG ส่งเสียงผ่าน
+                playBeep('success'); // มีของ เสียงติ๊ง
                 const qtyInput = document.getElementById('deliveryQty');
                 if (qtyInput) {
                     qtyInput.focus();
                     qtyInput.select();
                 }
             } else {
-                playBeep('error'); // ไม่มีของ ส่งเสียงเตือน
+                playBeep('error'); // ไม่มีของ เสียงเตือน
                 alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG!`);
-                deliveryPartInput.focus();
-                deliveryPartInput.select();
+                deliveryPartInputEl.focus();
+                deliveryPartInputEl.select();
             }
         }
     });
