@@ -2811,6 +2811,9 @@ function loadMasterExcel(event) {
 // ==========================================================
 // ระบบสแกน Barcode (Col A) -> แปลงเป็น Part No. (Col B) + จำนวน (Col C) -> บันทึกอัตโนมัติ
 // ==========================================================
+// ==========================================================
+// ระบบสแกน Barcode (Col A) -> แปลงเป็น Part No. (Col B) + จำนวน (Col C) -> บันทึกอัตโนมัติ
+// ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
     const partInput = document.getElementById('deliveryPartNo');
     const qtyInput = document.getElementById('deliveryQty');
@@ -2818,18 +2821,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (partInput) {
         partInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.keyCode === 13) {
-                e.preventDefault(); // ป้องกันการรีเฟรชหน้าจอ
+                e.preventDefault();
                 let val = this.value;
                 if (!val) return;
                 
                 let code = String(val).trim().toLowerCase();
-                if (typeof masterPartsDatabase === 'undefined' || !masterPartsDatabase) {
-                    alert("ยังไม่ได้โหลดฐานข้อมูล Master Parts!");
+                let db = window.masterPartsDatabase || [];
+                if (db.length === 0) {
+                    alert("กรุณาอัปโหลดไฟล์ Master Barcode ก่อนใช้งาน!");
                     return;
                 }
 
-                // ค้นหาจาก Barcode (Col A หรือ คอลัมน์แรก) หรือ Part No (Col B)
-                let found = masterPartsDatabase.find(item => {
+                // ค้นหาจาก Barcode (Col A) หรือ Part No (Col B)
+                let found = db.find(item => {
                     let keys = Object.keys(item);
                     let bc = String(item.barcode || item['bar code'] || item[keys[0]] || '').trim().toLowerCase();
                     let pn = String(item.partno || item['part no'] || item[keys[1]] || '').trim().toLowerCase();
@@ -2838,14 +2842,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (found) {
                     let keys = Object.keys(found);
-                    // 1. ดึง Part No. (Col B) ใส่ช่อง Part No.
-                    let actualPartNo = found.partno || found['part no'] || found[keys[1]] || found.barcode;
+                    
+                    // 1. ดึง Part No. (Col B / คอลัมน์ที่ 2) ใส่ช่อง Part No.
+                    let actualPartNo = found[keys[1]] || found.partno || found['part no'] || found.barcode;
                     this.value = actualPartNo;
                     this.dispatchEvent(new Event('input', { bubbles: true }));
 
-                    // 2. ดึง จำนวน (Col C) ใส่ช่องจำนวนส่งมอบ
-                    let defaultQty = found.qty || found['จำนวน'] || found['quantity'] || found[keys[2]];
-                    if (qtyInput && defaultQty) {
+                    // 2. ดึง จำนวน (Col C / คอลัมน์ที่ 3) บังคับดึงจากคอลัมน์ที่ 3 หรือชื่อที่เกี่ยวข้องทันที
+                    let defaultQty = found[keys[2]] || found.qty || found.quantity || found['จำนวน'] || found['จำนวนส่งมอบ'] || 1;
+                    if (qtyInput) {
                         qtyInput.value = defaultQty;
                         qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
                     }
@@ -2857,7 +2862,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }, 150);
                 } else {
-                    alert("ไม่พบรหัส Barcode / Part No. นี้ในระบบ: " + val);
+                    alert("ไม่พบรหัส Barcode หรือ Part No. นี้ในระบบ: " + val);
                     this.value = '';
                     this.focus();
                 }
