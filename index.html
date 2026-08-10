@@ -2043,11 +2043,16 @@ function submitDelivery(e) {
         alert("กรุณากรอกหรือเลือก Part No. ที่ต้องการส่งมอบ!");
         return;
     }
-// ปรับให้เช็คสต็อกแบบยืดหยุ่น (ถ้าไม่มีใน map ให้ยอมให้ผ่านไปก่อนเพื่อเก็บบันทึกได้)
-    const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
-    const currentStock = fgMap[partNo] !== undefined ? fgMap[partNo] : 9999;
 
-    if (deliveryQty > currentStock) {
+    const fgMap = getFgBalances();
+    const currentStock = fgMap[partNo] || 0;
+
+    if (currentStock <= 0) {
+        alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG หรือพิมพ์ชื่อไม่ถูกต้อง!`);
+        return;
+    }
+
+    if(deliveryQty > currentStock) {
         alert(`จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
         return;
     }
@@ -2670,37 +2675,29 @@ function loadAllDataFromCloud() {
         .catch(err => console.error("Error loading BMS:", err));
 }
 
-
-  // สั่งให้โหลดข้อมูลทันทีเมื่อเปิดเว็บ
+// สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     loadAllDataFromCloud();
-    if (typeof renderCapacity === 'function') {
-        renderCapacity();
-    }
 });
-
-   // ฟังก์ชันแปลงรหัสบาร์โค้ดเมื่อผู้ใช้เปลี่ยนช่องหรือพิมพ์เสร็จ
-document.addEventListener('change', function(e) {
-    if (e.target && e.target.id === 'deliveryPartNo') {
-        let val = e.target.value;
-        if (!val) return;
-        let code = String(val).trim().toLowerCase();
-        
-        let found = masterPartsDatabase.find(item => {
-            let bc = String(item.barcode || item['bar code'] || '').trim().toLowerCase();
-            let pn = String(item.partno || item['part no'] || '').trim().toLowerCase();
-            return bc === code || pn === code;
-        });
-        
-        if (found) {
-            let actualPartNo = found.partno || found['part no'] || found.barcode;
-            if (e.target.value !== actualPartNo) {
-                e.target.value = actualPartNo;
-                e.target.dispatchEvent(new Event('input', { bubbles: true }));
-            }
+     // สั่งโหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
+    window.addEventListener('DOMContentLoaded', () => {
+        loadAllDataFromCloud();
+        if (typeof renderCapacity === 'function') {
+            renderCapacity();
         }
-    }
-});
+    });
+
+    // ดักจับการคลิกเปลี่ยนแท็บ เพื่อสั่งเรนเดอร์ข้อมูลหน้า Capacity ทันที
+    document.querySelectorAll('button[data-bs-toggle="pill"], .nav-link').forEach(menu => {
+        menu.addEventListener('click', function() {
+            let target = this.getAttribute('data-bs-target') || this.getAttribute('href');
+            if (target === '#tab-capacity') {
+                if (typeof renderCapacity === 'function') {
+                    renderCapacity();
+                }
+            }
+        });
+    });
         // ฟังก์ชันลบประวัติการบันทึกการผลิตรายแถว
 function deleteActuals(index) {
     if (confirm("คุณต้องการลบประวัติการบันทึกการผลิตรายการนี้ใช่หรือไม่?")) {
