@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และส่งค่าไปยังฟังก์ชันบันทึกทันที
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และบันทึกข้อมูลลง Log โดยตรง
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1930,6 +1930,7 @@ if (deliveryPartInputEl) {
                 
                 let finalQty = scannedQty > 0 ? Math.min(scannedQty, available) : available;
                 
+                // เซ็ตค่าลงช่องจำนวนบนหน้าจอให้ถูกต้อง
                 const qtyInput = document.getElementById('deliveryQty');
                 if (qtyInput) {
                     qtyInput.value = finalQty;
@@ -1938,21 +1939,23 @@ if (deliveryPartInputEl) {
                 const hint = document.getElementById('fgMaxHint');
                 if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-                // บันทึกข้อมูลโดยดึงค่า Part No. และจำนวนที่ถูกต้องส่งเข้าฟอร์ม/ระบบทันที
+                // บันทึกข้อมูลเข้าสู่ระบบทันที (เรียกฟังก์ชันหลัก หรือจำลองการกดบันทึกพร้อมค่าที่ถูกต้อง)
                 setTimeout(() => {
-                    // หากฟังก์ชัน submitDelivery อ่านค่าจาก element ให้เราช่วยเซ็ตค่าชั่วคราวแล้วสั่งคลิกปุ่มบันทึก
+                    // หากมีฟังก์ชันบันทึกหลักของระบบ ให้เรียกใช้งาน หรือจำลองการกดปุ่ม
                     const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                     if (submitBtn) {
+                        // ป้องกันไม่ให้ Event ซ้ำซ้อน แล้วสั่งคลิก
                         submitBtn.click();
                     } else if (typeof submitDelivery === 'function') {
                         submitDelivery({ preventDefault: () => {} });
                     }
                     
+                    // โฟกัสกลับมาช่องยิงเพื่อเตรียมสแกนใบถัดไป
                     setTimeout(() => {
                         deliveryPartInputEl.focus();
                         deliveryPartInputEl.select();
-                    }, 150);
-                }, 100);
+                    }, 200);
+                }, 150);
 
             } else {
                 playBeep('error');
