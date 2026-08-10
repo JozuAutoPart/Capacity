@@ -530,8 +530,11 @@
         <div class="col-md-8">
             <div class="card p-3 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการตรวจสินค้าที่ Q-Gate</h5>
-                </div>
+            <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการตรวจสินค้าที่ Q-Gate</h5>
+            <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i> Export Q-Gate (.xlsx)
+            </button>
+        </div>
                 <div class="table-responsive">
                     <table class="table table-dark table-hover align-middle m-0">
                         <thead>
@@ -2712,6 +2715,41 @@ function deleteActuals(index) {
         alert("✔ ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
     }
 }
+        function deleteActuals(index) {
+            if (confirm("คุณต้องการลบประวัติการบันทึกผลิตรายนี้ใช่หรือไม?")) {
+                actuals.splice(index, 1);
+                localStorage.setItem('sys_actuals', JSON.stringify(actuals));
+                
+                if (typeof renderActuals === 'function') renderActuals();
+                if (typeof renderDashboard === 'function') renderDashboard();
+                if (typeof renderWipStock === 'function') renderWipStock();
+                
+                alert("✓ ลบรายการที่บันทึกผิดเรียบร้อยแล้ว");
+            }
+        }
+
+        // --- เพิ่มฟังก์ชัน Export Q-Gate เป็น Excel ตรงนี้ ---
+        function exportQgateToExcel() {
+            if (typeof qgate === 'undefined' || qgate.length === 0) {
+                alert("ไม่มีข้อมูลสำหรับ Export");
+                return;
+            }
+
+            let dataToExport = qgate.map(q => ({
+                "วันที่ตรวจ": q.date || '',
+                "เวลา": q.time || '',
+                "พนักงานตรวจ": q.inspector || '',
+                "Part No.": q.partNo || '',
+                "ยอดตรวจทั้งหมด": q.totalQty || 0,
+                "ของเสีย (NG)": q.ngQty || 0,
+                "ผ่านเข้า FG (Pass)": q.passQty || 0
+            }));
+
+            let ws = XLSX.utils.json_to_sheet(dataToExport);
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Q-Gate History");
+            XLSX.writeFile(wb, "Q-Gate_History_" + new Date().toISOString().slice(0,10) + ".xlsx");
+        }
 </script>
 </body>
 </html>
