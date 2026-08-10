@@ -69,6 +69,10 @@
                 <button class="btn btn-outline-danger btn-sm" onclick="showClearModal()">
                     <i class="fas fa-trash-alt me-1"></i> ลบข้อมูลในระบบ
                 </button>
+                <input type="file" id="masterExcelFile" class="d-none" accept=".xlsx, .xls" onchange="loadMasterExcel(event)">
+<button class="btn btn-outline-warning btn-sm" onclick="document.getElementById('masterExcelFile').click()">
+    <i class="fas fa-file-excel me-1"></i> อัปโหลด Master Barcode
+</button>
             </div>
         </div>
 
@@ -2750,6 +2754,33 @@ function deleteActuals(index) {
             XLSX.utils.book_append_sheet(wb, ws, "Q-Gate History");
             XLSX.writeFile(wb, "Q-Gate_History_" + new Date().toISOString().slice(0,10) + ".xlsx");
         }
+        let masterPartsDatabase = [];
+
+function loadMasterExcel(event) {
+    let file = event.target.files[0];
+    if (!file) return;
+
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let data = new Uint8Array(e.target.result);
+        let workbook = XLSX.read(data, { type: 'array' });
+        let firstSheetName = workbook.SheetNames[0];
+        let worksheet = workbook.Sheets[firstSheetName];
+
+        masterPartsDatabase = XLSX.utils.sheet_to_json(worksheet);
+        alert("✓ โหลดข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function convertBarcodeToPartNo(scanInput) {
+    if (!scanInput) return '';
+    let code = String(scanInput).trim();
+    let found = masterPartsDatabase.find(item => 
+        String(item.barcode).trim() === code || String(item.partNo).trim() === code
+    );
+    return found ? found.partNo : code;
+}
 </script>
 </body>
 </html>
