@@ -1932,8 +1932,8 @@ function updateFgMaxHint() {
     const qtyInput = document.getElementById('deliveryQty');
     
     if (!partNoEl || !hint || !qtyInput) return;
-
-    const partNo = partNoEl.value.trim();
+let rawInput = partNoEl.value.trim();
+const partNo = convertBarcodeToPartNo(rawInput); // แปลงรหัสย่อให้เป็น Part No. จริงก่อนเช็กสต็อก
     const fgMap = getFgBalances();
     const available = fgMap[partNo] || 0;
     
