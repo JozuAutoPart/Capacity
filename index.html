@@ -2755,44 +2755,16 @@ function deleteActuals(index) {
             XLSX.utils.book_append_sheet(wb, ws, "Q-Gate History");
             XLSX.writeFile(wb, "Q-Gate_History_" + new Date().toISOString().slice(0,10) + ".xlsx");
         }
-        let masterPartsDatabase = [];
-
-let masterPartsDatabase = [];
-
-function loadMasterExcel(event) {
-    let file = event.target.files[0];
-    if (!file) return;
-
-    let reader = new FileReader();
-    reader.onload = function(e) {
-        let data = new Uint8Array(e.target.result);
-        let workbook = XLSX.read(data, { type: 'array' });
-        let firstSheetName = workbook.SheetNames[0];
-        let worksheet = workbook.Sheets[firstSheetName];
-        
-        let rawData = XLSX.utils.sheet_to_json(worksheet);
-        
-        // แปลงหัวข้อคอลัมน์ให้เป็นตัวพิมพ์เล็กทั้งหมดเพื่อป้องกันปัญหาพิมพ์ผิดฟอร์แมต
-        masterPartsDatabase = rawData.map(item => {
-            let newItem = {};
-            for (let key in item) {
-                newItem[key.trim().toLowerCase()] = String(item[key]).trim();
-            }
-            return newItem;
-        });
-        
-        alert("✓ โหลดข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
-    };
-    reader.readAsArrayBuffer(file);
+      
+// โหลดข้อมูลจากความจำเครื่องอัตโนมัติ (ป้องกันประกาศตัวแปรซ้ำ)
+if (typeof masterPartsDatabase === 'undefined') {
+    var masterPartsDatabase = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
 }
 
-// โหลดข้อมูลเดิมจากความจำเครื่องอัตโนมัติ (ถ้าเคยอัปโหลดไว้แล้ว)
-let masterPartsDatabase = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-
-// แจ้งเตือนสถานะตอนเปิดเว็บว่ามีข้อมูลพร้อมใช้ไหม
+// แจ้งเตือนสถานะตอนเปิดเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     if (masterPartsDatabase.length > 0) {
-        console.log("✓ โหลด Master Barcode เดิมอัตโนมัติ: " + masterPartsDatabase.length + " รายการ");
+        console.log("✓ โหลด Master Barcode สำเร็จ: " + masterPartsDatabase.length + " รายการ");
     }
 });
 
@@ -2817,10 +2789,8 @@ function loadMasterExcel(event) {
             return newItem;
         });
         
-        // บันทึกเก็บไว้ในความจำถาวรของเบราว์เซอร์
         localStorage.setItem('masterPartsDatabase', JSON.stringify(masterPartsDatabase));
-        
-        alert("✓ บันทึกข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ (จำค่าถาวรแล้ว)");
+        alert("✓ บันทึกข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
     };
     reader.readAsArrayBuffer(file);
 }
