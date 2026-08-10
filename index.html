@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และคลิกปุ่มบันทึกอัตโนมัติ
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน, บังคับอัปเดตช่อง Qty และคลิกบันทึกอัตโนมัติ
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1909,7 +1909,6 @@ if (deliveryPartInputEl) {
             e.preventDefault();
             let rawBarcode = deliveryPartInputEl.value.trim();
             
-            // ตัดแบ่งด้วยเครื่องหมาย '-' เช่น "17154-0T040-18"
             let parts = rawBarcode.split('-');
             let partNo = "";
             let scannedQty = 0;
@@ -1921,42 +1920,43 @@ if (deliveryPartInputEl) {
                 partNo = rawBarcode; 
             }
 
-            // คืนค่า Part No. ที่ตัดจำนวนออกแล้วกลับไปใส่ในช่องพิมพ์
             deliveryPartInputEl.value = partNo;
+            deliveryPartInputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
             const fgMap = fgBalances();
             const available = fgMap[partNo] || 0;
 
             if (available > 0) {
-                playBeep('success'); // เสียงติ๊ง (มีสินค้า)
+                playBeep('success'); // เสียงติ๊ง
                 
-                // ดึงช่องจำนวนส่งมอบมาเซ็ตค่าตามที่สแกนมาได้
                 const qtyInput = document.getElementById('deliveryQty');
                 if (qtyInput) {
                     let finalQty = scannedQty > 0 ? Math.min(scannedQty, available) : available;
+                    
+                    // เซ็ตค่าและบังคับยิง Event เพื่อให้หน้าเว็บรับรู้ยอดจำนวนทันที
                     qtyInput.value = finalQty;
+                    qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
                 }
 
-                // อัปเดตข้อความแสดงยอดคงเหลือใน FG
                 const hint = document.getElementById('fgMaxHint');
                 if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-                // สั่งคลิกปุ่มบันทึกของฟอร์มโดยตรงอัตโนมัติ
+                // สั่งคลิกปุ่มบันทึกอัตโนมัติ
                 setTimeout(() => {
                     const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                     if (submitBtn) {
                         submitBtn.click();
                     }
                     
-                    // โฟกัสกลับมาที่ช่องยิงบาร์โค้ดเพื่อรอรับใบถัดไป
                     setTimeout(() => {
                         deliveryPartInputEl.focus();
                         deliveryPartInputEl.select();
-                    }, 100);
-                }, 100);
+                    }, 150);
+                }, 150);
 
             } else {
-                playBeep('error'); // เสียงเตือน (ไม่มีสินค้า)
+                playBeep('error');
                 alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG!`);
                 deliveryPartInputEl.focus();
                 deliveryPartInputEl.select();
