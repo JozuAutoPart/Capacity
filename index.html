@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และกดปุ่มบันทึกอัตโนมัติทันทีแบบชัวร์ๆ
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และเรียกฟังก์ชัน submitDelivery ของระบบโดยตรงทันที
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1940,13 +1940,14 @@ if (deliveryPartInputEl) {
             const hint = document.getElementById('fgMaxHint');
             if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-            // หน่วงเวลาเล็กน้อย 300 มิลลิวินาที แล้วสั่งคลิกปุ่มบันทึกอัตโนมัติทันที
+            // สั่งเรียกฟังก์ชันบันทึกข้อมูลของระบบโดยตรงทันที
             setTimeout(() => {
-                const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.click(); // จำลองการคลิกปุ่มบันทึกสีฟ้าจริง ๆ
-                } else if (typeof submitDelivery === 'function') {
+                if (typeof submitDelivery === 'function') {
+                    // จำลองส่ง Event เข้าไปในฟังก์ชันบันทึกหลักของหน้าเว็บทันที
                     submitDelivery({ preventDefault: () => {} });
+                } else {
+                    const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
+                    if (submitBtn) submitBtn.click();
                 }
                 
                 // โฟกัสกลับมารอรับใบ Tag ถัดไป
@@ -1954,7 +1955,7 @@ if (deliveryPartInputEl) {
                     deliveryPartInputEl.focus();
                     deliveryPartInputEl.select();
                 }, 200);
-            }, 300);
+            }, 250);
         }
     });
 }
