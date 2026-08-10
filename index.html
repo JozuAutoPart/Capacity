@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และสั่ง Submit ฟอร์มบันทึกอัตโนมัติ
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และคลิกปุ่มบันทึกอัตโนมัติ
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1941,19 +1941,18 @@ if (deliveryPartInputEl) {
                 const hint = document.getElementById('fgMaxHint');
                 if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-                // สั่ง Submit ฟอร์ม deliveryForm เพื่อบันทึกและตัด Stock ทันที
+                // สั่งคลิกปุ่มบันทึกของฟอร์มโดยตรงอัตโนมัติ
                 setTimeout(() => {
-                    const formEl = document.getElementById('deliveryForm');
-                    if (formEl) {
-                        // สร้างและยิง Event submit ไปที่ฟอร์มโดยตรง
-                        formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-                    } else if (typeof submitDelivery === 'function') {
-                        submitDelivery({ preventDefault: () => {} });
+                    const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.click();
                     }
                     
                     // โฟกัสกลับมาที่ช่องยิงบาร์โค้ดเพื่อรอรับใบถัดไป
-                    deliveryPartInputEl.focus();
-                    deliveryPartInputEl.select();
+                    setTimeout(() => {
+                        deliveryPartInputEl.focus();
+                        deliveryPartInputEl.select();
+                    }, 100);
                 }, 100);
 
             } else {
