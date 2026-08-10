@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และบังคับเซ็ตค่าลงฟอร์มอย่างแม่นยำ
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และส่งค่าเข้าฟังก์ชันบันทึกของระบบโดยตรง
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1926,35 +1926,33 @@ if (deliveryPartInputEl) {
             const available = fgMap[partNo] || 0;
 
             if (available > 0) {
-                playBeep('success');
+                playBeep('success'); // เสียงติ๊ง
                 
                 const qtyInput = document.getElementById('deliveryQty');
+                let finalQty = scannedQty > 0 ? Math.min(scannedQty, available) : available;
+                
                 if (qtyInput) {
-                    let finalQty = scannedQty > 0 ? Math.min(scannedQty, available) : available;
-                    
-                    // ใช้ Native setter เพื่อบังคับให้ระบบ JavaScript ภายในหน้าเว็บรับค่า Qty ทันที
-                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-                    nativeInputValueSetter.call(qtyInput, finalQty);
-                    
-                    qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    qtyInput.value = finalQty;
                 }
 
                 const hint = document.getElementById('fgMaxHint');
                 if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-                // สั่งคลิกปุ่มบันทึกหลังจากค่าอัปเดตเรียบร้อย
+                // สั่งเรียกฟังก์ชันบันทึกของระบบโดยตรงพร้อมหน่วงเวลาเล็กน้อยให้หน้าจออัปเดตทัน
                 setTimeout(() => {
-                    const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
-                    if (submitBtn) {
-                        submitBtn.click();
+                    if (typeof submitDelivery === 'function') {
+                        // จำลอง Event หลอกเพื่อให้ฟังก์ชันทำงานสมบูรณ์
+                        submitDelivery({ preventDefault: () => {} });
+                    } else {
+                        const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
+                        if (submitBtn) submitBtn.click();
                     }
                     
                     setTimeout(() => {
                         deliveryPartInputEl.focus();
                         deliveryPartInputEl.select();
-                    }, 200);
-                }, 200);
+                    }, 150);
+                }, 100);
 
             } else {
                 playBeep('error');
