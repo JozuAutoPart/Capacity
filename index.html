@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน, บังคับอัปเดตช่อง Qty และคลิกบันทึกอัตโนมัติ
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และบังคับเซ็ตค่าลงฟอร์มอย่างแม่นยำ
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1921,20 +1921,21 @@ if (deliveryPartInputEl) {
             }
 
             deliveryPartInputEl.value = partNo;
-            deliveryPartInputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
             const fgMap = fgBalances();
             const available = fgMap[partNo] || 0;
 
             if (available > 0) {
-                playBeep('success'); // เสียงติ๊ง
+                playBeep('success');
                 
                 const qtyInput = document.getElementById('deliveryQty');
                 if (qtyInput) {
                     let finalQty = scannedQty > 0 ? Math.min(scannedQty, available) : available;
                     
-                    // เซ็ตค่าและบังคับยิง Event เพื่อให้หน้าเว็บรับรู้ยอดจำนวนทันที
-                    qtyInput.value = finalQty;
+                    // ใช้ Native setter เพื่อบังคับให้ระบบ JavaScript ภายในหน้าเว็บรับค่า Qty ทันที
+                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                    nativeInputValueSetter.call(qtyInput, finalQty);
+                    
                     qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
                     qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
                 }
@@ -1942,7 +1943,7 @@ if (deliveryPartInputEl) {
                 const hint = document.getElementById('fgMaxHint');
                 if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-                // สั่งคลิกปุ่มบันทึกอัตโนมัติ
+                // สั่งคลิกปุ่มบันทึกหลังจากค่าอัปเดตเรียบร้อย
                 setTimeout(() => {
                     const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                     if (submitBtn) {
@@ -1952,8 +1953,8 @@ if (deliveryPartInputEl) {
                     setTimeout(() => {
                         deliveryPartInputEl.focus();
                         deliveryPartInputEl.select();
-                    }, 150);
-                }, 150);
+                    }, 200);
+                }, 200);
 
             } else {
                 playBeep('error');
