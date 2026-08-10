@@ -1014,48 +1014,53 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     }
 
-    // วาดกราฟโดนัท (Doughnut Chart)
-    const canvasEl = document.getElementById('defectPpmChart');
-    if (!canvasEl) return;
-    const ctx = canvasEl.getContext('2d');
-    
-    const goodQty = Math.max(0, totalProduction - totalNg);
-
-    if (ppmChartInstance) {
-        ppmChartInstance.destroy();
-    }
-
-    ppmChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Good Qty', 'NG Qty (ของเสีย)'],
-            datasets: [{
-                data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
-                backgroundColor: ['#28a745', '#dc3545'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#ffffff' }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            let value = context.raw || 0;
-                            return ` ${label}: ${value.toLocaleString()} ชิ้น`;
-                        }
+  plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: '#ffffff' }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.label || '';
+                        let value = context.raw || 0;
+                        return `${label}: ${value.toLocaleString()} ชิ้น`;
                     }
                 }
-            },
-            cutout: '70%'
-        }
-    });
+            }
+        },
+        // เพิ่ม Plugin วาดตัวเลขตรงกลางโดนัท
+        plugins: [
+            {
+                id: 'centerText',
+                afterDraw: function(chart) {
+                    let width = chart.width,
+                        height = chart.height,
+                        ctx = chart.ctx;
+                    ctx.restore();
+                    
+                    let fontSize = (height / 120).toFixed(2);
+                    ctx.font = "bold " + fontSize + "em sans-serif";
+                    ctx.textBaseline = "middle";
+                    ctx.textAlign = "center";
+
+                    // ข้อความที่จะให้แสดงตรงกลาง (เช่น ค่า PPM หรือยอด NG)
+                    let text = totalPpm + " PPM"; 
+                    let textX = width / 2;
+                    let textY = height / 2 - 15; // ขยับขึ้นนิดนึง
+
+                    ctx.fillStyle = "#34d399"; // สีเขียวสว่าง (เปลี่ยนเป็น #ffffff ได้ถ้าชอบสีขาว)
+                    ctx.fillText(text, textX, textY);
+                    
+                    // บรรทัดย่อย (แสดงยอด NG)
+                    ctx.font = (height / 200).toFixed(2) + "em sans-serif";
+                    ctx.fillStyle = "#f87171"; // สีแดง
+                    ctx.fillText("NG: " + totalNg + " ชิ้น", textX, textY + 25);
+                    
+                    ctx.save();
+                }
+            }
+        ]
 }
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
