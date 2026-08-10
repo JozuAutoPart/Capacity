@@ -1014,27 +1014,23 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     }
 
-  plugins: {
-            legend: {
-                position: 'bottom',
-                labels: { color: '#ffffff' }
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let label = context.label || '';
-                        let value = context.raw || 0;
-                        return `${label}: ${value.toLocaleString()} ชิ้น`;
-                    }
-                }
-            }
-        },
-      ppmChartInstance = new Chart(ctx, {
+    // วาดกราฟโดนัท (Doughnut Chart)
+    const canvasEl = document.getElementById('defectPpmChart');
+    if (!canvasEl) return;
+    const ctx = canvasEl.getContext('2d');
+    
+    const goodQty = Math.max(0, totalProduction - totalNg);
+
+    if (ppmChartInstance) {
+        ppmChartInstance.destroy();
+    }
+
+    ppmChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Good Qty', 'NG Qty (ของเสีย)'],
             datasets: [{
-                data: [goodQty, totalNgFiltered > 0 ? totalNgFiltered : (totalProduction === 0 ? 1 : 0)],
+                data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
                 backgroundColor: ['#28a745', '#dc3545'],
                 borderWidth: 0
             }]
@@ -1052,44 +1048,15 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
                         label: function(context) {
                             let label = context.label || '';
                             let value = context.raw || 0;
-                            return `${label}: ${value.toLocaleString()} ชิ้น`;
+                            return ` ${label}: ${value.toLocaleString()} ชิ้น`;
                         }
                     }
                 }
             },
             cutout: '70%'
-        },
-        // ใช้ Plugins แบบถูกต้องตามหลัก Chart.js
-        plugins: [{
-            id: 'centerText',
-            afterDraw: function(chart) {
-                let width = chart.width,
-                    height = chart.height,
-                    ctx = chart.ctx;
-                ctx.restore();
-                
-                let fontSize = (height / 110).toFixed(2);
-                ctx.font = "bold " + fontSize + "em sans-serif";
-                ctx.textBaseline = "middle";
-                ctx.textAlign = "center";
-
-                // ดึงค่า PPM และ NG มาแสดงผลตรงกลาง
-                let text = (typeof totalPpm !== 'undefined' ? totalPpm : 0) + " PPM";
-                let textX = width / 2;
-                let textY = height / 2 - 12;
-
-                ctx.fillStyle = "#34d399"; // สีเขียว
-                ctx.fillText(text, textX, textY);
-                
-                // บรรทัดแสดงยอด NG
-                ctx.font = (height / 190).toFixed(2) + "em sans-serif";
-                ctx.fillStyle = "#f87171"; // สีแดง
-                ctx.fillText("NG: " + totalNgFiltered + " ชิ้น", textX, textY + 24);
-                
-                ctx.save();
-            }
-        }]
+        }
     });
+}
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
