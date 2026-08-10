@@ -928,12 +928,19 @@ function renderDashboard() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const actualNgSum = actForPlan.reduce((sum, a) => {
-            let rawNg = a["NG Qty"] !== undefined ? a["NG Qty"] : (a.ngQty !== undefined ? a.ngQty : 0);
-            let val = Number(rawNg);
-            return sum + (isNaN(val) ? 0 : val);
-        }, 0);
-
+        // รวมยอดของเสีย (NG) จากประวัติ Q-Gate (qgate) โดยกรองตาม Line และ Part No. ให้ตรงกัน
+const actualNgSum = (typeof qgate !== 'undefined' ? qgate : []).reduce((sum, q) => {
+    let qLineRaw = q.line || q['Line/MC'] || '';
+    let qLine = String(qLineRaw).split('/')[0].trim();
+    let qPart = String(q.partNo || q['Part No.'] || '').trim();
+    
+    if (qLine === planLine && qPart === planPart) {
+        let rawNg = q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] !== undefined ? q['NG Qty'] : (q.ng || 0));
+        let val = Number(rawNg);
+        return sum + (isNaN(val) ? 0 : val);
+    }
+    return sum;
+}, 0);
         const planQty = Number(plan["Plan Qty"] || plan.planQty || plan.qty || plan.plan || 0);
         totalPlan += planQty;
         totalActual += actualOkSum;
