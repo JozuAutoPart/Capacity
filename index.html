@@ -928,21 +928,28 @@ function renderDashboard() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // รวมยอดของเสีย (NG) แบบเช็คชื่อ Line ให้ตรงกัน (ไม่สน Part No. หรือเช็คแบบยืดหยุ่น)
+        // รวมยอดของเสีย (NG) แบบเช็คเงื่อนไขยืดหยุ่นและแสดง Log ตรวจสอบ
         const actualNgSum = (typeof qgate !== 'undefined' ? qgate : []).reduce((sum, q) => {
             let qLineRaw = q.line || q['Line/MC'] || q.Line || '';
-            let qLine = String(qLineRaw).split('/')[0].trim().toLowerCase();
-            let pLine = String(planLine).trim().toLowerCase();
+            let qLine = String(qLineRaw).toLowerCase().trim();
+            let pLine = String(planLine).toLowerCase().trim();
             
-            // เช็คเฉพาะ Line ให้ตรงกันก่อน (ถ้าอยากให้ตรงเป๊ะทุก Part ให้เปิดบรรทัด Part ด้านล่าง)
-            if (qLine === pLine || pLine === 'all' || pLine === '') {
+            let qPart = String(q.partNo || q['Part No.'] || q.PartNo || '').toLowerCase().trim();
+            let pPart = String(planPart).toLowerCase().trim();
+
+            // เช็คแบบยืดหยุ่น (ให้ชื่อ Line หรือ Part มีคำที่ตรงกันก็ถือว่าใช่)
+            let lineMatch = (qLine.includes(pLine) || pLine.includes(qLine) || pLine === 'all' || pLine === '');
+            let partMatch = (qPart.includes(pPart) || pPart.includes(qPart) || pPart === '' || qPart === '');
+
+            if (lineMatch && partMatch) {
                 let rawNg = q.ngQty !== undefined ? q.ngQty : 
                            (q['NG Qty'] !== undefined ? q['NG Qty'] : 
                            (q.ng !== undefined ? q.ng : 
                            (q.NG !== undefined ? q.NG : 
                            (q.qtyNg !== undefined ? q.qtyNg : 0))));
-                let val = Number(rawNg);
-                return sum + (isNaN(val) ? 0 : val);
+                let val = Number(rawNg) || 0;
+                console.log(`[Match Found] Line: "${qLine}" & "${pLine}" | Part: "${qPart}" & "${pPart}" | NG: ${val}`);
+                return sum + val;
             }
             return sum;
         }, 0);
