@@ -2675,10 +2675,6 @@ function loadAllDataFromCloud() {
         .catch(err => console.error("Error loading BMS:", err));
 }
 
-// สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
-window.addEventListener('DOMContentLoaded', () => {
-    loadAllDataFromCloud();
-});
      // สั่งโหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
     window.addEventListener('DOMContentLoaded', () => {
         loadAllDataFromCloud();
