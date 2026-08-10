@@ -508,7 +508,11 @@
                             <option value="Line C3">Line C3</option>
                         </select>
                     </div>
-
+<!-- ช่องค้นหา Part No. สำหรับ Q-Gate -->
+<div class="mb-3">
+    <label class="form-label text-muted small"><i class="fas fa-search me-1"></i>ค้นหา Part No. / WIP</label>
+    <input type="text" id="qgatePartSearch" class="form-control bg-dark text-white border-secondary" placeholder="พิมพ์เพื่อกรองหา Part No. หรือยอดใน WIP...">
+</div>
                     <div class="mb-2">
                         <label class="form-label small fw-bold">2. Part No. (ตรวจจาก WIP)</label>
                         <select id="qgatePartNo" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="updateQGateWipInfo()" required>
@@ -1519,7 +1523,22 @@ document.addEventListener("DOMContentLoaded", function() {
         checkAndLoadWipForQGate();
     }
 });
-
+// ฟังก์ชันกรองรายชื่อ Part No. ตามคำค้นหาในหน้า Q-Gate
+const searchInput = document.getElementById('qgatePartSearch');
+if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+        const keyword = e.target.value.toLowerCase();
+        const selectEl = document.getElementById('qgatePartNo');
+        if (!selectEl) return;
+        
+        const options = selectEl.options;
+        for (let i = 0; i < options.length; i++) {
+            if (i === 0) continue; // ข้ามตัวเลือกแรก (-- เลือก Part No. --)
+            const text = options[i].text.toLowerCase();
+            options[i].style.display = text.includes(keyword) ? '' : 'none';
+        }
+    });
+}
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
     const qgateHistory = qgate || [];
