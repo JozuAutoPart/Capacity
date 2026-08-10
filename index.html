@@ -2752,30 +2752,78 @@ function deleteActuals(index) {
         }
         let masterPartsDatabase = [];
 
+// 1. โหลดข้อมูลเดิมจากความจำเครื่องอัตโนมัติ
+if (typeof masterPartsDatabase === 'undefined') {
+    var masterPartsDatabase = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+}
+
+// 2. ระบบผูกปุ่มอัปโหลดอัตโนมัติเมื่อเปิดหน้าเว็บ
+window.addEventListener('DOMContentLoaded', () => {
+    if (masterPartsDatabase.length > 0) {
+        console.log("✓ โหลด Master Barcode สำเร็จ: " + masterPartsDatabase.length + " รายการ");
+    }
+    
+    let fileInput = document.getElementById('masterExcelFile');
+    if (fileInput) {
+        fileInput.addEventListener('change', loadMasterExcel);
+    }
+});
+
+// 3. ฟังก์ชันโหลดไฟล์ Excel
 function loadMasterExcel(event) {
     let file = event.target.files[0];
     if (!file) return;
 
     let reader = new FileReader();
     reader.onload = function(e) {
-        let data = new Uint8Array(e.target.result);
-        let workbook = XLSX.read(data, { type: 'array' });
-        let firstSheetName = workbook.SheetNames[0];
-        let worksheet = workbook.Sheets[firstSheetName];
-
-        masterPartsDatabase = XLSX.utils.sheet_to_json(worksheet);
-        alert("✓ โหลดข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
+        try {
+            let data = new Uint8Array(e.target.result);
+            let workbook = XLSX.read(data, { type: 'array' });
+            let firstSheetName = workbook.SheetNames[0];
+            let worksheet = workbook.Sheets[firstSheetName];
+            
+            let rawData = XLSX.utils.sheet_to_json(worksheet);
+            console.log("Raw Excel Data:", rawData);
+            
+            if (rawData.length === 0) {
+                alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel หรือรูปแบบตารางไม่ถูกต้อง");
+                return;
+            }
+            
+            masterPartsDatabase = rawData.map(item => {
+                let newItem = {};
+                for (let key in item) {
+                    let cleanKey = key.trim().toLowerCase();
+                    newItem[cleanKey] = String(item[key]).trim();
+                }
+                return newItem;
+            });
+            
+            localStorage.setItem('masterPartsDatabase', JSON.stringify(masterPartsDatabase));
+            alert("✓ บันทึกข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
+        } catch (err) {
+            console.error(err);
+            alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์: " + err.message);
+        }
     };
     reader.readAsArrayBuffer(file);
 }
 
+// 4. ฟังก์ชันแปลงรหัสบาร์โค้ด
 function convertBarcodeToPartNo(scanInput) {
     if (!scanInput) return '';
-    let code = String(scanInput).trim();
-    let found = masterPartsDatabase.find(item => 
-        String(item.barcode).trim() === code || String(item.partNo).trim() === code
-    );
-    return found ? found.partNo : code;
+    let code = String(scanInput).trim().toLowerCase();
+    
+    let found = masterPartsDatabase.find(item => {
+        let bc = item.barcode || item['bar code'] || '';
+        let pn = item.partno || item['part no'] || '';
+        return bc === code || pn === code;
+    });
+    
+    if (found) {
+        return found.partno || found['part no'] || found.barcode;
+    }
+    return scanInput;
 }
 </script>
 </body>
