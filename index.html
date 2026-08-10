@@ -2035,53 +2035,74 @@ if (deliveryPartInputEl) {
     });
 }
 function submitDelivery(e) {
-    e.preventDefault();
-    const partNo = document.getElementById('deliveryPartNo').value.trim();
-    const deliveryQty = Number(document.getElementById('deliveryQty').value);
-
+    if (e) e.preventDefault();
+    
+    const partNoInput = document.getElementById('deliveryPartNo');
+    const qtyInput = document.getElementById('deliveryQty');
+    const dateInput = document.getElementById('deliveryDate');
+    const customerInput = document.getElementById('deliveryCustomer');
+    const remarkInput = document.getElementById('deliveryRemark');
+    
+    if (!partNoInput || !qtyInput || !dateInput) {
+        alert("ไม่พบฟิลด์ข้อมูลในฟอร์ม");
+        return;
+    }
+    
+    const partNo = partNoInput.value.trim();
+    const deliveryQty = Number(qtyInput.value) || 0;
+    
     if (!partNo) {
         alert("กรุณากรอกหรือเลือก Part No. ที่ต้องการส่งมอบ!");
         return;
     }
-
-    const fgMap = getFgBalances();
-    const currentStock = fgMap[partNo] || 0;
-
-    if (currentStock <= 0) {
-        alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG หรือพิมพ์ชื่อไม่ถูกต้อง!`);
+    
+    if (deliveryQty <= 0) {
+        alert("กรุณากรอกจำนวนส่งมอบให้มากกว่า 0!");
         return;
     }
-
-    if(deliveryQty > currentStock) {
-        alert(`จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
-        return;
+    
+    // ป้องกัน Error กรณีตัวแปร deliveries ยังไม่ถูกสร้าง
+    if (typeof deliveries === 'undefined' || !Array.isArray(deliveries)) {
+        window.deliveries = [];
     }
-
+    
     const record = {
         id: Date.now(),
-        date: document.getElementById('deliveryDate').value,
+        date: dateInput.value,
         partNo: partNo,
         qty: deliveryQty,
-        customer: document.getElementById('deliveryCustomer').value.trim() || '-',
-        remark: document.getElementById('deliveryRemark').value.trim() || '-'
+        customer: customerInput ? customerInput.value.trim() || '-' : '-',
+        remark: remarkInput ? remarkInput.value.trim() || '-' : '-'
     };
-
+    
     deliveries.push(record);
     
+    // บันทึกลงระบบ Cloud/Storage ถ้ามีฟังก์ชันรองรับ
     if (typeof saveAll === 'function') {
-        saveAll('saveDelivery', record);
+        try {
+            saveAll('saveDelivery', record);
+        } catch (err) {
+            console.error(err);
+        }
     }
-
-    document.getElementById('deliveryForm').reset();
-    document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
     
-    // อัปเดตการแสดงผลตารางและรายการค้นหาทันที
-    renderDelivery();
-    loadDeliveryParts();
+    // เคลียร์ค่าในฟอร์ม
+    partNoInput.value = '';
+    qtyInput.value = '1';
+    if (customerInput) customerInput.value = '';
+    if (remarkInput) remarkInput.value = '';
+    
+    // รีเฟรชตารางแสดงผล
+    if (typeof renderDelivery === 'function') {
+        renderDelivery();
+    }
+    if (typeof loadDeliveryParts === 'function') {
+        loadDeliveryParts();
+    }
     if (typeof renderStock === 'function') {
         renderStock();
     }
-
+    
     alert("บันทึกการส่งมอบสำเร็จ!");
 }
 
