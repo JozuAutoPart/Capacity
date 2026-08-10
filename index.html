@@ -1901,25 +1901,52 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode และเช็คสต็อก FG พร้อมเสียงเตือน
+// รองรับการกด Enter จากเครื่องยิง Barcode และแกะจำนวนจากรหัส (เช่น 17154-0T040-18)
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            const partNo = deliveryPartInputEl.value.trim();
+            let rawBarcode = deliveryPartInputEl.value.trim();
+            
+            // ตัดแบ่งด้วยเครื่องหมาย '-' เช่น "17154-0T040-18"
+            let parts = rawBarcode.split('-');
+            
+            let partNo = "";
+            let scannedQty = 0;
+
+            if (parts.length > 1) {
+                // ดึงตัวเลขตัวสุดท้ายเป็นจำนวน (18), ที่เหลือด้านหน้าเป็น Part No. (17154-0T040)
+                scannedQty = parseInt(parts.pop()) || 0;
+                partNo = parts.join('-'); 
+            } else {
+                partNo = rawBarcode; 
+            }
+
+            // คืนค่า Part No. ที่ตัดจำนวนออกแล้วกลับไปใส่ในช่องพิมพ์
+            deliveryPartInputEl.value = partNo;
+
             const fgMap = fgBalances();
             const available = fgMap[partNo] || 0;
 
             if (available > 0) {
-                playBeep('success'); // มีของ เสียงติ๊ง
+                playBeep('success'); // เสียงติ๊ง (มีสินค้า)
+                
+                // ดึงช่องจำนวนส่งมอบมาเซ็ตค่าตามที่สแกนมาได้ทันที
                 const qtyInput = document.getElementById('deliveryQty');
                 if (qtyInput) {
+                    let finalQty = scannedQty > 0 ? Math.min(scannedQty, available) : available;
+                    qtyInput.value = finalQty;
                     qtyInput.focus();
                     qtyInput.select();
                 }
+
+                // อัปเดตข้อความแสดงยอดคงเหลือใน FG
+                const hint = document.getElementById('fgMaxHint');
+                if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
+
             } else {
-                playBeep('error'); // ไม่มีของ เสียงเตือน
+                playBeep('error'); // เสียงเตือน (ไม่มีสินค้า)
                 alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG!`);
                 deliveryPartInputEl.focus();
                 deliveryPartInputEl.select();
