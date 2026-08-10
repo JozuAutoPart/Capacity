@@ -2756,24 +2756,24 @@ function deleteActuals(index) {
             XLSX.writeFile(wb, "Q-Gate_History_" + new Date().toISOString().slice(0,10) + ".xlsx");
         }
       
-// โหลดข้อมูลเดิมจากความจำเครื่องอัตโนมัติ
+// 1. โหลดข้อมูลเดิมจากความจำเครื่องอัตโนมัติ
 if (typeof masterPartsDatabase === 'undefined') {
     var masterPartsDatabase = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
 }
 
-// ผูกระบบอัปโหลดไฟล์อัตโนมัติเมื่อเปิดหน้าเว็บ
+// 2. ระบบผูกปุ่มอัปโหลดอัตโนมัติเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     if (masterPartsDatabase.length > 0) {
         console.log("✓ โหลด Master Barcode สำเร็จ: " + masterPartsDatabase.length + " รายการ");
     }
     
-    // ค้นหาปุ่มอัปโหลดและผูกคำสั่งให้อัตโนมัติ
-    let fileInput = document.getElementById('masterExcelInput');
+    let fileInput = document.getElementById('masterExcelFile');
     if (fileInput) {
         fileInput.addEventListener('change', loadMasterExcel);
     }
 });
 
+// 3. ฟังก์ชันโหลดไฟล์ Excel
 function loadMasterExcel(event) {
     let file = event.target.files[0];
     if (!file) return;
@@ -2813,6 +2813,7 @@ function loadMasterExcel(event) {
     reader.readAsArrayBuffer(file);
 }
 
+// 4. ฟังก์ชันแปลงรหัสบาร์โค้ด
 function convertBarcodeToPartNo(scanInput) {
     if (!scanInput) return '';
     let code = String(scanInput).trim().toLowerCase();
