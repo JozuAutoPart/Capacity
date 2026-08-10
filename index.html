@@ -1873,7 +1873,21 @@ function updateFgMaxHint() {
     hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
     qtyInput.max = available;
 }
-
+// รองรับการกด Enter จากเครื่องยิง Barcode ที่ช่อง Part No. หน้า Delivery
+const deliveryPartInput = document.getElementById('deliveryPartNo');
+if (deliveryPartInput) {
+    deliveryPartInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // เมื่อยิงบาร์โค้ดเสร็จ ให้โฟกัสข้ามไปที่ช่องจำนวนส่งมอบทันที
+            const qtyInput = document.getElementById('deliveryQty');
+            if (qtyInput) {
+                qtyInput.focus();
+                qtyInput.select();
+            }
+        }
+    });
+}
 function submitDelivery(e) {
     e.preventDefault();
     const partNo = document.getElementById('deliveryPartNo').value.trim();
