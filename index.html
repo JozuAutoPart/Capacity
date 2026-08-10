@@ -2832,6 +2832,19 @@ function convertBarcodeToPartNo(scanInput) {
     }
     return scanInput;
 }
+        // ดักจับการพิมพ์หรือสแกนบาร์โค้ดในหน้า Delivery
+document.addEventListener('DOMContentLoaded', () => {
+    let partInput = document.querySelector('input[placeholder*="เลือกจาก Stock FG"]') || document.getElementById('deliveryPartInput');
+    if (partInput) {
+        partInput.addEventListener('blur', function() {
+            let converted = convertBarcodeToPartNo(this.value);
+            if (converted !== this.value) {
+                this.value = converted;
+                this.dispatchEvent(new Event('input'));
+            }
+        });
+    }
+});
 </script>
 </body>
 </html>
