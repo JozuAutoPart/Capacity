@@ -2833,17 +2833,22 @@ function convertBarcodeToPartNo(scanInput) {
     return scanInput;
 }
         // ดักจับการพิมพ์หรือสแกนบาร์โค้ดในหน้า Delivery
+// ดักจับการพิมพ์หรือสแกนบาร์โค้ดในหน้า Delivery แบบแม่นยำ
 document.addEventListener('DOMContentLoaded', () => {
-    let partInput = document.querySelector('input[placeholder*="เลือกจาก Stock FG"]') || document.getElementById('deliveryPartInput');
-    if (partInput) {
-        partInput.addEventListener('blur', function() {
-            let converted = convertBarcodeToPartNo(this.value);
-            if (converted !== this.value) {
-                this.value = converted;
-                this.dispatchEvent(new Event('input'));
-            }
-        });
-    }
+    // ค้นหาช่องกรอกที่มีคำว่า "พิมพ์ค้นหา" หรือ "Stock FG"
+    let inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        if (input.placeholder && (input.placeholder.includes('พิมพ์ค้นหา') || input.placeholder.includes('Stock FG'))) {
+            input.addEventListener('blur', function() {
+                let converted = convertBarcodeToPartNo(this.value);
+                if (converted !== this.value) {
+                    this.value = converted;
+                    this.dispatchEvent(new Event('input'));
+                    this.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+    });
 });
 </script>
 </body>
