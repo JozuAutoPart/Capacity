@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode และแกะจำนวนจากรหัส (เช่น 17154-0T040-18)
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และบันทึกอัตโนมัติทันที
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1911,12 +1911,10 @@ if (deliveryPartInputEl) {
             
             // ตัดแบ่งด้วยเครื่องหมาย '-' เช่น "17154-0T040-18"
             let parts = rawBarcode.split('-');
-            
             let partNo = "";
             let scannedQty = 0;
 
             if (parts.length > 1) {
-                // ดึงตัวเลขตัวสุดท้ายเป็นจำนวน (18), ที่เหลือด้านหน้าเป็น Part No. (17154-0T040)
                 scannedQty = parseInt(parts.pop()) || 0;
                 partNo = parts.join('-'); 
             } else {
@@ -1937,13 +1935,20 @@ if (deliveryPartInputEl) {
                 if (qtyInput) {
                     let finalQty = scannedQty > 0 ? Math.min(scannedQty, available) : available;
                     qtyInput.value = finalQty;
-                    qtyInput.focus();
-                    qtyInput.select();
                 }
 
                 // อัปเดตข้อความแสดงยอดคงเหลือใน FG
                 const hint = document.getElementById('fgMaxHint');
                 if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
+
+                // สั่งบันทึกและตัด Stock อัตโนมัติทันที
+                setTimeout(() => {
+                    if (typeof submitDelivery === 'function') {
+                        submitDelivery({ preventDefault: () => {} });
+                        deliveryPartInputEl.focus();
+                        deliveryPartInputEl.select();
+                    }
+                }, 100);
 
             } else {
                 playBeep('error'); // เสียงเตือน (ไม่มีสินค้า)
