@@ -944,7 +944,7 @@ const actualNgSum = (typeof qgate !== 'undefined' ? qgate : []).reduce((sum, q) 
         const planQty = Number(plan["Plan Qty"] || plan.planQty || plan.qty || plan.plan || 0);
         totalPlan += planQty;
         totalActual += actualOkSum;
-        totalNgFiltered += actualNgSum;
+        totalNgfiltered += actualNgSum;
     });
 
     // อัปเดตตัวเลขการ์ดสรุปด้านบน
