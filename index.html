@@ -2746,6 +2746,37 @@ function deleteActuals(index) {
             XLSX.utils.book_append_sheet(wb, ws, "Q-Gate History");
             XLSX.writeFile(wb, "Q-Gate_History_" + new Date().toISOString().slice(0,10) + ".xlsx");
         }
+        // ดักจับการยิงบาร์โค้ด แปลงรหัส และย้ายโฟกัสไปยังช่องจำนวนให้อัตโนมัติทันที
+document.addEventListener('DOMContentLoaded', () => {
+    const inputPart = document.getElementById('deliveryPartNo');
+    if (inputPart) {
+        inputPart.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                let val = this.value;
+                if (!val) return;
+                
+                let code = String(val).trim().toLowerCase();
+                let found = masterPartsDatabase.find(item => {
+                    let bc = String(item.barcode || item['bar code'] || '').trim().toLowerCase();
+                    let pn = String(item.partno || item['part no'] || '').trim().toLowerCase();
+                    return bc === code || pn === code;
+                });
+                
+                if (found) {
+                    this.value = found.partno || found['part no'] || found.barcode;
+                    this.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                
+                const qtyInput = document.getElementById('deliveryQty');
+                if (qtyInput) {
+                    qtyInput.focus();
+                    qtyInput.select();
+                }
+            }
+        });
+    }
+});
 </script>
 </body>
 </html>
