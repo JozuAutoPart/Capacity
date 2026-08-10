@@ -1888,6 +1888,32 @@ if (deliveryPartInput) {
         }
     });
 }
+        // อัปเดตส่วนกด Enter ที่ช่อง Part No. ให้เช็คและส่งเสียงเตือน
+const deliveryPartInput = document.getElementById('deliveryPartNo');
+if (deliveryPartInput) {
+    deliveryPartInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const partNo = deliveryPartInput.value.trim();
+            const fgMap = fgBalances();
+            const available = fgMap[partNo] || 0;
+
+            if (available > 0) {
+                playBeep('success'); // มีของใน Stock FG ส่งเสียงผ่าน
+                const qtyInput = document.getElementById('deliveryQty');
+                if (qtyInput) {
+                    qtyInput.focus();
+                    qtyInput.select();
+                }
+            } else {
+                playBeep('error'); // ไม่มีของ ส่งเสียงเตือน
+                alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG!`);
+                deliveryPartInput.focus();
+                deliveryPartInput.select();
+            }
+        }
+    });
+}
 function submitDelivery(e) {
     e.preventDefault();
     const partNo = document.getElementById('deliveryPartNo').value.trim();
