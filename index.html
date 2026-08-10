@@ -906,46 +906,47 @@ function renderDashboard() {
     });
 
     let totalPlan = 0;
-    let totalActual = 0;
-    let totalNgFiltered = 0;
+        let totalActual = 0;
+        let totalNgFiltered = 0; // F ตัวใหญ่
 
-    filteredPlans.forEach(plan => {
-        const planLine = String(plan.Line || plan.line || '').trim();
-        const planPart = String(plan["Part No."] || plan.partNo || '').trim();
+        filteredPlans.forEach(plan => {
+            const planLine = String(plan.Line || plan.line || '').trim();
+            const planPart = String(plan["Part No."] || plan.partNo || '').trim();
 
-        // กรองข้อมูลประวัติการผลิต ตาม Line และ Part No.
-        const actForPlan = actuals.filter(a => {
-            let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
-            let aLine = String(aLineRaw).split('/')[0].trim(); 
-            let aPart = String(a["Part No."] || a.partNo || '').trim();
-            return aLine === planLine && aPart === planPart;
+            // กรองข้อมูลประวัติการผลิต ตาม Line และ Part No.
+            const actForPlan = actuals.filter(a => {
+                let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
+                let aLine = String(aLineRaw).split('/')[0].trim();
+                let aPart = String(a["Part No."] || a.partNo || '').trim();
+                return aLine === planLine && aPart === planPart;
+            });
+
+            // รวมยอด Actual OK
+            const actualOkSum = actForPlan.reduce((sum, a) => {
+                let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
+                let val = Number(rawQty);
+                return sum + (isNaN(val) ? 0 : val);
+            }, 0);
+
+            // รวมยอดของเสีย (NG) จากประวัติ Q-Gate (qgate)
+            const actualNgSum = (typeof qgate !== 'undefined' ? qgate : []).reduce((sum, q) => {
+                let qLineRaw = q.line || q['Line/MC'] || '';
+                let qLine = String(qLineRaw).split('/')[0].trim();
+                let qPart = String(q.partNo || q['Part No.'] || '').trim();
+                
+                if (qLine === planLine && qPart === planPart) {
+                    let rawNg = q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] !== undefined ? q['NG Qty'] : (q.ng || 0));
+                    let val = Number(rawNg);
+                    return sum + (isNaN(val) ? 0 : val);
+                }
+                return sum;
+            }, 0);
+
+            const planQty = Number(plan["Plan Qty"] || plan.planQty || plan.qty || plan.plan || 0);
+            totalPlan += planQty;
+            totalActual += actualOkSum;
+            totalNgFiltered += actualNgSum; // ใช้ F ตัวใหญ่ให้ตรงกัน
         });
-        
-        // รวมยอด Actual OK และ NG
-        const actualOkSum = actForPlan.reduce((sum, a) => {
-            let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
-            let val = Number(rawQty);
-            return sum + (isNaN(val) ? 0 : val);
-        }, 0);
-
-      // ดึงข้อมูล Q-Gate จากตัวแปร qgate หรือจาก localStorage โดยตรง
-    let qgateData = typeof qgate !== 'undefined' ? qgate : [];
-    if (qgateData.length === 0) {
-        try {
-            qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qGateData') || '[]');
-        } catch (e) { qgateData = []; }
-    }
-
-    const actualNgSum = qgateData.reduce((sum, q) => {
-        let qLineRaw = q.line || q['Line/MC'] || '';
-        let qLine = String(qLineRaw).split('/')[0].trim();
-        let qPart = String(q.partNo || q['Part No.'] || '').trim();
-        
-        if (qLine === planLine && qPart === planPart) {
-            let rawNg = q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] !== undefined ? q['NG Qty'] : (q.ng || 0));
-            let val = Number(rawNg);
-            return sum + (isNaN(val) ? 0 : val);
-        }
         return sum;
     }, 0);
         const planQty = Number(plan["Plan Qty"] || plan.planQty || plan.qty || plan.plan || 0);
