@@ -2774,27 +2774,38 @@ function loadMasterExcel(event) {
 
     let reader = new FileReader();
     reader.onload = function(e) {
-        let data = new Uint8Array(e.target.result);
-        let workbook = XLSX.read(data, { type: 'array' });
-        let firstSheetName = workbook.SheetNames[0];
-        let worksheet = workbook.Sheets[firstSheetName];
-        
-        let rawData = XLSX.utils.sheet_to_json(worksheet);
-        
-        masterPartsDatabase = rawData.map(item => {
-            let newItem = {};
-            for (let key in item) {
-                newItem[key.trim().toLowerCase()] = String(item[key]).trim();
+        try {
+            let data = new Uint8Array(e.target.result);
+            let workbook = XLSX.read(data, { type: 'array' });
+            let firstSheetName = workbook.SheetNames[0];
+            let worksheet = workbook.Sheets[firstSheetName];
+            
+            let rawData = XLSX.utils.sheet_to_json(worksheet);
+            console.log("Raw Excel Data:", rawData); // เช็กข้อมูลดิบใน Console
+            
+            if (rawData.length === 0) {
+                alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel หรือรูปแบบตารางไม่ถูกต้อง");
+                return;
             }
-            return newItem;
-        });
-        
-        localStorage.setItem('masterPartsDatabase', JSON.stringify(masterPartsDatabase));
-        alert("✓ บันทึกข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
+            
+            masterPartsDatabase = rawData.map(item => {
+                let newItem = {};
+                for (let key in item) {
+                    let cleanKey = key.trim().toLowerCase();
+                    newItem[cleanKey] = String(item[key]).trim();
+                }
+                return newItem;
+            });
+            
+            localStorage.setItem('masterPartsDatabase', JSON.stringify(masterPartsDatabase));
+            alert("✓ บันทึกข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
+        } catch (err) {
+            console.error(err);
+            alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์: " + err.message);
+        }
     };
     reader.readAsArrayBuffer(file);
 }
-
 function convertBarcodeToPartNo(scanInput) {
     if (!scanInput) return '';
     let code = String(scanInput).trim().toLowerCase();
