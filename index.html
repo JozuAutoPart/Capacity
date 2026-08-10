@@ -2750,8 +2750,7 @@ function deleteActuals(index) {
             XLSX.utils.book_append_sheet(wb, ws, "Q-Gate History");
             XLSX.writeFile(wb, "Q-Gate_History_" + new Date().toISOString().slice(0,10) + ".xlsx");
         }
-        let masterPartsDatabase = [];
-
+       masterPartsDatabase = JSON.parse(localStorage.getItem('masterPartsDatabase')) || [];
 // 1. โหลดข้อมูลเดิมจากความจำเครื่องอัตโนมัติ
 if (typeof masterPartsDatabase === 'undefined') {
     var masterPartsDatabase = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
