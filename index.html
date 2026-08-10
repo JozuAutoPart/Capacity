@@ -1983,7 +1983,7 @@ if (deliveryPartInputEl) {
         if (e.key === 'Enter') {
             e.preventDefault();
             let rawBarcode = deliveryPartInputEl.value.trim();
-            
+            let convertedBarcode = convertBarcodeToPartNo(rawBarcode); // แปลงทันที
             let parts = rawBarcode.split('-');
             let partNo = "";
             let scannedQty = 0;
