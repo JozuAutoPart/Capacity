@@ -1988,12 +1988,13 @@ if (deliveryPartInputEl) {
             let partNo = "";
             let scannedQty = 0;
 
-            if (parts.length > 1) {
-                scannedQty = parseInt(parts.pop()) || 0;
-                partNo = parts.join('-'); 
-            } else {
-                partNo = rawBarcode; 
-            }
+           if (parts.length > 1) {
+            scannedQty = parseInt(parts.pop()) || 0;
+            let shortPart = parts.join('-');
+            partNo = convertBarcodeToPartNo(shortPart); // แปลงรหัสย่อให้เป็น Part No. จริงจาก Excel
+        } else {
+            partNo = convertBarcodeToPartNo(rawBarcode); // แปลงรหัสย่อกรณีสแกนแบบไม่มีจำนวนต่อท้าย
+        }
 
             deliveryPartInputEl.value = partNo;
 
