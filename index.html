@@ -1500,7 +1500,49 @@ window.addEventListener('DOMContentLoaded', () => {
      // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History
 // ==========================================
+// ดักจับหน้าต่าง Alert ของ Q-Gate ให้ข้ามอัตโนมัติ ไม่ต้องกด OK
+if (typeof originalQGateAlert === 'undefined') {
+    var originalQGateAlert = window.alert;
+    window.alert = function(msg) {
+        console.log("Q-Gate Auto-skipped alert: " + msg);
+    };
+}
 
+// รองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. ในหน้า Q-Gate (ตัดจำนวนออก เอาเฉพาะ Part No. เพียวๆ)
+const qgateInputEl = document.getElementById('qgatePartSearch') || document.querySelector('input[placeholder*="พิมพ์เพื่อกรองหา Part No"]');
+if (qgateInputEl) {
+    qgateInputEl.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            let rawBarcode = qgateInputEl.value.trim();
+            
+            let parts = rawBarcode.split('-');
+            let partNo = "";
+
+            if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
+                parts.pop(); // ตัดจำนวนข้างหลังจาก Tag ออก เอาเฉพาะ Part No.
+                partNo = parts.join('-');
+            } else {
+                partNo = rawBarcode;
+            }
+
+            qgateInputEl.value = partNo;
+            qgateInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            qgateInputEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+            playBeep('success'); // เสียงสแกนสำเร็จ
+
+            // โฟกัสไปที่ช่องกรอกจำนวนตรวจสอบอัตโนมัติ เพื่อให้คีย์จำนวนต่อได้ทันที
+            setTimeout(() => {
+                const inspectQtyInput = document.getElementById('qgateTotalQty') || document.querySelector('input[name="inspectQty"], #inspectQty');
+                if (inspectQtyInput) {
+                    inspectQtyInput.focus();
+                    inspectQtyInput.select();
+                }
+            }, 100);
+        }
+    });
+}
 // ตั้งค่าวันที่ปัจจุบันเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
