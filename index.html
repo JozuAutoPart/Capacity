@@ -1901,7 +1901,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน, ดึงสต็อก FG และบันทึกอัตโนมัติ
+// รองรับการกด Enter จากเครื่องยิง Barcode, แยกจำนวน และกดปุ่มบันทึกอัตโนมัติทันทีแบบชัวร์ๆ
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
@@ -1922,15 +1922,14 @@ if (deliveryPartInputEl) {
 
             deliveryPartInputEl.value = partNo;
 
-            // ดึงข้อมูลยอดคงเหลือจากฟังก์ชัน FG ของระบบ
             const fgMap = typeof fgBalances === 'function' ? fgBalances() : {};
-            const available = fgMap[partNo] || 9999; // ถ้าหาไม่เจอ ให้ยอมให้ผ่านก่อนเพื่อความลื่นไหลในการทดสอบ
+            const available = fgMap[partNo] || 9999;
 
-            playBeep('success'); // ส่งเสียงเตือนว่าสแกนผ่าน
+            playBeep('success'); // เสียงติ๊ง
             
             let finalQty = scannedQty > 0 ? scannedQty : 1;
             
-            // เซ็ตค่าจำนวนลงในช่อง Qty หน้าจอ
+            // เซ็ตค่าจำนวนลงในช่อง Qty
             const qtyInput = document.getElementById('deliveryQty');
             if (qtyInput) {
                 qtyInput.value = finalQty;
@@ -1938,15 +1937,14 @@ if (deliveryPartInputEl) {
                 qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
 
-            // อัปเดตข้อความแสดงยอดคงเหลือ
             const hint = document.getElementById('fgMaxHint');
             if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-            // สั่งคลิกปุ่มบันทึกข้อมูลเข้าตาราง Log ทันที
+            // หน่วงเวลาเล็กน้อย 300 มิลลิวินาที แล้วสั่งคลิกปุ่มบันทึกอัตโนมัติทันที
             setTimeout(() => {
                 const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                 if (submitBtn) {
-                    submitBtn.click();
+                    submitBtn.click(); // จำลองการคลิกปุ่มบันทึกสีฟ้าจริง ๆ
                 } else if (typeof submitDelivery === 'function') {
                     submitDelivery({ preventDefault: () => {} });
                 }
@@ -1955,8 +1953,8 @@ if (deliveryPartInputEl) {
                 setTimeout(() => {
                     deliveryPartInputEl.focus();
                     deliveryPartInputEl.select();
-                }, 150);
-            }, 150);
+                }, 200);
+            }, 300);
         }
     });
 }
