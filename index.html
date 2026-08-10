@@ -2775,8 +2775,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // 3. ฟังก์ชันโหลดไฟล์ Excel
 function loadMasterExcel(event) {
+    alert("🎯 ปุ่มทำงานแล้ว! กำลังอ่านไฟล์..."); // แจ้งเตือนทันทีเพื่อเช็กว่าปุ่มเชื่อมติดไหม
+    
     let file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        alert("⚠️ ไม่พบไฟล์ที่เลือกครับ");
+        return;
+    }
 
     let reader = new FileReader();
     reader.onload = function(e) {
@@ -2787,7 +2792,6 @@ function loadMasterExcel(event) {
             let worksheet = workbook.Sheets[firstSheetName];
             
             let rawData = XLSX.utils.sheet_to_json(worksheet);
-            console.log("Raw Excel Data:", rawData);
             
             if (rawData.length === 0) {
                 alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel หรือรูปแบบตารางไม่ถูกต้อง");
@@ -2807,12 +2811,11 @@ function loadMasterExcel(event) {
             alert("✓ บันทึกข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
         } catch (err) {
             console.error(err);
-            alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์: " + err.message);
+            alert("❌ เกิดข้อผิดพลาด: " + err.message);
         }
     };
     reader.readAsArrayBuffer(file);
 }
-
 // 4. ฟังก์ชันแปลงรหัสบาร์โค้ด
 function convertBarcodeToPartNo(scanInput) {
     if (!scanInput) return '';
