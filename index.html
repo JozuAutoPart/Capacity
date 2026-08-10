@@ -2756,15 +2756,21 @@ function deleteActuals(index) {
             XLSX.writeFile(wb, "Q-Gate_History_" + new Date().toISOString().slice(0,10) + ".xlsx");
         }
       
-// โหลดข้อมูลจากความจำเครื่องอัตโนมัติ (ป้องกันประกาศตัวแปรซ้ำ)
+// โหลดข้อมูลเดิมจากความจำเครื่องอัตโนมัติ
 if (typeof masterPartsDatabase === 'undefined') {
     var masterPartsDatabase = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
 }
 
-// แจ้งเตือนสถานะตอนเปิดเว็บ
+// ผูกระบบอัปโหลดไฟล์อัตโนมัติเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     if (masterPartsDatabase.length > 0) {
         console.log("✓ โหลด Master Barcode สำเร็จ: " + masterPartsDatabase.length + " รายการ");
+    }
+    
+    // ค้นหาปุ่มอัปโหลดและผูกคำสั่งให้อัตโนมัติ
+    let fileInput = document.getElementById('masterExcelInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', loadMasterExcel);
     }
 });
 
@@ -2781,7 +2787,7 @@ function loadMasterExcel(event) {
             let worksheet = workbook.Sheets[firstSheetName];
             
             let rawData = XLSX.utils.sheet_to_json(worksheet);
-            console.log("Raw Excel Data:", rawData); // เช็กข้อมูลดิบใน Console
+            console.log("Raw Excel Data:", rawData);
             
             if (rawData.length === 0) {
                 alert("⚠️ ไม่พบข้อมูลในไฟล์ Excel หรือรูปแบบตารางไม่ถูกต้อง");
@@ -2806,6 +2812,7 @@ function loadMasterExcel(event) {
     };
     reader.readAsArrayBuffer(file);
 }
+
 function convertBarcodeToPartNo(scanInput) {
     if (!scanInput) return '';
     let code = String(scanInput).trim().toLowerCase();
