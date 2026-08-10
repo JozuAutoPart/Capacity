@@ -2757,6 +2757,8 @@ function deleteActuals(index) {
         }
         let masterPartsDatabase = [];
 
+let masterPartsDatabase = [];
+
 function loadMasterExcel(event) {
     let file = event.target.files[0];
     if (!file) return;
@@ -2767,20 +2769,39 @@ function loadMasterExcel(event) {
         let workbook = XLSX.read(data, { type: 'array' });
         let firstSheetName = workbook.SheetNames[0];
         let worksheet = workbook.Sheets[firstSheetName];
-
-        masterPartsDatabase = XLSX.utils.sheet_to_json(worksheet);
+        
+        let rawData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // แปลงหัวข้อคอลัมน์ให้เป็นตัวพิมพ์เล็กทั้งหมดเพื่อป้องกันปัญหาพิมพ์ผิดฟอร์แมต
+        masterPartsDatabase = rawData.map(item => {
+            let newItem = {};
+            for (let key in item) {
+                newItem[key.trim().toLowerCase()] = String(item[key]).trim();
+            }
+            return newItem;
+        });
+        
         alert("✓ โหลดข้อมูล Master Barcode สำเร็จ! ทั้งหมด " + masterPartsDatabase.length + " รายการ");
     };
     reader.readAsArrayBuffer(file);
 }
 
+// ฟังก์ชันแปลงรหัส (รองรับการค้นหาทั้งคอลัมน์ barcode / bar code / partno)
 function convertBarcodeToPartNo(scanInput) {
     if (!scanInput) return '';
-    let code = String(scanInput).trim();
-    let found = masterPartsDatabase.find(item => 
-        String(item.barcode).trim() === code || String(item.partNo).trim() === code
-    );
-    return found ? found.partNo : code;
+    let code = String(scanInput).trim().toLowerCase();
+    
+    let found = masterPartsDatabase.find(item => {
+        let bc = item.barcode || item['bar code'] || '';
+        let pn = item.partno || item['part no'] || '';
+        return bc === code || pn === code;
+    });
+    
+    // ถ้าเจอ ให้คืนค่า Part No. ตัวจริงจาก Excel กลับไป
+    if (found) {
+        return found.partno || found['part no'] || found.barcode;
+    }
+    return scanInput; // ถ้าไม่เจอ ใช้ค่าเดิม
 }
 </script>
 </body>
