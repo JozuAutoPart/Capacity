@@ -3271,7 +3271,7 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// ฟังก์ชันดึงข้อมูลยอด Stock จากตารางหน้า Stock WIP & FG โดยตรง
+// ฟังก์ชันคำนวณยอด Stock รวมทั้งฝั่ง WIP และ FG จากหน้าเว็บ
 // ==========================================================
 function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
@@ -3284,43 +3284,59 @@ function renderStockZeroPieChart() {
 
     let masterDb = window.masterPartsDatabase || [];
     let totalParts = masterDb.length;
-    
-    // ถ้ายังไม่มีข้อมูล Master ให้ดึงจากจำนวนแถวในตารางจริงแทน
-    if (totalParts === 0) {
-        let rows = document.querySelectorAll('table tbody tr');
-        if (rows.length > 0) totalParts = rows.length;
-        if (totalParts === 0) totalParts = 265; // ค่าสำรอง
-    }
+    if (totalParts === 0) totalParts = 265; // ค่าสำรองถ้ายังไม่โหลด
 
-    // วิ่งกวาดหาพาร์ทที่มีสถานะ "In Stock" หรือมียอดคงเหลือจากตาราง FG บนหน้าเว็บ
     let availableCount = 0;
-    
-    // ลองหาจากป้ายสถานะ In Stock บนหน้าเว็บโดยตรง
-    let inStockBadges = document.querySelectorAll('.badge.bg-success, .badge.text-success, span');
-    inStockBadges.forEach(el => {
-        if (el.innerText.trim() === 'In Stock') {
-            availableCount++;
-        }
-    });
 
-    // ถ้าหาจากป้ายไม่เจอ ให้คำนวณจากตาราง Master ร่วมกับข้อมูลตัวแปรหลัก
-    if (availableCount === 0) {
-        // เช็คเผื่อกรณีดึงจาก window แหล่งอื่นๆ
-        let fgList = window.fgDatabase || window.deliveryDatabase || [];
-        fgList.forEach(item => {
-            let qty = 0;
-            for (let key in item) {
-                if (key.toLowerCase().includes('qty') || key.toLowerCase().includes('balance') || key.toLowerCase().includes('จริง')) {
-                    qty = parseFloat(item[key]) || 0;
-                    if (qty > 0) break;
+    // วิธีที่ชัวร์ที่สุด: อ่านค่าจากตาราง "Stock WIP" และ "Stock FG" ที่แสดงผลอยู่บนหน้าเว็บโดยตรง
+    // โดยเก็บรหัสพาร์ทที่มีสถานะ In Stock หรือมียอดคงเหลือ > 0
+    let activePartsSet = new Set();
+
+    // 1. ตรวจสอบตารางคลังสินค้าหว่างผลิต (Stock WIP) - เช็คคอลัมน์ "คงเหลือ WIP ปัจจุบัน"
+    // หาตารางทางซ้าย (Stock WIP)
+    let tables = document.querySelectorAll('table');
+    if (tables.length >= 2) {
+        // ตาราง WIP (ตารางแรกๆ)
+        let wipRows = tables[0].querySelectorAll('tbody tr');
+        wipRows.forEach(tr => {
+            let cols = tr.querySelectorAll('td');
+            if (cols.length >= 4) {
+                let pNo = cols[0].innerText.trim();
+                let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
+                if (pNo && wipBal > 0) {
+                    activePartsSet.add(pNo.toLowerCase());
                 }
             }
-            if (qty > 0) availableCount++;
         });
+
+        // ตาราง FG (ตารางที่สอง) - เช็คคอลัมน์ "คงเหลือ FG จริง"
+        if (tables.length >= 2) {
+            let fgRows = tables[1].querySelectorAll('tbody tr');
+            fgRows.forEach(tr => {
+                let cols = tr.querySelectorAll('td');
+                if (cols.length >= 4) {
+                    let pNo = cols[0].innerText.trim();
+                    let fgBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
+                    if (pNo && fgBal > 0) {
+                        activePartsSet.add(pNo.toLowerCase());
+                    }
+                }
+            });
+        }
     }
 
-    // ป้องกันค่าติดลบหรือเกินจริง
-    if (availableCount > totalParts) availableCount = 1; // ตัวอย่างจากภาพมีอย่างน้อย 1 ตัว (17154-0T040 ขึ้น In Stock)
+    // ถ้าดึงจากตารางไม่ได้ ให้สำรองเช็คจาก Badge In Stock บนหน้าเว็บ
+    if (activePartsSet.size === 0) {
+        let badges = document.querySelectorAll('.badge');
+        badges.forEach(b => {
+            if (b.innerText.trim() === 'In Stock') {
+                availableCount++;
+            }
+        });
+    } else {
+        availableCount = activePartsSet.size;
+    }
+
     let zeroCount = Math.max(0, totalParts - availableCount);
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
