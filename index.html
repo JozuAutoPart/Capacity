@@ -3170,6 +3170,50 @@ function updateQGatePartImage(partNo) {
         box.style.display = 'none';
     }
 }
+        // ==========================================================
+// ระบบแสดงรูปภาพจากคอลัมน์ E (keys[4]) อัตโนมัติเมื่อเลือก Part No.
+// ==========================================================
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'qgatePartNo') {
+        let partNo = e.target.value;
+        let box = document.getElementById('qgate-image-box');
+        let imgTag = document.getElementById('qgate-part-img');
+        let descTag = document.getElementById('qgate-part-desc');
+        
+        if (!box || !imgTag) return;
+
+        if (!partNo) {
+            box.style.display = 'none';
+            return;
+        }
+
+        // ดึงฐานข้อมูล Master Barcode ที่โหลดไว้ในระบบ
+        let db = window.masterPartsDatabase || [];
+        let found = db.find(item => {
+            let keys = Object.keys(item);
+            let pn = String(item.partno || item['part no'] || keys[1] ? item[keys[1]] : '').trim().toLowerCase();
+            let bc = String(item.barcode || item['bar code'] || keys[0] ? item[keys[0]] : '').trim().toLowerCase();
+            return pn === partNo.toLowerCase() || bc === partNo.toLowerCase();
+        });
+
+        if (found) {
+            let keys = Object.keys(found);
+            // 📌 ดึงลิงก์จากคอลัมน์ E โดยตรง (keys[4])
+            let imgSrc = found[keys[4]] || found.image || found.img || '';
+            let partName = found[keys[2]] || found['part name'] || '';
+
+            if (imgSrc && imgSrc.startsWith('http')) {
+                imgTag.src = imgSrc;
+                if (descTag) descTag.innerText = partName ? `(${partName})` : '';
+                box.style.display = 'block'; // แสดงกล่องรูปภาพ
+            } else {
+                box.style.display = 'none'; // ซ่อนถ้าคอลัมน์ E ไม่มีลิงก์รูป
+            }
+        } else {
+            box.style.display = 'none';
+        }
+    }
+});
 </script>
 </body>
 </html>
