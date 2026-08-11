@@ -3271,7 +3271,7 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// ฟังก์ชันคำนวณยอด Stock จับคู่คอลัมน์ partNo ตาราง Master แบบแม่นยำ
+// ฟังก์ชันคำนวณยอด Stock แบบเทียบรหัสพาร์ทจากตาราง Master โดยตรง (100% Match)
 // ==========================================================
 function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
@@ -3287,22 +3287,40 @@ function renderStockZeroPieChart() {
     let qgateList = window.qgateDatabase || [];
     let deliveryList = window.deliveryDatabase || [];
 
-    // ฟังก์ชันช่วยดึงรหัสพาร์ทจากข้อมูลการผลิต/WIP/Delivery แบบยืดหยุ่น
-    function extractTransPart(obj) {
-        if (!obj) return "";
-        for (let key in obj) {
-            let kLower = key.toLowerCase().trim();
-            if (kLower.includes('part') || kLower.includes('code') || kLower.includes('item')) {
-                let val = String(obj[key] || "").trim();
-                if (val && val.includes("-")) return val.toLowerCase().replace(/[\s\-\_]/g, '');
+    // 1. เก็บรายการรหัสพาร์ททั้งหมดจากตาราง Master ไว้ในรูปแบบ Set เพื่อใช้อ้างอิง
+    let validMasterParts = new Set();
+    
+    masterDb.forEach(item => {
+        let pNo = "";
+        if (item['partNo'] !== undefined) pNo = String(item['partNo']);
+        else if (item['part_no'] !== undefined) pNo = String(item['part_no']);
+        else if (item['PartNo'] !== undefined) pNo = String(item['PartNo']);
+        else {
+            // ดึงจากค่าที่มีเครื่องหมายขีด '-' ในแถว
+            let values = Object.values(item);
+            for (let v of values) {
+                let s = String(v || "").trim();
+                if (s.includes("-") && s.length >= 5) {
+                    pNo = s;
+                    break;
+                }
             }
         }
+        if (pNo) {
+            let cleanP = pNo.toLowerCase().replace(/[\s\-\_]/g, '');
+            validMasterParts.add(cleanP);
+        }
+    });
+
+    // ฟังก์ชันค้นหาว่าค่าในแถวตรงกับพาร์ทใน Master หรือไม่
+    function findMatchingPart(obj, masterSet) {
+        if (!obj) return "";
         for (let key in obj) {
             let val = String(obj[key] || "").trim();
-            if (val.includes("-") && val.length >= 6) {
-                let lower = val.toLowerCase();
-                if (!lower.includes('date') && !lower.includes('cus')) {
-                    return lower.replace(/[\s\-\_]/g, '');
+            if (val) {
+                let cleanVal = val.toLowerCase().replace(/[\s\-\_]/g, '');
+                if (masterSet.has(cleanVal)) {
+                    return cleanVal;
                 }
             }
         }
@@ -3310,38 +3328,39 @@ function renderStockZeroPieChart() {
     }
 
     // ฟังก์ชันดึงจำนวน Qty
-    function extractTransQty(obj) {
+    function getQuantity(obj) {
         if (!obj) return 0;
         for (let key in obj) {
             let kLower = key.toLowerCase().trim();
-            if (kLower.includes('qty') || kLower.includes('total') || kLower.includes('pass') || kLower.includes('จำนวน') || kLower.includes('รวม') || kLower.includes('คงเหลือ')) {
+            if (kLower.includes('qty') || kLower.includes('total') || kLower.includes('pass') || kLower.includes('จำนวน') || kLower.includes('รวม') || kLower.includes('คงเหลือ') || kLower.includes('good')) {
                 let num = parseFloat(obj[key]);
                 if (!isNaN(num)) return num;
             }
         }
-        for (let key in obj) {
-            let num = parseFloat(obj[key]);
-            if (!isNaN(num) && num > 0) return num;
+        let values = Object.values(obj);
+        for (let v of values) {
+            let num = parseFloat(v);
+            if (!isNaN(num) && num > 0 && String(v).length < 8) return num;
         }
         return 0;
     }
 
     let stockMap = {};
 
-    // 1. ประมวลผล WIP
+    // ประมวลผล WIP
     prodList.forEach(item => {
-        let pNo = extractTransPart(item);
-        let qty = extractTransQty(item);
+        let pNo = findMatchingPart(item, validMasterParts);
+        let qty = getQuantity(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].wip += qty;
         }
     });
 
-    // 2. ประมวลผล Q-Gate
+    // ประมวลผล Q-Gate
     qgateList.forEach(item => {
-        let pNo = extractTransPart(item);
-        let qty = extractTransQty(item);
+        let pNo = findMatchingPart(item, validMasterParts);
+        let qty = getQuantity(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].wip -= qty;
@@ -3349,10 +3368,10 @@ function renderStockZeroPieChart() {
         }
     });
 
-    // 3. ประมวลผล Delivery
+    // ประมวลผล Delivery
     deliveryList.forEach(item => {
-        let pNo = extractTransPart(item);
-        let qty = extractTransQty(item);
+        let pNo = findMatchingPart(item, validMasterParts);
+        let qty = getQuantity(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].fg -= qty;
@@ -3362,50 +3381,26 @@ function renderStockZeroPieChart() {
     let totalParts = masterDb.length;
     let availableCount = 0;
 
-    // วนลูปเช็คจากตาราง Master โดยดึงจากคอลัมน์ partNo หรือคอลัมน์ B โดยตรง
-    masterDb.forEach(masterItem => {
-        let masterPNo = "";
-        
-        // เช็คจากคีย์ partNo หรือ part_no โดยตรง
-        if (masterItem['partNo'] !== undefined) {
-            masterPNo = String(masterItem['partNo'] || "").trim();
-        } else if (masterItem['part_no'] !== undefined) {
-            masterPNo = String(masterItem['part_no'] || "").trim();
-        } else if (masterItem['PartNo'] !== undefined) {
-            masterPNo = String(masterItem['PartNo'] || "").trim();
-        } else {
-            // ถ้าไม่มี ให้ดึงจากค่าใน Object ตัวที่ 2 (ซึ่งก็คือคอลัมน์ B) หรือช่องที่มีเครื่องหมายขีด '-'
-            let values = Object.values(masterItem);
-            for (let v of values) {
-                let s = String(v || "").trim();
-                if (s.includes("-") && s.length >= 5) {
-                    masterPNo = s;
-                    break;
-                }
-            }
-        }
-
-        let cleanMasterPNo = masterPNo.toLowerCase().replace(/[\s\-\_]/g, '');
-
-        if (cleanMasterPNo && stockMap[cleanMasterPNo]) {
-            let netWip = Math.max(0, stockMap[cleanMasterPNo].wip);
-            let netFg = Math.max(0, stockMap[cleanMasterPNo].fg);
-            if ((netWip + netFg) > 0) {
-                availableCount++;
-            }
+    // ตรวจสอบว่าพาร์ทไหนใน Master มี Stock คงเหลือมากกว่า 0
+    validMasterParts.forEach(cleanPNo => {
+        let itemStock = stockMap[cleanPNo] || { wip: 0, fg: 0 };
+        let netWip = Math.max(0, itemStock.wip);
+        let netFg = Math.max(0, itemStock.fg);
+        if ((netWip + netFg) > 0) {
+            availableCount++;
         }
     });
 
     let zeroCount = totalParts - availableCount;
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
-    // อัปเดต UI หน้าจอ Dashboard
+    // อัปเดตตัวเลขบนหน้าจอ
     if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
     if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
     if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
     if (document.getElementById('summary-zero-percent')) document.getElementById('summary-zero-percent').innerText = zeroPercent + '%';
 
-    // วาดกราฟวงกลม
+    // วาดกราฟวงกลมใหม่
     if (window.myStockPieChart instanceof Chart) {
         window.myStockPieChart.destroy();
     }
@@ -3434,10 +3429,10 @@ function renderStockZeroPieChart() {
     });
 }
 
-setTimeout(renderStockZeroPieChart, 2000);
-setTimeout(renderStockZeroPieChart, 4500);
+// เรียกทำงานเมื่อโหลดหน้าเสร็จ และกดคลิกเปลี่ยนแท็บ
+setTimeout(renderStockZeroPieChart, 2500);
 document.addEventListener('click', function(e) {
-    setTimeout(renderStockZeroPieChart, 400);
+    setTimeout(renderStockZeroPieChart, 300);
 });
         // ==========================================================
 // ฟังก์ชันบังคับเปิด-ปิดกล่องกราฟเฉพาะหน้า Dashboard
