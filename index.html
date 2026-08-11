@@ -2878,58 +2878,45 @@ window.loadQGateParts = window.loadQGateParts || function() {
 };
 
 // ==========================================================
-// 2. ระบบสแกน Barcode ที่หน้า Q-Gate -> แปลงเป็น Part No. + ดึงยอด WIP อัตโนมัติ
+// ระบบ Scan Barcode ดึงค่าจาก Col B มาแสดงที่หน้า Q-Gate
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
     const qgateScanInput = document.querySelector('input[placeholder*="ค้นหา Part No"]') || document.getElementById('qgateScanInput');
     const qgatePartSelect = document.getElementById('qgatePartNo'); 
-    const qgateQtyInput = document.getElementById('qgateQty'); 
 
     if (qgateScanInput) {
         qgateScanInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.keyCode === 13) {
                 e.preventDefault();
-                let val = this.value;
-                if (!val) return;
-                
-                let code = String(val).trim().toLowerCase();
+                let code = String(this.value).trim().toLowerCase();
                 let db = window.masterPartsDatabase || [];
-                if (db.length === 0) {
-                    alert("กรุณาอัปโหลดไฟล์ Master Barcode ก่อนใช้งาน!");
-                    return;
-                }
-
-                // ค้นหาจาก Barcode (Col A) หรือ Part No (Col B)
+                
+                // ค้นหาใน DB: คอลัมน์แรก (Barcode) เทียบกับสิ่งที่สแกน
                 let found = db.find(item => {
                     let keys = Object.keys(item);
-                    let bc = String(item.barcode || item['bar code'] || item[keys[0]] || '').trim().toLowerCase();
-                    let pn = String(item.partno || item['part no'] || item[keys[1]] || '').trim().toLowerCase();
-                    return bc === code || pn === code;
+                    let barcode = String(item[keys[0]] || '').trim().toLowerCase();
+                    return barcode === code;
                 });
 
                 if (found) {
                     let keys = Object.keys(found);
-                    let actualPartNo = found[keys[1]] || found.partno || found['part no'] || found.barcode;
-                    
-                    // 1. นำ Part No. ไปเซ็ตค่าในช่อง Part No. (Q-Gate)
+                    let partNo = found[keys[1]]; // ดึงข้อมูลจาก Column B (ดัชนีที่ 1)
+
+                    // 1. นำ Part No. ไปใส่ใน Select
                     if (qgatePartSelect) {
-                        qgatePartSelect.value = actualPartNo;
+                        qgatePartSelect.value = partNo;
                         qgatePartSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        qgatePartSelect.dispatchEvent(new Event('input', { bubbles: true }));
+                        
+                        // ถ้า Select มี Option ให้เลือกให้ตรงค่า
+                        let option = Array.from(qgatePartSelect.options).find(opt => opt.value === partNo || opt.text === partNo);
+                        if(option) option.selected = true;
+                        
+                        console.log("พบ Part No:", partNo);
                     }
-
-                    // 2. ดึงยอดคงเหลือ WIP หรือจำนวนมาใส่ช่องตรวจสอบอัตโนมัติ
-                    setTimeout(() => {
-                        let defaultQty = found[keys[2]] || found.qty || found.quantity || found['จำนวน'] || 0;
-                        if (qgateQtyInput) {
-                            qgateQtyInput.value = defaultQty;
-                            qgateQtyInput.dispatchEvent(new Event('input', { bubbles: true }));
-                        }
-                    }, 100);
-
                 } else {
-                    alert("ไม่พบรหัส Barcode หรือ Part No. นี้ในระบบ: " + val);
+                    alert("ไม่พบรหัส Barcode นี้ในฐานข้อมูล!");
                     this.value = '';
-                    this.focus();
                 }
             }
         });
