@@ -3271,7 +3271,7 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// ระบบคำนวณแบบยืดหยุ่น (ช่วยแก้ปัญหาหา Part No. ไม่เจอ)
+// แก้ไขการดึงค่า NS ให้แม่นยำ (แก้ปัญหาเรื่องช่องว่างและค่าว่าง)
 // ==========================================================
 function renderStockZeroPieChart() {
     let masterDb = window.masterPartsDatabase || [];
@@ -3283,33 +3283,48 @@ function renderStockZeroPieChart() {
     if (!canvasElement) return;
 
     let totalParts = masterDb.length;
-    let availableSet = new Set(); // ใช้ Set เก็บ Part No. ที่เช็คแล้วว่ามียอด
+    let availableSet = new Set();
+    const clean = (str) => String(str || "").trim().toLowerCase();
 
-    // ฟังก์ชันช่วยทำความสะอาดชื่อ Part No. เพื่อให้เทียบกันได้แม่นยำ
-    const clean = (str) => String(str || "").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    // 1. เช็ค WIP: ถ้ามียอด > 0 ให้เพิ่มเข้า availableSet
+    // 1. รวมยอด WIP (ผลิตเข้า - Q-Gate)
+    let wipStock = {};
     prodList.forEach(p => {
-        let pNo = clean(p.partNo || p.partno || p[Object.keys(p)[1]] || p[Object.keys(p)[0]]);
+        let pNo = clean(p.partNo || p.partno || Object.values(p)[1]);
         let qty = parseFloat(p.qty || p.total || 0) || 0;
-        if (qty > 0) availableSet.add(pNo);
+        if (!wipStock[pNo]) wipStock[pNo] = 0;
+        wipStock[pNo] += qty;
+    });
+    qgateList.forEach(q => {
+        let qNo = clean(q.partNo || q.partno || Object.values(q)[1]);
+        let pass = parseFloat(q.passQty || q.pass || q.total || 0) || 0;
+        if (!wipStock[qNo]) wipStock[qNo] = 0;
+        wipStock[qNo] -= pass;
     });
 
-    // 2. เช็ค FG: ถ้ามียอด > 0 ให้เพิ่มเข้า availableSet
+    // 2. รวมยอด FG (Q-Gate - Delivery)
+    let fgStock = {};
+    qgateList.forEach(q => {
+        let qNo = clean(q.partNo || q.partno || Object.values(q)[1]);
+        let pass = parseFloat(q.passQty || q.pass || q.total || 0) || 0;
+        if (!fgStock[qNo]) fgStock[qNo] = 0;
+        fgStock[qNo] += pass;
+    });
     deliveryList.forEach(d => {
-        let dNo = clean(d.partNo || d.partno || d[Object.keys(d)[1]] || d[Object.keys(d)[0]]);
-        let qty = parseFloat(d.qty || d.deliveryQty || 0) || 0;
-        if (qty > 0) availableSet.add(dNo);
+        let dNo = clean(d.partNo || d.partno || Object.values(d)[1]);
+        let del = parseFloat(d.qty || d.deliveryQty || 0) || 0;
+        if (!fgStock[dNo]) fgStock[dNo] = 0;
+        fgStock[dNo] -= del;
     });
 
-    // 3. เปรียบเทียบ Master กับรายการที่มีของ
+    // 3. เช็คสถานะ
     let availableStockCount = 0;
     masterDb.forEach(m => {
-        // ลองทุกคีย์ใน Master เพื่อหาค่าที่ตรงกับในตาราง WIP/FG
-        let keys = Object.keys(m);
+        let keys = Object.values(m);
         let found = false;
-        for (let k of keys) {
-            if (availableSet.has(clean(m[k]))) {
+        for (let val of keys) {
+            let part = clean(val);
+            let total = (wipStock[part] || 0) + (fgStock[part] || 0);
+            if (total > 0) {
                 found = true;
                 break;
             }
@@ -3319,7 +3334,7 @@ function renderStockZeroPieChart() {
 
     let zeroStockCount = totalParts - availableStockCount;
 
-    // อัปเดตตัวเลข
+    // อัปเดตหน้าจอ
     document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
     document.getElementById('summary-zero-stock').innerText = zeroStockCount.toLocaleString();
     document.getElementById('summary-available-stock').innerText = availableStockCount.toLocaleString();
@@ -3335,7 +3350,7 @@ function renderStockZeroPieChart() {
         }
     });
 }
-setTimeout(renderStockZeroPieChart, 2000);
+setTimeout(renderStockZeroPieChart, 1000);
 </script>
 </body>
 </html>
