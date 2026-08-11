@@ -3271,28 +3271,29 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// แก้ไขระบบสแกนหา Part No. และคำนวณยอดอัตโนมัติแบบแม่นยำ 100%
+// แก้ไขให้กราฟสรุป Stock แสดงเฉพาะที่หน้า Dashboard เท่านั้น
 // ==========================================================
 function renderStockZeroPieChart() {
+    // เช็คก่อนว่ามีCanvasของกราฟนี้ในหน้าปัจจุบันไหม (มีเฉพาะที่หน้า Dashboard)
+    let canvasElement = document.getElementById('stockZeroPieChart');
+    if (!canvasElement) return; // ถ้าไม่อยู่หน้า Dashboard ให้ตัดจบการทำงานทันที
+
     let masterDb = window.masterPartsDatabase || [];
     let prodList = window.productionDatabase || [];
     let qgateList = window.qgateDatabase || [];
     let deliveryList = window.deliveryDatabase || [];
 
-    // ฟังก์ชันแกะรหัส Part No. จากทุกคอลัมน์โดยอัตโนมัติ
     function extractPartNo(obj) {
         if (!obj) return "";
         for (let key in obj) {
             let val = String(obj[key] || "").trim();
-            // เช็คแพทเทิร์นพาร์ทนัมเบอร์ (เช่น มีขีด '-' และความยาวพอสมควร)
             if (val.includes("-") && val.length >= 5) {
                 let lower = val.toLowerCase();
                 if (!lower.includes("part") && !lower.includes("wip") && !lower.includes("fg") && !lower.includes("master")) {
-                    return val.toLowerCase().replace(/[\s\-\_]/g, ''); // ตัดช่องว่างและขีดออกเพื่อให้เทียบกันติดชัวร์
+                    return val.toLowerCase().replace(/[\s\-\_]/g, '');
                 }
             }
         }
-        // Fallback: ดึงค่าจากช่องแรกๆ ที่ไม่ใช่ตัวเลขล้วน
         let values = Object.values(obj);
         for (let v of values) {
             let s = String(v || "").trim();
@@ -3303,7 +3304,6 @@ function renderStockZeroPieChart() {
         return "";
     }
 
-    // ฟังก์ชันแกะตัวเลขจำนวนยอดจากทุกคอลัมน์
     function extractQty(obj) {
         if (!obj) return 0;
         for (let key in obj) {
@@ -3313,7 +3313,6 @@ function renderStockZeroPieChart() {
                 if (!isNaN(num)) return num;
             }
         }
-        // Fallback: หาค่าที่เป็นตัวเลขตัวแรกในอาร์เรย์
         let values = Object.values(obj);
         for (let v of values) {
             let num = parseFloat(v);
@@ -3324,7 +3323,6 @@ function renderStockZeroPieChart() {
 
     let stockMap = {};
 
-    // 1. ประมวลผลยอด WIP
     prodList.forEach(item => {
         let pNo = extractPartNo(item);
         let qty = extractQty(item);
@@ -3334,7 +3332,6 @@ function renderStockZeroPieChart() {
         }
     });
 
-    // 2. ประมวลผล Q-Gate (ย้ายจาก WIP ไป FG)
     qgateList.forEach(item => {
         let pNo = extractPartNo(item);
         let qty = extractQty(item);
@@ -3345,7 +3342,6 @@ function renderStockZeroPieChart() {
         }
     });
 
-    // 3. ประมวลผล Delivery (ตัดออกจาก FG)
     deliveryList.forEach(item => {
         let pNo = extractPartNo(item);
         let qty = extractQty(item);
@@ -3358,11 +3354,8 @@ function renderStockZeroPieChart() {
     let totalParts = masterDb.length;
     let availableCount = 0;
 
-    // ตรวจสอบกับ Master Part Code ทั้งหมด
     masterDb.forEach(masterItem => {
         let hasStock = false;
-        
-        // วนเช็คทุกฟิลด์ใน Master Item
         for (let key in masterItem) {
             let val = String(masterItem[key] || "").trim().toLowerCase().replace(/[\s\-\_]/g, '');
             if (val && stockMap[val]) {
@@ -3374,59 +3367,51 @@ function renderStockZeroPieChart() {
                 }
             }
         }
-
-        if (hasStock) {
-            availableCount++;
-        }
+        if (hasStock) availableCount++;
     });
 
     let zeroCount = totalParts - availableCount;
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
-    // อัปเดตตัวเลขบนหน้าจอ
     if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
     if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
     if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
     if (document.getElementById('summary-zero-percent')) document.getElementById('summary-zero-percent').innerText = zeroPercent + '%';
 
-    // วาดกราฟใหม่
     if (window.myStockPieChart instanceof Chart) {
         window.myStockPieChart.destroy();
     }
 
-    let canvas = document.getElementById('stockZeroPieChart');
-    if (canvas) {
-        window.myStockPieChart = new Chart(canvas.getContext('2d'), {
-            type: 'pie',
-            data: {
-                labels: ['Stock 0 ชิ้น', 'มี Stock มากกว่า 0 ชิ้น'],
-                datasets: [{
-                    data: [zeroCount, availableCount],
-                    backgroundColor: ['#ef4444', '#10b981'],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { color: '#ffffff', font: { size: 12 } }
-                    }
+    let ctx = canvasElement.getContext('2d');
+    window.myStockPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Stock 0 ชิ้น', 'มี Stock มากกว่า 0 ชิ้น'],
+            datasets: [{
+                data: [zeroCount, availableCount],
+                backgroundColor: ['#ef4444', '#10b981'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#ffffff', font: { size: 12 } }
                 }
             }
-        });
-    }
+        }
+    });
 }
 
-// สั่งทำงานหน่วงเวลาเผื่อโหลดข้อมูลจาก Excel
-setTimeout(renderStockZeroPieChart, 2000);
-setTimeout(renderStockZeroPieChart, 4500); 
-
+// รันเฉพาะตอนโหลดหน้าหรือกดสลับแท็บมาที่หน้า Dashboard
+setTimeout(renderStockZeroPieChart, 1500);
 document.addEventListener('click', function(e) {
-    if (e.target && (e.target.dataset.bsTarget === '#dashboard' || e.target.id === 'dashboard-tab')) {
-        setTimeout(renderStockZeroPieChart, 500);
+    let target = e.target.closest('[data-bs-toggle="tab"], [data-bs-target], .nav-link');
+    if (target) {
+        setTimeout(renderStockZeroPieChart, 300);
     }
 });
 </script>
