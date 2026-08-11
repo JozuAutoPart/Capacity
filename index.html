@@ -2878,7 +2878,7 @@ window.loadQGateParts = window.loadQGateParts || function() {
 };
 
 // ==========================================================
-// ระบบ Scan Barcode ค้นหาทั้ง Column A และ Column B อัตโนมัติ
+// ระบบสแกน Column A -> ดึงค่า Column B มาใส่ช่อง Part No.
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
     const qgateScanInput = document.querySelector('input[placeholder*="ค้นหา Part No"]') || document.getElementById('qgateScanInput');
@@ -2890,50 +2890,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                let code = String(this.value).trim().toLowerCase();
+                let scannedCode = String(this.value).trim();
                 let db = window.masterPartsDatabase || [];
+                
+                console.log("กำลังค้นหารหัสจาก Column A:", scannedCode);
+
                 if (db.length === 0) {
                     alert("กรุณาอัปโหลดไฟล์ Master Barcode ก่อน!");
                     return;
                 }
 
-                let keys = Object.keys(db[0] || {});
-                let colAKey = keys[0]; // Barcode (Column A)
-                let colBKey = keys[1]; // Part No. (Column B)
+                // ค้นหาในฐานข้อมูล โดยเทียบสิ่งที่พิมพ์/ยิง กับ Column แรก (Column A)
+                let foundItem = null;
+                let colAKey = null;
+                let colBKey = null;
 
-                // ค้นหา: เช็คจาก Column A หรือตรงกับ Column B เลย
-                let found = db.find(item => {
-                    let barcode = String(item[colAKey] || '').trim().toLowerCase();
-                    let partNoVal = String(item[colBKey] || '').trim().toLowerCase();
-                    return barcode === code || partNoVal === code;
-                });
+                for (let item of db) {
+                    let keys = Object.keys(item);
+                    if (keys.length >= 2) {
+                        colAKey = keys[0]; // Column A (Barcode)
+                        colBKey = keys[1]; // Column B (Part No.)
+                        
+                        let colAVal = String(item[colAKey] || '').trim();
+                        if (colAVal.toLowerCase() === scannedCode.toLowerCase()) {
+                            foundItem = item;
+                            break;
+                        }
+                    }
+                }
 
-                if (found) {
-                    let partNo = String(found[colBKey] || '').trim();
+                if (foundItem) {
+                    let partNo = String(foundItem[colBKey] || '').trim();
+                    console.log("เจอข้อมูล! Column A:", scannedCode, "-> ดึง Column B (Part No):", partNo);
 
                     if (qgatePartSelect) {
-                        qgatePartSelect.value = partNo;
+                        // เช็คว่าใน Dropdown มี Part No. นี้หรือยัง ถ้ายังไม่มีให้สร้างเพิ่มเข้าไปใหม่
+                        let optionExists = Array.from(qgatePartSelect.options).some(opt => 
+                            opt.value.trim().toLowerCase() === partNo.toLowerCase() || 
+                            opt.text.trim().toLowerCase() === partNo.toLowerCase()
+                        );
                         
-                        // วนหา Option ใน Dropdown เพื่อเลือกให้ตรงกัน
-                        let matched = false;
-                        for (let option of qgatePartSelect.options) {
-                            if (option.value.trim().toLowerCase() === partNo.toLowerCase() || 
-                                option.text.trim().toLowerCase() === partNo.toLowerCase()) {
-                                option.selected = true;
-                                matched = true;
-                                break;
-                            }
+                        if (!optionExists) {
+                            let newOption = document.createElement('option');
+                            newOption.value = partNo;
+                            newOption.text = partNo;
+                            qgatePartSelect.appendChild(newOption);
+                            console.log("เพิ่ม Part No. ใหม่ลงใน Dropdown:", partNo);
                         }
 
-                        // ส่งสัญญาณบอกหน้าเว็บว่ามีการเปลี่ยนค่า Part No. แล้ว
+                        // เลือกค่า Part No. นั้นทันที
+                        qgatePartSelect.value = partNo;
                         qgatePartSelect.dispatchEvent(new Event('change', { bubbles: true }));
                         qgatePartSelect.dispatchEvent(new Event('input', { bubbles: true }));
                         
-                        console.log("เลือก Part No จาก Column B สำเร็จ:", partNo);
-                        this.value = ''; //เคลียร์ช่องค้นหาให้พร้อมสแกนตัวถัดไป
+                        // เคลียร์ช่องสแกนให้โล่งพร้อมยิงตัวถัดไป
+                        this.value = '';
                     }
                 } else {
-                    alert("ไม่พบรหัสนี้ใน Master Barcode: " + code);
+                    alert("ไม่พบรหัส \"" + scannedCode + "\" ใน Column A ของไฟล์ Master Barcode ครับ!");
                     this.value = '';
                 }
             }
