@@ -3271,24 +3271,67 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// ระบบคำนวณ สร้างกราฟวงกลม และอัปเดตกล่องสรุปข้อมูล Stock
+// ระบบคำนวณกราฟและสรุป: นับจำนวนทั้งหมดจาก Master Part Code 
+// และเช็คสถานะ Stock คงเหลือจาก Stock WIP & FG
 // ==========================================================
 function renderStockZeroPieChart() {
-    let db = window.masterPartsDatabase || [];
+    let masterDb = window.masterPartsDatabase || [];
     let canvasElement = document.getElementById('stockZeroPieChart');
     
     if (!canvasElement) return;
 
-    let totalParts = db.length;
+    // 1. จำนวนพาร์ททั้งหมดอ้างอิงจาก Master Part Code
+    let totalParts = masterDb.length;
     let zeroStockCount = 0;
     let availableStockCount = 0;
 
-    db.forEach(item => {
-        let keys = Object.keys(item);
-        let qtyVal = item['จำนวน'] || item['qty'] || keys[2] ? item[keys[2]] : 0;
-        let qty = parseFloat(qtyVal);
+    // ดึงข้อมูลฐานข้อมูลการผลิตและคลัง (WIP & FG) มาคำนวณยอดคงเหลือจริง
+    let prodList = window.productionDatabase || [];
+    let qgateList = window.qgateDatabase || [];
+    let deliveryList = window.deliveryDatabase || [];
 
-        if (isNaN(qty) || qty <= 0) {
+    masterDb.forEach(item => {
+        let keys = Object.keys(item);
+        let partNo = String(item.partno || item['part no'] || (keys[1] ? item[keys[1]] : '')).trim();
+        
+        if (!partNo) {
+            zeroStockCount++;
+            return;
+        }
+
+        // คำนวณ WIP คงเหลือ
+        let wipIn = 0;
+        prodList.forEach(p => {
+            if (String(p.partNo || p.partno || '').trim() === partNo) {
+                wipIn += parseFloat(p.qty || p.total || 0) || 0;
+            }
+        });
+        
+        let qgateOut = 0;
+        qgateList.forEach(q => {
+            if (String(q.partNo || q.partno || '').trim() === partNo) {
+                qgateOut += parseFloat(q.passQty || q.pass || q.total || 0) || 0;
+            }
+        });
+        let wipBalance = wipIn - qgateOut;
+        if (wipBalance < 0) wipBalance = 0;
+
+        // คำนวณ FG คงเหลือจริง
+        let fgIn = qgateOut; 
+        let fgOut = 0;
+        deliveryList.forEach(d => {
+            if (String(d.partNo || d.partno || '').trim() === partNo) {
+                fgOut += parseFloat(d.qty || d.deliveryQty || 0) || 0;
+            }
+        });
+        let fgBalance = fgIn - fgOut;
+        if (fgBalance < 0) fgBalance = 0;
+
+        // สต็อกรวมทั้งสิ้น (WIP + FG)
+        let totalStock = wipBalance + fgBalance;
+
+        // ถ้าไม่มีสต็อกหรือเหลือ 0 ให้ปัดเป็น 0
+        if (totalStock <= 0) {
             zeroStockCount++;
         } else {
             availableStockCount++;
@@ -3341,7 +3384,7 @@ function renderStockZeroPieChart() {
     });
 }
 
-// เรียกใช้งานฟังก์ชัน
+// เรียกใช้งานฟังก์ชันเมื่อโหลดหน้าเว็บ
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(renderStockZeroPieChart, 1500);
 });
