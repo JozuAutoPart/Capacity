@@ -30,16 +30,16 @@
         }
         .animate-pulse { animation: pulse 1.5s infinite; }
         .logo-header-img {
-            height: 48px;
-            width: auto;
-            object-fit: contain;
-            background-color: #ffffff;
-            padding: 3px 6px;
-            border-radius: 6px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-            cursor: pointer;
-            vertical-align: middle;
-        }
+    height: 48px;
+    width: 48px; /* กำหนดความกว้างให้เท่ากับความสูง เพื่อให้เป็นวงกลมสวยงาม */
+    object-fit: contain;
+    background-color: #ffffff;
+    padding: 3px;
+    border-radius: 50%; /* เปลี่ยนจาก 6px เป็น 50% เพื่อให้เป็นวงกลม */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    cursor: pointer;
+    vertical-align: middle;
+}
     </style>
 </head>
 <body class="p-3 p-md-4">
