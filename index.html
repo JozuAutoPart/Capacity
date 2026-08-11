@@ -3119,26 +3119,22 @@ window.loadQGateParts = window.loadQGateParts || function() {
         }
     }, true);
 })();
-        // ==========================================================
-// ระบบแก้ปัญหาภาษาไทยเพี้ยนจากการสแกนบาร์โค้ด (Encoding Fixer)
+// ==========================================================
+// ระบบแก้ปัญหาภาษาไทยเพี้ยนจากการสแกนบาร์โค้ด (Windows-874 Fixer)
 // ==========================================================
 (function() {
     function fixThaiBarcode(str) {
         if (!str || typeof str !== 'string') return str;
-        // เช็คว่ามีลักษณะตัวอักษรเพี้ยนแบบบาร์โค้ดภาษาไทยหรือไม่
-        if (str.includes('à¸') || str.includes('à¹') || str.includes('àº')) {
+        
+        // เช็คว่ามีลักษณะตัวอักษรเพี้ยนที่เกิดจากการอ่านรหัสไบต์ผิดประเภทหรือไม่
+        if (str.includes('à¸') || str.includes('à¹') || str.includes('àº') || /[\u0080-\u00FF]/.test(str)) {
             try {
-                let bytes = [];
+                let bytes = new Uint8Array(str.length);
                 for (let i = 0; i < str.length; i++) {
-                    let code = str.charCodeAt(i);
-                    if (code <= 255) {
-                        bytes.push(code);
-                    } else {
-                        bytes.push(code & 0xFF);
-                        bytes.push((code >> 8) & 0xFF);
-                    }
+                    bytes[i] = str.charCodeAt(i) & 0xFF;
                 }
-                let decoded = new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+                // ใช้ TextDecoder ถอดรหัสย่าน Windows-874 (TIS-620) ของไทยโดยตรง
+                let decoded = new TextDecoder('windows-874').decode(bytes);
                 return decoded;
             } catch (e) {
                 return str;
@@ -3147,7 +3143,7 @@ window.loadQGateParts = window.loadQGateParts || function() {
         return str;
     }
 
-    // ดักจับการพิมพ์/สแกนเข้าช่อง input ทุกช่องในระบบ
+    // ดักจับการพิมพ์หรือสแกนเข้าช่อง input ทุกช่องในระบบแบบ Real-time
     document.addEventListener('input', function(e) {
         let target = e.target;
         if (target && target.tagName === 'INPUT' && target.type === 'text') {
@@ -3157,7 +3153,7 @@ window.loadQGateParts = window.loadQGateParts || function() {
                 target.value = fixedVal;
                 target.dispatchEvent(new Event('input', { bubbles: true }));
                 target.dispatchEvent(new Event('change', { bubbles: true }));
-                console.log(">>> แก้ไขภาษาไทยจากบาร์โค้ดสำเร็จ:", fixedVal);
+                console.log(">>> แปลงภาษาไทยสำเร็จ:", fixedVal);
             }
         }
     }, true);
