@@ -1082,7 +1082,15 @@ function renderCapacity() {
    actuals.forEach(a => {
         let line = a.line || a.Line || 'Line A';
         let machine = a.mcNo || a.machine || a['Machine No.'] || 'Machine Press';
-        let month = a.date ? a.date.substring(0, 7) : '2026-08';
+        let month = '2026-08';
+if (a.date) {
+    let parts = String(a.date).split(/[-/]/);
+    if (parts.length >= 2) {
+        month = parts[0].length === 4 ? `${parts[0]}-${parts[1].padStart(2, '0')}` : `${parts[2]}-${parts[1].padStart(2, '0')}`;
+    } else if (a.date.length >= 7) {
+        month = a.date.substring(0, 7);
+    }
+}
         
         // เงื่อนไขวันที่ 1 ของเดือน
         const isFirstDayOfMonth = new Date().getDate() === 1;
@@ -1174,19 +1182,19 @@ function renderCapacityCharts(lineMonthlyData) {
         lineWrapper.innerHTML = `<h6 class="text-info">Line: ${line} (Norm: ${NORMAL_CAP_HOURS} ชม. | OT: ${OT_CAP_HOURS} ชม.)</h6><div style="position: relative; height:250px;"><canvas id="${canvasId}"></canvas></div>`;
         container.appendChild(lineWrapper);
 
-        let months = Object.keys(lineMonthlyData[line]).sort();
-        let machines = [...new Set(months.flatMap(m => Object.keys(lineMonthlyData[line][m])))];
+       let months = Object.keys(lineMonthlyData[line]).sort();
+let machines = [...new Set(months.flatMap(m => Object.keys(lineMonthlyData[line][m])))];
 
-        let colorPalette = ['#36a2eb', '#ff6384', '#cc65fe', '#ffce56', '#4bc0c0', '#9966ff'];
-        let datasets = machines.map((mach, idx) => {
-            return {
-                label: mach,
-                data: months.map(m => lineMonthlyData[line][m][mach] || 0),
-                backgroundColor: colorPalette[idx % colorPalette.length],
-                borderColor: colorPalette[idx % colorPalette.length],
-                borderWidth: 1
-            };
-        });
+let colorPalette = ['#36a2eb', '#ff6384', '#cc65fe', '#ffce56', '#4bc0c0', '#9966ff'];
+let datasets = machines.map((mach, idx) => {
+    return {
+        label: mach,
+        data: months.map(m => lineMonthlyData[line][m][mach] || 0),
+        backgroundColor: colorPalette[idx % colorPalette.length],
+        borderColor: colorPalette[idx % colorPalette.length],
+        borderWidth: 1
+    };
+});
 
         const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
