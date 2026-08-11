@@ -3173,6 +3173,7 @@ function updateQGatePartImage(partNo) {
 }
         // ==========================================================
 // ==========================================================
+// ==========================================================
 // ระบบแสดงรูปภาพจากคอลัมน์ E (keys[4]) ที่มุมขวาหัวข้อ Q-Gate
 // ==========================================================
 document.addEventListener('change', function(e) {
@@ -3203,7 +3204,7 @@ document.addEventListener('change', function(e) {
 
             if (imgSrc && imgSrc.startsWith('http')) {
                 imgTag.src = imgSrc;
-                box.style.display = 'block'; // แสดงรูปที่มุมขวา
+                box.style.display = 'block'; // แสดงรูปที่มุมขวาบน
             } else {
                 box.style.display = 'none';
             }
