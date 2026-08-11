@@ -2878,85 +2878,74 @@ window.loadQGateParts = window.loadQGateParts || function() {
 };
 
 // ==========================================================
-// ระบบแปลง Barcode เป็น Part No. สำหรับ Q-Gate (ฉบับ Global Event Delegation)
+// ระบบแปลง Barcode เป็น Part No. สำหรับ Q-Gate (แบบตรวจจับการเปลี่ยนค่าอัตโนมัติ)
 // ==========================================================
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || e.keyCode === 13) {
-        let targetInput = e.target;
+document.addEventListener('input', function(e) {
+    let targetInput = e.target;
+    
+    // ตรวจสอบว่าเป็นช่องค้นหาของ Q-Gate หรือไม่
+    let ph = (targetInput.placeholder || '').toLowerCase();
+    let isQGateSearch = ph.includes('ค้นหา') || ph.includes('wip') || targetInput.id === 'qgateScanInput';
+
+    if (isQGateSearch) {
+        let scanned = String(targetInput.value).trim();
         
-        // เช็คว่าเป็นช่องค้นหาของหน้า Q-Gate หรือไม่ (ดูจาก placeholder หรือ id)
-        let ph = (targetInput.placeholder || '').toLowerCase();
-        let isQGateSearch = ph.includes('ค้นหา') || ph.includes('wip') || targetInput.id === 'qgateScanInput';
+        // ถ้าค่าสั้นเกินไปหรือไม่มีค่า ให้ข้ามไป
+        if (scanned.length < 3) return;
 
-        if (isQGateSearch) {
-            e.preventDefault();
-            e.stopPropagation();
+        let db = window.masterPartsDatabase || [];
+        if (db.length === 0) return;
 
-            let scanned = String(targetInput.value).trim();
-            console.log(">>> ดักจับการยิงรหัสได้ที่ช่อง Q-Gate:", scanned);
+        let targetPartNo = null;
 
-            let db = window.masterPartsDatabase || [];
-            if (db.length === 0) {
-                alert("กรุณาอัปโหลดไฟล์ Master Barcode ก่อนครับ!");
-                return;
+        // วนลูปค้นหา Column A เพื่อแปลงเป็น Column B
+        for (let item of db) {
+            let keys = Object.keys(item);
+            if (keys.length >= 2) {
+                let colA = String(item[keys[0]] || '').trim(); // Barcode
+                let colB = String(item[keys[1]] || '').trim(); // Part No.
+
+                if (colA.toLowerCase() === scanned.toLowerCase()) {
+                    targetPartNo = colB;
+                    break;
+                }
             }
+        }
 
-            let targetPartNo = null;
+        // ถ้าแปลงค่าได้ และค่าไม่ตรงกับค่าเดิม ให้เปลี่ยนเป็น Part No. ทันที
+        if (targetPartNo && targetInput.value !== targetPartNo) {
+            console.log(">>> แปลง Barcode อัตโนมัติ:", scanned, "->", targetPartNo);
+            
+            targetInput.value = targetPartNo;
+            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+            targetInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-            // ค้นหาในฐานข้อมูล Master Barcode (Column A -> แปลงเป็น Column B)
-            for (let item of db) {
-                let keys = Object.keys(item);
-                if (keys.length >= 2) {
-                    let colA = String(item[keys[0]] || '').trim(); // Column A (Barcode)
-                    let colB = String(item[keys[1]] || '').trim(); // Column B (Part No.)
-
-                    if (colA.toLowerCase() === scanned.toLowerCase() || colB.toLowerCase() === scanned.toLowerCase()) {
-                        targetPartNo = colB;
+            // เลือกค่าที่ช่อง Dropdown ด้านล่าง (#qgatePartNo)
+            const selectEl = document.getElementById('qgatePartNo');
+            if (selectEl) {
+                let exists = false;
+                for (let opt of selectEl.options) {
+                    if (opt.value.trim().toLowerCase() === targetPartNo.toLowerCase() || 
+                        opt.text.trim().toLowerCase() === targetPartNo.toLowerCase()) {
+                        exists = true;
                         break;
                     }
                 }
+
+                if (!exists) {
+                    let newOpt = document.createElement('option');
+                    newOpt.value = targetPartNo;
+                    newOpt.text = targetPartNo;
+                    selectEl.appendChild(newOpt);
+                }
+
+                selectEl.value = targetPartNo;
+                selectEl.dispatchEvent(new Event('change', { bubbles: true }));
             }
 
-            if (targetPartNo) {
-                console.log(">>> แปลง Barcode สำเร็จ! เปลี่ยนเป็น Part No.:", targetPartNo);
-
-                // 1. เปลี่ยนค่าในช่องค้นหาให้เป็น Part No. ตัวจริง
-                targetInput.value = targetPartNo;
-                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-
-                // 2. เลือกค่าที่ช่อง Dropdown ด้านล่าง (#qgatePartNo)
-                const selectEl = document.getElementById('qgatePartNo');
-                if (selectEl) {
-                    let exists = false;
-                    for (let opt of selectEl.options) {
-                        if (opt.value.trim().toLowerCase() === targetPartNo.toLowerCase() || 
-                            opt.text.trim().toLowerCase() === targetPartNo.toLowerCase()) {
-                            exists = true;
-                            break;
-                        }
-                    }
-
-                    if (!exists) {
-                        let newOpt = document.createElement('option');
-                        newOpt.value = targetPartNo;
-                        newOpt.text = targetPartNo;
-                        selectEl.appendChild(newOpt);
-                    }
-
-                    selectEl.value = targetPartNo;
-                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-                    selectEl.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-
-                // 3. สั่งรันฟังก์ชันโหลดข้อมูล WIP ของระบบเดิม
-                if (typeof window.loadQGateParts === 'function') {
-                    window.loadQGateParts();
-                }
-
-            } else {
-                alert("ไม่พบรหัส \"" + scanned + "\" ใน Master Barcode ครับ!");
-                targetInput.value = '';
+            // สั่งรันฟังก์ชันโหลดข้อมูล WIP ของระบบเดิม
+            if (typeof window.loadQGateParts === 'function') {
+                window.loadQGateParts();
             }
         }
     }
