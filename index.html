@@ -3271,7 +3271,8 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// ฟังก์ชันคำนวณยอด Stock ตามคอลัมน์ partNo อย่างแม่นยำ
+// ==========================================================
+// ฟังก์ชันดึง Part No. จากคอลัมน์ B (partNo) มาเทียบสต็อกแบบตรงจุด
 // ==========================================================
 function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
@@ -3287,39 +3288,42 @@ function renderStockZeroPieChart() {
     let qgateList = window.qgateDatabase || [];
     let deliveryList = window.deliveryDatabase || [];
 
-    // ฟังก์ชันดึงรหัสพาร์ทจากออบเจ็กต์โดยเจาะจงคอลัมน์ partNo หรือใกล้เคียง
-    function getPartNo(obj) {
+    // ฟังก์ชันค้นหารหัสพาร์ทจากทุกตารางแบบยืดหยุ่น
+    function findPartNo(obj) {
         if (!obj) return "";
-        // วนหาคอลัมน์ที่มีชื่อตรงหรือใกล้เคียงกับ partNo
         for (let key in obj) {
             let kLower = key.toLowerCase().trim();
-            if (kLower === 'partno' || kLower === 'part_no' || kLower === 'part no' || kLower === 'code') {
+            // เช็คคีย์ที่สื่อถึงพาร์ทนัมเบอร์
+            if (kLower === 'partno' || kLower === 'part_no' || kLower === 'part no' || kLower.includes('part') || kLower.includes('code')) {
                 let val = String(obj[key] || "").trim();
                 if (val) return val.toLowerCase().replace(/[\s\-\_]/g, '');
             }
         }
-        // Fallback หาค่าที่เป็นรหัสพาร์ทที่มีขีด
+        // Fallback หาค่าที่มีขีด
         for (let key in obj) {
             let val = String(obj[key] || "").trim();
             if (val.includes("-") && val.length >= 5) {
-                return val.toLowerCase().replace(/[\s\-\_]/g, '');
+                let lower = val.toLowerCase();
+                if (!lower.includes('date') && !lower.includes('cus')) {
+                    return lower.replace(/[\s\-\_]/g, '');
+                }
             }
         }
         return "";
     }
 
-    function getQty(obj) {
+    // ฟังก์ชันดึงจำนวน Qty
+    function findQty(obj) {
         if (!obj) return 0;
         for (let key in obj) {
             let kLower = key.toLowerCase().trim();
-            if (kLower.includes('qty') || kLower.includes('total') || kLower.includes('pass') || kLower.includes('คงเหลือ') || kLower.includes('จำนวน') || kLower.includes('รวม')) {
+            if (kLower.includes('qty') || kLower.includes('total') || kLower.includes('pass') || kLower.includes('จำนวน') || kLower.includes('รวม') || kLower.includes('คงเหลือ')) {
                 let num = parseFloat(obj[key]);
                 if (!isNaN(num)) return num;
             }
         }
-        let values = Object.values(obj);
-        for (let v of values) {
-            let num = parseFloat(v);
+        for (let key in obj) {
+            let num = parseFloat(obj[key]);
             if (!isNaN(num) && num > 0) return num;
         }
         return 0;
@@ -3329,8 +3333,8 @@ function renderStockZeroPieChart() {
 
     // 1. WIP
     prodList.forEach(item => {
-        let pNo = getPartNo(item);
-        let qty = getQty(item);
+        let pNo = findPartNo(item);
+        let qty = findQty(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].wip += qty;
@@ -3339,8 +3343,8 @@ function renderStockZeroPieChart() {
 
     // 2. Q-Gate
     qgateList.forEach(item => {
-        let pNo = getPartNo(item);
-        let qty = getQty(item);
+        let pNo = findPartNo(item);
+        let qty = findQty(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].wip -= qty;
@@ -3350,8 +3354,8 @@ function renderStockZeroPieChart() {
 
     // 3. Delivery
     deliveryList.forEach(item => {
-        let pNo = getPartNo(item);
-        let qty = getQty(item);
+        let pNo = findPartNo(item);
+        let qty = findQty(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].fg -= qty;
@@ -3361,23 +3365,31 @@ function renderStockZeroPieChart() {
     let totalParts = masterDb.length;
     let availableCount = 0;
 
+    // วนลูปเช็คจากตาราง Master โดยเจาะจงดึงจากคอลัมน์ partNo หรือตำแหน่งคอลัมน์ B (index 1 หรือคีย์ partNo)
     masterDb.forEach(masterItem => {
-        // ดึง partNo จากตาราง Master โดยตรง (คอลัมน์ partNo หรือคอลัมน์แรกๆ)
-        let masterPNo = getPartNo(masterItem);
-        if (!masterPNo) {
-            let values = Object.values(masterItem);
-            for (let v of values) {
-                let s = String(v || "").trim();
-                if (s.includes("-")) {
-                    masterPNo = s.toLowerCase().replace(/[\s\-\_]/g, '');
-                    break;
-                }
+        let masterPNo = "";
+        
+        // ลองดึงจากคีย์ partNo โดยตรงก่อน
+        if (masterItem['partNo'] !== undefined) {
+            masterPNo = String(masterItem['partNo'] || "").trim();
+        } else if (masterItem['part_no'] !== undefined) {
+            masterPNo = String(masterItem['part_no'] || "").trim();
+        } else {
+            // ถ้าไม่มี ให้หาจากคีย์ตัวที่ 2 (คอลัมน์ B) หรือคีย์ที่มีค่าตรงกับรูปแบบพาร์ท
+            let keys = Object.keys(masterItem);
+            if (keys.length >= 2) {
+                masterPNo = String(masterItem[keys[1]] || "").trim();
+            }
+            if (!masterPNo || !masterPNo.includes("-")) {
+                masterPNo = findPartNo(masterItem);
             }
         }
 
-        if (masterPNo && stockMap[masterPNo]) {
-            let netWip = Math.max(0, stockMap[masterPNo].wip);
-            let netFg = Math.max(0, stockMap[masterPNo].fg);
+        let cleanMasterPNo = masterPNo.toLowerCase().replace(/[\s\-\_]/g, '');
+
+        if (cleanMasterPNo && stockMap[cleanMasterPNo]) {
+            let netWip = Math.max(0, stockMap[cleanMasterPNo].wip);
+            let netFg = Math.max(0, stockMap[cleanMasterPNo].fg);
             if ((netWip + netFg) > 0) {
                 availableCount++;
             }
@@ -3387,11 +3399,13 @@ function renderStockZeroPieChart() {
     let zeroCount = totalParts - availableCount;
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
+    // อัปเดต UI หน้าจอ
     if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
     if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
     if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
     if (document.getElementById('summary-zero-percent')) document.getElementById('summary-zero-percent').innerText = zeroPercent + '%';
 
+    // วาดกราฟ
     if (window.myStockPieChart instanceof Chart) {
         window.myStockPieChart.destroy();
     }
