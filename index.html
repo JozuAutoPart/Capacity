@@ -2871,7 +2871,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 // ==========================================================
-// ระบบสแกน Barcode ที่หน้า Q-Gate -> แปลงเป็น Part No. + ดึงยอด WIP อัตโนมัติ
+// 1. ป้องกัน Error กรณีปุ่มเก่าเรียกใช้ฟังก์ชันที่ไม่มีอยู่
+// ==========================================================
+window.loadQGateParts = window.loadQGateParts || function() {
+    console.log("loadQGateParts called");
+};
+
+// ==========================================================
+// 2. ระบบสแกน Barcode ที่หน้า Q-Gate -> แปลงเป็น Part No. + ดึงยอด WIP อัตโนมัติ
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
     const qgateScanInput = document.querySelector('input[placeholder*="ค้นหา Part No"]') || document.getElementById('qgateScanInput');
