@@ -2871,13 +2871,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
         // ==========================================================
-// ระบบสแกน Barcode (Col A) ที่หน้า Q-Gate -> แปลงเป็น Part No. (Col B) + ดึงจำนวน WIP อัตโนมัติ
+// ==========================================================
+// ระบบ스แกน Barcode ที่หน้า Q-Gate -> แปลงเป็น Part No. + ดึงยอด WIP อัตโนมัติ
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // ค้นหาช่อง input สำหรับสแกนบาร์โค้ดในหน้า Q-Gate (ช่องที่ 1 ที่พี่วงไว้)
-    const qgateScanInput = document.getElementById('qgateScanInput') || document.querySelector('input[placeholder*="Barcode"]');
-    const qgatePartSelect = document.getElementById('qgatePartNo'); // ช่องเลือก Part No. (ช่องที่ 2)
-    const qgateQtyInput = document.getElementById('qgateQty'); // ช่องจำนวนเพื่อตรวจสอบ
+    // ค้นหาช่อง input ที่มีคำว่า "ค้นหา Part No." ในหน้า Q-Gate
+    const qgateScanInput = document.querySelector('input[placeholder*="ค้นหา Part No"]') || document.getElementById('qgateScanInput');
+    const qgatePartSelect = document.getElementById('qgatePartNo'); 
+    const qgateQtyInput = document.getElementById('qgateQty'); 
 
     if (qgateScanInput) {
         qgateScanInput.addEventListener('keydown', function(e) {
@@ -2908,7 +2909,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 1. นำ Part No. ไปเซ็ตค่าในช่อง Part No. (Q-Gate)
                     if (qgatePartSelect) {
                         qgatePartSelect.value = actualPartNo;
-                        qgatePartSelect.dispatchEvent(new ErrorObject ? new Event('change', { bubbles: true }) : new Event('change', { bubbles: true }));
+                        qgatePartSelect.dispatchEvent(new Event('change', { bubbles: true }));
                     }
 
                     // 2. ดึงยอดคงเหลือ WIP หรือจำนวนมาใส่ช่องตรวจสอบอัตโนมัติ
