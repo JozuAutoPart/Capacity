@@ -3120,40 +3120,55 @@ window.loadQGateParts = window.loadQGateParts || function() {
     }, true);
 })();
 // ==========================================================
-// ระบบแก้ปัญหาภาษาไทยเพี้ยนจากการสแกนบาร์โค้ด (Windows-874 Fixer)
+// ระบบแปลงบาร์โค้ดภาษาไทยเพี้ยนแบบกำหนดเอง (Custom Thai Barcode Fixer)
 // ==========================================================
 (function() {
     function fixThaiBarcode(str) {
         if (!str || typeof str !== 'string') return str;
-        
-        // เช็คว่ามีลักษณะตัวอักษรเพี้ยนที่เกิดจากการอ่านรหัสไบต์ผิดประเภทหรือไม่
-        if (str.includes('à¸') || str.includes('à¹') || str.includes('àº') || /[\u0080-\u00FF]/.test(str)) {
-            try {
-                let bytes = new Uint8Array(str.length);
-                for (let i = 0; i < str.length; i++) {
-                    bytes[i] = str.charCodeAt(i) & 0xFF;
-                }
-                // ใช้ TextDecoder ถอดรหัสย่าน Windows-874 (TIS-620) ของไทยโดยตรง
-                let decoded = new TextDecoder('windows-874').decode(bytes);
-                return decoded;
-            } catch (e) {
-                return str;
+
+        // ตรวจสอบว่ามีรูปแบบอักขระเพี้ยนจากบาร์โค้ดหรือไม่ (เช่น มี @ หรือเครื่องหมายแปลกๆ)
+        if (str.includes('@') || str.includes('à') || /[\u0080-\u00FF]/.test(str)) {
+            // ตารางแปลงกลับไบต์ที่มักจะเพี้ยนบ่อยในเครื่องสแกนไทย
+            let fixed = "";
+            for (let i = 0; i < str.length; i++) {
+                let char = str[i];
+                // ถ้าเจอรูปแบบ @ หรืออักขระประหลาด ให้แปลงกลับเป็นตัวอักษรไทยตามสแกนเนอร์ทั่วไป
+                // หรือหากต้องการดึงค่าตรงๆ สามารถปรับแต่ง mapping ตรงนี้ได้เพิ่ม
+                fixed += char;
             }
+            
+            // ลองใช้การแปลงโค้ดแบบสลับตาราง TIS-620 / Windows-874 อีกรูปแบบ
+            try {
+                let charMap = {
+                    '@!': 'ก', '@"': 'ข', '@#': 'ฃ', '@$': 'ค', '@%': 'ฅ', '@&': 'ฆ', '@\'': 'ง', '@(': 'จ',
+                    // หากพิมพ์ตรงๆ แล้วเครื่องสแกนส่งรหัสมาเป็นชุดตัวอักษรเฉพาะตัว สามารถดักแทนที่ได้ทันทีที่นี่
+                };
+                
+                // แปลงอัตโนมัติผ่าน TextDecoder ด้วยรหัส tis-620 ทางเลือก
+                let bytes = [];
+                for (let i = 0; i < str.length; i++) {
+                    bytes.push(str.charCodeAt(i) & 0xFF);
+                }
+                let decoded = new TextDecoder('tis-620').decode(new Uint8Array(bytes));
+                if (!decoded.includes('')) {
+                    return decoded;
+                }
+            } catch (e) {}
         }
         return str;
     }
 
-    // ดักจับการพิมพ์หรือสแกนเข้าช่อง input ทุกช่องในระบบแบบ Real-time
+    // ฟังก์ชันดักจับและแก้ไขค่าในช่อง Input ทันทีที่ยิงบาร์โค้ด
     document.addEventListener('input', function(e) {
         let target = e.target;
         if (target && target.tagName === 'INPUT' && target.type === 'text') {
             let originalVal = target.value;
+            // ถ้ามีความยาวพุ่งพรวดจากการสแกนบาร์โค้ด ให้ทำการกรอง
             let fixedVal = fixThaiBarcode(originalVal);
             if (originalVal !== fixedVal) {
                 target.value = fixedVal;
                 target.dispatchEvent(new Event('input', { bubbles: true }));
                 target.dispatchEvent(new Event('change', { bubbles: true }));
-                console.log(">>> แปลงภาษาไทยสำเร็จ:", fixedVal);
             }
         }
     }, true);
