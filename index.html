@@ -3173,14 +3173,14 @@ function updateQGatePartImage(partNo) {
     }
 }
         // ==========================================================
-// ระบบแสดงรูปภาพจากคอลัมน์ E (keys[4]) อัตโนมัติเมื่อเลือก Part No.
+// ==========================================================
+// ระบบแสดงรูปภาพจากคอลัมน์ E (keys[4]) ที่มุมขวาหัวข้อ Q-Gate
 // ==========================================================
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'qgatePartNo') {
         let partNo = e.target.value;
         let box = document.getElementById('qgate-image-box');
         let imgTag = document.getElementById('qgate-part-img');
-        let descTag = document.getElementById('qgate-part-desc');
         
         if (!box || !imgTag) return;
 
@@ -3189,7 +3189,6 @@ document.addEventListener('change', function(e) {
             return;
         }
 
-        // ดึงฐานข้อมูล Master Barcode ที่โหลดไว้ในระบบ
         let db = window.masterPartsDatabase || [];
         let found = db.find(item => {
             let keys = Object.keys(item);
@@ -3200,16 +3199,14 @@ document.addEventListener('change', function(e) {
 
         if (found) {
             let keys = Object.keys(found);
-            // 📌 ดึงลิงก์จากคอลัมน์ E โดยตรง (keys[4])
+            // 📌 ดึงลิงก์รูปภาพจากคอลัมน์ E โดยตรง (keys[4])
             let imgSrc = found[keys[4]] || found.image || found.img || '';
-            let partName = found[keys[2]] || found['part name'] || '';
 
             if (imgSrc && imgSrc.startsWith('http')) {
                 imgTag.src = imgSrc;
-                if (descTag) descTag.innerText = partName ? `(${partName})` : '';
-                box.style.display = 'block'; // แสดงกล่องรูปภาพ
+                box.style.display = 'block'; // แสดงรูปที่มุมขวา
             } else {
-                box.style.display = 'none'; // ซ่อนถ้าคอลัมน์ E ไม่มีลิงก์รูป
+                box.style.display = 'none';
             }
         } else {
             box.style.display = 'none';
