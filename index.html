@@ -3271,12 +3271,15 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// แก้ไขให้กราฟสรุป Stock แสดงเฉพาะที่หน้า Dashboard เท่านั้น
+// ==========================================================
+// แก้ไขให้ระบบเช็คการแสดงผลเฉพาะหน้า Dashboard เท่านั้น (100% ป้องกันการแสดงผลข้ามหน้า)
 // ==========================================================
 function renderStockZeroPieChart() {
-    // เช็คก่อนว่ามีCanvasของกราฟนี้ในหน้าปัจจุบันไหม (มีเฉพาะที่หน้า Dashboard)
     let canvasElement = document.getElementById('stockZeroPieChart');
-    if (!canvasElement) return; // ถ้าไม่อยู่หน้า Dashboard ให้ตัดจบการทำงานทันที
+    if (!canvasElement) return;
+
+    // ถ้า element ถูกซ่อนอยู่ (หมายถึงอยู่หน้าอื่นที่ไม่ใช่ Dashboard) ให้ตัดจบการทำงานทันที
+    if (canvasElement.offsetParent === null) return;
 
     let masterDb = window.masterPartsDatabase || [];
     let prodList = window.productionDatabase || [];
@@ -3406,13 +3409,10 @@ function renderStockZeroPieChart() {
     });
 }
 
-// รันเฉพาะตอนโหลดหน้าหรือกดสลับแท็บมาที่หน้า Dashboard
+// รันตรวจสอบเมื่อโหลดและเมื่อมีการคลิกเปลี่ยนแท็บ
 setTimeout(renderStockZeroPieChart, 1500);
 document.addEventListener('click', function(e) {
-    let target = e.target.closest('[data-bs-toggle="tab"], [data-bs-target], .nav-link');
-    if (target) {
-        setTimeout(renderStockZeroPieChart, 300);
-    }
+    setTimeout(renderStockZeroPieChart, 400);
 });
 </script>
 </body>
