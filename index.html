@@ -3271,8 +3271,7 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// ==========================================================
-// ฟังก์ชันดึง Part No. จากคอลัมน์ B (partNo) มาเทียบสต็อกแบบตรงจุด
+// ฟังก์ชันคำนวณยอด Stock จับคู่คอลัมน์ partNo ตาราง Master แบบแม่นยำ
 // ==========================================================
 function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
@@ -3288,21 +3287,19 @@ function renderStockZeroPieChart() {
     let qgateList = window.qgateDatabase || [];
     let deliveryList = window.deliveryDatabase || [];
 
-    // ฟังก์ชันค้นหารหัสพาร์ทจากทุกตารางแบบยืดหยุ่น
-    function findPartNo(obj) {
+    // ฟังก์ชันช่วยดึงรหัสพาร์ทจากข้อมูลการผลิต/WIP/Delivery แบบยืดหยุ่น
+    function extractTransPart(obj) {
         if (!obj) return "";
         for (let key in obj) {
             let kLower = key.toLowerCase().trim();
-            // เช็คคีย์ที่สื่อถึงพาร์ทนัมเบอร์
-            if (kLower === 'partno' || kLower === 'part_no' || kLower === 'part no' || kLower.includes('part') || kLower.includes('code')) {
+            if (kLower.includes('part') || kLower.includes('code') || kLower.includes('item')) {
                 let val = String(obj[key] || "").trim();
-                if (val) return val.toLowerCase().replace(/[\s\-\_]/g, '');
+                if (val && val.includes("-")) return val.toLowerCase().replace(/[\s\-\_]/g, '');
             }
         }
-        // Fallback หาค่าที่มีขีด
         for (let key in obj) {
             let val = String(obj[key] || "").trim();
-            if (val.includes("-") && val.length >= 5) {
+            if (val.includes("-") && val.length >= 6) {
                 let lower = val.toLowerCase();
                 if (!lower.includes('date') && !lower.includes('cus')) {
                     return lower.replace(/[\s\-\_]/g, '');
@@ -3313,7 +3310,7 @@ function renderStockZeroPieChart() {
     }
 
     // ฟังก์ชันดึงจำนวน Qty
-    function findQty(obj) {
+    function extractTransQty(obj) {
         if (!obj) return 0;
         for (let key in obj) {
             let kLower = key.toLowerCase().trim();
@@ -3331,20 +3328,20 @@ function renderStockZeroPieChart() {
 
     let stockMap = {};
 
-    // 1. WIP
+    // 1. ประมวลผล WIP
     prodList.forEach(item => {
-        let pNo = findPartNo(item);
-        let qty = findQty(item);
+        let pNo = extractTransPart(item);
+        let qty = extractTransQty(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].wip += qty;
         }
     });
 
-    // 2. Q-Gate
+    // 2. ประมวลผล Q-Gate
     qgateList.forEach(item => {
-        let pNo = findPartNo(item);
-        let qty = findQty(item);
+        let pNo = extractTransPart(item);
+        let qty = extractTransQty(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].wip -= qty;
@@ -3352,10 +3349,10 @@ function renderStockZeroPieChart() {
         }
     });
 
-    // 3. Delivery
+    // 3. ประมวลผล Delivery
     deliveryList.forEach(item => {
-        let pNo = findPartNo(item);
-        let qty = findQty(item);
+        let pNo = extractTransPart(item);
+        let qty = extractTransQty(item);
         if (pNo) {
             if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
             stockMap[pNo].fg -= qty;
@@ -3365,23 +3362,26 @@ function renderStockZeroPieChart() {
     let totalParts = masterDb.length;
     let availableCount = 0;
 
-    // วนลูปเช็คจากตาราง Master โดยเจาะจงดึงจากคอลัมน์ partNo หรือตำแหน่งคอลัมน์ B (index 1 หรือคีย์ partNo)
+    // วนลูปเช็คจากตาราง Master โดยดึงจากคอลัมน์ partNo หรือคอลัมน์ B โดยตรง
     masterDb.forEach(masterItem => {
         let masterPNo = "";
         
-        // ลองดึงจากคีย์ partNo โดยตรงก่อน
+        // เช็คจากคีย์ partNo หรือ part_no โดยตรง
         if (masterItem['partNo'] !== undefined) {
             masterPNo = String(masterItem['partNo'] || "").trim();
         } else if (masterItem['part_no'] !== undefined) {
             masterPNo = String(masterItem['part_no'] || "").trim();
+        } else if (masterItem['PartNo'] !== undefined) {
+            masterPNo = String(masterItem['PartNo'] || "").trim();
         } else {
-            // ถ้าไม่มี ให้หาจากคีย์ตัวที่ 2 (คอลัมน์ B) หรือคีย์ที่มีค่าตรงกับรูปแบบพาร์ท
-            let keys = Object.keys(masterItem);
-            if (keys.length >= 2) {
-                masterPNo = String(masterItem[keys[1]] || "").trim();
-            }
-            if (!masterPNo || !masterPNo.includes("-")) {
-                masterPNo = findPartNo(masterItem);
+            // ถ้าไม่มี ให้ดึงจากค่าใน Object ตัวที่ 2 (ซึ่งก็คือคอลัมน์ B) หรือช่องที่มีเครื่องหมายขีด '-'
+            let values = Object.values(masterItem);
+            for (let v of values) {
+                let s = String(v || "").trim();
+                if (s.includes("-") && s.length >= 5) {
+                    masterPNo = s;
+                    break;
+                }
             }
         }
 
@@ -3399,13 +3399,13 @@ function renderStockZeroPieChart() {
     let zeroCount = totalParts - availableCount;
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
-    // อัปเดต UI หน้าจอ
+    // อัปเดต UI หน้าจอ Dashboard
     if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
     if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
     if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
     if (document.getElementById('summary-zero-percent')) document.getElementById('summary-zero-percent').innerText = zeroPercent + '%';
 
-    // วาดกราฟ
+    // วาดกราฟวงกลม
     if (window.myStockPieChart instanceof Chart) {
         window.myStockPieChart.destroy();
     }
