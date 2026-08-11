@@ -3128,59 +3128,47 @@ window.loadQGateParts = window.loadQGateParts || function() {
     }, true);
 })();
 
-// ==========================================================
-// ระบบแสดงรูปภาพชิ้นงานจาก คอลัมน์ E (keys[4]) ใน Master Barcode อัตโนมัติ
-// ==========================================================
 function updateQGatePartImage(partNo) {
+    console.log(">>> กำลังเช็ครูปภาพของ Part:", partNo); // 📌 เช็คใน Console (F12) ว่าทำงานไหม
     let box = document.getElementById('qgate-image-box');
     let imgTag = document.getElementById('qgate-part-img');
     let descTag = document.getElementById('qgate-part-desc');
     
-    if (!partNo) {
-        if (box) box.style.display = 'none';
+    if (!box || !imgTag) {
+        console.warn(">>> ไม่พบกล่องรูปภาพใน HTML กรุณาเช็ค ID อีกครั้งครับ");
         return;
     }
 
-    // ค้นหาข้อมูล Part จาก Master Barcode Database
+    if (!partNo) {
+        box.style.display = 'none';
+        return;
+    }
+
     let db = window.masterPartsDatabase || [];
     let found = db.find(item => {
         let keys = Object.keys(item);
-        let bc = String(item.barcode || item['bar code'] || item[keys[0]] || '').trim().toLowerCase();
+        // เช็คให้ครอบคลุมทุกคอลัมน์ชื่อ Part No
         let pn = String(item.partno || item['part no'] || item[keys[1]] || '').trim().toLowerCase();
-        return pn === partNo.toLowerCase() || bc === partNo.toLowerCase();
+        return pn === partNo.toLowerCase();
     });
 
     if (found) {
         let keys = Object.keys(found);
+        // คอลัมน์ E คือ keys[4]
+        let imgSrc = found[keys[4]] || ''; 
+        console.log(">>> พบข้อมูล รูปที่ดึงมาคือ:", imgSrc);
         
-        // 📌 ดึงลิงก์รูปภาพจาก "คอลัมน์ E" โดยตรง (keys[4]) หรือสำรองเผื่อฟิลด์ชื่อ image
-        let imgSrc = found[keys[4]] || found.image || found.img || '';
-        let partName = found.partname || found['part name'] || found['ชื่อชิ้นงาน'] || found[keys[2]] || '';
-
-        if (imgSrc) {
+        if (imgSrc && (imgSrc.startsWith('http') || imgSrc.startsWith('data:'))) {
             imgTag.src = imgSrc;
-            if (descTag) descTag.innerText = partName ? `(${partName})` : '';
-            if (box) box.style.display = 'block';
+            box.style.display = 'block'; 
         } else {
-            if (box) box.style.display = 'none'; // ซ่อนถ้าคอลัมน์ E ไม่มีลิงก์รูปภาพ
+            console.warn(">>> คอลัมน์ E ไม่มีลิงก์รูปภาพ");
+            box.style.display = 'none';
         }
     } else {
-        if (box) box.style.display = 'none';
+        box.style.display = 'none';
     }
 }
-
-// ดักจับการเปลี่ยนแปลงหรือการสแกน Part No. ในหน้า Q-Gate เพื่ออัปเดตรูปภาพ
-document.addEventListener('change', function(e) {
-    if (e.target && (e.target.id === 'partNoSelect' || e.target.id === 'deliveryPartNo' || e.target.name === 'partNo')) {
-        updateQGatePartImage(e.target.value);
-    }
-});
-
-document.addEventListener('input', function(e) {
-    if (e.target && (e.target.id === 'partNoSelect' || e.target.id === 'deliveryPartNo')) {
-        updateQGatePartImage(e.target.value);
-    }
-});
 </script>
 </body>
 </html>
