@@ -2878,109 +2878,90 @@ window.loadQGateParts = window.loadQGateParts || function() {
 };
 
 // ==========================================================
-// ระบบสแกน Barcode อัตโนมัติ (ฉบับครอบจักรวาล & ดีบักง่าย)
+// ระบบแปลง Barcode (Column A) เป็น Part No. (Column B) อัตโนมัติ
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-        // ค้นหาช่อง Input ที่มีคำว่า "ค้นหา" หรือ "Part" ทุกช่องในหน้า
-        const allInputs = document.querySelectorAll('input');
-        
-        allInputs.forEach(input => {
-            let placeholder = (input.placeholder || '').toLowerCase();
-            if (placeholder.includes('ค้นหา') || placeholder.includes('part') || placeholder.includes('wip')) {
-                console.log("พบช่องค้นหาเป้าหมาย:", input);
+        // ดึงช่องค้นหาในหน้า Q-Gate
+        const searchInput = document.querySelector('input[placeholder*="ค้นหา Part"]') || document.querySelector('input[placeholder*="WIP"]') || document.getElementById('qgateScanInput');
+        const partSelect = document.getElementById('qgatePartNo') || document.querySelector('select');
 
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.keyCode === 13) {
-                        e.preventDefault();
-                        e.stopPropagation();
+        if (searchInput) {
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-                        let scannedVal = String(this.value).trim();
-                        console.log(">>> ยิง/พิมพ์ค่ามาที่ช่องค้นหา:", scannedVal);
+                    let scannedCode = String(this.value).trim();
+                    let db = window.masterPartsDatabase || [];
 
-                        // ดึงฐานข้อมูลจากตัวแปรที่เป็นไปได้ทั้งหมดในระบบ
-                        let db = window.masterPartsDatabase || window.excelData || window.partsData || window.db || [];
-                        console.log(">>> ข้อมูลใน Database ปัจจุบัน:", db);
+                    console.log("กำลังแปลง Barcode:", scannedCode);
 
-                        if (!db || db.length === 0) {
-                            alert("ยังไม่มีข้อมูล Master Barcode! กรุณากดปุ่มอัปโหลดไฟล์ใหม่อีกครั้ง");
-                            return;
-                        }
+                    if (db.length === 0) {
+                        alert("กรุณาอัปโหลดไฟล์ Master Barcode ก่อนครับ!");
+                        return;
+                    }
 
-                        let foundPartNo = null;
+                    let targetPartNo = null;
 
-                        // วนลูปหา (รองรับทั้งแบบ Object และ Array)
-                        for (let row of db) {
-                            let colA = "", colB = "";
-                            
-                            if (Array.isArray(row)) {
-                                colA = String(row[0] || '').trim(); // Column A
-                                colB = String(row[1] || '').trim(); // Column B
-                            } else if (typeof row === 'object' && row !== null) {
-                                let keys = Object.keys(row);
-                                colA = String(row[keys[0]] || '').trim();
-                                colB = String(row[keys[1]] || '').trim();
-                            }
+                    // ค้นหารหัสในฐานข้อมูล Master Barcode
+                    for (let row of db) {
+                        let keys = Object.keys(row);
+                        let colA = String(row.barcode || row[keys[0]] || '').trim(); // Column A (Barcode)
+                        let colB = String(row.partNo || row[keys[1]] || '').trim();   // Column B (Part No)
 
-                            // เช็คว่าตรงกับ Column A (Barcode) หรือ Column B (PartNo) หรือไม่
-                            if (colA.toLowerCase() === scannedVal.toLowerCase() || 
-                                colB.toLowerCase() === scannedVal.toLowerCase()) {
-                                foundPartNo = colB; // ดึงค่าจาก Column B เสมอ
-                                break;
-                            }
-                        }
-
-                        if (foundPartNo) {
-                            console.log(">>> SUCCESS! ดึง Column B (Part No) สำเร็จคือ:", foundPartNo);
-
-                            // ค้นหาช่อง Select ทั้งหมดในหน้าเพื่อเอา Part No ไปใส่
-                            const allSelects = document.querySelectorAll('select');
-                            let updated = false;
-
-                            allSelects.forEach(sel => {
-                                // เช็คว่าเป็นช่องเลือก Part หรือไม่
-                                let isPartSelect = sel.id.toLowerCase().includes('part') || 
-                                                   sel.name.toLowerCase().includes('part') || 
-                                                   Array.from(sel.options).some(opt => opt.text.includes('-') || opt.value.includes('-'));
-
-                                if (isPartSelect) {
-                                    // เช็คว่ามี Option นี้ยัง ถ้ายังไม่มีให้สร้างเพิ่ม
-                                    let optionExists = Array.from(sel.options).some(opt => 
-                                        opt.value.trim().toLowerCase() === foundPartNo.toLowerCase() || 
-                                        opt.text.trim().toLowerCase() === foundPartNo.toLowerCase()
-                                    );
-
-                                    if (!optionExists) {
-                                        let newOpt = document.createElement('option');
-                                        newOpt.value = foundPartNo;
-                                        newOpt.text = foundPartNo;
-                                        sel.appendChild(newOpt);
-                                    }
-
-                                    sel.value = foundPartNo;
-                                    sel.dispatchEvent(new Event('change', { bubbles: true }));
-                                    sel.dispatchEvent(new Event('input', { bubbles: true }));
-                                    updated = true;
-                                    console.log(">>> อัปเดตค่าลง Dropdown เรียบร้อย:", sel);
-                                }
-                            });
-
-                            if (updated) {
-                                this.value = ''; //เคลียร์ช่องสแกน
-                            } else {
-                                alert("เจอ Part No (" + foundPartNo + ") แล้ว แต่หาช่อง Select บนหน้าจอไม่พบครับ!");
-                            }
-
-                        } else {
-                            console.warn(">>> ไม่พบรหัสนี้ในระบบ:", scannedVal);
-                            alert("ไม่พบรหัส \"" + scannedVal + "\" ใน Column A ของ Master Barcode ครับ!");
-                            this.value = '';
+                        // ถ้ายิงตรงกับ Column A หรือพิมพ์ตรงกับ Column B ให้ดึง Column B มาใช้
+                        if (colA.toLowerCase() === scannedCode.toLowerCase() || colB.toLowerCase() === scannedCode.toLowerCase()) {
+                            targetPartNo = colB;
+                            break;
                         }
                     }
-                });
-            }
-        });
-    }, 1500); // หน่วงเวลา 1.5 วินาทีให้หน้าเว็บโหลดเสร็จสมบูรณ์ก่อนผูกฟังก์ชัน
+
+                    if (targetPartNo) {
+                        console.log("แปลงสำเร็จ! Barcode:", scannedCode, "--> Part No:", targetPartNo);
+
+                        // 1. เปลี่ยนค่าในช่องพิมพ์ให้เป็น Part No. ที่แปลงแล้ว
+                        this.value = targetPartNo;
+
+                        // 2. เลือกค่าในช่อง Dropdown (Part No.) ด้านล่าง
+                        if (partSelect) {
+                            let optionFound = false;
+                            for (let opt of partSelect.options) {
+                                if (opt.value.trim().toLowerCase() === targetPartNo.toLowerCase() || 
+                                    opt.text.trim().toLowerCase() === targetPartNo.toLowerCase()) {
+                                    opt.selected = true;
+                                    optionFound = true;
+                                    break;
+                                }
+                            }
+
+                            // ถ้ายังไม่มีในตัวเลือก ให้สร้าง Option เพิ่มเข้าไปใหม่ทันที
+                            if (!optionFound) {
+                                let newOpt = document.createElement('option');
+                                newOpt.value = targetPartNo;
+                                newOpt.text = targetPartNo;
+                                partSelect.appendChild(newOpt);
+                                partSelect.value = targetPartNo;
+                            }
+
+                            // สั่งกระตุ้น Event ของหน้าเว็บเพื่อให้ระบบโหลดข้อมูล WIP ต่อเนื่อง
+                            partSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                            partSelect.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+
+                        // 3. สั่งรันฟังก์ชันโหลดข้อมูลของระบบเดิม (ถ้ามี)
+                        if (typeof window.loadQGateParts === 'function') {
+                            window.loadQGateParts();
+                        }
+
+                    } else {
+                        alert("ไม่พบ Barcode \"" + scannedCode + "\" ในไฟล์ Master Barcode ครับ!");
+                        this.value = '';
+                    }
+                }
+            }, true);
+        }
+    }, 1000);
 });
 </script>
 </body>
