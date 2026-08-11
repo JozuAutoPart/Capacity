@@ -2966,6 +2966,108 @@ window.loadQGateParts = window.loadQGateParts || function() {
         }
     }, true);
 })();
+        // ==========================================================
+// ระบบสแกน Barcode บัตรพนักงาน & Part No. สำหรับหน้า Q-Gate (ฉบับสมบูรณ์)
+// ==========================================================
+(function() {
+    document.addEventListener('input', function(e) {
+        let targetInput = e.target;
+        let ph = (targetInput.placeholder || '').toLowerCase();
+        
+        // เช็คว่าเป็นช่องค้นหา Part No. หรือช่องชื่อพนักงาน
+        let isQGateSearch = ph.includes('ค้นหา') || ph.includes('wip') || targetInput.id === 'qgateScanInput';
+        let isInspectorSearch = ph.includes('พนักงาน') || ph.includes('inspector') || ph.includes('ชื่อ');
+
+        let db = window.masterPartsDatabase || [];
+        if (db.length === 0) return;
+
+        // --- 1. ระบบสแกน Part No. / WIP ---
+        if (isQGateSearch) {
+            let scanned = String(targetInput.value).trim();
+            if (scanned.length < 3) return;
+
+            let targetPartNo = null;
+            for (let item of db) {
+                let keys = Object.keys(item);
+                if (keys.length >= 2) {
+                    let colA = String(item[keys[0]] || '').trim(); // Barcode
+                    let colB = String(item[keys[1]] || '').trim(); // Part No.
+
+                    if (colA.toLowerCase() === scanned.toLowerCase()) {
+                        targetPartNo = colB;
+                        break;
+                    }
+                }
+            }
+
+            if (targetPartNo && targetInput.value !== targetPartNo) {
+                console.log(">>> แปลง Barcode เป็น Part No. สำเร็จ:", scanned, "->", targetPartNo);
+                targetInput.value = targetPartNo;
+                try {
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (err) {}
+
+                const selectEl = document.getElementById('qgatePartNo');
+                if (selectEl) {
+                    let exists = false;
+                    for (let opt of selectEl.options) {
+                        if (opt.value.trim().toLowerCase() === targetPartNo.toLowerCase() || 
+                            opt.text.trim().toLowerCase() === targetPartNo.toLowerCase()) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        let newOpt = document.createElement('option');
+                        newOpt.value = targetPartNo;
+                        newOpt.text = targetPartNo;
+                        selectEl.appendChild(newOpt);
+                    }
+                    selectEl.value = targetPartNo;
+                    try {
+                        selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    } catch (err) {}
+                }
+
+                try {
+                    if (typeof window.loadQGateParts === 'function') {
+                        window.loadQGateParts();
+                    }
+                } catch (err) {}
+            }
+        } 
+        
+        // --- 2. ระบบสแกนบัตรพนักงาน (Inspector) ---
+        else if (isInspectorSearch) {
+            let scanned = String(targetInput.value).trim();
+            if (scanned.length < 2) return;
+
+            let targetName = null;
+            for (let item of db) {
+                let keys = Object.keys(item);
+                if (keys.length >= 2) {
+                    let colA = String(item[keys[0]] || '').trim(); // รหัสบนบัตรพนักงาน (Col A)
+                    let colB = String(item[keys[1]] || '').trim(); // ชื่อพนักงาน (Col B)
+
+                    if (colA.toLowerCase() === scanned.toLowerCase()) {
+                        targetName = colB;
+                        break;
+                    }
+                }
+            }
+
+            if (targetName && targetInput.value !== targetName) {
+                console.log(">>> แปลง Barcode บัตรพนักงานสำเร็จ:", scanned, "->", targetName);
+                targetInput.value = targetName;
+                try {
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (err) {}
+            }
+        }
+    }, true);
+})();
 </script>
 </body>
 </html>
