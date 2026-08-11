@@ -3271,7 +3271,7 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// ระบบคำนวณกราฟและสรุป: อ่านค่าคงเหลือจริงจากตาราง Stock WIP & FG หน้าเว็บโดยตรง
+// ระบบดึงข้อมูล Stock จากตารางหน้าเว็บ WIP และ FG โดยตรงมาแสดงกราฟ
 // ==========================================================
 function renderStockZeroPieChart() {
     let masterDb = window.masterPartsDatabase || [];
@@ -3283,67 +3283,59 @@ function renderStockZeroPieChart() {
     let zeroStockCount = 0;
     let availableStockCount = 0;
 
-    // วนลูปเช็คจาก Master Part Code
+    // ดึงข้อมูลรายการจากตาราง Stock WIP และ FG ที่เรนเดอร์อยู่จริงในระบบ
+    let prodList = window.productionDatabase || [];
+    let qgateList = window.qgateDatabase || [];
+    let deliveryList = window.deliveryDatabase || [];
+
     masterDb.forEach(item => {
         let keys = Object.keys(item);
-        let partNo = String(item.partno || item['part no'] || (keys[1] ? item[keys[1]] : '')).trim().toLowerCase();
+        let partNo = String(item.partno || item['part no'] || (keys[1] ? item[keys[1]] : '')).trim();
         
         if (!partNo) {
             zeroStockCount++;
             return;
         }
 
-        // ค้นหายอดคงเหลือจากข้อมูลในระบบจริง (WIP และ FG)
-        let totalStock = 0;
-
-        // 1. เช็คจากตาราง WIP ในระบบ
-        let prodList = window.productionDatabase || [];
-        let qgateList = window.qgateDatabase || [];
-        
+        // 1. คำนวณ WIP คงเหลือ (ผลิตเข้า WIP - ตัดโอนออกไป FG)
         let wipIn = 0;
         prodList.forEach(p => {
-            let pNo = String(p.partNo || p.partno || '').trim().toLowerCase();
-            if (pNo === partNo) {
-                wipIn += parseFloat(p.qty || p.total || p['ผลิตเข้า WIP รวม'] || 0) || 0;
+            if (String(p.partNo || p.partno || '').trim() === partNo) {
+                wipIn += parseFloat(p.qty || p.total || 0) || 0;
             }
         });
-
         let qgateOut = 0;
         qgateList.forEach(q => {
-            let qNo = String(q.partNo || q.partno || '').trim().toLowerCase();
-            if (qNo === partNo) {
+            if (String(q.partNo || q.partno || '').trim() === partNo) {
                 qgateOut += parseFloat(q.passQty || q.pass || q.total || 0) || 0;
             }
         });
         let wipBalance = wipIn - qgateOut;
         if (wipBalance < 0) wipBalance = 0;
 
-        // 2. เช็คจากตาราง FG ในระบบ
-        let deliveryList = window.deliveryDatabase || [];
+        // 2. คำนวณ FG คงเหลือ (รับเข้า FG - ส่งมอบออก)
+        let fgIn = qgateOut;
         let fgOut = 0;
         deliveryList.forEach(d => {
-            let dNo = String(d.partNo || d.partno || '').trim().toLowerCase();
-            if (dNo === partNo) {
+            if (String(d.partNo || d.partno || '').trim() === partNo) {
                 fgOut += parseFloat(d.qty || d.deliveryQty || 0) || 0;
             }
         });
-        let fgBalance = qgateOut - fgOut;
+        let fgBalance = fgIn - fgOut;
         if (fgBalance < 0) fgBalance = 0;
 
-        totalStock = wipBalance + fgBalance;
-
-        // ถ้ามียอดรวมมากกว่า 0 ถือว่ามีของ, ถ้าเป็น 0 ถือว่าหมด
-        if (totalStock > 0) {
+        // ถ้ายอด WIP หรือ FG ตัวใดตัวหนึ่งมีของ (มากกว่า 0) ถือว่ามี Stock
+        if (wipBalance > 0 || fgBalance > 0) {
             availableStockCount++;
         } else {
             zeroStockCount++;
         }
     });
 
-    // คำนวณเปอร์เซ็นต์สินค้าหมด
+    // คำนวณสัดส่วนเปอร์เซ็นต์
     let zeroPercent = totalParts > 0 ? ((zeroStockCount / totalParts) * 100).toFixed(1) : 0;
 
-    // อัปเดตตัวเลขลงกล่องสรุป
+    // อัปเดตตัวเลขลงในกล่องสรุป
     let elTotal = document.getElementById('summary-total-parts');
     let elZero = document.getElementById('summary-zero-stock');
     let elAvailable = document.getElementById('summary-available-stock');
