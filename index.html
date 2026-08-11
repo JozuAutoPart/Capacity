@@ -3068,6 +3068,42 @@ window.loadQGateParts = window.loadQGateParts || function() {
         }
     }, true);
 })();
+        // ==========================================================
+// ระบบป้องกันการกดปุ่มบันทึกซ้ำ (Double Click Prevention for Submit Button)
+// ==========================================================
+(function() {
+    document.addEventListener('click', function(e) {
+        let target = e.target;
+        
+        // เช็คว่าเป็นปุ่มบันทึก (ดูจากข้อความในปุ่ม หรือ class/id ที่เกี่ยวข้องกับการบันทึก)
+        let btnText = (target.innerText || target.value || '').toLowerCase();
+        let isSubmitButton = btnText.includes('บันทึก') || btnText.includes('ยืนยัน') || target.id.includes('submit') || target.id.includes('save');
+
+        if (isSubmitButton && target.tagName === 'BUTTON') {
+            // ถ้าปุ่มนี้ถูกล็อคอยู่แล้ว ให้ยกเลิกการคลิกซ้ำทันที
+            if (target.dataset.isSubmitting === "true") {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            // ล็อคปุ่มทันทีเมื่อกดครั้งแรก
+            target.dataset.isSubmitting = "true";
+            let originalText = target.innerHTML;
+            target.innerHTML = "กำลังบันทึก...";
+            target.style.opacity = "0.6";
+            target.style.pointerEvents = "none";
+
+            // ปลดล็อคคืนสถานะเดิมให้อัตโนมัติหลังจากผ่านไป 2 วินาที (เผื่อกรณีบันทึกเสร็จหรือเปลี่ยนหน้า)
+            setTimeout(() => {
+                target.innerHTML = originalText;
+                target.style.opacity = "1";
+                target.style.pointerEvents = "auto";
+                target.dataset.isSubmitting = "false";
+            }, 2000);
+        }
+    }, true);
+})();
 </script>
 </body>
 </html>
