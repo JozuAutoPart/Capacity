@@ -2878,10 +2878,9 @@ window.loadQGateParts = window.loadQGateParts || function() {
 };
 
 // ==========================================================
-// ระบบ Scan Barcode ดึง Column B มาลงหน้า Q-Gate (แบบสมบูรณ์)
+// ระบบ Scan Barcode ค้นหาทั้ง Column A และ Column B อัตโนมัติ
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // ดึง input จากช่องที่วงแดงไว้
     const qgateScanInput = document.querySelector('input[placeholder*="ค้นหา Part No"]') || document.getElementById('qgateScanInput');
     const qgatePartSelect = document.getElementById('qgatePartNo'); 
 
@@ -2889,7 +2888,7 @@ document.addEventListener('DOMContentLoaded', () => {
         qgateScanInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.keyCode === 13) {
                 e.preventDefault();
-                e.stopPropagation(); // ป้องกันไม่ให้ Event เก่าของเว็บไปล้างค่า
+                e.stopPropagation();
                 
                 let code = String(this.value).trim().toLowerCase();
                 let db = window.masterPartsDatabase || [];
@@ -2898,40 +2897,47 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // ค้นหา Column A (Barcode)
+                let keys = Object.keys(db[0] || {});
+                let colAKey = keys[0]; // Barcode (Column A)
+                let colBKey = keys[1]; // Part No. (Column B)
+
+                // ค้นหา: เช็คจาก Column A หรือตรงกับ Column B เลย
                 let found = db.find(item => {
-                    let keys = Object.keys(item);
-                    let barcode = String(item[keys[0]] || '').trim().toLowerCase();
-                    return barcode === code;
+                    let barcode = String(item[colAKey] || '').trim().toLowerCase();
+                    let partNoVal = String(item[colBKey] || '').trim().toLowerCase();
+                    return barcode === code || partNoVal === code;
                 });
 
                 if (found) {
-                    let keys = Object.keys(found);
-                    let partNo = String(found[keys[1]] || '').trim(); // ดึง Column B
+                    let partNo = String(found[colBKey] || '').trim();
 
                     if (qgatePartSelect) {
-                        // เซ็ตค่าพาร์ทนัมเบอร์ลงใน Select
                         qgatePartSelect.value = partNo;
                         
-                        // สั่งกระตุ้น Trigger เพื่อให้ระบบหน้าเว็บรู้ว่ามีการเปลี่ยนค่า
-                        qgatePartSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                        qgatePartSelect.dispatchEvent(new Event('input', { bubbles: true }));
-                        
-                        // วนหา Option ที่ตรงกันแล้วสั่งเลือก
+                        // วนหา Option ใน Dropdown เพื่อเลือกให้ตรงกัน
+                        let matched = false;
                         for (let option of qgatePartSelect.options) {
-                            if (option.value === partNo || option.text.trim() === partNo) {
+                            if (option.value.trim().toLowerCase() === partNo.toLowerCase() || 
+                                option.text.trim().toLowerCase() === partNo.toLowerCase()) {
                                 option.selected = true;
+                                matched = true;
                                 break;
                             }
                         }
-                        console.log("ตั้งค่า Part No สำเร็จ:", partNo);
+
+                        // ส่งสัญญาณบอกหน้าเว็บว่ามีการเปลี่ยนค่า Part No. แล้ว
+                        qgatePartSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        qgatePartSelect.dispatchEvent(new Event('input', { bubbles: true }));
+                        
+                        console.log("เลือก Part No จาก Column B สำเร็จ:", partNo);
+                        this.value = ''; //เคลียร์ช่องค้นหาให้พร้อมสแกนตัวถัดไป
                     }
                 } else {
-                    alert("ไม่พบรหัส Barcode นี้ใน Master Barcode: " + code);
+                    alert("ไม่พบรหัสนี้ใน Master Barcode: " + code);
                     this.value = '';
                 }
             }
-        }, true); // ใช้ Capture Phase เพื่อดักจับก่อนระบบเดิม
+        }, true);
     }
 });
 </script>
