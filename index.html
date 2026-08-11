@@ -175,7 +175,7 @@
         </div>
     </div>
           <!-- กราฟวงกลมและกล่องสรุปสัดส่วน Stock Part -->
-<div class="row mt-4">
+<div class="row mt-4" id="stockSummaryBox" style="display: none;">
     <!-- ฝั่งซ้าย: กราฟวงกลม -->
     <div class="col-md-6 mb-3">
         <div class="card p-3 border-secondary bg-dark text-white shadow-sm h-100">
@@ -3397,6 +3397,34 @@ document.addEventListener('click', function(e) {
         setTimeout(renderStockZeroPieChart, 300);
     }
 });
+        // ==========================================================
+// ฟังก์ชันบังคับเปิด-ปิดกล่องกราฟเฉพาะหน้า Dashboard
+// ==========================================================
+function updateDashboardVisibility() {
+    let box = document.getElementById('stockSummaryBox');
+    if (!box) return;
+
+    // เช็คจากแท็บหลักหน้า Dashboard ว่ามีคลาส active หรือกำลังแสดงผลอยู่ไหม
+    let dashTab = document.getElementById('tab-dash');
+    
+    // ตรวจสอบทั้งสถานะ class active และการแสดงผลจริงของแท็บ
+    if (dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'))) {
+        box.style.display = 'flex'; // แสดงเฉพาะหน้า Dashboard
+        if (typeof renderStockZeroPieChart === 'function') {
+            renderStockZeroPieChart(); // สั่งวาดกราฟ
+        }
+    } else {
+        box.style.display = 'none'; // ซ่อนทันทีในหน้าอื่นๆ ทั้งหมด
+    }
+}
+
+// สั่งทำงานทุกครั้งที่มีการคลิกเปลี่ยนแท็บเมนู
+document.addEventListener('click', function(e) {
+    setTimeout(updateDashboardVisibility, 100);
+});
+
+// ตรวจสอบสถานะทุกๆ 0.5 วินาที เพื่อความชัวร์ไม่ให้หลุดไปโผล่หน้าอื่น
+setInterval(updateDashboardVisibility, 500);
 </script>
 </body>
 </html>
