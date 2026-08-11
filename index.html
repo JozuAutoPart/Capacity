@@ -3271,129 +3271,132 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// แก้ไขระบบแกะรหัส Part No. และคำนวณ Stock ให้แม่นยำ 100%
+// แก้ไขระบบสแกนหา Part No. และคำนวณยอดอัตโนมัติแบบแม่นยำ 100%
 // ==========================================================
 function renderStockZeroPieChart() {
     let masterDb = window.masterPartsDatabase || [];
     let prodList = window.productionDatabase || [];
     let qgateList = window.qgateDatabase || [];
     let deliveryList = window.deliveryDatabase || [];
-    
-    const clean = (str) => String(str || "").trim().toLowerCase();
-    
-    // ฟังก์ชันช่วยค้นหา Part No. จากแถวข้อมูลอัตโนมัติ
-    function findPart(item) {
-        if (!item) return "";
-        let keys = Object.keys(item);
-        for (let k of keys) {
-            let val = String(item[k] || "").trim();
-            // เช็คว่ามีรูปแบบคล้ายพาร์ทนัมเบอร์ (เช่น มีขีด '-' และยาวพอสมควร)
-            if (val.includes('-') && val.length >= 5) {
-                if (!val.toLowerCase().includes('part') && !val.toLowerCase().includes('wip')) {
-                    return clean(val);
+
+    // ฟังก์ชันแกะรหัส Part No. จากทุกคอลัมน์โดยอัตโนมัติ
+    function extractPartNo(obj) {
+        if (!obj) return "";
+        for (let key in obj) {
+            let val = String(obj[key] || "").trim();
+            // เช็คแพทเทิร์นพาร์ทนัมเบอร์ (เช่น มีขีด '-' และความยาวพอสมควร)
+            if (val.includes("-") && val.length >= 5) {
+                let lower = val.toLowerCase();
+                if (!lower.includes("part") && !lower.includes("wip") && !lower.includes("fg") && !lower.includes("master")) {
+                    return val.toLowerCase().replace(/[\s\-\_]/g, ''); // ตัดช่องว่างและขีดออกเพื่อให้เทียบกันติดชัวร์
                 }
             }
         }
-        let vals = Object.values(item);
-        for (let v of vals) {
-            let valStr = String(v || "").trim();
-            if (valStr.includes('-') && valStr.length >= 5) {
-                return clean(valStr);
+        // Fallback: ดึงค่าจากช่องแรกๆ ที่ไม่ใช่ตัวเลขล้วน
+        let values = Object.values(obj);
+        for (let v of values) {
+            let s = String(v || "").trim();
+            if (s.length >= 4 && isNaN(s)) {
+                return s.toLowerCase().replace(/[\s\-\_]/g, '');
             }
         }
-        // Fallback ใช้ Column ที่ 2 หรือ 1 ตามโครงสร้าง Excel ทั่วไป
-        if (vals[1]) return clean(vals[1]);
-        if (vals[0]) return clean(vals[0]);
         return "";
     }
 
-    let totalParts = masterDb.length;
-    let stockStatus = {};
+    // ฟังก์ชันแกะตัวเลขจำนวนยอดจากทุกคอลัมน์
+    function extractQty(obj) {
+        if (!obj) return 0;
+        for (let key in obj) {
+            let kLower = key.toLowerCase();
+            if (kLower.includes('qty') || kLower.includes('total') || kLower.includes('pass') || kLower.includes('คงเหลือ') || kLower.includes('จำนวน') || kLower.includes('รวม')) {
+                let num = parseFloat(obj[key]);
+                if (!isNaN(num)) return num;
+            }
+        }
+        // Fallback: หาค่าที่เป็นตัวเลขตัวแรกในอาร์เรย์
+        let values = Object.values(obj);
+        for (let v of values) {
+            let num = parseFloat(v);
+            if (!isNaN(num) && num > 0) return num;
+        }
+        return 0;
+    }
 
-    // 1. รวมยอดผลิตเข้า WIP
-    prodList.forEach(p => {
-        let pNo = findPart(p);
-        let qty = parseFloat(p.qty || p.total || Object.values(p)[2] || 0) || 0;
+    let stockMap = {};
+
+    // 1. ประมวลผลยอด WIP
+    prodList.forEach(item => {
+        let pNo = extractPartNo(item);
+        let qty = extractQty(item);
         if (pNo) {
-            if (!stockStatus[pNo]) stockStatus[pNo] = { wip: 0, fg: 0 };
-            stockStatus[pNo].wip += qty;
+            if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
+            stockMap[pNo].wip += qty;
         }
     });
 
-    // 2. หักยอดผ่าน Q-Gate เข้า FG
-    qgateList.forEach(q => {
-        let qNo = findPart(q);
-        let pass = parseFloat(q.passQty || q.pass || q.total || Object.values(q)[2] || 0) || 0;
-        if (qNo) {
-            if (!stockStatus[qNo]) stockStatus[qNo] = { wip: 0, fg: 0 };
-            stockStatus[qNo].wip -= pass;
-            stockStatus[qNo].fg += pass;
+    // 2. ประมวลผล Q-Gate (ย้ายจาก WIP ไป FG)
+    qgateList.forEach(item => {
+        let pNo = extractPartNo(item);
+        let qty = extractQty(item);
+        if (pNo) {
+            if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
+            stockMap[pNo].wip -= qty;
+            stockMap[pNo].fg += qty;
         }
     });
 
-    // 3. หักยอดส่งมอบ Delivery ออกจาก FG
-    deliveryList.forEach(d => {
-        let dNo = findPart(d);
-        let del = parseFloat(d.qty || d.deliveryQty || Object.values(d)[2] || 0) || 0;
-        if (dNo) {
-            if (!stockStatus[dNo]) stockStatus[dNo] = { wip: 0, fg: 0 };
-            stockStatus[dNo].fg -= del;
+    // 3. ประมวลผล Delivery (ตัดออกจาก FG)
+    deliveryList.forEach(item => {
+        let pNo = extractPartNo(item);
+        let qty = extractQty(item);
+        if (pNo) {
+            if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
+            stockMap[pNo].fg -= qty;
         }
     });
 
+    let totalParts = masterDb.length;
     let availableCount = 0;
-    let zeroCount = 0;
 
-    // เปรียบเทียบกับ Master Part Code
-    masterDb.forEach(m => {
-        let mNo = findPart(m);
-        let found = false;
+    // ตรวจสอบกับ Master Part Code ทั้งหมด
+    masterDb.forEach(masterItem => {
+        let hasStock = false;
         
-        if (mNo && stockStatus[mNo]) {
-            let netWip = Math.max(0, stockStatus[mNo].wip);
-            let netFg = Math.max(0, stockStatus[mNo].fg);
-            if ((netWip + netFg) > 0) found = true;
-        } else {
-            // กรณีเช็คแบบกระจายทุกคอลัมน์
-            Object.values(m).forEach(val => {
-                let vClean = clean(val);
-                if (stockStatus[vClean]) {
-                    let netWip = Math.max(0, stockStatus[vClean].wip);
-                    let netFg = Math.max(0, stockStatus[vClean].fg);
-                    if ((netWip + netFg) > 0) found = true;
+        // วนเช็คทุกฟิลด์ใน Master Item
+        for (let key in masterItem) {
+            let val = String(masterItem[key] || "").trim().toLowerCase().replace(/[\s\-\_]/g, '');
+            if (val && stockMap[val]) {
+                let netWip = Math.max(0, stockMap[val].wip);
+                let netFg = Math.max(0, stockMap[val].fg);
+                if ((netWip + netFg) > 0) {
+                    hasStock = true;
+                    break;
                 }
-            });
+            }
         }
 
-        if (found) {
+        if (hasStock) {
             availableCount++;
-        } else {
-            zeroCount++;
         }
     });
 
+    let zeroCount = totalParts - availableCount;
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
-    // อัปเดตตัวเลขแสดงผลบนหน้าเว็บ
-    let elTotal = document.getElementById('summary-total-parts');
-    let elZero = document.getElementById('summary-zero-stock');
-    let elAvailable = document.getElementById('summary-available-stock');
-    let elPercent = document.getElementById('summary-zero-percent');
+    // อัปเดตตัวเลขบนหน้าจอ
+    if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
+    if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
+    if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
+    if (document.getElementById('summary-zero-percent')) document.getElementById('summary-zero-percent').innerText = zeroPercent + '%';
 
-    if (elTotal) elTotal.innerText = totalParts.toLocaleString();
-    if (elZero) elZero.innerText = zeroCount.toLocaleString();
-    if (elAvailable) elAvailable.innerText = availableCount.toLocaleString();
-    if (elPercent) elPercent.innerText = zeroPercent + '%';
-
-    // วาดกราฟวงกลมใหม่
+    // วาดกราฟใหม่
     if (window.myStockPieChart instanceof Chart) {
         window.myStockPieChart.destroy();
     }
 
-    let canvasElement = document.getElementById('stockZeroPieChart');
-    if (canvasElement) {
-        let ctx = canvasElement.getContext('2d');
-        window.myStockPieChart = new Chart(ctx, {
+    let canvas = document.getElementById('stockZeroPieChart');
+    if (canvas) {
+        window.myStockPieChart = new Chart(canvas.getContext('2d'), {
             type: 'pie',
             data: {
                 labels: ['Stock 0 ชิ้น', 'มี Stock มากกว่า 0 ชิ้น'],
@@ -3417,11 +3420,13 @@ function renderStockZeroPieChart() {
     }
 }
 
-// สั่งทำงานทันทีและผูกกับปุ่มเปลี่ยนหน้า
-setTimeout(renderStockZeroPieChart, 1500);
+// สั่งทำงานหน่วงเวลาเผื่อโหลดข้อมูลจาก Excel
+setTimeout(renderStockZeroPieChart, 2000);
+setTimeout(renderStockZeroPieChart, 4500); 
+
 document.addEventListener('click', function(e) {
     if (e.target && (e.target.dataset.bsTarget === '#dashboard' || e.target.id === 'dashboard-tab')) {
-        setTimeout(renderStockZeroPieChart, 300);
+        setTimeout(renderStockZeroPieChart, 500);
     }
 });
 </script>
