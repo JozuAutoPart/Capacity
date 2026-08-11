@@ -3271,7 +3271,7 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// แก้ไขระบบเทียบ Part No. ให้ตรงกับ Column ของ Master Part Code จริงๆ
+// ระบบคำนวณแบบยืดหยุ่น (ช่วยแก้ปัญหาหา Part No. ไม่เจอ)
 // ==========================================================
 function renderStockZeroPieChart() {
     let masterDb = window.masterPartsDatabase || [];
@@ -3283,127 +3283,59 @@ function renderStockZeroPieChart() {
     if (!canvasElement) return;
 
     let totalParts = masterDb.length;
-    let zeroStockCount = 0;
-    let availableStockCount = 0;
+    let availableSet = new Set(); // ใช้ Set เก็บ Part No. ที่เช็คแล้วว่ามียอด
 
-    masterDb.forEach(masterItem => {
-        let keys = Object.keys(masterItem);
-        
-        // ค้นหาค่า Part No. จากทุกๆ คอลัมน์ในแถวนั้น เพื่อให้มั่นใจว่าจะเจอ 17154-0T040 เสมอ
-        let masterPartNo = "";
-        keys.forEach(k => {
-            let val = String(masterItem[k] || "").trim();
-            // เช็คว่าใช่รูปแบบ Part No. หรือไม่ (เช่น มีขีดแบบ 17154-0T040)
-            if (val.includes("-") || val.length > 5) {
-                masterPartNo = val.toLowerCase();
-            }
-        });
+    // ฟังก์ชันช่วยทำความสะอาดชื่อ Part No. เพื่อให้เทียบกันได้แม่นยำ
+    const clean = (str) => String(str || "").trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
-        // ถ้าหาไม่เจอจริงๆ ให้เอาค่าจากช่อง Column ที่สองหรือสามแทน
-        if (!masterPartNo) {
-            masterPartNo = String(masterItem[keys[1]] || "").trim().toLowerCase();
-        }
-
-        if (!masterPartNo) {
-            zeroStockCount++;
-            return;
-        }
-
-        // 1. คำนวณยอด WIP
-        let wipIn = 0;
-        prodList.forEach(p => {
-            let pKeys = Object.keys(p);
-            let pNo = String(p.partNo || p.partno || p[pKeys[1]] || p[pKeys[0]] || "").trim().toLowerCase();
-            if (pNo === masterPartNo) {
-                wipIn += parseFloat(p.qty || p.total || p[pKeys[2]] || 0) || 0;
-            }
-        });
-
-        let qgateOut = 0;
-        qgateList.forEach(q => {
-            let qKeys = Object.keys(q);
-            let qNo = String(q.partNo || q.partno || q[qKeys[1]] || q[qKeys[0]] || "").trim().toLowerCase();
-            if (qNo === masterPartNo) {
-                qgateOut += parseFloat(q.passQty || q.pass || q.total || 0) || 0;
-            }
-        });
-        
-        let currentWip = (wipIn - qgateOut < 0) ? 0 : (wipIn - qgateOut);
-
-        // 2. คำนวณยอด FG
-        let fgOut = 0;
-        deliveryList.forEach(d => {
-            let dKeys = Object.keys(d);
-            let dNo = String(d.partNo || d.partno || d[dKeys[1]] || d[dKeys[0]] || "").trim().toLowerCase();
-            if (dNo === masterPartNo) {
-                fgOut += parseFloat(d.qty || d.deliveryQty || 0) || 0;
-            }
-        });
-
-        let currentFg = (qgateOut - fgOut < 0) ? 0 : (qgateOut - fgOut);
-
-        // 3. รวม Stock (WIP + FG) ถ้ามากกว่า 0 นับว่ามีของ (เช่น 17154-0T040 มี WIP 486 และ FG 88 จะถูกนับว่ามีของทันที)
-        let totalStock = currentWip + currentFg;
-        if (totalStock > 0) {
-            availableStockCount++;
-        } else {
-            zeroStockCount++;
-        }
+    // 1. เช็ค WIP: ถ้ามียอด > 0 ให้เพิ่มเข้า availableSet
+    prodList.forEach(p => {
+        let pNo = clean(p.partNo || p.partno || p[Object.keys(p)[1]] || p[Object.keys(p)[0]]);
+        let qty = parseFloat(p.qty || p.total || 0) || 0;
+        if (qty > 0) availableSet.add(pNo);
     });
 
-    let zeroPercent = totalParts > 0 ? ((zeroStockCount / totalParts) * 100).toFixed(1) : 0;
+    // 2. เช็ค FG: ถ้ามียอด > 0 ให้เพิ่มเข้า availableSet
+    deliveryList.forEach(d => {
+        let dNo = clean(d.partNo || d.partno || d[Object.keys(d)[1]] || d[Object.keys(d)[0]]);
+        let qty = parseFloat(d.qty || d.deliveryQty || 0) || 0;
+        if (qty > 0) availableSet.add(dNo);
+    });
 
-    // อัปเดตตัวเลขลงกล่องสรุป
-    let elTotal = document.getElementById('summary-total-parts');
-    let elZero = document.getElementById('summary-zero-stock');
-    let elAvailable = document.getElementById('summary-available-stock');
-    let elPercent = document.getElementById('summary-zero-percent');
+    // 3. เปรียบเทียบ Master กับรายการที่มีของ
+    let availableStockCount = 0;
+    masterDb.forEach(m => {
+        // ลองทุกคีย์ใน Master เพื่อหาค่าที่ตรงกับในตาราง WIP/FG
+        let keys = Object.keys(m);
+        let found = false;
+        for (let k of keys) {
+            if (availableSet.has(clean(m[k]))) {
+                found = true;
+                break;
+            }
+        }
+        if (found) availableStockCount++;
+    });
 
-    if (elTotal) elTotal.innerText = totalParts.toLocaleString();
-    if (elZero) elZero.innerText = zeroStockCount.toLocaleString();
-    if (elAvailable) elAvailable.innerText = availableStockCount.toLocaleString();
-    if (elPercent) elPercent.innerText = zeroPercent + '%';
+    let zeroStockCount = totalParts - availableStockCount;
 
-    // สร้างกราฟวงกลม
-    if (window.myStockPieChart instanceof Chart) {
-        window.myStockPieChart.destroy();
-    }
+    // อัปเดตตัวเลข
+    document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
+    document.getElementById('summary-zero-stock').innerText = zeroStockCount.toLocaleString();
+    document.getElementById('summary-available-stock').innerText = availableStockCount.toLocaleString();
+    document.getElementById('summary-zero-percent').innerText = totalParts > 0 ? ((zeroStockCount / totalParts) * 100).toFixed(1) + '%' : '0%';
 
-    let ctx = canvasElement.getContext('2d');
-    window.myStockPieChart = new Chart(ctx, {
+    // อัปเดตกราฟ
+    if (window.myStockPieChart instanceof Chart) window.myStockPieChart.destroy();
+    window.myStockPieChart = new Chart(document.getElementById('stockZeroPieChart').getContext('2d'), {
         type: 'pie',
         data: {
-            labels: ['Stock 0 ชิ้น (หมด)', 'มี Stock มากกว่า 0 ชิ้น'],
-            datasets: [{
-                data: [zeroStockCount, availableStockCount],
-                backgroundColor: ['#ef4444', '#10b981'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: '#ffffff',
-                        font: { size: 12 }
-                    }
-                }
-            }
+            labels: ['Stock 0 ชิ้น', 'มี Stock มากกว่า 0 ชิ้น'],
+            datasets: [{ data: [zeroStockCount, availableStockCount], backgroundColor: ['#ef4444', '#10b981'] }]
         }
     });
 }
-
-// เรียกใช้งานฟังก์ชัน
-setTimeout(renderStockZeroPieChart, 1500);
-
-document.addEventListener('click', function(e) {
-    if (e.target && (e.target.dataset.bsTarget === '#dashboard' || e.target.id === 'dashboard-tab')) {
-        setTimeout(renderStockZeroPieChart, 300);
-    }
-});
+setTimeout(renderStockZeroPieChart, 2000);
 </script>
 </body>
 </html>
