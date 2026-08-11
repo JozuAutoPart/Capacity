@@ -3272,14 +3272,35 @@ document.addEventListener('change', function(e) {
 });
 // ==========================================================
 // ==========================================================
-// แก้ไขให้ระบบเช็คการแสดงผลเฉพาะหน้า Dashboard เท่านั้น (100% ป้องกันการแสดงผลข้ามหน้า)
+// แก้ไขระบบแสดงผลกราฟเฉพาะหน้า Dashboard แบบเช็คจากปุ่มเมนูแท็บโดยตรง
 // ==========================================================
 function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
     if (!canvasElement) return;
 
-    // ถ้า element ถูกซ่อนอยู่ (หมายถึงอยู่หน้าอื่นที่ไม่ใช่ Dashboard) ให้ตัดจบการทำงานทันที
-    if (canvasElement.offsetParent === null) return;
+    // เช็คจาก URL Hash หรือคลาสของหน้าปัจจุบัน ว่าอยู่หน้า Dashboard จริงๆ หรือไม่
+    // หรือเช็คว่ากล่องกราฟถูกแปะอยู่ในหน้า Dashboard เท่านั้น
+    let dashboardTab = document.getElementById('dashboard'); // หรือไอดีคอนเทนเนอร์หน้าแดชบอร์ดของพี่มิว
+    if (dashboardTab) {
+        // เช็คว่าหน้า Dashboard ซ่อนอยู่หรือไม่ (ถ้ามีคลาส d-none หรือ style display: none ให้หยุดทำงาน)
+        let isDashboardActive = window.getComputedStyle(dashboardTab).display !== 'none';
+        
+        // เช็คเผื่อกรณีใช้โครงสร้าง Bootstrap Tab ทั่วไป
+        let activeTabLink = document.querySelector('.nav-link.active, .tab-pane.active');
+        if (activeTabLink) {
+            let targetId = activeTabLink.getAttribute('href') || activeTabLink.dataset.bsTarget || '';
+            if (targetId && !targetId.includes('dashboard') && !targetId.includes('Dashboard')) {
+                // ถ้าแท็บที่Activeอยู่ไม่ใช่ Dashboard ให้ซ่อนกล่องกราฟนี้ทันที
+                canvasElement.closest('.row, .card, div').style.display = 'none';
+                return;
+            }
+        }
+    }
+
+    // ถ้าอยู่หน้า Dashboard ให้แสดงผลตามปกติ
+    if (canvasElement.closest('.row, .card, div')) {
+        canvasElement.closest('.row, .card, div').style.display = 'flex'; // หรือ block ตามเดิม
+    }
 
     let masterDb = window.masterPartsDatabase || [];
     let prodList = window.productionDatabase || [];
@@ -3409,10 +3430,13 @@ function renderStockZeroPieChart() {
     });
 }
 
-// รันตรวจสอบเมื่อโหลดและเมื่อมีการคลิกเปลี่ยนแท็บ
+// ผูกอีเวนต์คลิกเปลี่ยนแท็บเมนูด้านบนทั้งหมด
 setTimeout(renderStockZeroPieChart, 1500);
 document.addEventListener('click', function(e) {
-    setTimeout(renderStockZeroPieChart, 400);
+    let target = e.target.closest('a, button, .nav-link');
+    if (target) {
+        setTimeout(renderStockZeroPieChart, 200);
+    }
 });
 </script>
 </body>
