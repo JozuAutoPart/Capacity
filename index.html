@@ -3119,6 +3119,49 @@ window.loadQGateParts = window.loadQGateParts || function() {
         }
     }, true);
 })();
+        // ==========================================================
+// ระบบแก้ปัญหาภาษาไทยเพี้ยนจากการสแกนบาร์โค้ด (Encoding Fixer)
+// ==========================================================
+(function() {
+    function fixThaiBarcode(str) {
+        if (!str || typeof str !== 'string') return str;
+        // เช็คว่ามีลักษณะตัวอักษรเพี้ยนแบบบาร์โค้ดภาษาไทยหรือไม่
+        if (str.includes('à¸') || str.includes('à¹') || str.includes('àº')) {
+            try {
+                let bytes = [];
+                for (let i = 0; i < str.length; i++) {
+                    let code = str.charCodeAt(i);
+                    if (code <= 255) {
+                        bytes.push(code);
+                    } else {
+                        bytes.push(code & 0xFF);
+                        bytes.push((code >> 8) & 0xFF);
+                    }
+                }
+                let decoded = new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+                return decoded;
+            } catch (e) {
+                return str;
+            }
+        }
+        return str;
+    }
+
+    // ดักจับการพิมพ์/สแกนเข้าช่อง input ทุกช่องในระบบ
+    document.addEventListener('input', function(e) {
+        let target = e.target;
+        if (target && target.tagName === 'INPUT' && target.type === 'text') {
+            let originalVal = target.value;
+            let fixedVal = fixThaiBarcode(originalVal);
+            if (originalVal !== fixedVal) {
+                target.value = fixedVal;
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+                target.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log(">>> แก้ไขภาษาไทยจากบาร์โค้ดสำเร็จ:", fixedVal);
+            }
+        }
+    }, true);
+})();
 </script>
 </body>
 </html>
