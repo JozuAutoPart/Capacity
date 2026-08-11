@@ -2870,12 +2870,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-        // ==========================================================
 // ==========================================================
-// ระบบ스แกน Barcode ที่หน้า Q-Gate -> แปลงเป็น Part No. + ดึงยอด WIP อัตโนมัติ
+// ระบบสแกน Barcode ที่หน้า Q-Gate -> แปลงเป็น Part No. + ดึงยอด WIP อัตโนมัติ
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // ค้นหาช่อง input ที่มีคำว่า "ค้นหา Part No." ในหน้า Q-Gate
     const qgateScanInput = document.querySelector('input[placeholder*="ค้นหา Part No"]') || document.getElementById('qgateScanInput');
     const qgatePartSelect = document.getElementById('qgatePartNo'); 
     const qgateQtyInput = document.getElementById('qgateQty'); 
