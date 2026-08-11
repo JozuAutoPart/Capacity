@@ -3271,8 +3271,7 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-// ==========================================================
-// ระบบดึง Part No. จาก Column B ของ Master Part Code มาเทียบเช็ค Stock WIP & FG
+// แก้ไขระบบเทียบ Part No. ให้ตรงกับ Column ของ Master Part Code จริงๆ
 // ==========================================================
 function renderStockZeroPieChart() {
     let masterDb = window.masterPartsDatabase || [];
@@ -3290,22 +3289,31 @@ function renderStockZeroPieChart() {
     masterDb.forEach(masterItem => {
         let keys = Object.keys(masterItem);
         
-        // ดึง Part No. จาก Column B โดยตรง (ปกติจะตรงกับ keys[1] หรือฟิลด์ partNo ใน Column B)
-        let masterPartNo = String(
-            masterItem[keys[1]] || masterItem.partno || masterItem['part no'] || ''
-        ).trim().toLowerCase();
-        
-        // ถ้าช่อง Column B ว่างเปล่า ให้ปัดเป็น 0 ทันที
+        // ค้นหาค่า Part No. จากทุกๆ คอลัมน์ในแถวนั้น เพื่อให้มั่นใจว่าจะเจอ 17154-0T040 เสมอ
+        let masterPartNo = "";
+        keys.forEach(k => {
+            let val = String(masterItem[k] || "").trim();
+            // เช็คว่าใช่รูปแบบ Part No. หรือไม่ (เช่น มีขีดแบบ 17154-0T040)
+            if (val.includes("-") || val.length > 5) {
+                masterPartNo = val.toLowerCase();
+            }
+        });
+
+        // ถ้าหาไม่เจอจริงๆ ให้เอาค่าจากช่อง Column ที่สองหรือสามแทน
+        if (!masterPartNo) {
+            masterPartNo = String(masterItem[keys[1]] || "").trim().toLowerCase();
+        }
+
         if (!masterPartNo) {
             zeroStockCount++;
             return;
         }
 
-        // 1. คำนวณยอด WIP (ผลิตเข้า - Q-Gate Pass)
+        // 1. คำนวณยอด WIP
         let wipIn = 0;
         prodList.forEach(p => {
             let pKeys = Object.keys(p);
-            let pNo = String(p[pKeys[1]] || p.partNo || p.partno || '').trim().toLowerCase();
+            let pNo = String(p.partNo || p.partno || p[pKeys[1]] || p[pKeys[0]] || "").trim().toLowerCase();
             if (pNo === masterPartNo) {
                 wipIn += parseFloat(p.qty || p.total || p[pKeys[2]] || 0) || 0;
             }
@@ -3314,7 +3322,7 @@ function renderStockZeroPieChart() {
         let qgateOut = 0;
         qgateList.forEach(q => {
             let qKeys = Object.keys(q);
-            let qNo = String(q[qKeys[1]] || q.partNo || q.partno || '').trim().toLowerCase();
+            let qNo = String(q.partNo || q.partno || q[qKeys[1]] || q[qKeys[0]] || "").trim().toLowerCase();
             if (qNo === masterPartNo) {
                 qgateOut += parseFloat(q.passQty || q.pass || q.total || 0) || 0;
             }
@@ -3322,11 +3330,11 @@ function renderStockZeroPieChart() {
         
         let currentWip = (wipIn - qgateOut < 0) ? 0 : (wipIn - qgateOut);
 
-        // 2. คำนวณยอด FG (Q-Gate Pass - Delivery)
+        // 2. คำนวณยอด FG
         let fgOut = 0;
         deliveryList.forEach(d => {
             let dKeys = Object.keys(d);
-            let dNo = String(d[dKeys[1]] || d.partNo || d.partno || '').trim().toLowerCase();
+            let dNo = String(d.partNo || d.partno || d[dKeys[1]] || d[dKeys[0]] || "").trim().toLowerCase();
             if (dNo === masterPartNo) {
                 fgOut += parseFloat(d.qty || d.deliveryQty || 0) || 0;
             }
@@ -3334,7 +3342,7 @@ function renderStockZeroPieChart() {
 
         let currentFg = (qgateOut - fgOut < 0) ? 0 : (qgateOut - fgOut);
 
-        // 3. รวม Stock (WIP + FG) ถ้ามากกว่า 0 ถือว่ามีของ, ถ้าไม่เจอหรือเป็น 0 นับเป็น 0
+        // 3. รวม Stock (WIP + FG) ถ้ามากกว่า 0 นับว่ามีของ (เช่น 17154-0T040 มี WIP 486 และ FG 88 จะถูกนับว่ามีของทันที)
         let totalStock = currentWip + currentFg;
         if (totalStock > 0) {
             availableStockCount++;
@@ -3343,7 +3351,6 @@ function renderStockZeroPieChart() {
         }
     });
 
-    // คำนวณเปอร์เซ็นต์
     let zeroPercent = totalParts > 0 ? ((zeroStockCount / totalParts) * 100).toFixed(1) : 0;
 
     // อัปเดตตัวเลขลงกล่องสรุป
