@@ -172,42 +172,6 @@
                     </div>
                 </div>
             </div>
-                   <!-- กราฟวงกลมและกล่องสรุปสัดส่วน Stock Part -->
-<div class="row mt-4">
-    <!-- ฝั่งซ้าย: กราฟวงกลม -->
-       <div class="col-md-6 mb-3">
-              <div class="card p-3 border-secondary bg-dark text-white shadow-sm h-100">
-            <h5 class="text-center text-warning mb-3">📊 สัดส่วน Stock Part (0 ชิ้น เทียบกับทั้งหมด)</h5>
-            <div style="position: relative; height: 260px; width: 100%;">
-                <canvas id="stockZeroPieChart"></canvas>
-            </div>
-        </div>
-    </div>
-    
-    <!-- ฝั่งขวา: กล่องสรุปตัวเลข -->
-    <div class="col-md-6 mb-3">
-        <div class="card p-4 border-secondary bg-dark text-white shadow-sm h-100 d-flex flex-column justify-content-center">
-            <h5 class="text-warning mb-3 border-bottom border-secondary pb-2">📋 สรุปข้อมูลสต็อกพาร์ท (Master Part Code)</h5>
-            <div class="d-flex flex-column gap-2" style="font-size: 1.05rem;">
-                <div class="d-flex justify-content-between align-items-center bg-secondary bg-opacity-10 p-2 rounded">
-                    <span>📦 จำนวนพาร์ททั้งหมด:</span>
-                    <span id="summary-total-parts" class="fw-bold text-info fs-5">0</span> รายการ
-                </div>
-                <div class="d-flex justify-content-between align-items-center bg-danger bg-opacity-10 p-2 rounded">
-                    <span>🔴 Stock หมด (0 ชิ้น):</span>
-                    <span id="summary-zero-stock" class="fw-bold text-danger fs-5">0</span> รายการ
-                </div>
-                <div class="d-flex justify-content-between align-items-center bg-success bg-opacity-10 p-2 rounded">
-                    <span>🟢 มี Stock มากกว่า 0:</span>
-                    <span id="summary-available-stock" class="fw-bold text-success fs-5">0</span> รายการ
-                </div>
-                <div class="d-flex justify-content-between align-items-center bg-warning bg-opacity-10 p-2 rounded">
-                    <span>📈 สัดส่วนสินค้าหมด:</span>
-                    <span id="summary-zero-percent" class="fw-bold text-warning fs-5">0%</span>
-                </div>
-            </div>
-        </div>
-    </div>
         </div>
     </div>
           <!-- กราฟวงกลมและกล่องสรุปสัดส่วน Stock Part -->
@@ -3308,136 +3272,92 @@ document.addEventListener('change', function(e) {
 });
 // ==========================================================
 // ==========================================================
-// แก้ไขระบบแสดงผลกราฟเฉพาะหน้า Dashboard แบบเช็คจากปุ่มเมนูแท็บโดยตรง
+// ระบบดึง Part No. จาก Column B ของ Master Part Code มาเทียบเช็ค Stock WIP & FG
 // ==========================================================
 function renderStockZeroPieChart() {
-    let canvasElement = document.getElementById('stockZeroPieChart');
-    if (!canvasElement) return;
-
-    // เช็คจาก URL Hash หรือคลาสของหน้าปัจจุบัน ว่าอยู่หน้า Dashboard จริงๆ หรือไม่
-    // หรือเช็คว่ากล่องกราฟถูกแปะอยู่ในหน้า Dashboard เท่านั้น
-    let dashboardTab = document.getElementById('dashboard'); // หรือไอดีคอนเทนเนอร์หน้าแดชบอร์ดของพี่มิว
-    if (dashboardTab) {
-        // เช็คว่าหน้า Dashboard ซ่อนอยู่หรือไม่ (ถ้ามีคลาส d-none หรือ style display: none ให้หยุดทำงาน)
-        let isDashboardActive = window.getComputedStyle(dashboardTab).display !== 'none';
-        
-        // เช็คเผื่อกรณีใช้โครงสร้าง Bootstrap Tab ทั่วไป
-        let activeTabLink = document.querySelector('.nav-link.active, .tab-pane.active');
-        if (activeTabLink) {
-            let targetId = activeTabLink.getAttribute('href') || activeTabLink.dataset.bsTarget || '';
-            if (targetId && !targetId.includes('dashboard') && !targetId.includes('Dashboard')) {
-                // ถ้าแท็บที่Activeอยู่ไม่ใช่ Dashboard ให้ซ่อนกล่องกราฟนี้ทันที
-                canvasElement.closest('.row, .card, div').style.display = 'none';
-                return;
-            }
-        }
-    }
-
-    // ถ้าอยู่หน้า Dashboard ให้แสดงผลตามปกติ
-    if (canvasElement.closest('.row, .card, div')) {
-        canvasElement.closest('.row, .card, div').style.display = 'flex'; // หรือ block ตามเดิม
-    }
-
     let masterDb = window.masterPartsDatabase || [];
     let prodList = window.productionDatabase || [];
     let qgateList = window.qgateDatabase || [];
     let deliveryList = window.deliveryDatabase || [];
-
-    function extractPartNo(obj) {
-        if (!obj) return "";
-        for (let key in obj) {
-            let val = String(obj[key] || "").trim();
-            if (val.includes("-") && val.length >= 5) {
-                let lower = val.toLowerCase();
-                if (!lower.includes("part") && !lower.includes("wip") && !lower.includes("fg") && !lower.includes("master")) {
-                    return val.toLowerCase().replace(/[\s\-\_]/g, '');
-                }
-            }
-        }
-        let values = Object.values(obj);
-        for (let v of values) {
-            let s = String(v || "").trim();
-            if (s.length >= 4 && isNaN(s)) {
-                return s.toLowerCase().replace(/[\s\-\_]/g, '');
-            }
-        }
-        return "";
-    }
-
-    function extractQty(obj) {
-        if (!obj) return 0;
-        for (let key in obj) {
-            let kLower = key.toLowerCase();
-            if (kLower.includes('qty') || kLower.includes('total') || kLower.includes('pass') || kLower.includes('คงเหลือ') || kLower.includes('จำนวน') || kLower.includes('รวม')) {
-                let num = parseFloat(obj[key]);
-                if (!isNaN(num)) return num;
-            }
-        }
-        let values = Object.values(obj);
-        for (let v of values) {
-            let num = parseFloat(v);
-            if (!isNaN(num) && num > 0) return num;
-        }
-        return 0;
-    }
-
-    let stockMap = {};
-
-    prodList.forEach(item => {
-        let pNo = extractPartNo(item);
-        let qty = extractQty(item);
-        if (pNo) {
-            if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
-            stockMap[pNo].wip += qty;
-        }
-    });
-
-    qgateList.forEach(item => {
-        let pNo = extractPartNo(item);
-        let qty = extractQty(item);
-        if (pNo) {
-            if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
-            stockMap[pNo].wip -= qty;
-            stockMap[pNo].fg += qty;
-        }
-    });
-
-    deliveryList.forEach(item => {
-        let pNo = extractPartNo(item);
-        let qty = extractQty(item);
-        if (pNo) {
-            if (!stockMap[pNo]) stockMap[pNo] = { wip: 0, fg: 0 };
-            stockMap[pNo].fg -= qty;
-        }
-    });
+    
+    let canvasElement = document.getElementById('stockZeroPieChart');
+    if (!canvasElement) return;
 
     let totalParts = masterDb.length;
-    let availableCount = 0;
+    let zeroStockCount = 0;
+    let availableStockCount = 0;
 
     masterDb.forEach(masterItem => {
-        let hasStock = false;
-        for (let key in masterItem) {
-            let val = String(masterItem[key] || "").trim().toLowerCase().replace(/[\s\-\_]/g, '');
-            if (val && stockMap[val]) {
-                let netWip = Math.max(0, stockMap[val].wip);
-                let netFg = Math.max(0, stockMap[val].fg);
-                if ((netWip + netFg) > 0) {
-                    hasStock = true;
-                    break;
-                }
-            }
+        let keys = Object.keys(masterItem);
+        
+        // ดึง Part No. จาก Column B โดยตรง (ปกติจะตรงกับ keys[1] หรือฟิลด์ partNo ใน Column B)
+        let masterPartNo = String(
+            masterItem[keys[1]] || masterItem.partno || masterItem['part no'] || ''
+        ).trim().toLowerCase();
+        
+        // ถ้าช่อง Column B ว่างเปล่า ให้ปัดเป็น 0 ทันที
+        if (!masterPartNo) {
+            zeroStockCount++;
+            return;
         }
-        if (hasStock) availableCount++;
+
+        // 1. คำนวณยอด WIP (ผลิตเข้า - Q-Gate Pass)
+        let wipIn = 0;
+        prodList.forEach(p => {
+            let pKeys = Object.keys(p);
+            let pNo = String(p[pKeys[1]] || p.partNo || p.partno || '').trim().toLowerCase();
+            if (pNo === masterPartNo) {
+                wipIn += parseFloat(p.qty || p.total || p[pKeys[2]] || 0) || 0;
+            }
+        });
+
+        let qgateOut = 0;
+        qgateList.forEach(q => {
+            let qKeys = Object.keys(q);
+            let qNo = String(q[qKeys[1]] || q.partNo || q.partno || '').trim().toLowerCase();
+            if (qNo === masterPartNo) {
+                qgateOut += parseFloat(q.passQty || q.pass || q.total || 0) || 0;
+            }
+        });
+        
+        let currentWip = (wipIn - qgateOut < 0) ? 0 : (wipIn - qgateOut);
+
+        // 2. คำนวณยอด FG (Q-Gate Pass - Delivery)
+        let fgOut = 0;
+        deliveryList.forEach(d => {
+            let dKeys = Object.keys(d);
+            let dNo = String(d[dKeys[1]] || d.partNo || d.partno || '').trim().toLowerCase();
+            if (dNo === masterPartNo) {
+                fgOut += parseFloat(d.qty || d.deliveryQty || 0) || 0;
+            }
+        });
+
+        let currentFg = (qgateOut - fgOut < 0) ? 0 : (qgateOut - fgOut);
+
+        // 3. รวม Stock (WIP + FG) ถ้ามากกว่า 0 ถือว่ามีของ, ถ้าไม่เจอหรือเป็น 0 นับเป็น 0
+        let totalStock = currentWip + currentFg;
+        if (totalStock > 0) {
+            availableStockCount++;
+        } else {
+            zeroStockCount++;
+        }
     });
 
-    let zeroCount = totalParts - availableCount;
-    let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
+    // คำนวณเปอร์เซ็นต์
+    let zeroPercent = totalParts > 0 ? ((zeroStockCount / totalParts) * 100).toFixed(1) : 0;
 
-    if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
-    if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
-    if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
-    if (document.getElementById('summary-zero-percent')) document.getElementById('summary-zero-percent').innerText = zeroPercent + '%';
+    // อัปเดตตัวเลขลงกล่องสรุป
+    let elTotal = document.getElementById('summary-total-parts');
+    let elZero = document.getElementById('summary-zero-stock');
+    let elAvailable = document.getElementById('summary-available-stock');
+    let elPercent = document.getElementById('summary-zero-percent');
 
+    if (elTotal) elTotal.innerText = totalParts.toLocaleString();
+    if (elZero) elZero.innerText = zeroStockCount.toLocaleString();
+    if (elAvailable) elAvailable.innerText = availableStockCount.toLocaleString();
+    if (elPercent) elPercent.innerText = zeroPercent + '%';
+
+    // สร้างกราฟวงกลม
     if (window.myStockPieChart instanceof Chart) {
         window.myStockPieChart.destroy();
     }
@@ -3446,9 +3366,9 @@ function renderStockZeroPieChart() {
     window.myStockPieChart = new Chart(ctx, {
         type: 'pie',
         data: {
-            labels: ['Stock 0 ชิ้น', 'มี Stock มากกว่า 0 ชิ้น'],
+            labels: ['Stock 0 ชิ้น (หมด)', 'มี Stock มากกว่า 0 ชิ้น'],
             datasets: [{
-                data: [zeroCount, availableCount],
+                data: [zeroStockCount, availableStockCount],
                 backgroundColor: ['#ef4444', '#10b981'],
                 borderWidth: 1
             }]
@@ -3459,19 +3379,22 @@ function renderStockZeroPieChart() {
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { color: '#ffffff', font: { size: 12 } }
+                    labels: {
+                        color: '#ffffff',
+                        font: { size: 12 }
+                    }
                 }
             }
         }
     });
 }
 
-// ผูกอีเวนต์คลิกเปลี่ยนแท็บเมนูด้านบนทั้งหมด
+// เรียกใช้งานฟังก์ชัน
 setTimeout(renderStockZeroPieChart, 1500);
+
 document.addEventListener('click', function(e) {
-    let target = e.target.closest('a, button, .nav-link');
-    if (target) {
-        setTimeout(renderStockZeroPieChart, 200);
+    if (e.target && (e.target.dataset.bsTarget === '#dashboard' || e.target.id === 'dashboard-tab')) {
+        setTimeout(renderStockZeroPieChart, 300);
     }
 });
 </script>
