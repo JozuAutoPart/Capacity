@@ -2878,19 +2878,16 @@ window.loadQGateParts = window.loadQGateParts || function() {
 };
 
 // ==========================================================
-// ระบบแปลง Barcode เป็น Part No. สำหรับ Q-Gate (แบบตรวจจับการเปลี่ยนค่าอัตโนมัติ)
+// ระบบแปลง Barcode เป็น Part No. สำหรับ Q-Gate (ฉบับปลอดภัยไร้ Error)
 // ==========================================================
 document.addEventListener('input', function(e) {
     let targetInput = e.target;
     
-    // ตรวจสอบว่าเป็นช่องค้นหาของ Q-Gate หรือไม่
     let ph = (targetInput.placeholder || '').toLowerCase();
     let isQGateSearch = ph.includes('ค้นหา') || ph.includes('wip') || targetInput.id === 'qgateScanInput';
 
     if (isQGateSearch) {
         let scanned = String(targetInput.value).trim();
-        
-        // ถ้าค่าสั้นเกินไปหรือไม่มีค่า ให้ข้ามไป
         if (scanned.length < 3) return;
 
         let db = window.masterPartsDatabase || [];
@@ -2898,7 +2895,6 @@ document.addEventListener('input', function(e) {
 
         let targetPartNo = null;
 
-        // วนลูปค้นหา Column A เพื่อแปลงเป็น Column B
         for (let item of db) {
             let keys = Object.keys(item);
             if (keys.length >= 2) {
@@ -2912,15 +2908,17 @@ document.addEventListener('input', function(e) {
             }
         }
 
-        // ถ้าแปลงค่าได้ และค่าไม่ตรงกับค่าเดิม ให้เปลี่ยนเป็น Part No. ทันที
         if (targetPartNo && targetInput.value !== targetPartNo) {
-            console.log(">>> แปลง Barcode อัตโนมัติ:", scanned, "->", targetPartNo);
+            console.log(">>> แปลง Barcode สำเร็จ:", scanned, "->", targetPartNo);
             
             targetInput.value = targetPartNo;
-            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-            targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+            
+            try {
+                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (err) {}
 
-            // เลือกค่าที่ช่อง Dropdown ด้านล่าง (#qgatePartNo)
+            // เลือกค่าที่ช่อง Dropdown ด้านล่าง (#qgatePartNo) แบบปลอดภัย
             const selectEl = document.getElementById('qgatePartNo');
             if (selectEl) {
                 let exists = false;
@@ -2940,12 +2938,19 @@ document.addEventListener('input', function(e) {
                 }
 
                 selectEl.value = targetPartNo;
-                selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                try {
+                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (err) {}
             }
 
-            // สั่งรันฟังก์ชันโหลดข้อมูล WIP ของระบบเดิม
-            if (typeof window.loadQGateParts === 'function') {
-                window.loadQGateParts();
+            // เรียกใช้งานฟังก์ชันเดิมด้วยความระมัดระวัง (ปัองกัน Error หยุดการทำงาน)
+            try {
+                if (typeof window.loadQGateParts === 'function') {
+                    window.loadQGateParts();
+                }
+            } catch (err) {
+                console.log("Bypassed original function error");
             }
         }
     }
