@@ -1791,9 +1791,12 @@ function filterQGateParts() {
 
 function updateQGateWipInfo() {
     const selectedPart = document.getElementById('qgatePartSelect').value;
-    // คำนวณจำนวนคงเหลือใน WIP ของพาร์ทนั้นๆ มาแสดงที่ hint
-    let wipQty = 0; 
-    // ใส่โค้ดคำนวณยอดคงเหลือ WIP ตามจริงตรงนี้ได้เลยครับ
+    
+    // 📌 เรียกฟังก์ชันแสดงรูปภาพจากคอลัมน์ E ตรงนี้ได้เลยครับ
+    updateQGatePartImage(selectedPart);
+
+    // คำนวณจำนวนคงเหลือใน WIP ของพาร์ทนั้นๆ ตามโค้ดเดิมของพี่
+    let wipQty = 0;
     document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
 }
       // --- TAB 6: STOCK WIP & FG ---
