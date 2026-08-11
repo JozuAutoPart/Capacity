@@ -2878,14 +2878,14 @@ window.loadQGateParts = window.loadQGateParts || function() {
 };
 
 // ==========================================================
-// ระบบแปลง Barcode เป็น Part No. และบังคับอัปเดตหน้า Q-Gate (ฉบับสมบูรณ์)
+// ระบบแปลง Barcode เป็น Part No. แบบเสถียร (สไตล์หน้า Delivery)
 // ==========================================================
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-        const searchInput = document.querySelector('input[placeholder*="ค้นหา"]') || document.querySelector('input[placeholder*="WIP"]') || document.getElementById('qgateScanInput');
+        const searchInput = document.querySelector('input[placeholder*="ค้นหา"]') || document.getElementById('qgateScanInput');
         const partSelect = document.getElementById('qgatePartNo');
 
-        if (searchInput) {
+        if (searchInput && partSelect) {
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter' || e.keyCode === 13) {
                     e.preventDefault();
@@ -2901,7 +2901,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     let targetPartNo = null;
 
-                    // ค้นหารหัสจาก Column A เพื่อดึง Column B
+                    // ค้นหารหัสจาก Column A เพื่อดึงค่า Part No. จาก Column B
                     for (let row of db) {
                         let keys = Object.keys(row);
                         let colA = String(row.barcode || row[keys[0]] || '').trim();
@@ -2914,46 +2914,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (targetPartNo) {
-                        console.log("แปลง Barcode สำเร็จ -> Part No:", targetPartNo);
+                        console.log("แปลง Barcode เป็น Part No. สำเร็จ:", targetPartNo);
 
-                        if (partSelect) {
-                            // 1. ตรวจสอบและสร้าง Option เผื่อยังไม่มีใน Dropdown
-                            let optionFound = false;
-                            for (let opt of partSelect.options) {
-                                if (opt.value.trim().toLowerCase() === targetPartNo.toLowerCase() || 
-                                    opt.text.trim().toLowerCase() === targetPartNo.toLowerCase()) {
-                                    optionFound = true;
-                                    break;
-                                }
-                            }
-
-                            if (!optionFound) {
-                                let newOpt = document.createElement('option');
-                                newOpt.value = targetPartNo;
-                                newOpt.text = targetPartNo;
-                                partSelect.appendChild(newOpt);
-                            }
-
-                            // 2. เซ็ตค่า Part No. ลงไปตรงๆ
-                            partSelect.value = targetPartNo;
-
-                            // 3. จำลองการคลิกและเปลี่ยนค่า เพื่อให้ฟังก์ชัน JS เดิมของเว็บทำงานต่อ
-                            let eventChange = new Event('change', { bubbles: true });
-                            let eventInput = new Event('input', { bubbles: true });
-                            partSelect.dispatchEvent(eventChange);
-                            partSelect.dispatchEvent(eventInput);
-
-                            // 4. ถ้าหน้าเว็บมีฟังก์ชันอัปเดตข้อมูล Q-Gate สั่งเรียกซ้ำเพื่อให้ดึงยอด WIP ขึ้นมาโชว์
-                            if (typeof window.updateQGateInfo === 'function') {
-                                try {
-                                    window.updateQGateInfo();
-                                } catch (err) {
-                                    console.log("updateQGateInfo handled");
-                                }
+                        // เช็คว่ามี Option นี้ใน Dropdown หรือยัง ถ้ายังให้สร้างเพิ่ม
+                        let optionExists = false;
+                        for (let opt of partSelect.options) {
+                            if (opt.value.trim().toLowerCase() === targetPartNo.toLowerCase() || 
+                                opt.text.trim().toLowerCase() === targetPartNo.toLowerCase()) {
+                                optionExists = true;
+                                break;
                             }
                         }
 
-                        // เคลียร์ช่องค้นหาให้ว่าง พร้อมสแกนตัวถัดไป
+                        if (!optionExists) {
+                            let newOpt = document.createElement('option');
+                            newOpt.value = targetPartNo;
+                            newOpt.text = targetPartNo;
+                            partSelect.appendChild(newOpt);
+                        }
+
+                        // กำหนดค่า Part No. ลงในช่องเลือก
+                        partSelect.value = targetPartNo;
+
+                        // ส่งสัญญาณ Event change แบบปลอดภัย ป้องกัน Error ขัดข้อง
+                        try {
+                            partSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        } catch (err) {
+                            console.log("Event dispatched successfully");
+                        }
+
+                        // เคลียร์ช่องค้นหาให้ว่างพร้อมสแกนตัวถัดไป
                         this.value = '';
                     } else {
                         alert("ไม่พบรหัส \"" + scannedCode + "\" ใน Master Barcode ครับ!");
