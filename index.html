@@ -1790,12 +1790,13 @@ function filterQGateParts() {
 }
 
 function updateQGateWipInfo() {
-    const selectedPart = document.getElementById('qgatePartSelect').value;
+    // 📌 แก้ไขตรง ID ให้ตรงกับ HTML เป็น 'qgatePartNo'
+    const selectedPart = document.getElementById('qgatePartNo').value;
     
-    // 📌 เรียกฟังก์ชันแสดงรูปภาพจากคอลัมน์ E ตรงนี้ได้เลยครับ
+    // สั่งให้แสดงรูปภาพจากคอลัมน์ E ทันทีที่เลือกพาร์ท
     updateQGatePartImage(selectedPart);
 
-    // คำนวณจำนวนคงเหลือใน WIP ของพาร์ทนั้นๆ ตามโค้ดเดิมของพี่
+    // คำนวณจำนวนคงเหลือใน WIP (โค้ดเดิมของพี่)
     let wipQty = 0;
     document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
 }
