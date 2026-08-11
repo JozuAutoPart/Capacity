@@ -174,6 +174,17 @@
             </div>
         </div>
     </div>
+            <!-- กราฟวงกลมแสดงสัดส่วน Stock Part 0 ชิ้น -->
+<div class="row mt-4">
+    <div class="col-md-6 mx-auto">
+        <div class="card p-3 border-secondary bg-dark text-white shadow-sm">
+            <h5 class="text-center text-warning mb-3">📊 สัดส่วน Stock Part (0 ชิ้น เทียบกับทั้งหมด)</h5>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="stockZeroPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
             <!-- TAB 2: CAPACITY -->
             <div class="tab-pane fade" id="tab-capacity">
                 <div class="card p-3 mb-3">
@@ -3231,6 +3242,76 @@ document.addEventListener('change', function(e) {
         } else {
             box.style.display = 'none';
         }
+    }
+});
+        // ==========================================================
+// ระบบสร้างกราฟวงกลมแสดงสัดส่วน Stock Part 0 ชิ้น ในหน้า Dashboard
+// ==========================================================
+function renderStockZeroPieChart() {
+    let db = window.masterPartsDatabase || [];
+    let canvasElement = document.getElementById('stockZeroPieChart');
+    
+    if (!canvasElement) return;
+
+    let totalParts = db.length;
+    let zeroStockCount = 0;
+    let availableStockCount = 0;
+
+    // วนลูปเช็คจำนวน Stock จากฐานข้อมูล Master Barcode (ช่อง 'จำนวน' หรือฟิลด์ที่เก็บค่าคงเหลือ)
+    db.forEach(item => {
+        let keys = Object.keys(item);
+        // ดึงค่าจากคอลัมน์จำนวน (มักจะอยู่ index ที่ 2 หรือฟิลด์ qty/จำนวน)
+        let qtyVal = item['จำนวน'] || item['qty'] || item[keys[2]] || 0;
+        let qty = parseFloat(qtyVal);
+
+        if (isNaN(qty) || qty <= 0) {
+            zeroStockCount++;
+        } else {
+            availableStockCount++;
+        }
+    });
+
+    // ถ้ามีกราฟเก่าอยู่แล้ว ให้ทำลายทิ้งก่อนสร้างใหม่เพื่อป้องกันกราฟซ้อนทับ
+    if (window.myStockPieChart instanceof Chart) {
+        window.myStockPieChart.destroy();
+    }
+
+    let ctx = canvasElement.getContext('2d');
+    window.myStockPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Stock 0 ชิ้น (หมด)', 'มี Stock มากกว่า 0 ชิ้น'],
+            datasets: [{
+                data: [zeroStockCount, availableStockCount],
+                backgroundColor: ['#ef4444', '#10b981'], // สีแดงสำหรับ 0 ชิ้น, สีเขียวสำหรับมีของ
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#ffffff',
+                        font: { size: 13 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// เรียกใช้งานฟังก์ชันเมื่อโหลดหน้าเว็บ หรือหลังจากโหลด Master Barcode เสร็จ
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(renderStockZeroPieChart, 1500);
+});
+
+// เผื่อกรณีคลิกสลับแท็บมาที่หน้า Dashboard
+document.addEventListener('click', function(e) {
+    if (e.target && (e.target.dataset.bsTarget === '#dashboard' || e.target.id === 'dashboard-tab')) {
+        setTimeout(renderStockZeroPieChart, 300);
     }
 });
 </script>
