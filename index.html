@@ -2862,8 +2862,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         qtyInput.value = defaultQty;
                         qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
                     }
-
-                    // 3. สั่งบันทึกเข้า Delivery Log ทันทีแบบอัตโนมัติ
+// 3. ดึงชื่อลูกค้า (Col D / คอลัมน์ที่ 4) มาใส่ช่องชื่อลูกค้าอัตโนมัติ  <-- [เพิ่มตรงนี้]
+        let customerInput = document.getElementById('deliveryCustomer');
+        let customerName = found[keys[3]] || found['customer'] || found['ลูกค้า'] || '';
+        if (customerInput && customerName) {
+            customerInput.value = customerName;
+            customerInput.dispatchEvent(new Event('input', { bubbles: true }));
+            customerInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+                    // 4. สั่งบันทึกเข้า Delivery Log ทันทีแบบอัตโนมัติ
                     setTimeout(() => {
                         if (typeof submitDelivery === 'function') {
                             submitDelivery(new Event('submit'));
