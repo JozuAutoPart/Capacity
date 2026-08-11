@@ -3173,16 +3173,20 @@ function updateQGatePartImage(partNo) {
 }
         // ==========================================================
 // ==========================================================
-// ==========================================================
-// ระบบแสดงรูปภาพจากคอลัมน์ E (keys[4]) ที่มุมขวาหัวข้อ Q-Gate
+// ระบบ Debug และแสดงรูปภาพจากคอลัมน์ E (keys[4]) ในหน้า Q-Gate
 // ==========================================================
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'qgatePartNo') {
         let partNo = e.target.value;
+        console.log("📌 [Q-Gate Image] เลือก Part No.:", partNo);
+
         let box = document.getElementById('qgate-image-box');
         let imgTag = document.getElementById('qgate-part-img');
         
-        if (!box || !imgTag) return;
+        if (!box || !imgTag) {
+            console.warn("⚠️ ไม่พบ Element ของกล่องรูปภาพ (qgate-image-box หรือ qgate-part-img)");
+            return;
+        }
 
         if (!partNo) {
             box.style.display = 'none';
@@ -3190,6 +3194,8 @@ document.addEventListener('change', function(e) {
         }
 
         let db = window.masterPartsDatabase || [];
+        console.log("📌 [Q-Gate Image] จำนวนข้อมูลใน Master Database:", db.length);
+
         let found = db.find(item => {
             let keys = Object.keys(item);
             let pn = String(item.partno || item['part no'] || keys[1] ? item[keys[1]] : '').trim().toLowerCase();
@@ -3199,16 +3205,23 @@ document.addEventListener('change', function(e) {
 
         if (found) {
             let keys = Object.keys(found);
-            // 📌 ดึงลิงก์รูปภาพจากคอลัมน์ E โดยตรง (keys[4])
+            console.log("📌 [Q-Gate Image] พบข้อมูลพาร์ท:", found);
+            console.log("📌 [Q-Gate Image] รายชื่อคอลัมน์ทั้งหมด:", keys);
+            console.log("📌 [Q-Gate Image] ค่าในคอลัมน์ E (keys[4]):", found[keys[4]]);
+
+            // ดึงลิงก์รูปภาพจากคอลัมน์ E โดยตรง (keys[4])
             let imgSrc = found[keys[4]] || found.image || found.img || '';
 
-            if (imgSrc && imgSrc.startsWith('http')) {
+            if (imgSrc && String(imgSrc).trim() !== '') {
                 imgTag.src = imgSrc;
                 box.style.display = 'block'; // แสดงรูปที่มุมขวาบน
+                console.log("✅ โหลดรูปภาพสำเร็จ:", imgSrc);
             } else {
+                console.warn("⚠️ คอลัมน์ E ของพาร์thนี้ไม่มีลิงก์รูปภาพ หรือค่าว่างเปล่า");
                 box.style.display = 'none';
             }
         } else {
+            console.warn("⚠️ ไม่พบ Part No. นี้ใน Master Barcode Database");
             box.style.display = 'none';
         }
     }
