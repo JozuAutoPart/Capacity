@@ -3476,32 +3476,46 @@ document.addEventListener('keypress', function(e) {
     }
 });
    
+
 function printRepairForm(date, partNo, problem, reporter, imageSrc) {
-    let printWindow = window.open('', '_blank', 'height=900,width=1000');
+    let printWindow = window.open('', '_blank', 'height=950,width=1000');
     printWindow.document.write(`
         <html>
             <head>
-                <title>ใบแจ้งซ่อมแม่พิมพ์ (Die Repair Report)</title>
+                <title>ใบแจ้งซ่อมแม่พิมพ์ (Die Repair Report - ISO Standard)</title>
                 <style>
-                    body { font-family: 'Tahoma', sans-serif; padding: 20px; color: #000; font-size: 14px; }
-                    .header { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-                    .sub-header { text-align: center; font-size: 14px; margin-bottom: 15px; font-weight: bold; }
-                    .company { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 2px; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    th, td { border: 1px solid #000; padding: 8px 10px; vertical-align: middle; }
+                    body { font-family: 'Tahoma', sans-serif; padding: 15px; color: #000; font-size: 13px; }
+                    .company-header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px; }
+                    .company-name { font-size: 16px; font-weight: bold; }
+                    .doc-info { font-size: 12px; text-align: right; }
+                    .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 2px; }
+                    .sub-header { text-align: center; font-size: 13px; margin-bottom: 10px; font-weight: bold; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                    th, td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
                     .label { font-weight: bold; background-color: #f2f2f2; width: 22%; }
-                    .center { text-align: center; }
-                    .img-container { text-align: center; padding: 10px; }
-                    .img-container img { max-width: 100%; max-height: 250px; border: 1px solid #ccc; padding: 4px; }
-                    .section-title { font-weight: bold; background-color: #e6e6e6; padding: 6px 10px; border: 1px solid #000; margin-top: 15px; }
-                    .signature-container { margin-top: 30px; width: 100%; display: table; }
-                    .sig-box { width: 33.33%; display: table-cell; text-align: center; padding: 10px; font-size: 13px; }
+                    .section-title { font-weight: bold; background-color: #e6e6e6; padding: 5px 8px; border: 1px solid #000; margin-top: 10px; font-size: 13px; }
+                    .img-container { text-align: center; padding: 5px; }
+                    .img-container img { max-width: 100%; max-height: 180px; border: 1px solid #ccc; padding: 3px; }
+                    .signature-container { margin-top: 15px; width: 100%; display: table; }
+                    .sig-box { width: 33.33%; display: table-cell; text-align: center; padding: 8px; font-size: 12px; border: 1px solid #000; vertical-align: top; }
+                    .blank-area { height: 70px; }
                 </style>
             </head>
             <body>
-                <div class="company">Jozu Auto Part Co., Ltd.</div>
-                <div class="header">ใบแจ้งซ่อมแม่พิมพ์</div>
-                <div class="sub-header">Die Repair Report</div>
+                <div class="company-header">
+                    <div>
+                        <div class="company-name">Jozu Auto Part Co., Ltd.</div>
+                        <div>ระบบบริหารจัดการการผลิต</div>
+                    </div>
+                    <div class="doc-info">
+                        รหัสเอกสาร: FM-PR-05<br>
+                        แก้ไขครั้งที่: 01<br>
+                        มีผลบังคับใช้: วันที่เริ่มต้นระบบ
+                    </div>
+                </div>
+
+                <div class="header">ใบแจ้งซ่อมแม่พิมพ์ / DIE REPAIR REPORT</div>
+                <div class="sub-header">ส่วนที่ 1: สำหรับผู้แจ้งซ่อม (Request Section)</div>
 
                 <table>
                     <tr>
@@ -3519,31 +3533,47 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                         <td colspan="3">[  ] ซ่อมตามแผน (PM) &nbsp;&nbsp;&nbsp;&nbsp; [ <b>/</b> ] ซ่อมระหว่างใช้งาน (BM) &nbsp;&nbsp;&nbsp;&nbsp; [  ] ซ่อมหลังปฏิบัติงาน</td>
                     </tr>
                     <tr>
-                        <td class="label">รายละเอียดปัญหา / อาการเสีย:</td>
-                        <td colspan="3" style="height: 60px; vertical-align: top;">${problem}</td>
+                        <td class="label">รายละเอียดอาการเสีย:</td>
+                        <td colspan="3" style="height: 45px; vertical-align: top;">${problem}</td>
                     </tr>
                 </table>
 
                 <div class="section-title">รูปถ่ายปัญหา / Die เสีย</div>
-                <div style="border: 1px solid #000; border-top: none; min-height: 200px;">
+                <div style="border: 1px solid #000; border-top: none;">
                     <div class="img-container">
-                        ${imageSrc ? `<img src="${imageSrc}" alt="Die Repair Image">` : '<span style="color: #777; line-height: 180px;">(ไม่มีรูปภาพประกอบ)</span>'}
+                        ${imageSrc ? `<img src="${imageSrc}" alt="Die Repair Image">` : '<span style="color: #777; line-height: 100px;">(ไม่มีรูปภาพประกอบ)</span>'}
                     </div>
                 </div>
 
+                <div class="sub-header" style="margin-top: 15px;">ส่วนที่ 2: สำหรับช่างซ่อมบำรุง / ผู้ดำเนินการ (Maintenance Section - ปล่อยว่างให้ช่างบันทึก)</div>
+                <table>
+                    <tr>
+                        <td class="label" style="width: 22%;">ผลการตรวจสอบ / สาเหตุ:</td>
+                        <td class="blank-area"></td>
+                    </tr>
+                    <tr>
+                        <td class="label">รายละเอียดการซ่อม / แก้ไข:</td>
+                        <td class="blank-area"></td>
+                    </tr>
+                    <tr>
+                        <td class="label">อะไหล่ที่ใช้ (ถ้ามี):</td>
+                        <td style="height: 35px;"></td>
+                    </tr>
+                </table>
+
                 <div class="signature-container">
                     <div class="sig-box">
-                        ลงชื่อผู้แจ้งซ่อม<br><br><br>
+                        <b>ผู้แจ้งซ่อม</b><br><br><br>
                         (......................................................)<br>
                         วันที่: ...../...../.....
                     </div>
                     <div class="sig-box">
-                        ลงชื่อหัวหน้างานตรวจสอบ<br><br><br>
+                        <b>หัวหน้างานตรวจสอบ</b><br><br><br>
                         (......................................................)<br>
                         วันที่: ...../...../.....
                     </div>
                     <div class="sig-box">
-                        ลงชื่อผู้ซ่อม / ช่างซ่อมบำรุง<br><br><br>
+                        <b>ช่างซ่อมบำรุง / ผู้ซ่อม</b><br><br><br>
                         (......................................................)<br>
                         วันที่: ...../...../.....
                     </div>
