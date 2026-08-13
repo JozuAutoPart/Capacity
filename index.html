@@ -971,6 +971,9 @@ function filterDashboard(line, btn) {
     buttons.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderDashboard();
+    
+    // ---> เอามาวางไว้ตรงนี้ครับ!
+    renderZeroStockPartsByLine(line); 
 }
 
 function renderDashboard() {
@@ -3726,6 +3729,75 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     // ตั้งชื่อไฟล์ตามวันที่ปัจจุบัน
     let todayStr = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
+}
+        function renderZeroStockPartsByLine(selectedLine) {
+    // 1. ตรวจสอบข้อมูล MasterParts (ถ้ายังไม่มีข้อมูล ให้แสดงข้อความแจ้งเตือน)
+    if (!window.masterParts || window.masterParts.length === 0) {
+        console.warn("ยังไม่ได้โหลด Master Parts!");
+        return;
+    }
+
+    // 2. กรองข้อมูลจาก Master โดยเลือกเฉพาะ Line ที่เลือก (หรือ ALL)
+    // ใช้ .trim() ทั้งสองฝั่งเพื่อป้องกันปัญหาช่องว่างเกิน
+    const targetMasters = selectedLine === 'ALL' 
+        ? window.masterParts 
+        : window.masterParts.filter(m => {
+              const mLine = String(m.Line || m.line || '').trim();
+              return mLine === String(selectedLine).trim();
+          });
+
+    // 3. รวมยอด Stock (OK Qty - Delivery Qty) จากข้อมูลในระบบ
+    const actualsData = window.actuals || [];
+    const deliveriesData = window.deliveries || [];
+    const stockMap = {};
+
+    actualsData.forEach(a => {
+        const pNo = String(a['Part No.'] || a.partNo || '').trim();
+        const okQty = Number(a['OK Qty'] || a.qty || 0);
+        if (!stockMap[pNo]) stockMap[pNo] = 0;
+        stockMap[pNo] += okQty;
+    });
+
+    deliveriesData.forEach(d => {
+        const pNo = String(d.partNo || '').trim();
+        const dQty = Number(d.qty || 0);
+        if (stockMap[pNo] !== undefined) {
+            stockMap[pNo] -= dQty;
+        }
+    });
+
+    // 4. ดึงรายชื่อพาร์ทที่ Stock เป็น 0 โดยอ้างอิงจาก Master ใน Line นั้นๆ เท่านั้น
+    const zeroStockParts = targetMasters.filter(master => {
+        const pNo = String(master.partNo || master['Part No.'] || '').trim();
+        const currentStock = stockMap[pNo] || 0; 
+        
+        // ถ้า Stock <= 0 ให้ถือว่าพาร์ทนั้นอยู่ในกลุ่มที่ต้องแจ้งเตือน
+        return currentStock <= 0;
+    }).map(m => String(m.partNo || m['Part No.']).trim());
+
+    // 5. แสดงผลลงหน้าจอ
+    let container = document.getElementById('zeroStockListContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'zeroStockListContainer';
+        container.className = 'col-12 mt-3';
+        const target = document.querySelector('.row');
+        if (target) target.appendChild(container);
+    }
+
+    container.innerHTML = `
+        <div class="card bg-dark text-white p-3 border-danger shadow">
+            <h6 class="text-danger fw-bold mb-2">
+                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
+                <span class="badge bg-danger ms-2">${zeroStockParts.length} รายการ</span>
+            </h6>
+            <div class="d-flex flex-wrap gap-2 mt-2" style="max-height: 200px; overflow-y: auto;">
+                ${zeroStockParts.length > 0 
+                    ? zeroStockParts.map(p => `<span class="badge bg-secondary border border-danger text-warning p-2" style="font-family: monospace;">${p}</span>`).join('') 
+                    : '<span class="text-success p-2">ยอดเยี่ยม! ไม่มีพาร์ทที่ Stock เป็น 0 ในไลน์นี้ 🎉</span>'}
+            </div>
+        </div>
+    `;
 }
 </script>
 </body>
