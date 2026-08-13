@@ -3773,13 +3773,16 @@ function renderZeroStockPartsByLine(selectedLine) {
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
-        container.className = 'col-12 mt-3';
-        const targetSection = document.querySelector('#dashDiffBalance')?.closest('.card') || document.querySelector('.row');
-        if (targetSection && targetSection.parentNode) {
-            targetSection.parentNode.appendChild(container);
+        container.className = 'col-12 mt-3 mb-3';
+        
+        // บังคับหาตำแหน่งวางต่อท้ายการ์ดสรุป หรือต่อท้าย row แรกของ Dashboard
+        const targetSection = document.querySelector('.row') || document.querySelector('container');
+        if (targetSection) {
+            targetSection.appendChild(container);
+        } else {
+            document.body.appendChild(container);
         }
     }
-
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
