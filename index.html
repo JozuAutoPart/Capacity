@@ -50,8 +50,10 @@
         <p class="text-muted small mb-4">กรุณากรอกรหัสผ่านเพื่อเข้าสู่ระบบ</p>
         <div class="mb-3 text-start">
             <label class="form-label text-light small">รหัสผ่าน / Password</label>
+            <!-- ต้องมี id="loginPassword" ตรงนี้ครับ -->
             <input type="password" id="loginPassword" class="form-control" placeholder="กรอกรหัสผ่าน...">
         </div>
+        <!-- ต้องมี onclick="handleLogin()" ตรงปุ่มนี้ครับ -->
         <button class="btn btn-success w-100" onclick="handleLogin()">เข้าสู่ระบบ (Login)</button>
         <div id="loginError" class="text-danger small mt-2" style="display:none;">รหัสผ่านไม่ถูกต้อง!</div>
     </div>
