@@ -3446,11 +3446,11 @@ document.addEventListener('change', function(e) {
         }
     }
 });
-      <script>
+    <script>
 function handleLogin() {
-    let pass = document.getElementById('loginPassword').value.trim();
-    let overlay = document.getElementById('loginOverlay');
-    let errorMsg = document.getElementById('loginError');
+    var pass = document.getElementById('loginPassword').value.trim();
+    var overlay = document.getElementById('loginOverlay');
+    var errorMsg = document.getElementById('loginError');
 
     if (pass === "1111") {
         alert("เข้าสู่ระบบสำเร็จ: ฝ่ายผลิต (Production)");
@@ -3471,7 +3471,7 @@ function handleLogin() {
 
 document.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        let overlay = document.getElementById('loginOverlay');
+        var overlay = document.getElementById('loginOverlay');
         if (overlay && overlay.style.display !== 'none') {
             handleLogin();
         }
