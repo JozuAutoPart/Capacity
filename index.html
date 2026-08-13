@@ -2234,14 +2234,24 @@ function submitDieBm(e) {
 }
 
 function resetDiePm(partNo) {
-    if(confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
+    // ใส่รหัสผ่านยืนยันก่อนรีเซ็ต PM
+    let password = prompt("กรุณากรอกรหัสผ่านเพื่อยืนยันการรีเซ็ต PM (Reset PM):");
+    if (password !== "1234") { // พี่มิวสามารถเปลี่ยนรหัส "1234" ตรงนี้ได้ตามต้องการครับ
+        if (password !== null) {
+            alert("รหัสผ่านไม่ถูกต้อง!");
+        }
+        return; // ถ้าใส่ผิดหรือไม่กรอก ให้ยกเลิกการทำงานทันที
+    }
+
+    if (confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
         actuals.forEach(a => {
-            if(a.partNo === partNo) a.pmReset = true;
+            if (a.partNo === partNo) a.pmReset = true;
         });
         if (typeof saveAll === 'function') {
             saveAll();
         }
         renderDiePM();
+        alert("รีเซ็ต PM สำเร็จเรียบร้อยแล้วครับ");
     }
 }
 
