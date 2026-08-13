@@ -938,15 +938,18 @@
         }
     }
         function renderAll() {
-            renderDashboard();
-            renderCapacity();
-            renderPlans();
-            renderActuals();
-            renderQGate();
-            renderStock();
-            renderDelivery();
-            renderDiePM();
-        }
+    renderDashboard();
+    renderCapacity();
+    renderPlans();
+    renderActuals();
+    renderQGate();
+    renderStock();
+    renderDelivery();
+    renderDiePM();
+    
+    // ---> เพิ่มบรรทัดนี้เข้าไปตรงนี้ครับ!
+    renderZeroStockPartsByLine(typeof currentFilterLine !== 'undefined' ? currentFilterLine : 'ALL');
+}
 
         // Logo Upload Logic
         function uploadLogo(event) {
@@ -3730,15 +3733,10 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     let todayStr = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
 }
-        function renderZeroStockPartsByLine(selectedLine) {
-    // 1. ตรวจสอบข้อมูล MasterParts (ถ้ายังไม่มีข้อมูล ให้แสดงข้อความแจ้งเตือน)
-    if (!window.masterParts || window.masterParts.length === 0) {
-        console.warn("ยังไม่ได้โหลด Master Parts!");
-        return;
-    }
+   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
+function renderZeroStockPartsByLine(selectedLine) {
+    if (!window.masterParts || window.masterParts.length === 0) return;
 
-    // 2. กรองข้อมูลจาก Master โดยเลือกเฉพาะ Line ที่เลือก (หรือ ALL)
-    // ใช้ .trim() ทั้งสองฝั่งเพื่อป้องกันปัญหาช่องว่างเกิน
     const targetMasters = selectedLine === 'ALL' 
         ? window.masterParts 
         : window.masterParts.filter(m => {
@@ -3746,7 +3744,6 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
               return mLine === String(selectedLine).trim();
           });
 
-    // 3. รวมยอด Stock (OK Qty - Delivery Qty) จากข้อมูลในระบบ
     const actualsData = window.actuals || [];
     const deliveriesData = window.deliveries || [];
     const stockMap = {};
@@ -3759,30 +3756,28 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     });
 
     deliveriesData.forEach(d => {
-        const pNo = String(d.partNo || '').trim();
+        const pNo = String(d.partNo || d['Part No.'] || '').trim();
         const dQty = Number(d.qty || 0);
         if (stockMap[pNo] !== undefined) {
             stockMap[pNo] -= dQty;
         }
     });
 
-    // 4. ดึงรายชื่อพาร์ทที่ Stock เป็น 0 โดยอ้างอิงจาก Master ใน Line นั้นๆ เท่านั้น
     const zeroStockParts = targetMasters.filter(master => {
         const pNo = String(master.partNo || master['Part No.'] || '').trim();
-        const currentStock = stockMap[pNo] || 0; 
-        
-        // ถ้า Stock <= 0 ให้ถือว่าพาร์ทนั้นอยู่ในกลุ่มที่ต้องแจ้งเตือน
+        const currentStock = stockMap[pNo] !== undefined ? stockMap[pNo] : 0; 
         return currentStock <= 0;
     }).map(m => String(m.partNo || m['Part No.']).trim());
 
-    // 5. แสดงผลลงหน้าจอ
     let container = document.getElementById('zeroStockListContainer');
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
         container.className = 'col-12 mt-3';
-        const target = document.querySelector('.row');
-        if (target) target.appendChild(container);
+        const targetSection = document.querySelector('#dashDiffBalance')?.closest('.card') || document.querySelector('.row');
+        if (targetSection && targetSection.parentNode) {
+            targetSection.parentNode.appendChild(container);
+        }
     }
 
     container.innerHTML = `
@@ -3793,7 +3788,7 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
             </h6>
             <div class="d-flex flex-wrap gap-2 mt-2" style="max-height: 200px; overflow-y: auto;">
                 ${zeroStockParts.length > 0 
-                    ? zeroStockParts.map(p => `<span class="badge bg-secondary border border-danger text-warning p-2" style="font-family: monospace;">${p}</span>`).join('') 
+                    ? zeroStockParts.map(p => `<span class="badge bg-secondary border border-danger text-warning p-2" style="font-family: monospace; font-size: 13px;">${p}</span>`).join('') 
                     : '<span class="text-success p-2">ยอดเยี่ยม! ไม่มีพาร์ทที่ Stock เป็น 0 ในไลน์นี้ 🎉</span>'}
             </div>
         </div>
