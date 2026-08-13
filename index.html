@@ -43,7 +43,19 @@
     </style>
 </head>
 <body class="p-3 p-md-4">
-
+<!-- หน้าจอ Login แรกสุดตอนเปิดเว็บ -->
+<div id="loginOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 9999; display: flex; justify-content: center; align-items: center;">
+    <div class="card p-4" style="width: 350px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; text-align: center;">
+        <h3 class="text-light mb-3">Jozu Auto System</h3>
+        <p class="text-muted small mb-4">กรุณากรอกรหัสผ่านเพื่อเข้าสู่ระบบ</p>
+        <div class="mb-3 text-start">
+            <label class="form-label text-light small">รหัสผ่าน / Password</label>
+            <input type="password" id="loginPassword" class="form-control" placeholder="กรอกรหัสผ่าน...">
+        </div>
+        <button class="btn btn-success w-100" onclick="handleLogin()">เข้าสู่ระบบ (Login)</button>
+        <div id="loginError" class="text-danger small mt-2" style="display:none;">รหัสผ่านไม่ถูกต้อง!</div>
+    </div>
+</div>
     <div class="container-fluid">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary flex-wrap gap-3">
@@ -3429,6 +3441,39 @@ document.addEventListener('change', function(e) {
                 }
             };
             reader.readAsDataURL(file);
+        }
+    }
+});
+        <script>
+function handleLogin() {
+    let pass = document.getElementById('loginPassword').value.trim();
+    let overlay = document.getElementById('loginOverlay');
+    let errorMsg = document.getElementById('loginError');
+
+    // ตรวจสอบรหัสผ่านตามแผนก
+    if (pass === "1111") {
+        alert("เข้าสู่ระบบสำเร็จ: ฝ่ายผลิต (Production)");
+        overlay.style.display = 'none';
+    } else if (pass === "2222") {
+        alert("เข้าสู่ระบบสำเร็จ: แผนก Q-Gate");
+        overlay.style.display = 'none';
+    } else if (pass === "3333") {
+        alert("เข้าสู่ระบบสำเร็จ: แผนกซ่อมบำรุง (Die Maintenance)");
+        overlay.style.display = 'none';
+    } else if (pass === "9999") {
+        alert("เข้าสู่ระบบสำเร็จ: ผู้ดูแลระบบสูงสุด (Admin)");
+        overlay.style.display = 'none';
+    } else {
+        errorMsg.style.display = 'block';
+    }
+}
+
+// กด Enter ที่แป้นพิมพ์เพื่อล็อกอินได้ทันที
+document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        let overlay = document.getElementById('loginOverlay');
+        if (overlay && overlay.style.display !== 'none') {
+            handleLogin();
         }
     }
 });
