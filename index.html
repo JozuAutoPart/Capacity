@@ -864,9 +864,7 @@
     let deliveries = [];
     let bms = [];
     let currentFilterLine = 'ALL';
-    let masterParts = []; 
-    let pmDueCount = 0;
-    let pmNearCount = 0;
+
     // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
     async function loadAllDataFromCloud() {
         try {
@@ -890,30 +888,14 @@
             let jsonBms = await resBms.json();
             if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-           if (typeof renderAll === "function") {
-            renderAll();
+            if (typeof renderAll === "function") {
+                renderAll();
+            }
+        } catch (error) {
+            console.error("Error loading data from cloud:", error);
         }
-        
-        // ---> เพิ่มบรรทัดนี้เข้าไปตรงนี้ครับ!
-        renderZeroStockPartsByLine('ALL'); 
+    }
 
-    } catch (error) {
-        console.error("Error loading data from cloud:", error);
-    }
-}
-// ฟังก์ชันจัดการการเข้าสู่ระบบ
-function handleLogin() {
-    const passwordInput = document.querySelector('input[type="password"]');
-    const password = passwordInput ? passwordInput.value : '';
-    
-    // ตั้งรหัสผ่านที่ต้องการ (สามารถเปลี่ยนคำว่า '1234' เป็นรหัสผ่านของพี่มิวได้เลยครับ)
-    if (password === '1234' || password === 'admin') { 
-        localStorage.setItem('isLoggedIn', 'true');
-        location.reload(); // รีเฟรชหน้าจอเพื่อเข้าสู่ระบบ
-    } else {
-        alert('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้งครับพี่มิว!');
-    }
-}
         const PM_LIMIT = 40000;
         const MC_MAX_CAPACITY = 50000;
 
@@ -989,10 +971,8 @@ function filterDashboard(line, btn) {
     buttons.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderDashboard();
-    
-    // ---> เอามาวางไว้ตรงนี้ครับ!
-    renderZeroStockPartsByLine(line); 
 }
+
 function renderDashboard() {
     let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => {
         const pline = String(p.Line || p.line || '').trim();
@@ -2305,7 +2285,7 @@ function renderDiePM() {
 
     let tallyDue = 0;
     let tallyNear = 0;
-    let pmDueCount = 0; // เพิ่มบรรทัดนี้เผื่อไว้ เพื่อความปลอดภัย 100%
+
     Object.keys(strokeMap).forEach(partKey => {
         const currentItem = strokeMap[partKey];
         let currentStrokes = currentItem.strokes;
@@ -3747,76 +3727,6 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     let todayStr = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
 }
-       
-function renderZeroStockPartsByLine(selectedLine) {
-    // 1. ใช้ Master Part Code เป็นตารางตั้งต้นหลัก
-    const targetMasters = selectedLine === 'ALL' 
-        ? masterParts 
-        : masterParts.filter(m => {
-              const mLine = String(m.Line || m.line || '').trim();
-              return mLine === String(selectedLine).trim();
-          });
-
-    // 2. รวบรวมยอด Stock ปัจจุบันจาก Actuals และ Deliveries
-    const actualsData = window.actuals || [];
-    const stockMap = {};
-
-    actualsData.forEach(a => {
-        const pNo = String(a['Part No.'] || a.partNo || '').trim();
-        const okQty = Number(a['OK Qty'] || a.qty || 0);
-        if (!stockMap[pNo]) stockMap[pNo] = 0;
-        stockMap[pNo] += okQty;
-    });
-
-    const deliveriesData = window.deliveries || [];
-    deliveriesData.forEach(d => {
-        const pNo = String(d.partNo || d['Part No.'] || '').trim();
-        const dQty = Number(d.qty || 0);
-        if (stockMap[pNo] !== undefined) {
-            stockMap[pNo] -= dQty;
-            if (stockMap[pNo] < 0) stockMap[pNo] = 0;
-        }
-    });
-
-    // 3. เงื่อนไขหลัก: อ้างอิงจาก Master เป็นหลัก ถ้าไม่มีใน stockMap หรือคำนวณแล้วได้ 0 ให้เป็น Stock 0 ทันที
-    let zeroStockParts = [];
-    targetMasters.forEach(master => {
-        const pNo = String(master.partNo || master['Part No.'] || '').trim();
-        
-        // ถ้าไม่มีข้อมูลใน stockMap (ไม่เคยผลิต/ไม่มีพาร์ทในระบบสต็อก) ให้ถือว่าเป็น 0 ทันทีตามเงื่อนไข
-        const currentStock = stockMap[pNo] !== undefined ? stockMap[pNo] : 0;
-
-        if (currentStock === 0 && pNo) {
-            zeroStockParts.push(pNo);
-        }
-    });
-
-    // 4. แสดงผลรายชื่อพาร์ท Stock 0 ลงบนหน้า Dashboard
-    let container = document.getElementById('zeroStockListContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'zeroStockListContainer';
-        container.className = 'col-12 mt-3';
-        
-        const stockCardSection = document.querySelector('#dashDiffBalance')?.closest('.card') || document.querySelector('.row');
-        if (stockCardSection && stockCardSection.parentNode) {
-            stockCardSection.parentNode.appendChild(container);
-        }
-    }
-
-    container.innerHTML = `
-        <div class="card bg-dark text-white p-3 border-secondary shadow-sm">
-            <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
-                <span class="badge bg-danger ms-2">${zeroStockParts.length} รายการ</span>
-            </h6>
-            <div class="d-flex flex-wrap gap-2 mt-2" style="max-height: 180px; overflow-y: auto;">
-                ${zeroStockParts.length > 0 
-                    ? zeroStockParts.map(part => `<span class="badge bg-secondary text-info border border-info p-2" style="font-size: 13px; font-family: monospace;">${part}</span>`).join('') 
-                    : '<span class="text-success p-2">ยอดเยี่ยม! ไม่มีพาร์ทที่ Stock เป็น 0 ในไลน์นี้ 🎉</span>'}
-            </div>
-        </div>
-    `;
-}
+</script>
 </body>
 </html>
