@@ -3791,16 +3791,16 @@ function renderZeroStockPartsByLine(selectedLine) {
         }
     });
 
-    // 5. หาพาร์ทที่ Stock <= 0
+   // 5. หาพาร์ทที่ Stock <= 0
     const zeroStockParts = targetMasters.filter(master => {
         const pNo = String(master.partNo || master['Part No.'] || '').trim();
         const currentStock = stockMap[pNo] !== undefined ? stockMap[pNo] : 0; 
         return currentStock <= 0;
-    .map(master => {
+    }).map(master => {
         const keys = Object.keys(master);
         const pNo = master.partNo || master['Part No.'] || master['part no'] || (keys.length > 1 ? master[keys[1]] : '') || '';
         return String(pNo).trim();
-    })
+    });
 
     // 6. แสดงผลลัพธ์ลงบนหน้าจอ
     container.innerHTML = `
