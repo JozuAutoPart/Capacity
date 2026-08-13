@@ -3748,7 +3748,7 @@ function renderZeroStockPartsByLine(selectedLine) {
     }
 
     // 2. ดึงข้อมูล Master Parts (รองรับทั้งตัวแปรธรรมดาและ window)
-    const masters = window.masterParts || (typeof masterParts !== 'undefined' ? masterParts : []);
+    const masters = window.masterPartsDatabase || [];
 
     // ถ้ายังไม่มีข้อมูล Master ให้แสดงกล่องแจ้งเตือนสีเหลืองทันที
     if (masters.length === 0) {
