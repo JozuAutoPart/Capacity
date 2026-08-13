@@ -74,9 +74,8 @@
                 </div>
             </div>
             <div class="d-flex gap-2 align-items-center">
-                <button class="btn btn-outline-light btn-sm" onclick="document.getElementById('logoInput').click()">
-                    <i class="fas fa-image me-1"></i> เปลี่ยนโลโก้
-                </button>
+                <!-- นาฬิกาดิจิตอลแทนที่ตำแหน่งปุ่มเปลี่ยนโลโก้ -->
+<div id="liveClockDisplay" class="text-warning fw-bold fs-5" style="font-family: monospace; padding: 4px 12px; background: rgba(0,0,0,0.2); border-radius: 6px;"></div>
                 <button class="btn btn-success btn-sm" onclick="exportToExcelXLSX('actuals')">
                     <i class="fas fa-file-excel me-1"></i> Export ประวัติผลิต (.xlsx)
                 </button>
