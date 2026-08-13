@@ -2269,6 +2269,9 @@ function renderDiePM() {
     bmTableBody.innerHTML = '';
 
     const pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
+    
+    const searchInput = document.getElementById('dieSearchInput');
+    const filter = searchInput ? searchInput.value.toLowerCase() : '';
 
     const dieStrokes = {};
     actuals.forEach(a => {
@@ -2289,9 +2292,19 @@ function renderDiePM() {
             if (strokes < 0) strokes = 0;
         }
 
+        // กรองตามคำค้นหา
+        if (filter && !partNo.toLowerCase().includes(filter) && !item.line.toLowerCase().includes(filter)) {
+            return;
+        }
+
+        // ซ่อนรายการที่สถานะปกติ (OK) ให้แสดงเฉพาะ Near PM และ PM Due เท่านั้น
+        if (strokes < PM_LIMIT * 0.85) {
+            return;
+        }
+
         const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
 
-        let statusBadge = '<span class="badge bg-success">OK</span>';
+        let statusBadge = '';
         if (strokes >= PM_LIMIT) {
             statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
             pmDueCount++;
@@ -2308,13 +2321,35 @@ function renderDiePM() {
             <td>${PM_LIMIT.toLocaleString()}</td>
             <td style="width: 150px;">
                 <div class="progress" style="height: 12px;">
-                    <div class="progress-bar ${strokes >= PM_LIMIT ? 'bg-danger' : (strokes >= PM_LIMIT * 0.85 ? 'bg-warning' : 'bg-success')}" role="progressbar" style="width: ${progress}%;"></div>
+                    <div class="progress-bar ${strokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${progress}%;"></div>
                 </div>
             </td>
             <td>${statusBadge}</td>
             <td><button class="btn btn-sm btn-outline-secondary" onclick="resetDiePm('${partNo}')"><i class="fas fa-undo"></i> Reset PM</button></td>
         `;
         pmTableBody.appendChild(tr);
+    });
+
+    const dueEl = document.getElementById('diePmDueCount');
+    const nearEl = document.getElementById('diePmNearCount');
+    if (dueEl) dueEl.innerText = pmDueCount;
+    if (nearEl) nearEl.innerText = pmNearCount;
+
+    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+
+    dieBms.slice().reverse().forEach((b, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${b.date || ''}</td>
+            <td class="fw-bold text-info">${b.partNo || ''}</td>
+            <td class="text-danger">${b.problem || ''}</td>
+            <td>${b.reporter || ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}')"><i class="fas fa-print"></i></button>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        bmTableBody.appendChild(tr);
     });
 
     const dueEl = document.getElementById('diePmDueCount');
