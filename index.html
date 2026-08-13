@@ -3736,16 +3736,16 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 }
    // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine) {
-    // --- เงื่อนไข: เช็กว่าอยู่หน้า Dashboard หรือไม่ (ดูจาก id แท็บหลัก) ---
-    const dashTab = document.getElementById('tab-dash');
-    const container = document.getElementById('zeroStockListContainer');
-    
-    // ถ้าไม่มีแท็บ Dashboard หรือแท็บนั้นไม่ได้แสดงอยู่ ให้ซ่อนและจบการทำงานทันที
-    if (dashTab && dashTab.style.display === 'none') {
-        if (container) container.style.display = 'none';
-        return;
-    }
+    // 1. สร้างหรือหา Container สำหรับแสดงผลเลย
+    let container = document.getElementById('zeroStockListContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'zeroStockListContainer';
+        container.className = 'col-12 mt-3 mb-4';
 
+        const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
+        mainContent.appendChild(container);
+    }
     // 1. สร้างหรือหา Container สำหรับแสดงผลก่อนเลย
     if (!container) {
         container = document.createElement('div');
