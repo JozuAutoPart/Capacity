@@ -3738,16 +3738,24 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 function renderZeroStockPartsByLine(selectedLine) {
     let container = document.getElementById('zeroStockListContainer');
     
-    // 1. เช็กก่อนว่าตอนนี้เราอยู่หน้า Dashboard จริงๆ หรือไม่ (ดูจากกราฟหรือคอนเทนต์เฉพาะของหน้า Dashboard)
-    const dashboardCheckEl = document.getElementById('defectPpmChart') || document.getElementById('dashTotalPlan');
+    // เช็กว่าตอนนี้เราอยู่หน้า Dashboard หรือไม่ (ดูจากปุ่มแท็บ Dashboard หรือหัวข้อ Dashboard)
+    // หรือเช็กจากลิงก์/สถานะหน้าจอปัจจุบัน
+    const activeTab = document.querySelector('.nav-link.active, .tab-btn.active, [id*="dash"]');
     
-    // ถ้าไม่อยู่หน้า Dashboard ให้ซ่อนกล่องทิ้งซะ แล้วจบการทำงานทันที
-    if (!dashboardCheckEl) {
-        if (container) container.style.display = 'none';
+    // ถ้าหน้าจอหรือแท็บปัจจุบันไม่ใช่ Dashboard ให้ลบกล่องทิ้งทันที แล้วหยุดทำงาน
+    if (window.location.hash && !window.location.hash.includes('dash')) {
+        if (container) container.remove();
         return;
     }
 
-    // ถ้าอยู่หน้า Dashboard ให้แสดงกล่องตามปกติ
+    // หรือเช็กง่ายที่สุด: ถ้าไม่มี Element ที่เป็นกราฟ Dashboard บนหน้านี้ ให้ลบกล่องทิ้งทันที
+    const checkDashboardChart = document.getElementById('defectPpmChart');
+    if (!checkDashboardChart) {
+        if (container) container.remove(); // ลบออกจากหน้าเว็บเลย
+        return;
+    }
+
+    // ถ้าอยู่หน้า Dashboard ค่อยสร้างและแสดงผลตามปกติ
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
@@ -3758,6 +3766,8 @@ function renderZeroStockPartsByLine(selectedLine) {
     }
     
     if (container) container.style.display = 'block';
+
+    // ... (โค้ดคำนวณและแสดงผลข้างล่างเหมือนเดิมทั้งหมด) ...
 
     // 2. ดึงข้อมูล Master Parts
     const masters = window.masterPartsDatabase || [];
