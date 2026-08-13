@@ -971,8 +971,10 @@ function filterDashboard(line, btn) {
     buttons.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderDashboard();
+    
+    // เพิ่มบรรทัดนี้ เพื่อให้พอกดเลือก Line ปุ๊บ โชว์รายชื่อ Part ที่ Stock เป็น 0 ทันที
+    renderZeroStockPartsByLine(line); 
 }
-
 function renderDashboard() {
     let filteredPlans = currentFilterLine === 'ALL' ? plans : plans.filter(p => {
         const pline = String(p.Line || p.line || '').trim();
@@ -3726,6 +3728,79 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     // ตั้งชื่อไฟล์ตามวันที่ปัจจุบัน
     let todayStr = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
+}
+        // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 ตาม Line ที่เลือก
+function renderZeroStockPartsByLine(selectedLine) {
+    // 1. กรอง Master Parts ตาม Line ที่ผู้ใช้คลิกเลือก (ถ้า ALL ให้ดูทั้งหมด)
+    const targetMasters = selectedLine === 'ALL' 
+        ? masterParts 
+        : masterParts.filter(m => {
+              const mLine = String(m.Line || m.line || '').trim();
+              return mLine === String(selectedLine).trim();
+          });
+
+    // 2. คำนวณยอด Stock ปัจจุบันของแต่ละพาร์ทจาก actuals และ deliveries (หรือระบบสต็อกเดิม)
+    const actualsData = window.actuals || [];
+    const stockMap = {};
+
+    actualsData.forEach(a => {
+        const pNo = String(a['Part No.'] || a.partNo || '').trim();
+        const okQty = Number(a['OK Qty'] || a.qty || 0);
+        if (!stockMap[pNo]) stockMap[pNo] = 0;
+        stockMap[pNo] += okQty;
+    });
+
+    // หักลบยอดส่งมอบ (Delivery) ถ้ามี
+    const deliveriesData = window.deliveries || [];
+    deliveriesData.forEach(d => {
+        const pNo = String(d.partNo || '').trim();
+        const dQty = Number(d.qty || 0);
+        if (stockMap[pNo] !== undefined) {
+            stockMap[pNo] -= dQty;
+            if (stockMap[pNo] < 0) stockMap[pNo] = 0;
+        }
+    });
+
+    // 3. กรองหา Part No. ที่ Stock เป็น 0
+    let zeroStockParts = [];
+    targetMasters.forEach(master => {
+        const pNo = String(master.partNo || master['Part No.'] || '').trim();
+        const currentStock = stockMap[pNo] !== undefined ? stockMap[pNo] : 0;
+
+        if (currentStock === 0 && pNo) {
+            zeroStockParts.push(pNo);
+        }
+    });
+
+    // 4. แสดงผลรายชื่อลงในพื้นที่แสดงผลบนหน้า Dashboard
+    let container = document.getElementById('zeroStockListContainer');
+    if (!container) {
+        // ถ้ายังไม่มีกล่องแสดงผล ให้สร้างแทรกไว้ใต้ส่วนสรุปสต็อกอัตโนมัติ
+        container = document.createElement('div');
+        container.id = 'zeroStockListContainer';
+        container.className = 'col-12 mt-3';
+        
+        // ค้นหาตำแหน่งการ์ดสรุปสต็อกเพื่อแทรกต่อท้าย
+        const stockCardSection = document.querySelector('#dashDiffBalance')?.closest('.card') || document.querySelector('.row');
+        if (stockCardSection && stockCardSection.parentNode) {
+            stockCardSection.parentNode.appendChild(container);
+        }
+    }
+
+    // วาดกล่องแสดง Part No. ที่ Stock เป็น 0
+    container.innerHTML = `
+        <div class="card bg-dark text-white p-3 border-secondary">
+            <h6 class="text-danger fw-bold mb-2">
+                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
+                <span class="badge bg-danger ms-2">${zeroStockParts.length} รายการ</span>
+            </h6>
+            <div class="d-flex flex-wrap gap-2 mt-2" style="max-height: 150px; overflow-y: auto;">
+                ${zeroStockParts.length > 0 
+                    ? zeroStockParts.map(part => `<span class="badge bg-secondary text-info border border-info p-2" style="font-size: 13px;">${part}</span>`).join('') 
+                    : '<span class="text-success p-2">ยอดเยี่ยม! ไม่มีพาร์ทที่ Stock เป็น 0 ในไลน์นี้ 🎉</span>'}
+            </div>
+        </div>
+    `;
 }
 </script>
 </body>
