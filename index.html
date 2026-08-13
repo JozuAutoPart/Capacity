@@ -3476,107 +3476,186 @@ document.addEventListener('keypress', function(e) {
     }
 });
    
-
 function printRepairForm(date, partNo, problem, reporter, imageSrc) {
-    let printWindow = window.open('', '_blank', 'height=950,width=1000');
+    let printWindow = window.open('', '_blank', 'height=1000,width=1000');
     printWindow.document.write(`
         <html>
             <head>
-                <title>ใบแจ้งซ่อมแม่พิมพ์ (Die Repair Report - ISO Standard)</title>
+                <title>ใบแจ้งซ่อมแม่พิมพ์ (Die Repair Report - ISO)</title>
                 <style>
-                    body { font-family: 'Tahoma', sans-serif; padding: 15px; color: #000; font-size: 13px; }
-                    .company-header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px; }
-                    .company-name { font-size: 16px; font-weight: bold; }
-                    .doc-info { font-size: 12px; text-align: right; }
-                    .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 2px; }
-                    .sub-header { text-align: center; font-size: 13px; margin-bottom: 10px; font-weight: bold; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 5px; }
-                    th, td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
-                    .label { font-weight: bold; background-color: #f2f2f2; width: 22%; }
-                    .section-title { font-weight: bold; background-color: #e6e6e6; padding: 5px 8px; border: 1px solid #000; margin-top: 10px; font-size: 13px; }
-                    .img-container { text-align: center; padding: 5px; }
-                    .img-container img { max-width: 100%; max-height: 180px; border: 1px solid #ccc; padding: 3px; }
-                    .signature-container { margin-top: 15px; width: 100%; display: table; }
-                    .sig-box { width: 33.33%; display: table-cell; text-align: center; padding: 8px; font-size: 12px; border: 1px solid #000; vertical-align: top; }
-                    .blank-area { height: 70px; }
+                    body { font-family: 'Tahoma', sans-serif; padding: 10px; color: #000; font-size: 11px; }
+                    .container { border: 1px solid #000; padding: 5px; width: 100%; box-sizing: border-box; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 2px; }
+                    th, td { border: 1px solid #000; padding: 3px 5px; vertical-align: middle; font-size: 11px; }
+                    .header-title { text-align: center; font-size: 16px; font-weight: bold; padding: 2px; }
+                    .header-sub { text-align: center; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
+                    .section-hdr { background-color: #f2f2f2; font-weight: bold; text-align: center; padding: 3px; }
+                    .checkbox { display: inline-block; width: 10px; height: 10px; border: 1px solid #000; text-align: center; line-height: 8px; font-size: 10px; margin-right: 3px; }
+                    .img-box { text-align: center; padding: 5px; min-height: 120px; }
+                    .img-box img { max-width: 100%; max-height: 150px; border: 1px solid #ccc; }
+                    .no-border td { border: none; }
                 </style>
             </head>
             <body>
-                <div class="company-header">
-                    <div>
-                        <div class="company-name">Jozu Auto Part Co., Ltd.</div>
-                        <div>ระบบบริหารจัดการการผลิต</div>
-                    </div>
-                    <div class="doc-info">
-                        รหัสเอกสาร: FM-PR-05<br>
-                        แก้ไขครั้งที่: 01<br>
-                        มีผลบังคับใช้: วันที่เริ่มต้นระบบ
-                    </div>
-                </div>
+                <div class="container">
+                    <table>
+                        <tr>
+                            <td style="width: 15%; text-align: center; font-weight: bold;">[ Logo ]</td>
+                            <td style="width: 70%;">
+                                <div class="header-title">ใบแจ้งซ่อมแม่พิมพ์</div>
+                                <div class="header-sub">Die Repair Report</div>
+                            </td>
+                            <td style="width: 15%;"><b>No.</b></td>
+                        </tr>
+                    </table>
 
-                <div class="header">ใบแจ้งซ่อมแม่พิมพ์ / DIE REPAIR REPORT</div>
-                <div class="sub-header">ส่วนที่ 1: สำหรับผู้แจ้งซ่อม (Request Section)</div>
+                    <table>
+                        <tr>
+                            <td style="width: 12%;"><b>Die No.</b></td>
+                            <td style="width: 25%;"></td>
+                            <td style="width: 12%;"><b>Model</b></td>
+                            <td style="width: 18%;"></td>
+                            <td style="width: 12%;"><b>Part No.</b></td>
+                            <td style="width: 21%;"><b>${partNo}</b></td>
+                        </tr>
+                        <tr>
+                            <td><b>Mgr.</b></td>
+                            <td>Nirun</td>
+                            <td><b>Sup.</b></td>
+                            <td>K.Weeraphat</td>
+                            <td><b>Date</b></td>
+                            <td><b>${date}</b></td>
+                        </tr>
+                        <tr>
+                            <td colspan="6">
+                                <b>ประเภทการซ่อม:</b> 
+                                <span class="checkbox"></span> ซ่อมตามแผนการซ่อม (PM) &nbsp;&nbsp;&nbsp;&nbsp;
+                                <span class="checkbox"><b>/</b></span> ซ่อมระหว่างใช้งาน (BM) &nbsp;&nbsp;&nbsp;&nbsp;
+                                <span class="checkbox"></span> ซ่อมหลังปฏิบัติงาน
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="6">
+                                <b>ผู้แจ้งซ่อม:</b> ${reporter}
+                            </td>
+                        </tr>
+                    </table>
 
-                <table>
-                    <tr>
-                        <td class="label">Part No. / แม่พิมพ์:</td>
-                        <td colspan="3"><b>${partNo}</b></td>
-                    </tr>
-                    <tr>
-                        <td class="label">วันที่แจ้งซ่อม:</td>
-                        <td>${date}</td>
-                        <td class="label">ผู้แจ้งซ่อม:</td>
-                        <td>${reporter}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">ประเภทการซ่อม:</td>
-                        <td colspan="3">[  ] ซ่อมตามแผน (PM) &nbsp;&nbsp;&nbsp;&nbsp; [ <b>/</b> ] ซ่อมระหว่างใช้งาน (BM) &nbsp;&nbsp;&nbsp;&nbsp; [  ] ซ่อมหลังปฏิบัติงาน</td>
-                    </tr>
-                    <tr>
-                        <td class="label">รายละเอียดอาการเสีย:</td>
-                        <td colspan="3" style="height: 45px; vertical-align: top;">${problem}</td>
-                    </tr>
-                </table>
+                    <div class="section-hdr" style="border: 1px solid #000; border-top: none;">รายละเอียดปัญหา / อาการเสีย</div>
+                    <table>
+                        <tr>
+                            <td style="width: 50%; height: 80px; vertical-align: top;">
+                                <b>Preventive Maintenance / อาการ:</b><br>${problem}
+                            </td>
+                            <td style="width: 50%; height: 80px; vertical-align: top;">
+                                <b>วิเคราะห์ปัญหาเบื้องต้น:</b><br>
+                                <div class="img-box">
+                                    ${imageSrc ? `<img src="${imageSrc}" alt="Die Image">` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
 
-                <div class="section-title">รูปถ่ายปัญหา / Die เสีย</div>
-                <div style="border: 1px solid #000; border-top: none;">
-                    <div class="img-container">
-                        ${imageSrc ? `<img src="${imageSrc}" alt="Die Repair Image">` : '<span style="color: #777; line-height: 100px;">(ไม่มีรูปภาพประกอบ)</span>'}
-                    </div>
-                </div>
+                    <table>
+                        <tr>
+                            <td style="width: 15%;"><b>Stock Part</b></td>
+                            <td style="width: 25%;">P/No...................... Pcs.....</td>
+                            <td style="width: 35%;">ส่งลูกค้าได้ ...................................... วัน</td>
+                            <td style="width: 25%;"></td>
+                        </tr>
+                    </table>
 
-                <div class="sub-header" style="margin-top: 15px;">ส่วนที่ 2: สำหรับช่างซ่อมบำรุง / ผู้ดำเนินการ (Maintenance Section - ปล่อยว่างให้ช่างบันทึก)</div>
-                <table>
-                    <tr>
-                        <td class="label" style="width: 22%;">ผลการตรวจสอบ / สาเหตุ:</td>
-                        <td class="blank-area"></td>
-                    </tr>
-                    <tr>
-                        <td class="label">รายละเอียดการซ่อม / แก้ไข:</td>
-                        <td class="blank-area"></td>
-                    </tr>
-                    <tr>
-                        <td class="label">อะไหล่ที่ใช้ (ถ้ามี):</td>
-                        <td style="height: 35px;"></td>
-                    </tr>
-                </table>
+                    <div class="section-hdr" style="border: 1px solid #000; border-top: none;">แผนการซ่อม / ปรับปรุง / แก้ไข</div>
+                    <table>
+                        <tr>
+                            <td style="width: 15%;"><b>รายละเอียด</b></td>
+                            <td style="text-align: center; font-size: 9px;" colspan="31">
+                                ${Array.from({length: 31}, (_, i) => `<span style="display:inline-block; width:2.2%; text-align:center; border-right:1px solid #ccc;">${i+1}</span>`).join('')}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><b>ครั้งที่ 1</b></td>
+                            <td colspan="31" style="height: 18px;"></td>
+                        </tr>
+                        <tr>
+                            <td><b>ครั้งที่ 2</b></td>
+                            <td colspan="31" style="height: 18px;"></td>
+                        </tr>
+                        <tr>
+                            <td><b>ครั้งที่ 3</b></td>
+                            <td colspan="31" style="height: 18px;"></td>
+                        </tr>
+                    </table>
 
-                <div class="signature-container">
-                    <div class="sig-box">
-                        <b>ผู้แจ้งซ่อม</b><br><br><br>
-                        (......................................................)<br>
-                        วันที่: ...../...../.....
-                    </div>
-                    <div class="sig-box">
-                        <b>หัวหน้างานตรวจสอบ</b><br><br><br>
-                        (......................................................)<br>
-                        วันที่: ...../...../.....
-                    </div>
-                    <div class="sig-box">
-                        <b>ช่างซ่อมบำรุง / ผู้ซ่อม</b><br><br><br>
-                        (......................................................)<br>
-                        วันที่: ...../...../.....
-                    </div>
+                    <table>
+                        <tr>
+                            <td style="width: 40%; vertical-align: top; height: 110px;">
+                                <b>Comment:</b><br>
+                                <br><br>
+                                <hr style="border: 0.5px dashed #000;">
+                                <span style="font-size: 10px;">กรณี Special Accept / Not Accept ต้องระบุเหตุผลในช่อง Comment ด้วย</span>
+                            </td>
+                            <td style="width: 20%; vertical-align: top; text-align: center;">
+                                <b>ผลการตรวจสอบทดสอบ</b><br><br>
+                                <div style="text-align: left; padding-left: 10px;">
+                                    <span class="checkbox"></span> Accept<br>
+                                    <span class="checkbox"></span> Special Accept<br>
+                                    <span class="checkbox"></span> Not Accept
+                                </div>
+                            </td>
+                            <td style="width: 20%; vertical-align: top; text-align: center;">
+                                <br><br>
+                                <div style="text-align: left; padding-left: 10px;">
+                                    <span class="checkbox"></span> Accept<br>
+                                    <span class="checkbox"></span> Special Accept<br>
+                                    <span class="checkbox"></span> Not Accept
+                                </div>
+                            </td>
+                            <td style="width: 20%; vertical-align: top; text-align: center;">
+                                <br><br>
+                                <div style="text-align: left; padding-left: 10px;">
+                                    <span class="checkbox"></span> Accept<br>
+                                    <span class="checkbox"></span> Special Accept<br>
+                                    <span class="checkbox"></span> Not Accept
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center;"><b>Tooling</b></td>
+                            <td style="text-align: center;"><b>Tooling</b></td>
+                            <td style="text-align: center;"><b>QA</b></td>
+                            <td style="text-align: center;"><b>Production</b></td>
+                        </tr>
+                        <tr>
+                            <td style="height: 22px;"><b>By:</b></td>
+                            <td style="height: 22px;"><b>By:</b></td>
+                            <td style="height: 22px;"><b>By:</b></td>
+                            <td style="height: 22px;"><b>By:</b></td>
+                        </tr>
+                        <tr>
+                            <td style="height: 22px;"><b>Ck:</b></td>
+                            <td style="height: 22px;"><b>Ck:</b></td>
+                            <td style="height: 22px;"><b>Ck:</b></td>
+                            <td style="height: 22px;"><b>Ck:</b></td>
+                        </tr>
+                        <tr>
+                            <td style="height: 22px;"><b>Apr:</b></td>
+                            <td style="height: 22px;"><b>Apr:</b></td>
+                            <td style="height: 22px;"><b>Apr:</b></td>
+                            <td style="height: 22px;"><b>Apr:</b></td>
+                        </tr>
+                    </table>
+
+                    <table style="border-top: none;">
+                        <tr>
+                            <td style="border-top: none; font-size: 10px; text-align: right;" class="no-border">F-PR-011 Rev.01 Ref. 14 Jan 11</td>
+                        </tr>
+                        <tr>
+                            <td style="border-top: none;">
+                                <b>ผู้รับเอกสาร :</b> .................................................... &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Date :</b> ....................................
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </body>
         </html>
