@@ -2261,17 +2261,20 @@ function resetDiePm(partNo) {
 }
 
 function renderDiePM() {
-    const pmTbody = document.getElementById('diePmTableBody');
-    const bmTbody = document.getElementById('dieBmTableBody');
-    if (!pmTbody || !bmTbody) return;
-    
-    pmTbody.innerHTML = '';
-    bmTbody.innerHTML = '';
-const pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
+    const pmTableBody = document.getElementById('diePmTableBody');
+    const bmTableBody = document.getElementById('dieBmTableBody');
+    if (!pmTableBody || !bmTableBody) return;
+
+    pmTableBody.innerHTML = '';
+    bmTableBody.innerHTML = '';
+
+    // ดึงค่าปุ่ม Reset PM ที่เคยบันทึกไว้ในเครื่อง (ถาวรแม้กด F5)
+    const pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
+
     const dieStrokes = {};
     actuals.forEach(a => {
-        if(a.pmReset) return;
-        if(!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
+        if (a.pmReset) return;
+        if (!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
         dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
     });
 
@@ -2282,7 +2285,7 @@ const pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
         const item = dieStrokes[partNo];
         let strokes = item.strokes;
 
-        // หักลบยอด Stroke ที่เคยกด Reset ออกก่อนนำไปเทียบ
+        // หักลบยอด Stroke ที่เคยกด Reset ออกก่อนนำไปเทียบ PM Limit
         if (pmOffsets[partNo]) {
             strokes -= pmOffsets[partNo];
             if (strokes < 0) strokes = 0;
@@ -2316,6 +2319,32 @@ const pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
         pmTableBody.appendChild(tr);
     });
 
+    // อัปเดตตัวเลขสรุปมุมขวาบน
+    const dueEl = document.getElementById('diePmDueCount');
+    const nearEl = document.getElementById('diePmNearCount');
+    if (dueEl) dueEl.innerText = pmDueCount;
+    if (nearEl) nearEl.innerText = pmNearCount;
+
+    // ดึงข้อมูลประวัติการแจ้งซ่อม (Breakdown) มาแสดงที่ตารางด้านล่าง
+    if (typeof dieBms === 'undefined') {
+        window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+    }
+
+    dieBms.slice().reverse().forEach((b, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${b.date || ''}</td>
+            <td class="fw-bold text-info">${b.partNo || ''}</td>
+            <td class="text-danger">${b.problem || ''}</td>
+            <td>${b.reporter || ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}')" title="พิมพ์ใบแจ้งซ่อม"><i class="fas fa-fa-print"></i></button>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})" title="ลบรายการ"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        bmTableBody.appendChild(tr);
+    });
+}
     const dueEl = document.getElementById('diePmDueCount');
     const nearEl = document.getElementById('diePmNearCount');
     if (dueEl) dueEl.innerText = pmDueCount;
