@@ -3735,22 +3735,20 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     let todayStr = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
 }
- function renderZeroStockPartsByLine(selectedLine) {
-    // 1. ดึงข้อมูลจาก masterParts (ที่อัปโหลดมาจากไฟล์ Excel)
+function renderZeroStockPartsByLine(selectedLine) {
+    // 1. ใช้ Master Part Code เป็นตารางตั้งต้นหลัก
     const targetMasters = selectedLine === 'ALL' 
         ? masterParts 
         : masterParts.filter(m => {
-              // ตรงนี้อ้างอิงตามคอลัมน์ F ใน Excel คือ m.Line หรือ m.line
               const mLine = String(m.Line || m.line || '').trim();
               return mLine === String(selectedLine).trim();
           });
 
-    // 2. คำนวณ Stock ปัจจุบันจาก actuals
+    // 2. รวบรวมยอด Stock ปัจจุบันจาก Actuals และ Deliveries
     const actualsData = window.actuals || [];
     const stockMap = {};
 
     actualsData.forEach(a => {
-        // อ้างอิงชื่อคอลัมน์ Part No. ตามข้อมูลจริง
         const pNo = String(a['Part No.'] || a.partNo || '').trim();
         const okQty = Number(a['OK Qty'] || a.qty || 0);
         if (!stockMap[pNo]) stockMap[pNo] = 0;
@@ -3767,20 +3765,20 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
         }
     });
 
-    // 3. กรองหาพาร์ทจาก Master ที่มียอด Stock เป็น 0 หรือยังไม่เคยผลิตเลย
+    // 3. เงื่อนไขหลัก: อ้างอิงจาก Master เป็นหลัก ถ้าไม่มีใน stockMap หรือคำนวณแล้วได้ 0 ให้เป็น Stock 0 ทันที
     let zeroStockParts = [];
     targetMasters.forEach(master => {
-        // ตรงนี้สำคัญ! อ้างอิงตามคอลัมน์ B ใน Excel คือ master.partNo
         const pNo = String(master.partNo || master['Part No.'] || '').trim();
+        
+        // ถ้าไม่มีข้อมูลใน stockMap (ไม่เคยผลิต/ไม่มีพาร์ทในระบบสต็อก) ให้ถือว่าเป็น 0 ทันทีตามเงื่อนไข
         const currentStock = stockMap[pNo] !== undefined ? stockMap[pNo] : 0;
 
-        // ถ้า Stock เป็น 0 (หรือไม่มีประวัติการผลิตเลย) และมีรหัสพาร์ท
         if (currentStock === 0 && pNo) {
             zeroStockParts.push(pNo);
         }
     });
 
-    // 4. แสดงผลลงหน้าจอ Dashboard
+    // 4. แสดงผลรายชื่อพาร์ท Stock 0 ลงบนหน้า Dashboard
     let container = document.getElementById('zeroStockListContainer');
     if (!container) {
         container = document.createElement('div');
@@ -3807,6 +3805,5 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
         </div>
     `;
 }
-</script>
 </body>
 </html>
