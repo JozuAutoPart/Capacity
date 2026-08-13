@@ -3736,18 +3736,25 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 }
    // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine) {
-    // 1. สร้างหรือหา Container สำหรับแสดงผลก่อนเลย
+    // --- เงื่อนไข: ให้แสดงเฉพาะตอนอยู่หน้า Dashboard เท่านั้น ---
     let container = document.getElementById('zeroStockListContainer');
+    const dashTab = document.getElementById('tab-dash');
+    if (dashTab && (!dashTab.classList.contains('active') && !dashTab.classList.contains('show'))) {
+        if (container) container.style.display = 'none';
+        return;
+    }
+    if (container) container.style.display = 'block';
+
+    // 1. สร้างหรือหา Container สำหรับแสดงผลก่อนเลย
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
         container.className = 'col-12 mt-3 mb-4';
-        
+
         // บังคับเอาไปต่อไว้ที่ท้ายสุดของพื้นที่ Dashboard หรือท้ายสุดของแท็ก main/body
         const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
         mainContent.appendChild(container);
     }
-
     // 2. ดึงข้อมูล Master Parts (รองรับทั้งตัวแปรธรรมดาและ window)
     const masters = window.masterPartsDatabase || [];
 
