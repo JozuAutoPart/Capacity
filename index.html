@@ -3678,6 +3678,28 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     printWindow.document.close();
     printWindow.print();
 }
+        function exportDieBmExcel() {
+    if (typeof dieBms === 'undefined' || dieBms.length === 0) {
+        alert("ยังไม่มีข้อมูลประวัติการซ่อมสำหรับ Export ครับ");
+        return;
+    }
+
+    let dataToExport = dieBms.map((b, index) => ({
+        "ลำดับ": index + 1,
+        "วันที่แจ้งซ่อม": b.date || '',
+        "Part No.": b.partNo || '',
+        "อาการเสีย / รายละเอียด": b.problem || '',
+        "ผู้แจ้งซ่อม": b.reporter || ''
+    }));
+
+    let worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    let workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Die Repair History");
+    
+    // ตั้งชื่อไฟล์ตามวันที่ปัจจุบัน
+    let todayStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
+}
 </script>
 </body>
 </html>
