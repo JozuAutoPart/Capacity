@@ -3736,15 +3736,23 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 }
    // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine) {
-    // --- เงื่อนไข: ให้แสดงเฉพาะตอนอยู่หน้า Dashboard เท่านั้น ---
-    let container = document.getElementById('zeroStockListContainer');
+    // --- เงื่อนไขแบบชัวร์ๆ: ถ้าไม่ใช่วิวหน้า Dashboard ให้ซ่อนทันที ---
+    const container = document.getElementById('zeroStockListContainer');
+    
+    // เช็กว่าแท็บ Dashboard (id="tab-dash") มัน active อยู่จริงๆ ไหม
     const dashTab = document.getElementById('tab-dash');
-    if (dashTab && (!dashTab.classList.contains('active') && !dashTab.classList.contains('show'))) {
-        if (container) container.style.display = 'none';
-        return;
-    }
-    if (container) container.style.display = 'block';
+    const isDashboardActive = dashTab ? (dashTab.classList.contains('active') || dashTab.classList.contains('show')) : false;
 
+    if (!isDashboardActive) {
+        if (container) container.style.display = 'none';
+        return; // ออกจากฟังก์ชันทันที ไม่ต้องทำต่อ
+    }
+    
+    // ถ้าอยู่หน้า Dashboard ให้แสดง container
+    if (container) container.style.display = 'block';
+    // --------------------------------------------------------
+
+    // ... (โค้ดสร้าง container และคำนวณอื่นๆ ต่อจากบรรทัดนี้ตามปกติ) ...
     // 1. สร้างหรือหา Container สำหรับแสดงผลก่อนเลย
     if (!container) {
         container = document.createElement('div');
