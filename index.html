@@ -3740,9 +3740,11 @@ function renderZeroStockPartsByLine(selectedLine) {
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
-        container.className = 'col-12 mt-3 mb-3';
-        const targetSection = document.querySelector('.row') || document.body;
-        targetSection.appendChild(container);
+        container.className = 'col-12 mt-3 mb-4';
+        
+        // บังคับเอาไปต่อไว้ที่ท้ายสุดของพื้นที่ Dashboard หรือท้ายสุดของแท็ก main/body
+        const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
+        mainContent.appendChild(container);
     }
 
     // 2. ดึงข้อมูล Master Parts (รองรับทั้งตัวแปรธรรมดาและ window)
