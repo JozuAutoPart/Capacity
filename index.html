@@ -2264,94 +2264,94 @@ function resetDiePm(partNo) {
 }
 
 function renderDiePM() {
-    const pmTableBody = document.getElementById('diePmTableBody');
-    const bmTableBody = document.getElementById('dieBmTableBody');
-    if (!pmTableBody || !bmTableBody) return;
+    const tablePmEl = document.getElementById('diePmTableBody');
+    const tableBmEl = document.getElementById('dieBmTableBody');
+    if (!tablePmEl || !tableBmEl) return;
 
-    pmTableBody.innerHTML = '';
-    bmTableBody.innerHTML = '';
+    tablePmEl.innerHTML = '';
+    tableBmEl.innerHTML = '';
 
-    const pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
+    const savedOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
     
-    const searchInput = document.getElementById('dieSearchInput');
-    const filter = searchInput ? searchInput.value.toLowerCase() : '';
+    const inputSearchEl = document.getElementById('dieSearchInput');
+    const queryFilter = inputSearchEl ? inputSearchEl.value.toLowerCase() : '';
 
-    const dieStrokes = {};
-    actuals.forEach(a => {
-        if (a.pmReset) return;
-        if (!dieStrokes[a.partNo]) dieStrokes[a.partNo] = { line: a.line || '-', strokes: 0 };
-        dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
+    const strokeMap = {};
+    actuals.forEach(itemRecord => {
+        if (itemRecord.pmReset) return;
+        if (!strokeMap[itemRecord.partNo]) strokeMap[itemRecord.partNo] = { line: itemRecord.line || '-', strokes: 0 };
+        strokeMap[itemRecord.partNo].strokes += (Number(itemRecord.qty) + Number(itemRecord.ngQty || 0));
     });
 
-    let countDue = 0;
-    let countNear = 0;
+    let tallyDue = 0;
+    let tallyNear = 0;
 
-    Object.keys(dieStrokes).forEach(partNo => {
-        const item = dieStrokes[partNo];
-        let strokes = item.strokes;
+    Object.keys(strokeMap).forEach(partKey => {
+        const currentItem = strokeMap[partKey];
+        let currentStrokes = currentItem.strokes;
 
-        if (pmOffsets[partNo]) {
-            strokes -= pmOffsets[partNo];
-            if (strokes < 0) strokes = 0;
+        if (savedOffsets[partKey]) {
+            currentStrokes -= savedOffsets[partKey];
+            if (currentStrokes < 0) currentStrokes = 0;
         }
 
-        if (filter && !partNo.toLowerCase().includes(filter) && !item.line.toLowerCase().includes(filter)) {
+        if (queryFilter && !partKey.toLowerCase().includes(queryFilter) && !currentItem.line.toLowerCase().includes(queryFilter)) {
             return;
         }
 
-        // ซ่อนรายการ OK แสดงเฉพาะ NEAR PM และ PM DUE
-        if (strokes < PM_LIMIT * 0.85) {
+        // ซ่อนรายการปกติ (OK) แสดงเฉพาะ NEAR PM และ PM DUE เท่านั้น
+        if (currentStrokes < PM_LIMIT * 0.85) {
             return;
         }
 
-        const progress = Math.min(100, Math.round((strokes / PM_LIMIT) * 100));
+        const ratioProgress = Math.min(100, Math.round((currentStrokes / PM_LIMIT) * 100));
 
-        let statusBadge = '';
-        if (strokes >= PM_LIMIT) {
-            statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
-            countDue++;
-        } else if (strokes >= PM_LIMIT * 0.85) {
-            statusBadge = '<span class="badge bg-warning text-dark">NEAR PM</span>';
-            countNear++;
+        let badgeHtml = '';
+        if (currentStrokes >= PM_LIMIT) {
+            badgeHtml = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
+            tallyDue++;
+        } else if (currentStrokes >= PM_LIMIT * 0.85) {
+            badgeHtml = '<span class="badge bg-warning text-dark">NEAR PM</span>';
+            tallyNear++;
         }
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="fw-bold text-info">${partNo}</td>
-            <td>${item.line}</td>
-            <td>${strokes.toLocaleString()}</td>
+        const rowElem = document.createElement('tr');
+        rowElem.innerHTML = `
+            <td class="fw-bold text-info">${partKey}</td>
+            <td>${currentItem.line}</td>
+            <td>${currentStrokes.toLocaleString()}</td>
             <td>${PM_LIMIT.toLocaleString()}</td>
             <td style="width: 150px;">
                 <div class="progress" style="height: 12px;">
-                    <div class="progress-bar ${strokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${progress}%;"></div>
+                    <div class="progress-bar ${currentStrokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${ratioProgress}%;"></div>
                 </div>
             </td>
-            <td>${statusBadge}</td>
-            <td><button class="btn btn-sm btn-outline-secondary" onclick="resetDiePm('${partNo}')"><i class="fas fa-undo"></i> Reset PM</button></td>
+            <td>${badgeHtml}</td>
+            <td><button class="btn btn-sm btn-outline-secondary" onclick="resetDiePm('${partKey}')"><i class="fas fa-undo"></i> Reset PM</button></td>
         `;
-        pmTableBody.appendChild(tr);
+        tablePmEl.appendChild(rowElem);
     });
 
-    const dueElem = document.getElementById('diePmDueCount');
-    const nearElem = document.getElementById('diePmNearCount');
-    if (dueElem) dueElem.innerText = countDue;
-    if (nearElem) nearElem.innerText = countNear;
+    const badgeDueTarget = document.getElementById('diePmDueCount');
+    const badgeNearTarget = document.getElementById('diePmNearCount');
+    if (badgeDueTarget) badgeDueTarget.innerText = tallyDue;
+    if (badgeNearTarget) badgeNearTarget.innerText = tallyNear;
 
     window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
 
-    dieBms.slice().reverse().forEach((b, index) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${b.date || ''}</td>
-            <td class="fw-bold text-info">${b.partNo || ''}</td>
-            <td class="text-danger">${b.problem || ''}</td>
-            <td>${b.reporter || ''}</td>
+    dieBms.slice().reverse().forEach((breakdownItem, itemIndex) => {
+        const rowElem = document.createElement('tr');
+        rowElem.innerHTML = `
+            <td>${breakdownItem.date || ''}</td>
+            <td class="fw-bold text-info">${breakdownItem.partNo || ''}</td>
+            <td class="text-danger">${breakdownItem.problem || ''}</td>
+            <td>${breakdownItem.reporter || ''}</td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}')"><i class="fas fa-print"></i></button>
-                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${breakdownItem.date}', '${breakdownItem.partNo}', '${breakdownItem.problem}', '${breakdownItem.reporter}')"><i class="fas fa-print"></i></button>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${itemIndex})"><i class="fas fa-trash"></i></button>
             </td>
         `;
-        bmTableBody.appendChild(tr);
+        tableBmEl.appendChild(rowElem);
     });
     const dueEl = document.getElementById('diePmDueCount');
     const nearEl = document.getElementById('diePmNearCount');
