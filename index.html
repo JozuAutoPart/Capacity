@@ -3452,20 +3452,14 @@ function handleLogin() {
     var overlay = document.getElementById('loginOverlay');
     var errorMsg = document.getElementById('loginError');
 
-    if (pass === "1111") {
-        alert("เข้าสู่ระบบสำเร็จ: ฝ่ายผลิต (Production)");
-        if (overlay) overlay.style.display = 'none';
-    } else if (pass === "2222") {
-        alert("เข้าสู่ระบบสำเร็จ: แผนก Q-Gate");
-        if (overlay) overlay.style.display = 'none';
-    } else if (pass === "3333") {
-        alert("เข้าสู่ระบบสำเร็จ: แผนกซ่อมบำรุง (Die Maintenance)");
-        if (overlay) overlay.style.display = 'none';
-    } else if (pass === "9999") {
-        alert("เข้าสู่ระบบสำเร็จ: ผู้ดูแลระบบสูงสุด (Admin)");
-        if (overlay) overlay.style.display = 'none';
+    if (pass === "1111" || pass === "2222" || pass === "3333" || pass === "9999") {
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
     } else {
-        if (errorMsg) errorMsg.style.display = 'block';
+        if (errorMsg) {
+            errorMsg.style.display = 'block';
+        }
     }
 }
 
