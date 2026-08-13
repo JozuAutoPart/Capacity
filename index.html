@@ -864,7 +864,9 @@
     let deliveries = [];
     let bms = [];
     let currentFilterLine = 'ALL';
-
+    let masterParts = []; 
+    let pmDueCount = 0;
+    let pmNearCount = 0;
     // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
     async function loadAllDataFromCloud() {
         try {
