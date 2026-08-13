@@ -2267,7 +2267,7 @@ function renderDiePM() {
     
     pmTbody.innerHTML = '';
     bmTbody.innerHTML = '';
-
+const pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
     const dieStrokes = {};
     actuals.forEach(a => {
         if(a.pmReset) return;
