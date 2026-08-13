@@ -3446,31 +3446,29 @@ document.addEventListener('change', function(e) {
         }
     }
 });
-        <script>
+      <script>
 function handleLogin() {
     let pass = document.getElementById('loginPassword').value.trim();
     let overlay = document.getElementById('loginOverlay');
     let errorMsg = document.getElementById('loginError');
 
-    // ตรวจสอบรหัสผ่านตามแผนก
     if (pass === "1111") {
         alert("เข้าสู่ระบบสำเร็จ: ฝ่ายผลิต (Production)");
-        overlay.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
     } else if (pass === "2222") {
         alert("เข้าสู่ระบบสำเร็จ: แผนก Q-Gate");
-        overlay.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
     } else if (pass === "3333") {
         alert("เข้าสู่ระบบสำเร็จ: แผนกซ่อมบำรุง (Die Maintenance)");
-        overlay.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
     } else if (pass === "9999") {
         alert("เข้าสู่ระบบสำเร็จ: ผู้ดูแลระบบสูงสุด (Admin)");
-        overlay.style.display = 'none';
+        if (overlay) overlay.style.display = 'none';
     } else {
-        errorMsg.style.display = 'block';
+        if (errorMsg) errorMsg.style.display = 'block';
     }
 }
 
-// กด Enter ที่แป้นพิมพ์เพื่อล็อกอินได้ทันที
 document.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         let overlay = document.getElementById('loginOverlay');
