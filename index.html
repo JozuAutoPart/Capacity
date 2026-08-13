@@ -3735,15 +3735,41 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 }
    // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine) {
-    if (!window.masterParts || window.masterParts.length === 0) return;
+    // 1. สร้างหรือหา Container สำหรับแสดงผลก่อนเลย
+    let container = document.getElementById('zeroStockListContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'zeroStockListContainer';
+        container.className = 'col-12 mt-3 mb-3';
+        const targetSection = document.querySelector('.row') || document.body;
+        targetSection.appendChild(container);
+    }
 
+    // 2. ดึงข้อมูล Master Parts (รองรับทั้งตัวแปรธรรมดาและ window)
+    const masters = window.masterParts || (typeof masterParts !== 'undefined' ? masterParts : []);
+
+    // ถ้ายังไม่มีข้อมูล Master ให้แสดงกล่องแจ้งเตือนสีเหลืองทันที
+    if (masters.length === 0) {
+        container.innerHTML = `
+            <div class="card bg-dark text-white p-3 border-warning shadow">
+                <h6 class="text-warning fw-bold mb-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
+                </h6>
+                <p class="text-muted mb-0">⚠️ ยังไม่พบข้อมูล Master Part Code (กรุณาอัปโหลดไฟล์ Master Part Code ก่อนครับ)</p>
+            </div>
+        `;
+        return;
+    }
+
+    // 3. กรองตาม Line ที่เลือก
     const targetMasters = selectedLine === 'ALL' 
-        ? window.masterParts 
-        : window.masterParts.filter(m => {
+        ? masters 
+        : masters.filter(m => {
               const mLine = String(m.Line || m.line || '').trim();
               return mLine === String(selectedLine).trim();
           });
 
+    // 4. คำนวณ Stock จาก Actuals และ Deliveries
     const actualsData = window.actuals || [];
     const deliveriesData = window.deliveries || [];
     const stockMap = {};
@@ -3763,26 +3789,14 @@ function renderZeroStockPartsByLine(selectedLine) {
         }
     });
 
+    // 5. หาพาร์ทที่ Stock <= 0
     const zeroStockParts = targetMasters.filter(master => {
         const pNo = String(master.partNo || master['Part No.'] || '').trim();
         const currentStock = stockMap[pNo] !== undefined ? stockMap[pNo] : 0; 
         return currentStock <= 0;
     }).map(m => String(m.partNo || m['Part No.']).trim());
 
-    let container = document.getElementById('zeroStockListContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'zeroStockListContainer';
-        container.className = 'col-12 mt-3 mb-3';
-        
-        // บังคับหาตำแหน่งวางต่อท้ายการ์ดสรุป หรือต่อท้าย row แรกของ Dashboard
-        const targetSection = document.querySelector('.row') || document.querySelector('container');
-        if (targetSection) {
-            targetSection.appendChild(container);
-        } else {
-            document.body.appendChild(container);
-        }
-    }
+    // 6. แสดงผลลัพธ์ลงบนหน้าจอ
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
