@@ -74,9 +74,8 @@
                 </div>
             </div>
             <div class="d-flex gap-2 align-items-center">
-                <div class="d-flex gap-2 align-items-center">
-    <!-- โค้ดนาฬิกา -->
-    <div id="liveClockDisplay" class="text-warning fw-bold fs-5" style="font-family: monospace; margin-right: 10px;"></div>
+                <button class="btn btn-outline-light btn-sm" onclick="document.getElementById('logoInput').click()">
+                    <i class="fas fa-image me-1"></i> เปลี่ยนโลโก้
                 </button>
                 <button class="btn btn-success btn-sm" onclick="exportToExcelXLSX('actuals')">
                     <i class="fas fa-file-excel me-1"></i> Export ประวัติผลิต (.xlsx)
@@ -123,9 +122,10 @@
         </ul>
 
         <!-- Tab Contents -->
+        <div class="tab-content" id="mainTabsContent">
+
            <!-- TAB 1: DASHBOARD -->        
     <div class="tab-pane fade show active" id="tab-dash">
-        
          <div id="zeroStockListContainer" class="col-12 mt-3 mb-4"></div>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="m-0">ภาพรวมการผลิต (Dashboard)</h5>
@@ -224,10 +224,9 @@
                 </div>
             </div>
         </div>
-      </div> <!-- ปิดแถวของกราฟและสรุปสต็อกด้านล่าง -->
-    </div> <!-- ปิดแท็บ Dashboard -->
-    
-   <!-- TAB 2: CAPACITY -->
+    </div>
+</div>
+
             <!-- TAB 2: CAPACITY -->
             <div class="tab-pane fade" id="tab-capacity">
                 <div class="card p-3 mb-3">
@@ -3841,29 +3840,6 @@ function renderZeroStockPartsByLine(selectedLine) {
        </div>
     `;
 }
-        function updateLiveClock() {
-    const now = new Date();
-    
-    // แปลงเป็นปี พ.ศ. (+543)
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear() + 543;
-    
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    
-    // รูปแบบ: 13-08-2569 13:00
-    const dateTimeString = `${day}-${month}-${year} ${hours}:${minutes}`;
-    
-    const clockElement = document.getElementById('liveClockDisplay');
-    if (clockElement) {
-        clockElement.innerText = dateTimeString;
-    }
-}
-
-// สั่งให้เวลาเดินทุกๆ 1 วินาที
-setInterval(updateLiveClock, 1000);
-window.onload = updateLiveClock;
 </script>
 </body>
 </html>
