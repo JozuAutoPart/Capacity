@@ -3735,6 +3735,23 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     let todayStr = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
 }
+        // ฟังก์ชันจัดการการเข้าสู่ระบบ
+function handleLogin() {
+    // ดึงค่ารหัสผ่านจากช่อง Input (ปรับไอดีหรือคลาสตามหน้า HTML ของพี่มิวได้ครับ)
+    const passwordInput = document.querySelector('input[type="password"]') || document.getElementById('password');
+    const password = passwordInput ? passwordInput.value : '';
+    
+    // ตั้งรหัสผ่านที่ต้องการ (สามารถเปลี่ยนคำว่า '1234' เป็นรหัสที่ต้องการได้เลยครับ)
+    if (password === '1234' || password === 'admin') { 
+        // บันทึกสถานะการเข้าสู่ระบบลงใน localStorage
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        // ซ่อนหน้าจอ Login หรือรีเฟรชเพื่อเข้าสู่หน้าหลัก
+        location.reload(); 
+    } else {
+        alert('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้งครับพี่มิว!');
+    }
+}
 function renderZeroStockPartsByLine(selectedLine) {
     // 1. ใช้ Master Part Code เป็นตารางตั้งต้นหลัก
     const targetMasters = selectedLine === 'ALL' 
