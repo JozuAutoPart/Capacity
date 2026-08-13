@@ -2283,8 +2283,8 @@ function renderDiePM() {
         dieStrokes[a.partNo].strokes += (Number(a.qty) + Number(a.ngQty || 0));
     });
 
-    let pmDueCount = 0;
-    let pmNearCount = 0;
+    let countDue = 0;
+    let countNear = 0;
 
     Object.keys(dieStrokes).forEach(partNo => {
         const item = dieStrokes[partNo];
@@ -2295,12 +2295,11 @@ function renderDiePM() {
             if (strokes < 0) strokes = 0;
         }
 
-        // กรองตามคำค้นหา
         if (filter && !partNo.toLowerCase().includes(filter) && !item.line.toLowerCase().includes(filter)) {
             return;
         }
 
-        // ซ่อนรายการที่สถานะปกติ (OK) ให้แสดงเฉพาะ Near PM และ PM Due เท่านั้น
+        // ซ่อนรายการ OK แสดงเฉพาะ NEAR PM และ PM DUE
         if (strokes < PM_LIMIT * 0.85) {
             return;
         }
@@ -2310,10 +2309,10 @@ function renderDiePM() {
         let statusBadge = '';
         if (strokes >= PM_LIMIT) {
             statusBadge = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
-            pmDueCount++;
+            countDue++;
         } else if (strokes >= PM_LIMIT * 0.85) {
             statusBadge = '<span class="badge bg-warning text-dark">NEAR PM</span>';
-            pmNearCount++;
+            countNear++;
         }
 
         const tr = document.createElement('tr');
@@ -2333,10 +2332,10 @@ function renderDiePM() {
         pmTableBody.appendChild(tr);
     });
 
-    const dueEl = document.getElementById('diePmDueCount');
-    const nearEl = document.getElementById('diePmNearCount');
-    if (dueEl) dueEl.innerText = pmDueCount;
-    if (nearEl) nearEl.innerText = pmNearCount;
+    const dueElem = document.getElementById('diePmDueCount');
+    const nearElem = document.getElementById('diePmNearCount');
+    if (dueElem) dueElem.innerText = countDue;
+    if (nearElem) nearElem.innerText = countNear;
 
     window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
 
@@ -2354,7 +2353,6 @@ function renderDiePM() {
         `;
         bmTableBody.appendChild(tr);
     });
-
     const dueEl = document.getElementById('diePmDueCount');
     const nearEl = document.getElementById('diePmNearCount');
     if (dueEl) dueEl.innerText = pmDueCount;
