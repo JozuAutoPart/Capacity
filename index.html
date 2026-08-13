@@ -2208,12 +2208,13 @@ function deleteDelivery(id) {
       // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
-    const bm = {
+   const bm = {
         id: Date.now(),
         date: document.getElementById('bmDate').value,
         partNo: document.getElementById('bmPartNo').value.trim(),
         problem: document.getElementById('bmProblem').value.trim(),
-        reporter: document.getElementById('bmReporter').value.trim()
+        reporter: document.getElementById('bmReporter').value.trim(),
+        image: window.currentBmImage || '' // เพิ่มเก็บรูปภาพ
     };
     
     // ใช้ตัวแปรเฉพาะสำหรับเก็บประวัติซ่อมแม่พิมพ์ (ไม่ปะปนกับ Material)
@@ -2222,10 +2223,9 @@ function submitDieBm(e) {
     }
     dieBms.push(bm);
     localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
-    
-    // บันทึกลง Google Sheets ไปยังชีท DIE MAINTENANCE & PM โดยตรง
-    if (typeof saveToCloud === 'function') {
-        saveToCloud('saveDieMaintenance', bm);
+   // บันทึกลง Google Sheets ทันที
+    if (typeof saveAll === 'function') {
+        saveAll();
     }
 
     renderDiePM();
