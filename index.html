@@ -4036,19 +4036,19 @@ updateClock();
 // เช็คข้อมูลใหม่ทุกๆ 10 วินาที
 setInterval(syncStockData, 10000);
         // ฟังก์ชันดึงประวัติ Die Maintenance & PM จาก Google Sheet มาแสดงที่ตาราง
+// ฟังก์ชันดึงประวัติ Die Maintenance & PM มาแสดงที่ตาราง
 function loadDieMaintenanceHistory() {
     if (typeof GOOGLE_SCRIPT_URL === 'undefined') return;
 
-    fetch(`${GOOGLE_SCRIPT_URL}?action=getDieMaintenanceHistory`) // หรือเรียกดูข้อมูลทั้งหมดจากชีต DIE MAINTENANCE & PM
+    fetch(`${GOOGLE_SCRIPT_URL}?action=getDieMaintenanceHistory`)
     .then(response => response.json())
     .then(result => {
         if (result.status === "success" && result.data) {
-            const tableBody = document.getElementById('bmTableBody');
+            const tableBody = document.getElementById('dieBmTableBody');
             if (!tableBody) return;
             
             tableBody.innerHTML = ''; // ล้างข้อมูลเก่า
             
-            // วนลูปเอาข้อมูลแต่ละแถวมาแปะลงตาราง
             result.data.forEach(item => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
