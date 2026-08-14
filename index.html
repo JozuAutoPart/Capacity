@@ -1417,14 +1417,18 @@ function checkAndLoadPlans() {
                 return sum + (isNaN(val) ? 0 : val);
             }, 0);
 
-            // เงื่อนไข: ถ้ายังผลิตไม่ครบตามแผน ถึงจะแสดงให้เลือกใน Dropdown
-            if (totalActualOk < planQty) {
-                const opt = document.createElement('option');
-                opt.value = planPart;
-                opt.dataset.lot = planLot;
-                opt.innerText = `${planPart} (Lot: ${planLot} - คงเหลือผลิตอีก ${(planQty - totalActualOk).toLocaleString()} ชิ้น)`;
-                selectPart.appendChild(opt);
-            }
+            // คำนวณหายอดคงเหลือและสัดส่วน
+const diff = planQty - totalActualOk;
+const ratio = planQty > 0 ? (diff / planQty) : 0;
+
+// เงื่อนไข: ต้องผลิตยังไม่ครบ (diff > 0) และสัดส่วนที่เหลือต้องมากกว่า 1% (ratio > 0.01) ถึงจะเอามาแสดงใน Dropdown
+if (diff > 0 && ratio > 0.01) {
+    const opt = document.createElement('option');
+    opt.value = planPart;
+    opt.dataset.lot = planLot;
+    opt.innerText = `${planPart} (Lot: ${planLot} - คงเหลือผลิตอีก ${diff.toLocaleString()} ชิ้น)`;
+    selectPart.appendChild(opt);
+}
         });
     }
 }
