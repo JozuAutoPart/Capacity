@@ -1925,8 +1925,9 @@ function getFgBalances() {
 }
 
 function renderStock() {
-    const wipTbody = document.getElementById('wipTableBody');
-    const fgTbody = document.getElementById('fgTableBody');
+   // ประกาศไว้นอกฟังก์ชัน เพื่อให้ทุกส่วนในหน้าเว็บเรียกใช้ได้ทันที
+const wipbody = document.getElementById('wipTableBody');
+const fgtbody = document.getElementById('fgTableBody');
     if (!wipTbody || !fgTbody) return;
     wipTbody.innerHTML = '';
     fgTbody.innerHTML = '';
