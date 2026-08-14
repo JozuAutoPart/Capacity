@@ -397,43 +397,34 @@
                             </form>
                         </div>
                     </div>
-                    <div class="col-md-8">
+                   <div class="col-md-8">
     <div class="card p-3">
-        <!-- แก้ไขตรงนี้: เพิ่มช่อง input ค้นหาเข้าไป -->
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="m-0 text-white">รายการแผนการผลิตทั้งหมด</h5>
-            <div>
-                <input type="text" id="planSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Lot No...." style="width: 250px;" oninput="renderPlans()">
+            <div class="d-flex align-items-center gap-2">
+                <input type="text" id="planSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Lot No...." style="width: 200px;" oninput="renderPlans()">
+                <button class="btn btn-outline-success btn-sm text-nowrap" onclick="exportToExcelXLSX('plans')"><i class="fas fa-file-excel me-1"></i>Export</button>
+                <button class="btn btn-outline-danger btn-sm text-nowrap" onclick="clearAllPlans()"><i class="fas fa-trash me-1"></i>ล้างแผน</button>
             </div>
         </div>
-        <!-- สิ้นสุดส่วนที่เพิ่ม -->
-                                    <button class="btn btn-outline-success btn-sm me-2" onclick="exportToExcelXLSX('plans')">
-                                        <i class="fas fa-file-excel me-1"></i> Export แผนผลิต
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm" onclick="clearAllPlans()"><i class="fas fa-trash me-1"></i> ล้างแผนทั้งหมด</button>
-                                </div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-dark table-hover align-middle m-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Start</th>
-                                            <th>Finish</th>
-                                            <th>Line</th>
-                                            <th>Part No.</th>
-                                            <th>Lot No.</th>
-                                            <th>Plan Qty</th>
-                                            <th class="text-center">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="planTableBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle m-0">
+                <thead>
+                    <tr>
+                        <th>Start</th>
+                        <th>Finish</th>
+                        <th>Line</th>
+                        <th>Part No.</th>
+                        <th>Lot No.</th>
+                        <th>Plan Qty</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="planTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
             <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
                 <div class="row g-3">
