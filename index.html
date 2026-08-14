@@ -3954,20 +3954,46 @@ function renderZeroStockPartsByLine(selectedLine) {
 setInterval(updateClock, 1000);
 updateClock();
         function adjustStock(partNo, type) {
-    const key = `stock_adjust_${type}_${partNo}`;
-    const currentVal = localStorage.getItem(key) || 0;
-    const input = prompt(`[${type}] ปรับยอดสิ้นเดือนของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
-    
-    if (input !== null) {
-        const val = parseInt(input);
-        if (!isNaN(val)) {
-            localStorage.setItem(key, val);
-            location.reload(); // รีเฟรชหน้าจอเพื่ออัปเดตยอดคงเหลือทันที
-        } else {
-            alert("กรุณากรอกตัวเลขให้ถูกต้องครับ");
+            const key = `stock_adjust_${type}_${partNo}`;
+            const currentVal = localStorage.getItem(key) || 0;
+            const input = prompt(`[${type}] ปรับยอดสั้นสั้นของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
+
+            if (input !== null) {
+                const val = parseInt(input);
+                if (!isNaN(val)) {
+                    // แสดงแจ้งเตือนกำลังบันทึก
+                    alert("กำลังบันทึกข้อมูลลงระบบส่วนกลาง...");
+
+                    // ส่งข้อมูลไปบันทึกที่ Google Apps Script
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ 
+                            action: 'adjustStock', 
+                            partNo: partNo, 
+                            type: type, 
+                            value: val 
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === "success") {
+                            localStorage.setItem(key, val);
+                            alert("บันทึกสำเร็จ!");
+                            location.reload(); // รีเฟรชหน้าจอเพื่อดึงค่าล่าสุดมาแสดงทุกเครื่อง
+                        } else {
+                            alert("เกิดข้อผิดพลาด: " + result.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+                    });
+
+                } else {
+                    alert("กรุณากรอกตัวเลขให้ถูกต้องครับ");
+                }
+            }
         }
-    }
-}
 </script>
 </body>
 </html>
