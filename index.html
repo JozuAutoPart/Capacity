@@ -2055,6 +2055,44 @@ function filterFgTable() {
         }
     });
 }
+        async function fetchAlertStatus() {
+  try {
+    const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getAlertStatus`);
+    const result = await response.json();
+    if (result.status === "success") {
+      return result.data;
+    }
+  } catch (error) {
+    console.error("Error fetching alert status:", error);
+  }
+  return [];
+}
+
+async function saveAlertStatus(partNo, status, user) {
+  try {
+    const payload = {
+      action: "saveAlertStatus",
+      data: {
+        timestamp: new Date().toLocaleString(),
+        partNo: partNo,
+        status: status,
+        user: user || "Staff"
+      }
+    };
+
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    
+    const result = await response.json();
+    if (result.status === "success") {
+      console.log("บันทึกสถานะลง Google Sheets สำเร็จ!");
+    }
+  } catch (error) {
+    console.error("Error saving alert status:", error);
+  }
+}
       // --- TAB 7: DELIVERY (การส่งมอบ) ---
 function loadDeliveryParts() {
     const fgMap = getFgBalances();
