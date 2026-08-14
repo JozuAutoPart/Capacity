@@ -4035,6 +4035,40 @@ updateClock();
 
 // เช็คข้อมูลใหม่ทุกๆ 10 วินาที
 setInterval(syncStockData, 10000);
+        // ฟังก์ชันดึงประวัติ Die Maintenance & PM จาก Google Sheet มาแสดงที่ตาราง
+function loadDieMaintenanceHistory() {
+    if (typeof GOOGLE_SCRIPT_URL === 'undefined') return;
+
+    fetch(`${GOOGLE_SCRIPT_URL}?action=getDieMaintenanceHistory`) // หรือเรียกดูข้อมูลทั้งหมดจากชีต DIE MAINTENANCE & PM
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === "success" && result.data) {
+            const tableBody = document.getElementById('bmTableBody');
+            if (!tableBody) return;
+            
+            tableBody.innerHTML = ''; // ล้างข้อมูลเก่า
+            
+            // วนลูปเอาข้อมูลแต่ละแถวมาแปะลงตาราง
+            result.data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.Date || item["date"] || ''}</td>
+                    <td class="fw-bold text-info">${item["Part No."] || item["partNo"] || ''}</td>
+                    <td class="text-danger">${item.Problem || item["problem"] || ''}</td>
+                    <td>${item.Reporter || item["reporter"] || ''}</td>
+                    <td>${item.Printer || item["printer"] || ''}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    })
+    .catch(error => console.error("Error loading history:", error));
+}
+
+// สั่งให้โหลดข้อมูลประวัติทันทีเมื่อเปิดหน้าเว็บ
+window.addEventListener('DOMContentLoaded', () => {
+    loadDieMaintenanceHistory();
+});
 </script>
 </body>
 </html>
