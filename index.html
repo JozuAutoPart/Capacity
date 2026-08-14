@@ -3998,31 +3998,43 @@ updateClock();
     fetch(`${GOOGLE_SCRIPT_URL}?action=getStockAdjustments`)
     .then(response => response.json())
     .then(result => {
-        if (result.status === "success" && result.data) {
+        if (result.status === "success" && result.data && result.data.length > 0) {
             let needsReload = false;
+            
+            // สร้าง Object เพื่อเก็บค่าล่าสุดของแต่ละ Part No และ Type
+            let latestStocks = {};
             result.data.forEach(item => {
-                const key = `stock_adjust_${item.Type}_${item["Part No."]}`;
-                const oldVal = localStorage.getItem(key);
-                const newVal = item["Adjustment Value"];
+                const type = item["Type"];
+                const partNo = item["Part No."];
+                const val = item["Adjustment Value"];
+                const key = `stock_adjust_${type}_${partNo}`;
                 
-                // ถ้ามียอดใหม่ที่ไม่ตรงกับในเครื่อง ให้เซฟแล้วสั่งรีเฟรช
-                if (oldVal !== String(newVal)) {
+                // เก็บค่าทับไปเรื่อยๆ เพื่อให้ได้ค่าจากแถวล่าสุดจริงๆ
+                latestStocks[key] = val;
+            });
+
+            // ตรวจสอบกับค่าที่เก็บไว้ในเครื่องปัจจุบัน
+            for (let key in latestStocks) {
+                const oldVal = localStorage.getItem(key) || "0";
+                const newVal = String(latestStocks[key]);
+
+                if (oldVal !== newVal) {
                     localStorage.setItem(key, newVal);
                     needsReload = true;
                 }
-            });
+            }
             
-            // ถ้ามีข้อมูลไหนถูกปรับเปลี่ยนจากเครื่องอื่น ให้รีเฟรชหน้าจอเครื่องนี้ให้อัตโนมัติทันที
+            // ถ้ามียอดเปลี่ยนแปลงจากเครื่องอื่น ให้รีเฟรชหน้าจอทันที
             if (needsReload) {
                 location.reload();
             }
         }
-    });
+    })
+    .catch(error => console.error("Sync error:", error));
 }
 
 // เช็คข้อมูลใหม่ทุกๆ 10 วินาที
 setInterval(syncStockData, 10000);
-syncStockData();
 </script>
 </body>
 </html>
