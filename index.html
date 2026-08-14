@@ -1930,9 +1930,8 @@ function renderStock() {
     const fgtbody = document.getElementById('fgTableBody');
     if (!wipbody || !fgtbody) return;
 
-    // ... (โค้ดคำนวณและสร้างตารางทั้งหมดที่พี่มิวมีอยู่แล้ว ให้ต่อจากตรงนี้ลงมาได้เลยครับ)
     wipbody.innerHTML = '';
-    fgTbody.innerHTML = '';
+    fgtbody.innerHTML = ''; // แก้จาก fgTbody เป็น fgtbody เรียบร้อยแล้วครับ
 
     // ดึง Part No. จากทุกส่วนรองรับทั้งพิมพ์เล็ก/ใหญ่
     const partsSet = new Set([
@@ -1961,17 +1960,17 @@ function renderStock() {
 
         const trwip = document.createElement('tr');
         trwip.innerHTML = `
-    <td class="fw-bold text-info">${partNo}</td>
-    <td>${totalIn.toLocaleString()}</td>
-    <td>${totalTransferred.toLocaleString()}</td>
-    <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
-    <td class="text-center">
-        <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
-            <i class="fas fa-edit"></i> ปรับ
-        </button>
-    </td>
-`;
-wipbody.appendChild(trwip);
+            <td class="fw-bold text-info">${partNo}</td>
+            <td>${totalIn.toLocaleString()}</td>
+            <td>${totalTransferred.toLocaleString()}</td>
+            <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
+                    <i class="fas fa-edit"></i> ปรับ
+                </button>
+            </td>
+        `;
+        wipbody.appendChild(trwip);
 
         // FG Summary
         const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
@@ -1985,23 +1984,40 @@ wipbody.appendChild(trwip);
         }, 0);
 
         const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
-const currentFg = (fgPass - fgDelivered) + adjustFg;
+        const currentFg = (fgPass - fgDelivered) + adjustFg;
 
-const trfg = document.createElement('tr');
-trfg.innerHTML = `
-    <td class="fw-bold text-info">${partNo}</td>
-    <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
-    <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
-    <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()} ${adjustFg !== 0 ? `<span class="badge bg-warning text-dark">(${adjustFg > 0 ? '+' : ''}${adjustFg})</span>` : ''}</td>
-    <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
-    <td class="text-center">
-        <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'FG')" title="ปรับสต็อกสิ้นเดือน">
-            <i class="fas fa-edit"></i> ปรับ
-        </button>
-    </td>
-`;
-fgtbody.appendChild(trfg);
+        const trfg = document.createElement('tr');
+        trfg.innerHTML = `
+            <td class="fw-bold text-info">${partNo}</td>
+            <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
+            <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
+            <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()} ${adjustFg !== 0 ? `<span class="badge bg-warning text-dark">(${adjustFg > 0 ? '+' : ''}${adjustFg})</span>` : ''}</td>
+            <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'FG')" title="ปรับสต็อกสิ้นเดือน">
+                    <i class="fas fa-edit"></i> ปรับ
+                </button>
+            </td>
+        `;
+        fgtbody.appendChild(trfg);
     });
+}
+
+// 📌 ฟังก์ชันสำหรับแอดมินปรับเพิ่ม/ลดสต็อกสิ้นเดือน (วางไว้ท้ายสุดได้เลย)
+function adjustStock(partNo, type) {
+    const key = `stock_adjust_${type}_${partNo}`;
+    const currentVal = localStorage.getItem(key) || 0;
+    const input = prompt(`[${type}] ปรับยอดสิ้นเดือนของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
+    
+    if (input !== null) {
+        const val = parseInt(input);
+        if (!isNaN(val)) {
+            localStorage.setItem(key, val);
+            location.reload(); // รีเฟรชหน้าจอเพื่ออัปเดตยอดคงเหลือทันที
+        } else {
+            alert("กรุณากรอกตัวเลขให้ถูกต้องครับ");
+        }
+    }
 }
 
 // 📌 ฟังก์ชันกรองตาราง Stock WIP แบบแม่นยำ
