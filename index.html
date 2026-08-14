@@ -2837,7 +2837,7 @@ function loadAllDataFromCloud() {
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
                 if (typeof renderDiePM === 'function') renderDiePM();
-                if (typeof renderBmsHistory === 'function') renderBmsHistory();
+               
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
