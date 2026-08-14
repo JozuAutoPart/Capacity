@@ -3994,26 +3994,35 @@ updateClock();
                 }
             }
         }
-        // ฟังก์ชันดึงค่าจาก Google Sheet มาอัปเดตหน้าจอโดยอัตโนมัติ
-function syncStockData() {
+      function syncStockData() {
     fetch(`${GOOGLE_SCRIPT_URL}?action=getStockAdjustments`)
     .then(response => response.json())
     .then(result => {
         if (result.status === "success" && result.data) {
-            // ดึงรายการล่าสุดของแต่ละ Part No. มาอัปเดต
+            let needsReload = false;
             result.data.forEach(item => {
                 const key = `stock_adjust_${item.Type}_${item["Part No."]}`;
-                localStorage.setItem(key, item["Adjustment Value"]);
+                const oldVal = localStorage.getItem(key);
+                const newVal = item["Adjustment Value"];
+                
+                // ถ้ามียอดใหม่ที่ไม่ตรงกับในเครื่อง ให้เซฟแล้วสั่งรีเฟรช
+                if (oldVal !== String(newVal)) {
+                    localStorage.setItem(key, newVal);
+                    needsReload = true;
+                }
             });
-            // เรียกฟังก์ชันวาดตารางใหม่ (ชื่อฟังก์ชันของพี่มิวอาจเป็นอย่างอื่น เช่น updateTable())
-            // ถ้าไม่แน่ใจชื่อ ให้ใช้ location.reload() เพื่อรีเฟรชค่าใหม่ก็ได้ครับ
-            console.log("Sync stock data successful");
+            
+            // ถ้ามีข้อมูลไหนถูกปรับเปลี่ยนจากเครื่องอื่น ให้รีเฟรชหน้าจอเครื่องนี้ให้อัตโนมัติทันที
+            if (needsReload) {
+                location.reload();
+            }
         }
     });
 }
 
-// ตั้งเวลาให้ระบบเช็คข้อมูลใหม่ทุกๆ 30 วินาที
-setInterval(syncStockData, 30000);
+// เช็คข้อมูลใหม่ทุกๆ 10 วินาที
+setInterval(syncStockData, 10000);
+syncStockData();
 </script>
 </body>
 </html>
