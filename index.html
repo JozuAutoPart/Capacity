@@ -2322,6 +2322,7 @@ let pmNearCount = 0;
 let tallyDue = 0;
 let tallyNear = 0;
 const bmTableBody = document.getElementById('bmTableBody');
+if (!bmTableBody) return;
   
     Object.keys(strokeMap).forEach(partKey => {
         const currentItem = strokeMap[partKey];
