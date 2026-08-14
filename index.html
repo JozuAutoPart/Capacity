@@ -1472,18 +1472,16 @@ function submitActual(e) {
         body: JSON.stringify({ action: 'saveActual', data: actual })
     })
     .then(response => response.json())
-    .then(result => {
-        if (result.status === "success") {
-            console.log("Saved successfully");
-            
-            // ดึงข้อมูลใหม่จาก Google Sheets มาแสดงผลทันที
-            if (typeof loadAllDataFromCloud === 'function') {
-                loadAllDataFromCloud();
-            } else {
-                location.reload();
-            }
-    })
-
+   .then(result => {
+    if (result.status === "success") {
+        console.log("Saved successfully");
+        if (typeof loadAllDataFromCloud === 'function') {
+            loadAllDataFromCloud();
+        } else {
+            location.reload();
+        }
+    }
+})
             // ---------------------------------------------------------
             // เพิ่มส่วนนี้: อัปเดตยอดเข้า Stock WIP ทันที เพื่อให้ Q-Gate ดึงไปตรวจสอบได้
             // ---------------------------------------------------------
