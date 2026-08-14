@@ -2241,17 +2241,30 @@ function submitDieBm(e) {
         image: window.currentBmImage || '' // เพิ่มเก็บรูปภาพ
     };
     
-    // ใช้ตัวแปรเฉพาะสำหรับเก็บประวัติซ่อมแม่พิมพ์ (ไม่ปะปนกับ Material)
+  // บันทึกลงตัวแปรและ localStorage เดิมไว้สำรอง
     if (typeof dieBms === 'undefined') {
         window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
     }
     dieBms.push(bm);
     localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
-   // บันทึกลง Google Sheets ทันที
-    if (typeof saveAll === 'function') {
-        saveAll();
-    }
 
+    // ส่งข้อมูลไปบันทึกลง Google Sheets ทันที (Cloud)
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    if (scriptUrl) {
+        fetch(scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'saveDieMaintenance', data: bm })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === "success") {
+                console.log("Saved Die Maintenance to Cloud successfully");
+            } else {
+                console.error("Cloud save error:", result.message);
+            }
+        })
+        .catch(err => console.error("Connection error:", err));
+    }
     renderDiePM();
     document.getElementById('dieForm').reset();
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
