@@ -2319,7 +2319,9 @@ function renderDiePM() {
 
     let tallyDue = 0;
     let tallyNear = 0;
-
+    let pmDueCount = 0;
+    let nearPmCount = 0;
+  
     Object.keys(strokeMap).forEach(partKey => {
         const currentItem = strokeMap[partKey];
         let currentStrokes = currentItem.strokes;
