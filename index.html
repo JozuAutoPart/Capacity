@@ -3994,6 +3994,26 @@ updateClock();
                 }
             }
         }
+        // ฟังก์ชันดึงค่าจาก Google Sheet มาอัปเดตหน้าจอโดยอัตโนมัติ
+function syncStockData() {
+    fetch(`${GOOGLE_SCRIPT_URL}?action=getStockAdjustments`)
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === "success" && result.data) {
+            // ดึงรายการล่าสุดของแต่ละ Part No. มาอัปเดต
+            result.data.forEach(item => {
+                const key = `stock_adjust_${item.Type}_${item["Part No."]}`;
+                localStorage.setItem(key, item["Adjustment Value"]);
+            });
+            // เรียกฟังก์ชันวาดตารางใหม่ (ชื่อฟังก์ชันของพี่มิวอาจเป็นอย่างอื่น เช่น updateTable())
+            // ถ้าไม่แน่ใจชื่อ ให้ใช้ location.reload() เพื่อรีเฟรชค่าใหม่ก็ได้ครับ
+            console.log("Sync stock data successful");
+        }
+    });
+}
+
+// ตั้งเวลาให้ระบบเช็คข้อมูลใหม่ทุกๆ 30 วินาที
+setInterval(syncStockData, 30000);
 </script>
 </body>
 </html>
