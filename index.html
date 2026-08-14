@@ -1343,7 +1343,7 @@ function renderPlans() {
         let actualQty = Number(plan.actualQty) || 0; // หรือปรับตัวแปรยอดผลิตจริงตามโครงสร้างจริง
         let diff = planQty - actualQty;
         
-       if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.015) {
+       if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.01) {
     return false; // ซ่อนแผนนี้ทันทีเมื่อเหลือน้อยกว่าหรือเท่ากับ 1%
 }
         return true;
