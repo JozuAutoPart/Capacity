@@ -1343,7 +1343,7 @@ function renderPlans() {
         let actualQty = Number(plan.actualQty) || 0; // หรือปรับตัวแปรยอดผลิตจริงตามโครงสร้างจริง
         let diff = planQty - actualQty;
         
-       if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.015) {
+       if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.02) {
     return false; // ซ่อนแผนนี้ทันทีเมื่อเหลือน้อยกว่าหรือเท่ากับ 1%
 }
         return true;
@@ -1422,7 +1422,7 @@ const diff = planQty - totalActualOk;
 const ratio = planQty > 0 ? (diff / planQty) : 0;
 
 // เงื่อนไข: ต้องผลิตยังไม่ครบ (diff > 0) และสัดส่วนที่เหลือต้องมากกว่า 1% (ratio > 0.01) ถึงจะเอามาแสดงใน Dropdown
-if (diff > 0 && ratio > 0.015) {
+if (diff > 0 && ratio > 0.02) {
     const opt = document.createElement('option');
     opt.value = planPart;
     opt.dataset.lot = planLot;
