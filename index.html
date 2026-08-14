@@ -2317,10 +2317,8 @@ function renderDiePM() {
         strokeMap[itemRecord.partNo].strokes += (Number(itemRecord.qty) + Number(itemRecord.ngQty || 0));
     });
 
-    let tallyDue = 0;
-    let tallyNear = 0;
-    let pmDueCount = 0;
-    let nearPmCount = 0;
+       let pmDueCount = 0;
+       let pmNearCount = 0; // แก้จาก nearPmCount เป็น pmNearCount;
   
     Object.keys(strokeMap).forEach(partKey => {
         const currentItem = strokeMap[partKey];
