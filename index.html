@@ -1925,10 +1925,12 @@ function getFgBalances() {
 }
 
 function renderStock() {
-   // ประกาศไว้นอกฟังก์ชัน เพื่อให้ทุกส่วนในหน้าเว็บเรียกใช้ได้ทันที
-const wipbody = document.getElementById('wipTableBody');
-const fgtbody = document.getElementById('fgTableBody');
-    if (!wipTbody || !fgTbody) return;
+    // ประกาศดึงตัวแปรสดๆ ไว้ข้างในฟังก์ชันเลย ป้องกันการหาไม่พบ
+    const wipbody = document.getElementById('wipTableBody');
+    const fgtbody = document.getElementById('fgTableBody');
+    if (!wipbody || !fgtbody) return;
+
+    // ... (โค้ดคำนวณและสร้างตารางทั้งหมดที่พี่มิวมีอยู่แล้ว ให้ต่อจากตรงนี้ลงมาได้เลยครับ)
     wipTbody.innerHTML = '';
     fgTbody.innerHTML = '';
 
