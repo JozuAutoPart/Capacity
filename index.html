@@ -1472,16 +1472,10 @@ function submitActual(e) {
         body: JSON.stringify({ action: 'saveActual', data: actual })
     })
     .then(response => response.json())
-   .then(result => {
-    if (result.status === "success") {
-        console.log("Saved successfully");
-        if (typeof loadAllDataFromCloud === 'function') {
-            loadAllDataFromCloud();
-        } else {
-            location.reload();
-        }
-    }
-})
+    .then(result => {
+        if (result.status === "success") {
+            actuals.push(actual);
+
             // ---------------------------------------------------------
             // เพิ่มส่วนนี้: อัปเดตยอดเข้า Stock WIP ทันที เพื่อให้ Q-Gate ดึงไปตรวจสอบได้
             // ---------------------------------------------------------
@@ -2010,20 +2004,15 @@ function renderStock() {
 }
 
 // 📌 ฟังก์ชันสำหรับแอดมินปรับเพิ่ม/ลดสต็อกสิ้นเดือน (วางไว้ท้ายสุดได้เลย)
-// // ฟังก์ชันสำหรับแอดมินปรับเพิ่ม/ลดสต็อกสั้นเดือน
 function adjustStock(partNo, type) {
     const key = `stock_adjust_${type}_${partNo}`;
     const currentVal = localStorage.getItem(key) || 0;
-    const input = prompt(`[${type}] ปรับยอดสั้นเดือนของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
-
+    const input = prompt(`[${type}] ปรับยอดสิ้นเดือนของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
+    
     if (input !== null) {
         const val = parseInt(input);
         if (!isNaN(val)) {
             localStorage.setItem(key, val);
-            
-            // 📌 เพิ่มบรรทัดนี้ เพื่อส่งข้อมูลไปบันทึกลง Google Sheets ทันที
-            saveAlertStatus(partNo, `${type} Adjusted to ${val}`, "Staff");
-
             location.reload(); // รีเฟรชหน้าจอเพื่ออัปเดตยอดคงเหลือทันที
         } else {
             alert("กรุณากรอกตัวเลขให้ถูกต้องครับ");
@@ -2065,44 +2054,6 @@ function filterFgTable() {
             }
         }
     });
-}
-        async function fetchAlertStatus() {
-  try {
-    const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getAlertStatus`);
-    const result = await response.json();
-    if (result.status === "success") {
-      return result.data;
-    }
-  } catch (error) {
-    console.error("Error fetching alert status:", error);
-  }
-  return [];
-}
-
-async function saveAlertStatus(partNo, status, user) {
-  try {
-    const payload = {
-      action: "saveAlertStatus",
-      data: {
-        timestamp: new Date().toLocaleString(),
-        partNo: partNo,
-        status: status,
-        user: user || "Staff"
-      }
-    };
-
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    
-    const result = await response.json();
-    if (result.status === "success") {
-      console.log("บันทึกสถานะลง Google Sheets สำเร็จ!");
-    }
-  } catch (error) {
-    console.error("Error saving alert status:", error);
-  }
 }
       // --- TAB 7: DELIVERY (การส่งมอบ) ---
 function loadDeliveryParts() {
