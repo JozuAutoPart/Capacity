@@ -1335,12 +1335,26 @@ function renderPlans() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (!plans || plans.length === 0) {
+    // กรองแผนที่มียอดค้างน้อยกว่า 1% ออกไป (สมมติเทียบกับยอดผลิตจริง หรือยอดสะสม)
+    let activePlans = plans.filter(plan => {
+        let planQty = Number(plan["Plan Qty"]) || 0;
+        // หากมีฟังก์ชันรวมยอดผลิตจริงของพาร์ทนั้นๆ สามารถดึงมาเทียบได้ เช่น actualQty
+        // สมมติถ้าต้องการเช็คเงื่อนไขยอดค้างน้อยกว่า 1% จากยอดแผนทั้งหมด:
+        let actualQty = Number(plan.actualQty) || 0; // หรือปรับตัวแปรยอดผลิตจริงตามโครงสร้างจริง
+        let diff = planQty - actualQty;
+        
+        if (planQty > 0 && diff > 0 && (diff / planQty) < 0.01) {
+            return false; // ซ่อนแผนนี้หายไปจากตารางทันที
+        }
+        return true;
+    });
+
+    if (!activePlans || activePlans.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูลแผนการผลิต</td></tr>`;
         return;
     }
 
-    plans.forEach(plan => {
+    activePlans.forEach(plan => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
