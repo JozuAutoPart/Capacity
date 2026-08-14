@@ -2318,9 +2318,10 @@ function renderDiePM() {
     });
 
       let pmDueCount = 0;
-      let pmNearCount = 0;
-      let tallyDue = 0;
-      let tallyNear = 0; // เพิ่มตัวแปรนี้เข้าไปด้วยครับ
+let pmNearCount = 0;
+let tallyDue = 0;
+let tallyNear = 0;
+const bmTableBody = document.getElementById('bmTableBody');
   
     Object.keys(strokeMap).forEach(partKey => {
         const currentItem = strokeMap[partKey];
