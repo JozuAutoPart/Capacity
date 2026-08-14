@@ -398,10 +398,15 @@
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <div class="card p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="m-0">รายการแผนการผลิตทั้งหมด</h5>
-                                <div>
+    <div class="card p-3">
+        <!-- แก้ไขตรงนี้: เพิ่มช่อง input ค้นหาเข้าไป -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="m-0 text-white">รายการแผนการผลิตทั้งหมด</h5>
+            <div>
+                <input type="text" id="planSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Lot No...." style="width: 250px;" oninput="renderPlans()">
+            </div>
+        </div>
+        <!-- สิ้นสุดส่วนที่เพิ่ม -->
                                     <button class="btn btn-outline-success btn-sm me-2" onclick="exportToExcelXLSX('plans')">
                                         <i class="fas fa-file-excel me-1"></i> Export แผนผลิต
                                     </button>
@@ -1335,26 +1340,39 @@ function renderPlans() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // กรองแผนที่มียอดค้างน้อยกว่า 1% ออกไป (สมมติเทียบกับยอดผลิตจริง หรือยอดสะสม)
+    // ดึงค่าจากช่องค้นหาที่เราเพิ่งสร้าง
+    const searchEl = document.getElementById('planSearchInput');
+    const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
     let activePlans = plans.filter(plan => {
         let planQty = Number(plan["Plan Qty"]) || 0;
-        // หากมีฟังก์ชันรวมยอดผลิตจริงของพาร์ทนั้นๆ สามารถดึงมาเทียบได้ เช่น actualQty
-        // สมมติถ้าต้องการเช็คเงื่อนไขยอดค้างน้อยกว่า 1% จากยอดแผนทั้งหมด:
-        let actualQty = Number(plan.actualQty) || 0; // หรือปรับตัวแปรยอดผลิตจริงตามโครงสร้างจริง
+        let actualQty = Number(plan.actualQty) || 0;
         let diff = planQty - actualQty;
-        
-       if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.02) {
-    return false; // ซ่อนแผนนี้ทันทีเมื่อเหลือน้อยกว่าหรือเท่ากับ 1%
-}
+
+        // เงื่อนไขตัดทิ้งเมื่อเหลือ <= 1%
+        if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.02) {
+            return false; 
+        }
+
+        // เงื่อนไขการค้นหา (พิมพ์กรอง Part No. หรือ Lot No.)
+        if (query) {
+            const pNo = String(plan["Part No."] || '').toLowerCase();
+            const lNo = String(plan["Lot No."] || '').toLowerCase();
+            if (!pNo.includes(query) && !lNo.includes(query)) {
+                return false; // ถ้าไม่ตรงกับที่พิมพ์ ให้ซ่อนออก
+            }
+        }
+
         return true;
     });
 
     if (!activePlans || activePlans.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีข้อมูลแผนการผลิต</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต</td></tr>`;
         return;
     }
 
     activePlans.forEach(plan => {
+        // โค้ดสร้างแถวตารางแสดงผลเดิมของพี่มิว...
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
@@ -1364,8 +1382,8 @@ function renderPlans() {
             <td>${plan["Lot No."] || ''}</td>
             <td>${Number(plan["Plan Qty"] || 0).toLocaleString()}</td>
             <td class="text-center">
-                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deletePlan(${plan.id})" title="ลบแผนนี้">
-                    <i class="fas fa-trash"></i>
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deletePlan(${plan.id})" title="ลบแผนผังนี้">
+                    <i class="fas fa-fa-trash"></i>
                 </button>
             </td>
         `;
