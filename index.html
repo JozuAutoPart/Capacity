@@ -405,7 +405,8 @@
                 <input type="text" id="planSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Lot No...." style="width: 200px;" oninput="renderPlans()">
                 <button class="btn btn-outline-success btn-sm text-nowrap" onclick="exportToExcelXLSX('plans')"><i class="fas fa-file-excel me-1"></i>Export</button>
                 <button class="btn btn-outline-danger btn-sm text-nowrap" onclick="clearAllPlans()"><i class="fas fa-trash me-1"></i>ล้างแผน</button>
-          </div>
+            </div>
+        </div>
         <div class="table-responsive">
             <table class="table table-dark table-hover align-middle m-0">
                 <thead>
@@ -422,7 +423,8 @@
                 <tbody id="planTableBody"></tbody>
             </table>
         </div>
-    
+    </div>
+</div>
             <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
                 <div class="row g-3">
@@ -1360,23 +1362,24 @@ function renderPlans() {
         return;
     }
 
-       activePlans.forEach(plan => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-        <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
-        <td>${plan.Finish ? plan.Finish.split('T')[0] : ''}</td>
-        <td><span class="badge bg-secondary">${plan.Line || ''}</span></td>
-        <td class="fw-bold text-info">${plan["Part No."] || ''}</td>
-        <td>${plan["Lot No."] || ''}</td>
-        <td>${Number(plan["Plan Qty"] || 0).toLocaleString()}</td>
-        <td class="text-center">
-            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deletePlan(${plan.id})" title="ลบแผนผังนี้">
-                <i class="fas fa-trash"></i>
-            </button>
-        </td>
-    `;
-    tbody.appendChild(tr);
-});
+    activePlans.forEach(plan => {
+        // โค้ดสร้างแถวตารางแสดงผลเดิมของพี่มิว...
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
+            <td>${plan.Finish ? plan.Finish.split('T')[0] : ''}</td>
+            <td><span class="badge bg-secondary">${plan.Line || ''}</span></td>
+            <td class="fw-bold text-info">${plan["Part No."] || ''}</td>
+            <td>${plan["Lot No."] || ''}</td>
+            <td>${Number(plan["Plan Qty"] || 0).toLocaleString()}</td>
+            <td class="text-center">
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deletePlan(${plan.id})" title="ลบแผนผังนี้">
+                    <i class="fas fa-fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 function deletePlan(id) {
