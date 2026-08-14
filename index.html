@@ -2004,15 +2004,20 @@ function renderStock() {
 }
 
 // 📌 ฟังก์ชันสำหรับแอดมินปรับเพิ่ม/ลดสต็อกสิ้นเดือน (วางไว้ท้ายสุดได้เลย)
+// // ฟังก์ชันสำหรับแอดมินปรับเพิ่ม/ลดสต็อกสั้นเดือน
 function adjustStock(partNo, type) {
     const key = `stock_adjust_${type}_${partNo}`;
     const currentVal = localStorage.getItem(key) || 0;
-    const input = prompt(`[${type}] ปรับยอดสิ้นเดือนของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
-    
+    const input = prompt(`[${type}] ปรับยอดสั้นเดือนของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
+
     if (input !== null) {
         const val = parseInt(input);
         if (!isNaN(val)) {
             localStorage.setItem(key, val);
+            
+            // 📌 เพิ่มบรรทัดนี้ เพื่อส่งข้อมูลไปบันทึกลง Google Sheets ทันที
+            saveAlertStatus(partNo, `${type} Adjusted to ${val}`, "Staff");
+
             location.reload(); // รีเฟรชหน้าจอเพื่ออัปเดตยอดคงเหลือทันที
         } else {
             alert("กรุณากรอกตัวเลขให้ถูกต้องครับ");
