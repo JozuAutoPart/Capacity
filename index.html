@@ -1473,17 +1473,16 @@ function submitActual(e) {
     })
     .then(response => response.json())
     .then(result => {
-    if (result.status === "success") {
-        console.log("Saved successfully");
-        
-        // 📌 เปลี่ยนมาใช้คำสั่งนี้ เพื่อดึงข้อมูลล่าสุดจาก Google Sheets มาแสดงผลทุกเครื่องทันที!
-        if (typeof loadAllDataFromCloud === 'function') {
-            loadAllDataFromCloud();
-        } else {
-            location.reload(); // ถ้าไม่มีฟังก์ชัน ให้รีเฟรชหน้าจอแทน
-        }
-    }
-})
+        if (result.status === "success") {
+            console.log("Saved successfully");
+            
+            // ดึงข้อมูลใหม่จาก Google Sheets มาแสดงผลทันที
+            if (typeof loadAllDataFromCloud === 'function') {
+                loadAllDataFromCloud();
+            } else {
+                location.reload();
+            }
+    })
 
             // ---------------------------------------------------------
             // เพิ่มส่วนนี้: อัปเดตยอดเข้า Stock WIP ทันที เพื่อให้ Q-Gate ดึงไปตรวจสอบได้
