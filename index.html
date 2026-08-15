@@ -4069,6 +4069,61 @@ function loadDieMaintenanceHistory() {
 window.addEventListener('DOMContentLoaded', () => {
     loadDieMaintenanceHistory();
 });
+        // ฟังก์ชันดึงข้อมูล Master Parts จาก Google Sheets อัตโนมัติ
+function fetchMasterPartsFromCloud() {
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    if (!scriptUrl) return;
+
+    fetch(`${scriptUrl}?action=getMasterParts`)
+        .then(response => response.json())
+        .then(result => {
+            if (result && result.status === "success" && result.data) {
+                // บันทึกลง localStorage ของเครื่องนั้นๆ อัตโนมัติ
+                localStorage.setItem('masterPartsDatabase', JSON.stringify(result.data));
+                window.masterPartsDatabase = result.data;
+                console.log("☁️ โหลด Master Parts จาก Cloud สำเร็จ:", result.data.length, "รายการ");
+                
+                // สั่งเรนเดอร์หน้าจอ Dashboard ใหม่เพื่อให้กล่องแจ้งเตือนอัปเดตทันที
+                if (typeof renderZeroStockPartsByLine === 'function') {
+                    renderZeroStockPartsByLine('ALL'); // หรือใช้ตัวแปรไลน์ที่กำลังเลือกอยู่
+                }
+            }
+        })
+        .catch(err => console.error("❌ ไม่สามารถดึงข้อมูล Master จาก Cloud ได้:", err));
+}
+
+// สั่งให้ทำงานทันทีเมื่อเปิดหน้าเว็บ
+window.addEventListener('DOMContentLoaded', () => {
+    fetchMasterPartsFromCloud();
+});
+ฝั่ง Google Apps Script (ฝั่ง Google Sheets)
+เพื่อให้ Google Sheets ส่งข้อมูล Master Part กลับมาให้เว็บไซต์ได้ พี่มิวต้องเพิ่มชุดคำสั่งใน Google Apps Script (ไฟล์ `.gs` ที่ผูกไว้กับโปรเจกต์) เพิ่มเติมดังนี้ครับ:
+
+javascript
+Copy
+function doGet(e) {
+  var action = e.parameter.action;
+  
+  if (action === "getMasterParts") {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("MasterParts"); // *ชื่อชีทเก็บข้อมูล Master ของพี่มิว (เปลี่ยนตามจริง)*
+    var rows = sheet.getDataRange().getValues();
+    var headers = rows[0];
+    var data = [];
+    
+    for (var i = 1; i < rows.length; i++) {
+      var obj = {};
+      for (var j = 0; j < headers.length; j++) {
+        obj[headers[j]] = rows[i][j];
+      }
+      data.push(obj);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", data: data }))
+                         .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+เพียงเท่านี้ เมื่อเปิดเว็บไซต์จากเครื่องไหนก็ตาม ระบบจะวิ่งไปดึงข้อมูล Master Part จาก Google Sheets มาเก็บไว้ในเครื่องนั้นแบบอัตโนมัติ ทำให้กล่องแจ้งเตือน Part No. ที่ Stock เป็น 0 แสดงผลขึ้นมาได้ทันทีโดยไม่ต้องกดอัปโหลดไฟล์ซ้ำอีกเลยครับ!
 </script>
 </body>
 </html>
