@@ -4044,7 +4044,7 @@ function loadDieMaintenanceHistory() {
     .then(response => response.json())
     .then(result => {
         if (result.status === "success" && result.data) {
-            const tableBody = document.getElementById('dieBmTableBody');
+            const tableBody = document.getElementById('bmTableBody');
             if (!tableBody) return;
             
             tableBody.innerHTML = ''; // ล้างข้อมูลเก่า
