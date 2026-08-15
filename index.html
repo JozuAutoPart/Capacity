@@ -4123,7 +4123,39 @@ function doGet(e) {
                          .setMimeType(ContentService.MimeType.JSON);
   }
 }
-เพียงเท่านี้ เมื่อเปิดเว็บไซต์จากเครื่องไหนก็ตาม ระบบจะวิ่งไปดึงข้อมูล Master Part จาก Google Sheets มาเก็บไว้ในเครื่องนั้นแบบอัตโนมัติ ทำให้กล่องแจ้งเตือน Part No. ที่ Stock เป็น 0 แสดงผลขึ้นมาได้ทันทีโดยไม่ต้องกดอัปโหลดไฟล์ซ้ำอีกเลยครับ!
+// ฟังก์ชันดึง Master Parts จาก Cloud อัตโนมัติเมื่อเปิดเว็บ
+window.addEventListener('DOMContentLoaded', () => {
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    if (!scriptUrl) return;
+
+    fetch(`${scriptUrl}?action=getMasterParts`)
+        .then(response => response.json())
+        .then(result => {
+            if (result && result.status === "success" && result.data && result.data.length > 0) {
+                // แปลงชื่อคีย์ให้เป็นตัวพิมพ์เล็ก/ใหญ่รองรับระบบเดิม
+                const formattedData = result.data.map(item => ({
+                    barcode: String(item.barcode || item['barcode'] || '').trim(),
+                    partNo: String(item.partNo || item['partNo'] || '').trim(),
+                    qty: item.จำนวน || item['จำนวน'] || 0,
+                    customer: item.ที่ลูกค้า || item['ที่ลูกค้า'] || '',
+                    line: item.Line || item['Line'] || '',
+                    image: item.รูปภาพ || item['รูปภาพ'] || '',
+                    forecast: item.Forecast || item['Forecast'] || 0,
+                    safetyStock: item['Safety Stock'] || item.safetyStock || 0
+                }));
+
+                localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedData));
+                window.masterPartsDatabase = formattedData;
+                console.log("☁️ โหลด Master Parts จาก Cloud สำเร็จ:", formattedData.length, "รายการ");
+
+                // รีเฟรชหน้าจอ Dashboard อัตโนมัติ
+                if (typeof renderZeroStockPartsByLine === 'function') {
+                    renderZeroStockPartsByLine('ALL');
+                }
+            }
+        })
+        .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
+});
 </script>
 </body>
 </html>
