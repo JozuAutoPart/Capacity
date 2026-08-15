@@ -4040,7 +4040,7 @@ setInterval(syncStockData, 10000);
 function loadDieMaintenanceHistory() {
     if (typeof GOOGLE_SCRIPT_URL === 'undefined') return;
 
-    fetch(`${GOOGLE_SCRIPT_URL}?action=getDieMaintenanceHistory`)
+    fetch(`${GOOGLE_SCRIPT_URL}?action=getDieMaintenance`)
     .then(response => response.json())
     .then(result => {
         if (result.status === "success" && result.data) {
