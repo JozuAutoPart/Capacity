@@ -226,30 +226,37 @@
     </div>
 </div>
 
-            <!-- TAB 2: CAPACITY -->
-            <div class="tab-pane fade" id="tab-capacity">
-                <div class="card p-3 mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
-                        <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle m-0">
-                            <thead>
-                                <tr>
-                                    <th>Line</th>
-                                    <th>Machine Type.</th>
-                                    <th>Actual Produced (Strokes)</th>
-                                    <th>Max Capacity (Strokes)</th>
-                                    <th>Utilization (%)</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="capacityTableBody"></tbody>
-                        </table>
-                    </div>
+           <!-- TAB 2: CAPACITY -->
+<div class="tab-pane fade" id="tab-capacity">
+    <div class="card p-3 mb-3 bg-dark text-white border-secondary">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- ช่องค้นหาเครื่องจักร -->
+                <div class="input-group input-group-sm" style="max-width: 250px;">
+                    <span class="input-group-text bg-dark border-secondary text-white"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchMachineInput" class="form-control bg-dark text-white border-secondary" placeholder="ค้นหา Line หรือ Machine..." onkeyup="filterMachineTable()">
                 </div>
+                <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
             </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle m-0">
+                <thead>
+                    <tr>
+                        <th>Line</th>
+                        <th>Machine Type.</th>
+                        <th>Actual Produced (Strokes)</th>
+                        <th>Max Capacity (Strokes)</th>
+                        <th>Utilization (%)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="capacityTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 <!-- TAB: MATERIAL (รับ-จ่าย Material) -->
 <div class="tab-pane fade" id="tab-material">
     <div class="row g-3">
@@ -4161,6 +4168,22 @@ window.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
 });
+        // ฟังก์ชันสำหรับค้นหาและกรองตารางเครื่องจักรในหน้า Capacity
+function filterMachineTable() {
+    const input = document.getElementById('searchMachineInput');
+    if (!input) return;
+    const filter = input.value.toLowerCase();
+    const rows = document.querySelectorAll('#capacityTableBody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(filter)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
 </script>
 </body>
 </html>
