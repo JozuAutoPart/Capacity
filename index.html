@@ -262,8 +262,8 @@
     <div class="row g-3">
         <!-- ฝั่งซ้าย: ฟอร์มทำรายการ รับ / จ่าย -->
         <div class="col-md-4">
-            <div class="card p-3 border-start border-4 border-warning shadow-sm">
-                <h5 class="mb-3 text-warning"><i class="fas fa-exchange-alt me-2"></i>บันทึก รับ / จ่าย Material</h5>
+            <div class="card p-3 border-start border-4 shadow-sm" style="border-color: #e91e63 !important;">
+                <h5 class="mb-3" style="color: #e91e63 !important;"><i class="fas fa-exchange-alt me-2"></i>บันทึก รับ / จ่าย Material</h5>
                 <form id="materialForm" onsubmit="submitMaterialTransaction(event)">
                     <div class="mb-2">
                         <label class="form-label small">ประเภทรายการ (Transaction Type)</label>
@@ -305,7 +305,7 @@
                         <input type="text" id="matRequester" class="form-control form-control-sm" placeholder="ชื่อผู้เบิก / ไลน์ผลิต">
                     </div>
 
-                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
+                    <button type="submit" class="btn" style="background-color: #e91e63; color: white;">บันทึกรายการ</button>
                         <i class="fas fa-save me-1"></i> บันทึกรายการ
                     </button>
                 </form>
