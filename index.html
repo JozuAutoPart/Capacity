@@ -616,53 +616,6 @@
         </div>
     </div>
 </div>
-           <!-- ปุ่มเปิดเครื่องคิดเลข -->
-<button type="button" class="btn btn-outline-warning btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#calculatorModal">
-    <i class="fas fa-calculator"></i> เปิดเครื่องคิดเลข
-</button>
-
-<!-- Modal เครื่องคิดเลข -->
-<div class="modal fade" id="calculatorModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 280px;">
-        <div class="modal-content bg-dark text-white border-secondary shadow-lg">
-            <div class="modal-header border-secondary py-2">
-                <h6 class="modal-title text-warning"><i class="fas fa-calculator"></i> เครื่องคิดเลข</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-3">
-                <!-- หน้าจอแสดงผล -->
-                <input type="text" id="calcScreen" class="form-control form-control-lg bg-black text-white text-end mb-3 border-secondary fs-4" value="0" readonly>
-                
-                <!-- แผงปุ่มกด -->
-                <div class="d-grid gap-2" style="grid-template-columns: repeat(4, 1fr); display: grid;">
-                    <button type="button" class="btn btn-secondary btn-sm py-2" onclick="calcClear()">C</button>
-                    <button type="button" class="btn btn-secondary btn-sm py-2" onclick="calcAppend('/')">÷</button>
-                    <button type="button" class="btn btn-secondary btn-sm py-2" onclick="calcAppend('*')">×</button>
-                    <button type="button" class="btn btn-danger btn-sm py-2" onclick="calcBackSpace()">⌫</button>
-
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('7')">7</button>
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('8')">8</button>
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('9')">9</button>
-                    <button type="button" class="btn btn-secondary btn-sm py-2" onclick="calcAppend('-')">-</button>
-
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('4')">4</button>
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('5')">5</button>
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('6')">6</button>
-                    <button type="button" class="btn btn-secondary btn-sm py-2" onclick="calcAppend('+')">+</button>
-
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('1')">1</button>
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('2')">2</button>
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('3')">3</button>
-                    <button type="button" class="btn btn-warning btn-sm py-2 row-span-2" onclick="calcCalculate()" style="grid-row: span 2; height: 100%;">=</button>
-
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('00')">00</button>
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('0')">0</button>
-                    <button type="button" class="btn btn-dark btn-sm py-2 border-secondary" onclick="calcAppend('.')">.</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div> 
             <!-- TAB 6: STOCK WIP & FG -->
             <div class="tab-pane fade" id="tab-stock">
                 <div class="row g-3">
@@ -4208,52 +4161,6 @@ window.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
 });
-        // ฟังก์ชันการทำงานของเครื่องคิดเลข
-let calcDisplayValue = "0";
-
-function updateCalcScreen() {
-    const screen = document.getElementById('calcScreen');
-    if (screen) {
-        screen.value = calcDisplayValue;
-    }
-}
-
-function calcClear() {
-    calcDisplayValue = "0";
-    updateCalcScreen();
-}
-
-function calcAppend(val) {
-    if (calcDisplayValue === "0" && val !== '.') {
-        calcDisplayValue = val;
-    } else {
-        calcDisplayValue += val;
-    }
-    updateCalcScreen();
-}
-
-function calcBackSpace() {
-    if (calcDisplayValue.length > 1) {
-        calcDisplayValue = calcDisplayValue.slice(0, -1);
-    } else {
-        calcDisplayValue = "0";
-    }
-    updateCalcScreen();
-}
-
-function calcCalculate() {
-    try {
-        // แปลงเครื่องหมายคูณ/หารให้ถูกต้องตามหลัก JavaScript
-        let expression = calcDisplayValue.replace(/×/g, '*').replace(/÷/g, '/');
-        let result = eval(expression);
-        calcDisplayValue = String(result);
-        updateCalcScreen();
-    } else {
-        calcDisplayValue = "Error";
-        updateCalcScreen();
-        setTimeout(calcClear, 1500);
-    }
-}
 </script>
 </body>
 </html>
