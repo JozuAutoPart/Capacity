@@ -1930,34 +1930,38 @@ function getFgBalances() {
     });
     return fgMap;
 }
+// ฟังก์ชันสำหรับตัดรหัสต่อท้าย เช่น "17535-0C030 1/2" ให้เหลือรหัสหลัก
+function getBasePartNo(partNo) {
+    if (!partNo) return '';
+    return partNo.replace(/\s+\d+\/\d+$/, '').trim();
+}
 
 function renderStock() {
-    // ประกาศดึงตัวแปรสดๆ ไว้ข้างในฟังก์ชันเลย ป้องกันการหาไม่พบ
     const wipbody = document.getElementById('wipTableBody');
     const fgtbody = document.getElementById('fgTableBody');
     if (!wipbody || !fgtbody) return;
 
     wipbody.innerHTML = '';
-    fgtbody.innerHTML = ''; // แก้จาก fgTbody เป็น fgtbody เรียบร้อยแล้วครับ
+    fgtbody.innerHTML = '';
 
-    // ดึง Part No. จากทุกส่วนรองรับทั้งพิมพ์เล็ก/ใหญ่
+    // ดึง Part No. แล้วตัดรหัสห้อยท้ายเพื่อให้ยุบรวมเป็นรหัสหลักเดียวกัน
     const partsSet = new Set([
-        ...actuals.map(a => a.partNo || a['Part No.'] || ''),
-        ...qgate.map(q => q.partNo || q['Part No.'] || ''),
-        ...deliveries.map(d => d.partNo || d['Part No.'] || '')
+        ...actuals.map(a => getBasePartNo(a.partNo || a['Part No.'] || '')),
+        ...qgate.map(q => getBasePartNo(q.partNo || q['Part No.'] || '')),
+        ...deliveries.map(d => getBasePartNo(d.partNo || d['Part No.'] || ''))
     ]);
 
     partsSet.forEach(partNo => {
         if(!partNo) return;
 
-        // WIP Summary (ยอดผลิตเข้า WIP ทั้งหมด)
-        const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+        // WIP Summary (ยอดผลิตเข้า WIP ทั้งหมด - เช็คเทียบด้วยรหัสหลัก)
+        const totalIn = actuals.filter(a => getBasePartNo(a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
             let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // WIP Summary (ยอดตัดโอนออกไป FG)
-        const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+        // WIP Summary (ยอดตัดโอนออกไป FG - เช็คเทียบด้วยรหัสหลัก)
+        const totalTransferred = qgate.filter(q => getBasePartNo(q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
             let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
@@ -1979,13 +1983,14 @@ function renderStock() {
         `;
         wipbody.appendChild(trwip);
 
-        // FG Summary
-        const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+        // FG Summary (ยอดผ่านเข้า FG - เช็คเทียบด้วยรหัสหลัก)
+        const fgPass = qgate.filter(q => getBasePartNo(q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
             let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
+        // FG Summary (ยอดส่งมอบ - เช็คเทียบด้วยรหัสหลัก)
+        const fgDelivered = deliveries.filter(d => getBasePartNo(d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
             let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['จำนวนส่งมอบ'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
@@ -4207,11 +4212,7 @@ function filterMachineTable() {
         }
     });
 }
-        // ฟังก์ชันสำหรับตัดรหัสต่อท้าย เช่น "17535-0C030 1/2" หรือ "17535-0C030 2/3" ให้เหลือรหัสหลัก
-function getBasePartNo(partNo) {
-    if (!partNo) return '';
-    return partNo.replace(/\s+\d+\/\d+$/, '').trim();
-}
+
 </script>
 </body>
 </html>
