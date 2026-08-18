@@ -450,6 +450,15 @@
                                     <label class="form-label small">วันที่ผลิต</label>
                                     <input type="date" id="actualDate" class="form-control form-control-sm" required>
                                 </div>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <label class="form-label small">เวลาเริ่มผลิต</label>
+                                        <input type="time" id="actualStartTime" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small">เวลาสิ้นสุด</label>
+                                        <input type="time" id="actualEndTime" class="form-control form-control-sm">
+                                    </div>
                                 <div class="mb-2">
                                     <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
                                     <input type="text" id="actualOperator" class="form-control form-control-sm" placeholder="เช่น นายสมชาย (OP-01)" required>
@@ -1471,18 +1480,29 @@ function submitActual(e) {
     // ถ้าระบุ Suffix มา ให้เว้นวรรค 1 เคาะแล้วต่อด้วย Suffix ทันที
   const finalPartNo = processSuffix ? basePart + ' ' + processSuffix : basePart;
 
+   // 📌 รวมวันที่และเวลาให้อยู่ในรูปแบบเดียวกัน (เช่น "2026-08-18 12:40 - 13:05")
+    const rawDate = document.getElementById('actualDate').value;
+    const startTime = document.getElementById('actualStartTime').value;
+    const endTime = document.getElementById('actualEndTime').value;
+    
+    let combinedDateTime = rawDate;
+    if (startTime && endTime) {
+        combinedDateTime = `${rawDate} ${startTime} - ${endTime}`;
+    } else if (startTime) {
+        combinedDateTime = `${rawDate} ${startTime}`;
+    }
+
     const actual = {
-        date: document.getElementById('actualDate').value,
+        date: combinedDateTime, // 📌 ส่งค่าที่รวมแล้วไปเก็บแทนช่อง Date เดิม
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
-        partNo: finalPartNo, // 📌 ใช้ตัวแปรนี้ส่งเข้าข้อมูล
+        partNo: finalPartNo,
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
         remark: document.getElementById('actualRemark').value.trim()
     };
-
     // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script (ใช้รูปแบบเดียวกับ Planning)
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
