@@ -2361,25 +2361,58 @@ function resetDiePm(partNo) {
     }
 
     if (confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
+        // 1. คำนวณยอด Stroke ปัจจุบัน เพื่อเก็บเป็นยอดหักลบ (Offset)
         let currentStrokes = 0;
+        let lineName = "-";
         if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
             actuals.forEach(a => {
                 let pNo = a.partNo || a.part || a['Part No.'];
                 if (pNo === partNo) {
                     currentStrokes += (Number(a.qty || 0) + Number(a.ngQty || 0));
+                    if (a.line || a.Line) lineName = a.line || a.Line;
                 }
             });
         }
 
+        // 2. บันทึกยอดหักลบลงในเครื่อง (Reset สโตรก)
         let pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
         pmOffsets[partNo] = currentStrokes; 
         localStorage.setItem('sys_pm_offsets', JSON.stringify(pmOffsets));
 
+        // 3. บันทึกประวัติลง LocalStorage ของตารางประวัติแม่พิมพ์
+        let todayStr = new Date().toISOString().split('T')[0];
+        let dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+        
+        let newRecord = {
+            date: todayStr,
+            partNo: partNo,
+            problem: `PM Completed (Line: ${lineName}, Strokes Reset: ${currentStrokes.toLocaleString()})`,
+            reporter: "System PM"
+        };
+        dieBms.push(newRecord);
+        localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+
+        // 4. สร้างและดาวน์โหลดไฟล์ Excel บันทึกประวัติ PM ทันที
+        if (typeof XLSX !== 'undefined') {
+            let excelData = dieBms.map((item, idx) => ({
+                "ลำดับ": idx + 1,
+                "วันที่": item.date || "",
+                "Part No.": item.partNo || "",
+                "รายละเอียด / ปัญหา": item.problem || "",
+                "ผู้แจ้งซ่อม / บันทึก": item.reporter || ""
+            }));
+
+            let worksheet = XLSX.utils.json_to_sheet(excelData);
+            let workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "PM_History");
+            XLSX.writeFile(workbook, `PM_History_${partNo}_${todayStr}.xlsx`);
+        }
+
+        // 5. รีเฟรชตารางหน้าจอ
         renderDiePM();
-        alert("รีเซ็ต PM สำเร็จเรียบร้อยแล้วครับ เริ่มนับรอบใหม่!");
+        alert("รีเซ็ต PM สำเร็จ และดาวน์โหลดไฟล์ Excel บันทึกประวัติเรียบร้อยแล้วครับ!");
     }
 }
-
 function renderDiePM() {
     const tablePmEl = document.getElementById('diePmTableBody');
     if (!tablePmEl) return;
