@@ -4207,6 +4207,11 @@ function filterMachineTable() {
         }
     });
 }
+        // ฟังก์ชันสำหรับตัดรหัสต่อท้าย เช่น "17535-0C030 1/2" หรือ "17535-0C030 2/3" ให้เหลือรหัสหลัก
+function getBasePartNo(partNo) {
+    if (!partNo) return '';
+    return partNo.replace(/\s+\d+\/\d+$/, '').trim();
+}
 </script>
 </body>
 </html>
