@@ -477,15 +477,8 @@
                                     </select>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label small text-warning">ระบุ Process ห้อยท้าย (ถ้ามี)</label>
-                                    <select id="actualProcessSuffix" class="form-select form-select-sm">
-                                        <option value="">-- ไม่มี (รหัสหลักปกติ) --</option>
-                                        <option value=" 1/5">1/5 (Process 1)</option>
-                                        <option value=" 2/5">2/5 (Process 2)</option>
-                                        <option value=" 3/5">3/5 (Process 3)</option>
-                                        <option value=" 4/5">4/5 (Process 4)</option>
-                                        <option value=" 5/5">5/5 (Process 5)</option>
-                                    </select>
+                                  <label class="form-label small text-warning">ระบุ Process ห้อยท้าย (ถ้ามี)</label>
+                                  <input type="text" id="actualProcessSuffix" class="form-control form-control-sm" placeholder="เช่น 1/5">
                                 </div>
                                 <div class="mb-2">
                                     <label class="form-label small">Lot No.</label>
@@ -1473,14 +1466,17 @@ function onActualPartChange() {
 function submitActual(e) {
     e.preventDefault();
    const basePart = document.getElementById('actualPartNo').value;
-    const processSuffix = document.getElementById('actualProcessSuffix').value;
+    const processSuffix = document.getElementById('actualProcessSuffix').value.trim();
+
+    // ถ้าระบุ Suffix มา ให้เว้นวรรค 1 เคาะแล้วต่อด้วย Suffix ทันที
+  const finalPartNo = processSuffix ? basePart + ' ' + processSuffix : basePart;
 
     const actual = {
         date: document.getElementById('actualDate').value,
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
-        partNo: basePart + processSuffix, // 📌 รวม Part หลัก + Suffix ตรงนี้
+        partNo: finalPartNo, // 📌 ใช้ตัวแปรนี้ส่งเข้าข้อมูล
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
