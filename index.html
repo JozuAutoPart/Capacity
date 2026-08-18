@@ -1930,12 +1930,11 @@ function getFgBalances() {
     });
     return fgMap;
 }
-// ฟังก์ชันสำหรับตัดรหัสต่อท้าย เช่น "17535-0C030 1/2" ให้เหลือรหัสหลัก
+// ฟังก์ชันสำหรับตัดรหัสต่อท้าย (ป้องกัน Error กรณีข้อมูลเป็นตัวเลข)
 function getBasePartNo(partNo) {
-    if (!partNo) return '';
-    return partNo.replace(/\s+\d+\/\d+$/, '').trim();
+    if (partNo === null || partNo === undefined) return '';
+    return String(partNo).replace(/\s+\d+\/\d+$/, '').trim();
 }
-
 function renderStock() {
     const wipbody = document.getElementById('wipTableBody');
     const fgtbody = document.getElementById('fgTableBody');
