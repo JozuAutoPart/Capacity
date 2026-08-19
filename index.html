@@ -485,8 +485,7 @@
                     <!-- 📌 เพิ่มช่อง Scan / ค้นหา Part No. ตรงนี้ -->
                     <div class="mb-2">
                         <label class="form-label small text-warning"><i class="fas fa-barcode"></i> ค้นหา / Scan Part No.</label>
-                        <input type="text" id="actualSearchPart" class="form-control form-control-sm bg-dark text-white" placeholder="พิมพ์หรือสแกน Barcode เพื่อกรอง..." oninput="filterProductionPartDropdown(this.value)">
-                    </div>
+                        <input type="text" id="actualSearchPart" oninput="filterProductionPart(this)" ...>
 
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
