@@ -1593,12 +1593,16 @@ function renderActuals() {
         return;
     }
 
-    // 📌 ใช้ .slice().reverse() เพื่อสลับให้ข้อมูลใหม่ล่าสุดขึ้นมาอยู่ด้านบนสุด
-    const sortedActuals = actuals.slice().reverse();
+    // 📌 จัดเรียงข้อมูลตามวันที่จากใหม่ไปเก่าอย่างถูกต้อง
+    const sortedActuals = [...actuals].sort((a, b) => {
+        let dateA = new Date(a.date || a['Date'] || 0);
+        let dateB = new Date(b.date || b['Date'] || 0);
+        return dateB - dateA; // วันที่ใหม่กว่าจะอยู่ด้านบน
+    });
 
-    sortedActuals.forEach((a, index) => {
-        // คำนวณ index จริงของต้นฉบับเผื่อไว้ใช้ตอนกดลบข้อมูล
-        const originalIndex = actuals.length - 1 - index;
+    sortedActuals.forEach((a) => {
+        // ค้นหา Index จริงในอาเรย์หลักเพื่อป้องกันการลบข้อมูลผิดแถว
+        const originalIndex = actuals.indexOf(a);
 
         let rawDate = a.date || a['Date'] || '';
         let cleanDate = rawDate ? rawDate.split('T')[0] : '-';
