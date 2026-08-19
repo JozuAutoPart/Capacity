@@ -485,8 +485,7 @@
                     <!-- 📌 เพิ่มช่อง Scan / ค้นหา Part No. ตรงนี้ -->
                     <div class="mb-2">
                         <label class="form-label small text-warning"><i class="fas fa-barcode"></i> ค้นหา / Scan Part No.</label>
-                        <input type="text" id="actualSearchPart" oninput="filterProductionPart(this)" ...>
-
+                        <input type="text" id="actualLotNo" class="form-control form-control-sm" readonly placeholder="ดึงอัตโนมัติ">
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
