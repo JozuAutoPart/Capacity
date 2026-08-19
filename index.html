@@ -1477,7 +1477,33 @@ if (diff > 0 && ratio > 0.02) {
         });
     }
 }
+// ฟังก์ชันสำหรับค้นหาและเลือก Part No. อัตโนมัติเมื่อพิมพ์หรือสแกนบาร์โค้ด
+function filterProductionPart(inputElement) {
+    let keyword = inputElement.value.trim().toUpperCase();
+    let select = document.getElementById('actualPartNo');
+    
+    if (!select || keyword === "") return;
 
+    for (let i = 0; i < select.options.length; i++) {
+        let optionText = select.options[i].text.toUpperCase();
+        let optionVal = select.options[i].value.toUpperCase();
+        
+        if (optionVal.includes(keyword) || optionText.includes(keyword)) {
+            select.selectedIndex = i;
+            onActualPartChange();
+            
+            inputElement.classList.remove('bg-dark', 'text-white');
+            inputElement.classList.add('bg-success', 'text-white');
+            
+            setTimeout(() => {
+                inputElement.classList.remove('bg-success');
+                inputElement.classList.add('bg-dark');
+            }, 1000);
+            
+            break;
+        }
+    }
+}
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
     const selectedOpt = select.options[select.selectedIndex];
