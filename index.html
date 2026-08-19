@@ -434,7 +434,7 @@
                     </div>
                 </div>
             </div>
-           <!-- TAB 4: ACTUAL PRODUCTION -->
+         <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <!-- ฝั่งซ้าย: ฟอร์มบันทึกการผลิต (ขนาด col-md-4) -->
@@ -481,12 +481,20 @@
                             <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
                         </div>
                     </div>
+
+                    <!-- 📌 เพิ่มช่อง Scan / ค้นหา Part No. ตรงนี้ -->
+                    <div class="mb-2">
+                        <label class="form-label small text-warning"><i class="fas fa-barcode"></i> ค้นหา / Scan Part No.</label>
+                        <input type="text" id="actualSearchPart" class="form-control form-control-sm bg-dark text-white" placeholder="พิมพ์หรือสแกน Barcode เพื่อกรอง..." oninput="filterProductionPartDropdown(this.value)">
+                    </div>
+
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
                             <option value="">-- เลือก Part No. จากแผน --</option>
                         </select>
                     </div>
+
                     <div class="mb-2">
                         <label class="form-label small text-warning">ระบุ Process ห้อยท้าย (ถ้ามี)</label>
                         <input type="text" id="actualProcessSuffix" class="form-control form-control-sm" placeholder="เช่น 1/5">
@@ -497,22 +505,22 @@
                     </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
-                            <label class="form-label small text-success">ยอดผลิตดี (OK Qty)</label>
-                            <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
+                              <label class="form-label small text-success">ยอดผลิตดี (OK Qty)</label>
+                              <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
-                            <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                              <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
+                              <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">หมายเหตุ / เครื่องหยุด (Remark)</label>
                         <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น เปลี่ยนแม่พิมพ์ 15 นาที">
                     </div>
-                    <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
-                </form>
-            </div>
-        </div>
+                  <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
+              </form>
+          </div>
+      </div>
 
         <!-- ฝั่งขวา: ประวัติการบันทึกการผลิต (ขนาด col-md-8 ขยายเต็มจอ) -->
         <div class="col-md-8">
@@ -4284,7 +4292,22 @@ function filterMachineTable() {
         }
     });
 }
-
+// ฟังก์ชันกรองรายชื่อ Part No. จากการพิมพ์หรือสแกนบาร์โค้ด
+function filterProductionPartDropdown(keyword) {
+    const select = document.getElementById('actualPartNo');
+    if (!select) return;
+    const filter = keyword.toUpperCase();
+    const options = select.options;
+    
+    for (let i = 0; i < options.length; i++) {
+        let txtValue = options[i].text || options[i].value;
+        if (txtValue.toUpperCase().indexOf(filter) > -1 || i === 0) {
+            options[i].style.display = "";
+        } else {
+            options[i].style.display = "none";
+        }
+    }
+}
 </script>
 </body>
 </html>
