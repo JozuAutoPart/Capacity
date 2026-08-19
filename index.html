@@ -1759,7 +1759,8 @@ function renderQGate() {
         if(qgateHistory.length === 0) {
             historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
-            qgateHistory.slice(0, 15).forEach(item => {
+            // 🛠️ เอา .slice(0, 15) ออกแล้ว เพื่อให้แสดงประวัติทั้งหมดที่มีครบถ้วน
+            qgateHistory.forEach(item => {
                 historyBody.innerHTML += `
                     <tr>
                         <td>${item.date ? item.date.split('T')[0] : ''}</td>
