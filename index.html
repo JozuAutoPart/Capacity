@@ -1593,7 +1593,13 @@ function renderActuals() {
         return;
     }
 
-    actuals.forEach((a, index) => {
+    // 📌 ใช้ .slice().reverse() เพื่อสลับให้ข้อมูลใหม่ล่าสุดขึ้นมาอยู่ด้านบนสุด
+    const sortedActuals = actuals.slice().reverse();
+
+    sortedActuals.forEach((a, index) => {
+        // คำนวณ index จริงของต้นฉบับเผื่อไว้ใช้ตอนกดลบข้อมูล
+        const originalIndex = actuals.length - 1 - index;
+
         let rawDate = a.date || a['Date'] || '';
         let cleanDate = rawDate ? rawDate.split('T')[0] : '-';
 
@@ -1618,7 +1624,7 @@ function renderActuals() {
             <td class="text-danger">${ngval.toLocaleString()}</td>
             <td class="small text-muted">${remarkval}</td>
             <td class="text-center">
-                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${index})" title="ลบรายการ">
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${originalIndex})" title="ลบรายการ">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
