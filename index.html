@@ -1663,16 +1663,19 @@ function loadAllData() {
                 });
             }
 
-          // สั่งเรนเดอร์หน้าจอทั้งหมด
+       // สั่งเรนเดอร์หน้าจอทั้งหมด
         renderDashboard();
         renderActuals();
-        if (typeof renderWipStock === 'function') renderWipStock();
-        if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+        if (typeof renderWipStock === 'function') {
+            renderWipStock();
+        }
+        if (typeof checkAndLoadWipForQGate === 'function') {
+            checkAndLoadWipForQGate();
+        }
     } catch (err) {
         console.error("Error loading data:", err);
     }
 }
-
 // สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
