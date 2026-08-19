@@ -1480,28 +1480,55 @@ if (diff > 0 && ratio > 0.02) {
 // ฟังก์ชันสำหรับค้นหาและเลือก Part No. อัตโนมัติเมื่อพิมพ์หรือสแกนบาร์โค้ด
 function filterProductionPart(inputElement) {
     let keyword = inputElement.value.trim().toUpperCase();
-    let select = document.getElementById('actualPartNo');
-    
-    if (!select || keyword === "") return;
+    if (keyword === "") return;
 
+    let targetPartNo = keyword;
+
+    // 1. ดึงข้อมูล MasterParts ที่โหลดมาจาก Google Sheets มาแปลง Barcode เป็น Part No.
+    let masterData = [];
+    try {
+        masterData = JSON.parse(localStorage.getItem('masterPartsDatabase')) || window.masterPartsDatabase || [];
+    } catch (err) {
+        masterData = [];
+    }
+
+    if (masterData.length > 0) {
+        let foundItem = masterData.find(item => {
+            let bCode = String(item.barcode || item['barcode'] || '').trim().toUpperCase();
+            return bCode === keyword || bCode.includes(keyword);
+        });
+        if (foundItem && foundItem.partNo) {
+            targetPartNo = String(foundItem.partNo).trim().toUpperCase();
+        }
+    }
+
+    let select = document.getElementById('actualPartNo');
+    if (!select) return;
+
+    let matched = false;
     for (let i = 0; i < select.options.length; i++) {
         let optionText = select.options[i].text.toUpperCase();
         let optionVal = select.options[i].value.toUpperCase();
         
-        if (optionVal.includes(keyword) || optionText.includes(keyword)) {
+        if (optionVal.includes(targetPartNo) || optionText.includes(targetPartNo)) {
             select.selectedIndex = i;
-            onActualPartChange();
-            
-            inputElement.classList.remove('bg-dark', 'text-white');
-            inputElement.classList.add('bg-success', 'text-white');
-            
-            setTimeout(() => {
-                inputElement.classList.remove('bg-success');
-                inputElement.classList.add('bg-dark');
-            }, 1000);
-            
+            if (typeof onActualPartChange === 'function') {
+                onActualPartChange();
+            }
+            matched = true;
             break;
         }
+    }
+
+    // เปลี่ยนสีช่องค้นหาชั่วคราวเป็นสีเขียวเพื่อให้รู้ว่าสแกนสำเร็จ
+    if (matched) {
+        inputElement.classList.remove('bg-dark', 'text-white');
+        inputElement.classList.add('bg-success', 'text-white');
+        
+        setTimeout(() => {
+            inputElement.classList.remove('bg-success');
+            inputElement.classList.add('bg-dark');
+        }, 1000);
     }
 }
 function onActualPartChange() {
