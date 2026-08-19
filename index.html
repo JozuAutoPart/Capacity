@@ -619,9 +619,9 @@
                 <i class="fas fa-file-excel me-1"></i> Export Q-Gate (.xlsx)
             </button>
         </div>
-                <div class="table-responsive" style="max-height: 700px; overflow-y: auto;">
+                <div class="table-responsive">
                     <table class="table table-dark table-hover align-middle m-0">
-                        <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
+                        <thead>
                             <tr>
                                 <th>วันที่ตรวจ</th>
                                 <th>เวลา</th>
@@ -1751,8 +1751,7 @@ if (searchInput) {
 }
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
-    // 📌 ใช้ .slice().reverse() เพื่อสลับให้ข้อมูลใหม่ล่าสุดขึ้นมาอยู่ด้านบนสุด
-    const qgateHistory = (qgate || []).slice().reverse();
+    const qgateHistory = qgate || [];
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
     if(historyBody) {
@@ -1760,7 +1759,7 @@ function renderQGate() {
         if(qgateHistory.length === 0) {
             historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
-            qgateHistory.forEach(item => {
+            qgateHistory.slice(0, 15).forEach(item => {
                 historyBody.innerHTML += `
                     <tr>
                         <td>${item.date ? item.date.split('T')[0] : ''}</td>
@@ -1781,6 +1780,7 @@ function renderQGate() {
         }
     }
 }
+
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
 function submitQGateTransaction(e) {
     e.preventDefault();
@@ -2369,34 +2369,23 @@ function submitDieBm(e) {
     dieBms.push(bm);
     localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
 
-    // ส่งข้อมูลไปบันทึกลง Google Sheets ทันที (Cloud ผ่าน action 'saveBms')
+    // ส่งข้อมูลไปบันทึกลง Google Sheets ทันที (Cloud)
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (scriptUrl) {
-        const payload = {
-            action: 'saveBms', // ใช้ action ตามโครงสร้าง Apps Script กลางของพี่มิว
-            data: {
-                id: bm.id,
-                type: "Breakdown",
-                date: bm.date,
-                partNo: bm.partNo,
-                typeSize: "-",
-                qty: 0,
-                detail: bm.problem + " (ผู้แจ้ง: " + (bm.reporter || "-") + ")"
-            }
-        };
-
         fetch(scriptUrl, {
             method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ action: 'saveDieMaintenance', data: bm })
         })
-        .then(() => {
-            console.log("Saved Die Breakdown to Cloud successfully");
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === "success") {
+                console.log("Saved Die Maintenance to Cloud successfully");
+            } else {
+                console.error("Cloud save error:", result.message);
+            }
         })
         .catch(err => console.error("Connection error:", err));
     }
-    
     renderDiePM();
     document.getElementById('dieForm').reset();
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
@@ -2432,41 +2421,14 @@ function resetDiePm(partNo) {
         let todayStr = new Date().toISOString().split('T')[0];
         let dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
         
-        let problemDesc = `PM Completed (Line: ${lineName}, Strokes Reset: ${currentStrokes.toLocaleString()})`;
         let newRecord = {
             date: todayStr,
             partNo: partNo,
-            problem: problemDesc,
+            problem: `PM Completed (Line: ${lineName}, Strokes Reset: ${currentStrokes.toLocaleString()})`,
             reporter: "System PM"
         };
         dieBms.push(newRecord);
         localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
-
-        // ส่งข้อมูลประวัติ PM ไปบันทึกที่แท็บ 'DIE MAINTENANCE & PM' ใน Google Sheets ทันที (Cloud)
-        const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
-        if (scriptUrl) {
-            const pmPayload = {
-                action: 'saveDieMaintenance',
-                data: {
-                    date: todayStr,
-                    partNo: partNo,
-                    problem: problemDesc,
-                    reporter: "System PM",
-                    printer: "-"
-                }
-            };
-
-            fetch(scriptUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(pmPayload)
-            })
-            .then(() => {
-                console.log("Saved PM History to Google Sheets successfully");
-            })
-            .catch(err => console.error("Cloud save error:", err));
-        }
 
         // 4. สร้างและดาวน์โหลดไฟล์ Excel บันทึกประวัติ PM ทันที
         if (typeof XLSX !== 'undefined') {
@@ -2486,10 +2448,9 @@ function resetDiePm(partNo) {
 
         // 5. รีเฟรชตารางหน้าจอ
         renderDiePM();
-        alert("รีเซ็ต PM สำเร็จ, บันทึกลง Google Sheets และดาวน์โหลดไฟล์ Excel เรียบร้อยแล้วครับ!");
+        alert("รีเซ็ต PM สำเร็จ และดาวน์โหลดไฟล์ Excel บันทึกประวัติเรียบร้อยแล้วครับ!");
     }
 }
-
 function renderDiePM() {
     const tablePmEl = document.getElementById('diePmTableBody');
     if (!tablePmEl) return;
