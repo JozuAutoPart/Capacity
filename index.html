@@ -4292,22 +4292,7 @@ function filterMachineTable() {
         }
     });
 }
-// ฟังก์ชันกรองรายชื่อ Part No. จากการพิมพ์หรือสแกนบาร์โค้ด
-function filterProductionPartDropdown(keyword) {
-    const select = document.getElementById('actualPartNo');
-    if (!select) return;
-    const filter = keyword.toUpperCase();
-    const options = select.options;
-    
-    for (let i = 0; i < options.length; i++) {
-        let txtValue = options[i].text || options[i].value;
-        if (txtValue.toUpperCase().indexOf(filter) > -1 || i === 0) {
-            options[i].style.display = "";
-        } else {
-            options[i].style.display = "none";
-        }
-    }
-}
+
 </script>
 </body>
 </html>
