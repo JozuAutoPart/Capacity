@@ -1482,9 +1482,7 @@ function filterProductionPart(inputElement) {
     let keyword = inputElement.value.trim().toUpperCase();
     if (keyword === "") return;
 
-    let targetPartNo = keyword;
-
-    // 1. ดึงข้อมูล MasterParts จาก LocalStorage มาตรวจสอบ
+    // ดึงข้อมูล MasterParts จาก LocalStorage ที่โหลดมาจาก Google Sheets
     let masterData = [];
     try {
         masterData = JSON.parse(localStorage.getItem('masterPartsDatabase')) || window.masterPartsDatabase || [];
@@ -1492,25 +1490,28 @@ function filterProductionPart(inputElement) {
         masterData = [];
     }
 
-    console.log("🔍 กำลังค้นหา Barcode:", keyword, "| จำนวนข้อมูล MasterParts ทั้งหมด:", masterData.length);
+    let targetPartNo = "";
 
-    // 2. ค้นหาใน MasterParts ว่า Barcode ตรงกับ Part No. อะไร
+    // ค้นหา Barcode ในคอลัมน์ A เพื่อดึงค่า Part No. จากคอลัมน์ B
     if (masterData.length > 0) {
         let foundItem = masterData.find(item => {
-            let bCode = String(item.barcode || item['barcode'] || '').trim().toUpperCase();
-            return bCode === keyword || bCode.includes(keyword);
+            let bCode = String(item.barcode || item['barcode'] || item['Barcode'] || '').trim().toUpperCase();
+            return bCode === keyword;
         });
         
-        if (foundItem && foundItem.partNo) {
-            targetPartNo = String(foundItem.partNo).trim().toUpperCase();
-            console.log("✅ แปลง Barcode สำเร็จ! ได้ Part No.:", targetPartNo);
-        } else {
-            console.warn("⚠️ ไม่พบ Barcode นี้ในชีต MasterParts, จะใช้คำค้นหาตรงๆ:", keyword);
+        if (foundItem) {
+            // ดึงค่า Part No. จากคอลัมน์ B
+            targetPartNo = String(foundItem.partNo || foundItem['partNo'] || foundItem['Part No.'] || '').trim().toUpperCase();
+            console.log("✅ เทียบ Barcode (คอลัมน์ A) สำเร็จ! ได้ Part No. (คอลัมน์ B):", targetPartNo);
         }
-    } else {
-        console.error("❌ ข้อมูลใน masterPartsDatabase เป็นค่าว่าง (ยังไม่ได้โหลดจาก Google Sheet)");
     }
 
+    // ถ้าไม่เจอใน MasterParts ให้ใช้ข้อความที่พิมพ์ค้นหาตรงๆ
+    if (!targetPartNo) {
+        targetPartNo = keyword;
+    }
+
+    // ไปเลือก Part No. นั้นใน Dropdown แผนการผลิต (#actualPartNo)
     let select = document.getElementById('actualPartNo');
     if (!select) return;
 
@@ -1519,7 +1520,7 @@ function filterProductionPart(inputElement) {
         let optionText = select.options[i].text.toUpperCase();
         let optionVal = select.options[i].value.toUpperCase();
         
-        if (optionVal.includes(targetPartNo) || optionText.includes(targetPartNo)) {
+        if (optionVal === targetPartNo || optionVal.includes(targetPartNo) || optionText.includes(targetPartNo)) {
             select.selectedIndex = i;
             if (typeof onActualPartChange === 'function') {
                 onActualPartChange();
@@ -1529,7 +1530,7 @@ function filterProductionPart(inputElement) {
         }
     }
 
-    // เปลี่ยนสีช่องค้นหาชั่วคราวเป็นสีเขียวเพื่อให้รู้ว่าทำงาน
+    // เปลี่ยนสีช่องค้นหาชั่วคราวเป็นสีเขียวเพื่อให้รู้ว่าทำงานสำเร็จ
     if (matched) {
         inputElement.classList.remove('bg-dark', 'text-white');
         inputElement.classList.add('bg-success', 'text-white');
