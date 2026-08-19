@@ -1484,7 +1484,7 @@ function filterProductionPart(inputElement) {
 
     let targetPartNo = keyword;
 
-    // 1. ดึงข้อมูล MasterParts ที่โหลดมาจาก Google Sheets มาแปลง Barcode เป็น Part No.
+    // 1. ดึงข้อมูล MasterParts จาก LocalStorage มาตรวจสอบ
     let masterData = [];
     try {
         masterData = JSON.parse(localStorage.getItem('masterPartsDatabase')) || window.masterPartsDatabase || [];
@@ -1492,14 +1492,23 @@ function filterProductionPart(inputElement) {
         masterData = [];
     }
 
+    console.log("🔍 กำลังค้นหา Barcode:", keyword, "| จำนวนข้อมูล MasterParts ทั้งหมด:", masterData.length);
+
+    // 2. ค้นหาใน MasterParts ว่า Barcode ตรงกับ Part No. อะไร
     if (masterData.length > 0) {
         let foundItem = masterData.find(item => {
             let bCode = String(item.barcode || item['barcode'] || '').trim().toUpperCase();
             return bCode === keyword || bCode.includes(keyword);
         });
+        
         if (foundItem && foundItem.partNo) {
             targetPartNo = String(foundItem.partNo).trim().toUpperCase();
+            console.log("✅ แปลง Barcode สำเร็จ! ได้ Part No.:", targetPartNo);
+        } else {
+            console.warn("⚠️ ไม่พบ Barcode นี้ในชีต MasterParts, จะใช้คำค้นหาตรงๆ:", keyword);
         }
+    } else {
+        console.error("❌ ข้อมูลใน masterPartsDatabase เป็นค่าว่าง (ยังไม่ได้โหลดจาก Google Sheet)");
     }
 
     let select = document.getElementById('actualPartNo');
@@ -1520,11 +1529,10 @@ function filterProductionPart(inputElement) {
         }
     }
 
-    // เปลี่ยนสีช่องค้นหาชั่วคราวเป็นสีเขียวเพื่อให้รู้ว่าสแกนสำเร็จ
+    // เปลี่ยนสีช่องค้นหาชั่วคราวเป็นสีเขียวเพื่อให้รู้ว่าทำงาน
     if (matched) {
         inputElement.classList.remove('bg-dark', 'text-white');
         inputElement.classList.add('bg-success', 'text-white');
-        
         setTimeout(() => {
             inputElement.classList.remove('bg-success');
             inputElement.classList.add('bg-dark');
