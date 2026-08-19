@@ -1711,30 +1711,58 @@ window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
         // ฟังก์ชันสแกน/พิมพ์ค้นหา Part No. สำหรับหน้า Actual Production
+// ฟังก์ชันสแกน/พิมพ์ค้นหา Part No. สำหรับหน้า Actual Production (ดึงจากชีต MasterParts ผ่าน LocalStorage)
 document.getElementById('actualSearchPart').addEventListener('input', function(e) {
     let keyword = this.value.trim().toUpperCase();
-    let select = document.getElementById('actualPartNo');
-    
-    if (!select || keyword === "") return;
+    if (keyword === "") return;
 
+    let targetPartNo = keyword;
+
+    // ดึงข้อมูล MasterParts ที่โหลดมาจาก Google Sheets (ผ่านหน้า Dashboard หรือ LocalStorage)
+    let masterData = [];
+    try {
+        masterData = JSON.parse(localStorage.getItem('masterPartsDatabase')) || window.masterPartsDatabase || [];
+    } catch (err) {
+        masterData = [];
+    }
+
+    // ค้นหาใน MasterParts ว่า Barcode (เช่น JA168) ตรงกับ Part No. อะไร
+    if (masterData.length > 0) {
+        let foundItem = masterData.find(item => {
+            let bCode = String(item.barcode || '').trim().toUpperCase();
+            return bCode === keyword || bCode.includes(keyword);
+        });
+        if (foundItem && foundItem.partNo) {
+            targetPartNo = String(foundItem.partNo).trim().toUpperCase();
+        }
+    }
+
+    let select = document.getElementById('actualPartNo');
+    if (!select) return;
+
+    let matched = false;
     for (let i = 0; i < select.options.length; i++) {
         let optionText = select.options[i].text.toUpperCase();
         let optionVal = select.options[i].value.toUpperCase();
         
-        if (optionVal.includes(keyword) || optionText.includes(keyword)) {
+        if (optionVal.includes(targetPartNo) || optionText.includes(targetPartNo)) {
             select.selectedIndex = i;
-            onActualPartChange();
-            
-            this.classList.remove('bg-dark', 'text-white');
-            this.classList.add('bg-success', 'text-white');
-            
-            setTimeout(() => {
-                this.classList.remove('bg-success');
-                this.classList.add('bg-dark');
-            }, 1000);
-            
+            if (typeof onActualPartChange === 'function') {
+                onActualPartChange();
+            }
+            matched = true;
             break;
         }
+    }
+
+    // เปลี่ยนสีช่องค้นหาชั่วคราวเพื่อให้รู้ว่าสแกนสำเร็จ
+    if (matched) {
+        this.classList.remove('bg-dark', 'text-white');
+        this.classList.add('bg-success', 'text-white');
+        setTimeout(() => {
+            this.classList.remove('bg-success');
+            this.classList.add('bg-dark');
+        }, 1000);
     }
 });
      // ==========================================
