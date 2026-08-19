@@ -434,7 +434,7 @@
                     </div>
                 </div>
             </div>
-           <!-- TAB 4: ACTUAL PRODUCTION -->
+         <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <!-- ฝั่งซ้าย: ฟอร์มบันทึกการผลิต (ขนาด col-md-4) -->
@@ -481,12 +481,19 @@
                             <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
                         </div>
                     </div>
+
+                    <!-- 📌 เพิ่มช่อง Scan / ค้นหา Part No. ตรงนี้ -->
+                    <div class="mb-2">
+                        <label class="form-label small text-warning"><i class="fas fa-barcode"></i> ค้นหา / Scan Part No.</label>
+                        <input type="text" id="actualSearchPart" oninput="filterProductionPart(this)" ...>
+
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
                             <option value="">-- เลือก Part No. จากแผน --</option>
                         </select>
                     </div>
+
                     <div class="mb-2">
                         <label class="form-label small text-warning">ระบุ Process ห้อยท้าย (ถ้ามี)</label>
                         <input type="text" id="actualProcessSuffix" class="form-control form-control-sm" placeholder="เช่น 1/5">
@@ -497,22 +504,22 @@
                     </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
-                            <label class="form-label small text-success">ยอดผลิตดี (OK Qty)</label>
-                            <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
+                              <label class="form-label small text-success">ยอดผลิตดี (OK Qty)</label>
+                              <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
-                            <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                              <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
+                              <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">หมายเหตุ / เครื่องหยุด (Remark)</label>
                         <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น เปลี่ยนแม่พิมพ์ 15 นาที">
                     </div>
-                    <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
-                </form>
-            </div>
-        </div>
+                  <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
+              </form>
+          </div>
+      </div>
 
         <!-- ฝั่งขวา: ประวัติการบันทึกการผลิต (ขนาด col-md-8 ขยายเต็มจอ) -->
         <div class="col-md-8">
@@ -1418,11 +1425,12 @@ function deletePlan(id) {
         alert("ลบแผนสำเร็จ");
     }
 }
-       // --- TAB 4: ACTUAL PRODUCTION ---
+     // --- TAB 4: ACTUAL PRODUCTION ---
 // ฟังก์ชันตรวจสอบและโหลดแผนการผลิต (กรองตัวที่ผลิตครบตามแผนออกแล้ว)
 function checkAndLoadPlans() {
     const line = document.getElementById('actualLine').value;
     const selectPart = document.getElementById('actualPartNo');
+    if (!selectPart) return;
     selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
 
     // กรองแผนเฉพาะ Line ที่เลือก
@@ -1430,10 +1438,12 @@ function checkAndLoadPlans() {
     const alertBox = document.getElementById('actualAlert');
 
     if (linePlans.length === 0) {
-        alertBox.classList.remove('d-none');
-        document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+        if (alertBox) {
+            alertBox.classList.remove('d-none');
+            document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+        }
     } else {
-        alertBox.classList.add('d-none');
+        if (alertBox) alertBox.classList.add('d-none');
         
         linePlans.forEach(p => {
             const planPart = String(p["Part No."] || p.partNo || '').trim();
@@ -1455,36 +1465,115 @@ function checkAndLoadPlans() {
             }, 0);
 
             // คำนวณหายอดคงเหลือและสัดส่วน
-const diff = planQty - totalActualOk;
-const ratio = planQty > 0 ? (diff / planQty) : 0;
+            const diff = planQty - totalActualOk;
+            const ratio = planQty > 0 ? (diff / planQty) : 0;
 
-// เงื่อนไข: ต้องผลิตยังไม่ครบ (diff > 0) และสัดส่วนที่เหลือต้องมากกว่า 1% (ratio > 0.01) ถึงจะเอามาแสดงใน Dropdown
-if (diff > 0 && ratio > 0.02) {
-    const opt = document.createElement('option');
-    opt.value = planPart;
-    opt.dataset.lot = planLot;
-    opt.innerText = `${planPart} (Lot: ${planLot} - คงเหลือผลิตอีก ${diff.toLocaleString()} ชิ้น)`;
-    selectPart.appendChild(opt);
-}
+            // เงื่อนไข: ต้องผลิตยังไม่ครบ (diff > 0) และสัดส่วนที่เหลือต้องมากกว่า 2% ถึงจะเอามาแสดงใน Dropdown
+            if (diff > 0 && ratio > 0.02) {
+                const opt = document.createElement('option');
+                opt.value = planPart;
+                opt.dataset.lot = planLot;
+                opt.innerText = `${planPart} (Lot: ${planLot} - คงเหลือผลิตอีก ${diff.toLocaleString()} ชิ้น)`;
+                selectPart.appendChild(opt);
+            }
         });
+    }
+}
+
+// ฟังก์ชันสำหรับค้นหาและเลือก Part No. อัตโนมัติเมื่อพิมพ์หรือสแกนบาร์โค้ด
+function filterProductionPart(inputElement) {
+    let keyword = inputElement.value.trim().toUpperCase();
+    if (keyword === "") return;
+
+    // ดึงข้อมูล MasterParts จาก LocalStorage ที่โหลดมาจาก Google Sheets
+    let masterData = [];
+    try {
+        masterData = JSON.parse(localStorage.getItem('masterPartsDatabase')) || window.masterPartsDatabase || [];
+    } catch (err) {
+        masterData = [];
+    }
+
+    let targetPartNo = "";
+
+    // ค้นหา Barcode (คอลัมน์ A) เพื่อดึงค่า Part No. (คอลัมน์ B)
+    if (masterData.length > 0) {
+        let foundItem = masterData.find(item => {
+            let keys = Object.keys(item);
+            let bCode = String(item.barcode || item['bar code'] || item['Barcode'] || item[keys[0]] || '').trim().toUpperCase();
+            return bCode === keyword;
+        });
+        
+        if (foundItem) {
+            let keys = Object.keys(foundItem);
+            targetPartNo = String(foundItem.partNo || foundItem['part no'] || foundItem['Part No.'] || keys[1] && foundItem[keys[1]] || '').trim().toUpperCase();
+            console.log("✅ เทียบ Barcode (คอลัมน์ A) สำเร็จ! ได้ Part No. (คอลัมน์ B):", targetPartNo);
+        }
+    }
+
+    // ถ้าไม่เจอใน MasterParts ให้ใช้ข้อความที่พิมพ์ค้นหาตรงๆ
+    if (!targetPartNo) {
+        targetPartNo = keyword;
+    }
+
+    // ไปเลือก Part No. นั้นใน Dropdown แผนการผลิต (#actualPartNo)
+    let select = document.getElementById('actualPartNo');
+    if (!select) return;
+
+    let matched = false;
+    for (let i = 0; i < select.options.length; i++) {
+        let optionText = select.options[i].text.toUpperCase();
+        let optionVal = select.options[i].value.toUpperCase();
+        
+        if (optionVal === targetPartNo || optionVal.includes(targetPartNo) || optionText.includes(targetPartNo)) {
+            select.selectedIndex = i;
+            matched = true;
+            break;
+        }
+    }
+
+    // ถ้ายังไม่มีใน Dropdown ให้สร้างและเพิ่มเข้าไปชั่วคราวด่วน
+    if (!matched && targetPartNo) {
+        let opt = document.createElement('option');
+        opt.value = targetPartNo;
+        opt.innerText = `${targetPartNo} (สแกนจาก Barcode: ${keyword})`;
+        select.appendChild(opt);
+        select.value = targetPartNo;
+        matched = true;
+    }
+
+    if (matched) {
+        if (typeof onActualPartChange === 'function') {
+            onActualPartChange();
+        }
+        // เปลี่ยนสีช่องค้นหาชั่วคราวเป็นสีเขียวเพื่อให้รู้ว่าทำงานสำเร็จ
+        inputElement.classList.remove('bg-dark', 'text-white');
+        inputElement.classList.add('bg-success', 'text-white');
+        setTimeout(() => {
+            inputElement.classList.remove('bg-success');
+            inputElement.classList.add('bg-dark');
+        }, 1000);
     }
 }
 
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
+    if (!select || select.selectedIndex < 0) return;
     const selectedOpt = select.options[select.selectedIndex];
-    document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
+    const lotInput = document.getElementById('actualLotNo');
+    if (lotInput) {
+        lotInput.value = selectedOpt.dataset.lot || '';
+    }
 }
 
 function submitActual(e) {
     e.preventDefault();
-   const basePart = document.getElementById('actualPartNo').value;
+    const basePart = document.getElementById('actualPartNo').value;
     const processSuffix = document.getElementById('actualProcessSuffix').value.trim();
 
     // ถ้าระบุ Suffix มา ให้เว้นวรรค 1 เคาะแล้วต่อด้วย Suffix ทันที
-  const finalPartNo = processSuffix ? basePart + ' ' + processSuffix : basePart;
+    const finalPartNo = processSuffix ? basePart + ' ' + processSuffix : basePart;
 
-   // 📌 รวมวันที่และเวลาให้อยู่ในรูปแบบเดียวกัน (เช่น "2026-08-18 12:40 - 13:05")
+    // 📌 รวมวันที่และเวลาให้อยู่ในรูปแบบเดียวกัน
     const rawDate = document.getElementById('actualDate').value;
     const startTime = document.getElementById('actualStartTime').value;
     const endTime = document.getElementById('actualEndTime').value;
@@ -1497,7 +1586,7 @@ function submitActual(e) {
     }
 
     const actual = {
-        date: combinedDateTime, // 📌 ส่งค่าที่รวมแล้วไปเก็บแทนช่อง Date เดิม
+        date: combinedDateTime,
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
@@ -1507,7 +1596,8 @@ function submitActual(e) {
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
         remark: document.getElementById('actualRemark').value.trim()
     };
-    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script (ใช้รูปแบบเดียวกับ Planning)
+
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'saveActual', data: actual })
@@ -1517,9 +1607,6 @@ function submitActual(e) {
         if (result.status === "success") {
             actuals.push(actual);
 
-            // ---------------------------------------------------------
-            // เพิ่มส่วนนี้: อัปเดตยอดเข้า Stock WIP ทันที เพื่อให้ Q-Gate ดึงไปตรวจสอบได้
-            // ---------------------------------------------------------
             if (typeof wipStock !== 'undefined') {
                 const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
                 if (existingWip) {
@@ -1533,11 +1620,9 @@ function submitActual(e) {
                         qty: actual.qty
                     });
                 }
-                // ถ้าในระบบมีฟังก์ชันเรนเดอร์หน้า Stock WIP หรือ Q-Gate ให้เรียกอัปเดตด้วย
                 if (typeof renderWipStock === 'function') renderWipStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
             }
-            // ---------------------------------------------------------
 
             document.getElementById('actualForm').reset();
             document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
@@ -1553,6 +1638,7 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
+
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
     if (typeof scriptUrl === 'undefined') return;
@@ -1581,7 +1667,6 @@ function loadActualsFromCloud() {
         .catch(err => console.error("Error loading Actuals:", err));
 }
 
-// ฟังก์ชันแสดงผลตาราง
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
@@ -1626,20 +1711,18 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
-// ฟังก์ชั่นสำหรับดึงข้อมูลทั้งหมดเปิดหน้าเว็บ
+
+// ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    // ดึงข้อมูลทั้งแผนการผลิต (plans) และประวัติการผลิต (actuals) พร้อมกัน
     fetch(scriptUrl)
         .then(res => res.json())
         .then(data => {
-            // รองรับกรณีที่ Google Apps Script ส่งข้อมูลมาเป็น Object หรือ Array
             if (data.plans) plans = data.plans;
             if (data.actuals) actuals = data.actuals;
             
-            // คำนวณรวบยอด actuals เพื่อสร้าง Stock WIP อัตโนมัติ
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
                 actuals.forEach(a => {
@@ -1663,22 +1746,30 @@ function loadAllData() {
                 });
             }
 
-       // สั่งเรนเดอร์หน้าจอทั้งหมด
-        renderDashboard();
-        renderActuals();
-        if (typeof renderWipStock === 'function') {
-            renderWipStock();
-        }
-        if (typeof checkAndLoadWipForQGate === 'function') {
-            checkAndLoadWipForQGate();
-        }
-    } catch (err) {
-        console.error("Error loading data:", err);
-    }
+            renderDashboard();
+            renderActuals();
+            if (typeof renderWipStock === 'function') renderWipStock();
+            if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+        })
+        .catch(err => console.error("Error loading data:", err));
 }
-// สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
+
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
+
+    // ผูก Event สำหรับช่องสแกนบาร์โค้ดหน้า Actual Production
+    const searchInput = document.getElementById('actualSearchPart');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            filterProductionPart(this);
+        });
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                filterProductionPart(this);
+            }
+        });
+    }
 });
      // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History
