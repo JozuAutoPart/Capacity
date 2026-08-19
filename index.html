@@ -528,7 +528,6 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>เวลา</th> <!-- 📌 เพิ่มคอลัมน์เวลาตรงนี้ (ช่อง B) -->
                                 <th>OP Name</th>
                                 <th>Line/MC</th>
                                 <th>Part No.</th>
@@ -1590,24 +1589,13 @@ function renderActuals() {
     tbody.innerHTML = '';
 
     if (!actuals || actuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
         return;
     }
 
-    const sortedActuals = [...actuals].sort((a, b) => {
-        let dateA = new Date(a.date || a['Date'] || 0);
-        let dateB = new Date(b.date || b['Date'] || 0);
-        return dateB - dateA;
-    });
-
-    sortedActuals.forEach((a) => {
-        const originalIndex = actuals.indexOf(a);
-
+    actuals.forEach((a, index) => {
         let rawDate = a.date || a['Date'] || '';
         let cleanDate = rawDate ? rawDate.split('T')[0] : '-';
-
-        // 📌 ดึงค่าช่วงเวลา (รองรับหลายชื่อตัวแปรตามการบันทึก)
-        const timeval = a.timeRange || a.time || a['Time'] || '-';
 
         const opval = a.operator || a['OP Name'] || '-';
         const lineval = a.line || a['Line/MC'] || '-';
@@ -1622,16 +1610,15 @@ function renderActuals() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${cleanDate}</td>
-            <td><small class="text-warning">${timeval}</small></td> <!-- คอลัมน์ B: เวลา -->
             <td>${opval}</td>
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
             <td class="fw-bold text-info">${partval}</td>
-            <td>${lotval}</td> <!-- คอลัมน์ F: Lot No. -->
+            <td>${lotval}</td>
             <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
             <td class="text-danger">${ngval.toLocaleString()}</td>
             <td class="small text-muted">${remarkval}</td>
             <td class="text-center">
-                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${originalIndex})" title="ลบรายการ">
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${index})" title="ลบรายการ">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
