@@ -1709,8 +1709,10 @@ if (searchInput) {
     });
 }
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
+// ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
-    const qgateHistory = qgate || [];
+    // 📌 ใช้ .slice().reverse() เพื่อสลับให้ข้อมูลใหม่ล่าสุดขึ้นมาอยู่ด้านบนสุด
+    const qgateHistory = (qgate || []).slice().reverse();
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
     if(historyBody) {
@@ -1718,7 +1720,7 @@ function renderQGate() {
         if(qgateHistory.length === 0) {
             historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
-            qgateHistory.slice(0, 15).forEach(item => {
+            qgateHistory.forEach(item => {
                 historyBody.innerHTML += `
                     <tr>
                         <td>${item.date ? item.date.split('T')[0] : ''}</td>
@@ -1739,7 +1741,6 @@ function renderQGate() {
         }
     }
 }
-
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
 function submitQGateTransaction(e) {
     e.preventDefault();
