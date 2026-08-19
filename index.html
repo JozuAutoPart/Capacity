@@ -1751,7 +1751,8 @@ if (searchInput) {
 }
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
-    const qgateHistory = qgate || [];
+    // 📌 ใช้ .slice().reverse() เพื่อสลับให้ข้อมูลใหม่ล่าสุดขึ้นมาอยู่ด้านบนสุด
+    const qgateHistory = (qgate || []).slice().reverse();
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
     if(historyBody) {
@@ -1759,7 +1760,6 @@ function renderQGate() {
         if(qgateHistory.length === 0) {
             historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
-            // 🛠️ เอา .slice(0, 15) ออกแล้ว เพื่อให้แสดงประวัติทั้งหมดที่มีครบถ้วน
             qgateHistory.forEach(item => {
                 historyBody.innerHTML += `
                     <tr>
@@ -1781,7 +1781,6 @@ function renderQGate() {
         }
     }
 }
-
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
 function submitQGateTransaction(e) {
     e.preventDefault();
