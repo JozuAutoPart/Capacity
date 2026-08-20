@@ -463,6 +463,11 @@
                                         <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
                                     </div>
                                 </div>
+                                <!-- ช่อง Scan Barcode สำหรับเลือก Part No. จากแผน -->
+                               <div class="mb-2">
+                                       <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
+                                       <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
+                                 </div>
                                 <div class="mb-2">
                                     <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                                     <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
@@ -1679,7 +1684,47 @@ if (typeof originalQGateAlert === 'undefined') {
         console.log("Q-Gate Auto-skipped alert: " + msg);
     };
 }
+// ฟังก์ชันดักจับการยิงบาร์โค้ดเพื่อเลือก Part No. จากแผนอัตโนมัติ
+document.getElementById('actualBarcodeScanner').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const scannedCode = this.value.trim().toUpperCase();
+        const selectPart = document.getElementById('actualPartNo');
 
+        if (!scannedCode) return;
+
+        let foundIndex = -1;
+        // วนลูปค้นหาในรายการ Part No. ที่ดึงมาจากแผนการผลิต
+        for (let i = 0; i < selectPart.options.length; i++) {
+            const optionText = selectPart.options[i].text.toUpperCase();
+            const optionValue = selectPart.options[i].value.toUpperCase();
+            
+            if (optionText.includes(scannedCode) || optionValue.includes(scannedCode)) {
+                foundIndex = i;
+                break;
+            }
+        }
+
+        if (foundIndex !== -1) {
+            selectPart.selectedIndex = foundIndex;
+            
+            // สั่งเรียกฟังก์ชันเปลี่ยนพาร์ท เพื่อดึง Lot No. อัตโนมัติทันที
+            if (typeof onActualPartChange === 'function') {
+                onActualPartChange();
+            } else {
+                const event = new Event('change', { bubbles: true });
+                selectPart.dispatchEvent(event);
+            }
+
+            this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับตัวถัดไป
+            this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
+            console.log("สแกนและเลือก Part No. สำเร็จ:", scannedCode);
+        } else {
+            alert("ไม่พบ Part No. '" + scannedCode + "' ในแผนการผลิตของ Line นี้");
+            this.select();
+        }
+    }
+});
 // รองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. ในหน้า Q-Gate (ตัดจำนวนออก เอาเฉพาะ Part No. เพียวๆ)
 const qgateInputEl = document.getElementById('qgatePartSearch') || document.querySelector('input[placeholder*="พิมพ์เพื่อกรองหา Part No"]');
 if (qgateInputEl) {
