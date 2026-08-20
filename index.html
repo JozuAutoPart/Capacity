@@ -1462,19 +1462,30 @@ function onActualPartChange() {
 
 function submitActual(e) {
     e.preventDefault();
+    
+    // 1. ดึงค่า Part No. หลัก และ Process ที่พนักงานพิมพ์เพิ่ม
+    const basePartNo = document.getElementById('actualPartNo').value;
+    const processSuffix = document.getElementById('actualProcess').value.trim();
+
+    // 2. รวมร่าง Part No. กับ Process (เช่น "17154-0T040 1/3")
+    let finalPartNo = basePartNo;
+    if (processSuffix !== '') {
+        finalPartNo = basePartNo + ' ' + processSuffix;
+    }
+
     const actual = {
         date: document.getElementById('actualDate').value,
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
-        partNo: document.getElementById('actualPartNo').value,
+        partNo: finalPartNo, // 👈 ใช้ชื่อพาร์ทที่รวม Process แล้ว
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
         remark: document.getElementById('actualRemark').value.trim()
     };
 
-    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script (ใช้รูปแบบเดียวกับ Planning)
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'saveActual', data: actual })
@@ -1485,9 +1496,10 @@ function submitActual(e) {
             actuals.push(actual);
 
             // ---------------------------------------------------------
-            // เพิ่มส่วนนี้: อัปเดตยอดเข้า Stock WIP ทันที เพื่อให้ Q-Gate ดึงไปตรวจสอบได้
+            // เงื่อนไข: ถ้าระบุ Process (เช่น 1/3, 2/3) จะ "ไม่นำเข้า Stock WIP"
+            // จะนำเข้า Stock WIP ก็ต่อเมื่อช่อง Process ว่างเปล่าเท่านั้น!
             // ---------------------------------------------------------
-            if (typeof wipStock !== 'undefined') {
+            if (processSuffix === '' && typeof wipStock !== 'undefined') {
                 const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
                 if (existingWip) {
                     existingWip.qty = (Number(existingWip.qty) || 0) + actual.qty;
@@ -1500,9 +1512,10 @@ function submitActual(e) {
                         qty: actual.qty
                     });
                 }
-                // ถ้าในระบบมีฟังก์ชันเรนเดอร์หน้า Stock WIP หรือ Q-Gate ให้เรียกอัปเดตด้วย
                 if (typeof renderWipStock === 'function') renderWipStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+            } else {
+                console.log("ข้ามการเข้า Stock WIP เนื่องจากเป็นกระบวนการย่อย:", processSuffix);
             }
             // ---------------------------------------------------------
 
@@ -1616,7 +1629,7 @@ function loadAllData() {
             if (data.plans) plans = data.plans;
             if (data.actuals) actuals = data.actuals;
             
-            // คำนวณรวบยอด actuals เพื่อสร้าง Stock WIP อัตโนมัติ
+            // คำนวณรวบยอด actuals เพื่อสร้าง Stock WIP อัตโนมัติ (กรองเฉพาะขั้นตอนสุดท้าย)
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
                 actuals.forEach(a => {
@@ -1624,7 +1637,10 @@ function loadAllData() {
                     const lNo = a.lotNo || a['Lot No.'] || '';
                     const okQty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     
-                    if (pNo) {
+                    // 🔍 เช็คเงื่อนไข: ถ้า Part No. มีเครื่องหมาย / หรือมีสเต็ปต่อท้าย (เช่น 1/3) จะข้ามไม่ให้นับเข้า Stock WIP
+                    const hasSubProcess = pNo.includes('/') || /\s+\d+\/\d+/.test(pNo);
+
+                    if (pNo && !hasSubProcess) {
                         let existing = wipStock.find(w => w.partNo === pNo && w.lotNo === lNo);
                         if (existing) {
                             existing.qty += okQty;
