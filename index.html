@@ -1434,6 +1434,70 @@ function deletePlan(id) {
     }
 }
        // --- TAB 4: ACTUAL PRODUCTION ---
+// ฟังก์ชันดักจับการยิง Barcode เพื่อแปลงเป็น Part No. จาก Master และเลือกจากแผนอัตโนมัติ
+document.getElementById('actualBarcodeScanner').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        let rawBarcode = this.value.trim();
+        if (!rawBarcode) return;
+
+        // ตัดข้อความส่วนเกินออก (รองรับกรณีบาร์โค้ดพ่วงแท็กมาด้วย)
+        let parts = rawBarcode.split('-');
+        let searchCode = (parts.length > 1 && !isNaN(parts[parts.length - 1])) ? parts.slice(0, -1).join('-') : rawBarcode;
+        searchCode = searchCode.trim().toUpperCase();
+
+        // ค้นหาใน Master Barcode Data (เทียบกับคอลัมน์ Barcode เพื่อเอา Part No.)
+        let matchedPartNo = "";
+        if (typeof masterBarcodes !== 'undefined' && masterBarcodes.length > 0) {
+            let foundMaster = masterBarcodes.find(item => 
+                (item.barcode && item.barcode.toUpperCase() === searchCode) || 
+                (item.barcode && item.barcode.toUpperCase() === rawBarcode.toUpperCase())
+            );
+            if (foundMaster) {
+                matchedPartNo = foundMaster.partNo; // ได้ Part No. จากคอลัมน์ B
+            }
+        }
+
+        // ถ้าไม่เจอใน Master ให้ลองใช้ค่าที่ยิงมาตรงๆ
+        if (!matchedPartNo) {
+            matchedPartNo = searchCode;
+        }
+
+        // นำ Part No. ที่ได้ไปเลือกใน Dropdown ของแผนการผลิต
+        const selectPart = document.getElementById('actualPartNo');
+        let foundIndex = -1;
+
+        for (let i = 0; i < selectPart.options.length; i++) {
+            const optionText = selectPart.options[i].text.toUpperCase();
+            const optionValue = selectPart.options[i].value.toUpperCase();
+            
+            if (optionText.includes(matchedPartNo.toUpperCase()) || optionValue.includes(matchedPartNo.toUpperCase())) {
+                foundIndex = i;
+                break;
+            }
+        }
+
+        if (foundIndex !== -1) {
+            selectPart.selectedIndex = foundIndex;
+            
+            // สั่งเรียกฟังก์ชันเปลี่ยนพาร์ท เพื่อดึง Lot No. และข้อมูลที่เกี่ยวข้องขึ้นมาทันที
+            if (typeof onActualPartChange === 'function') {
+                onActualPartChange();
+            } else {
+                const event = new Event('change', { bubbles: true });
+                selectPart.dispatchEvent(event);
+            }
+
+            this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับบาร์โค้ดถัดไป
+            this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
+            console.log("แปลง Barcode เป็น Part No. สำเร็จ:", matchedPartNo);
+        } else {
+            alert("ไม่พบ Part No. '" + matchedPartNo + "' (จาก Barcode: " + rawBarcode + ") ในแผนการผลิตของ Line นี้");
+            this.select();
+        }
+    }
+});
+
 // ฟังก์ชันตรวจสอบและโหลดแผนการผลิต (กรองตัวที่ผลิตครบตามแผนออกแล้ว)
 function checkAndLoadPlans() {
     const line = document.getElementById('actualLine').value;
@@ -1445,10 +1509,12 @@ function checkAndLoadPlans() {
     const alertBox = document.getElementById('actualAlert');
 
     if (linePlans.length === 0) {
-        alertBox.classList.remove('d-none');
-        document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+        if(alertBox) {
+            alertBox.classList.remove('d-none');
+            document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+        }
     } else {
-        alertBox.classList.add('d-none');
+        if(alertBox) alertBox.classList.add('d-none');
         
         linePlans.forEach(p => {
             const planPart = String(p["Part No."] || p.partNo || '').trim();
@@ -1470,17 +1536,17 @@ function checkAndLoadPlans() {
             }, 0);
 
             // คำนวณหายอดคงเหลือและสัดส่วน
-const diff = planQty - totalActualOk;
-const ratio = planQty > 0 ? (diff / planQty) : 0;
+            const diff = planQty - totalActualOk;
+            const ratio = planQty > 0 ? (diff / planQty) : 0;
 
-// เงื่อนไข: ต้องผลิตยังไม่ครบ (diff > 0) และสัดส่วนที่เหลือต้องมากกว่า 1% (ratio > 0.01) ถึงจะเอามาแสดงใน Dropdown
-if (diff > 0 && ratio > 0.02) {
-    const opt = document.createElement('option');
-    opt.value = planPart;
-    opt.dataset.lot = planLot;
-    opt.innerText = `${planPart} (Lot: ${planLot} - คงเหลือผลิตอีก ${diff.toLocaleString()} ชิ้น)`;
-    selectPart.appendChild(opt);
-}
+            // เงื่อนไข: ต้องผลิตยังไม่ครบ (diff > 0) และสัดส่วนที่เหลือต้องมากกว่า 2% ถึงจะเอามาแสดงใน Dropdown
+            if (diff > 0 && ratio > 0.02) {
+                const opt = document.createElement('option');
+                opt.value = planPart;
+                opt.dataset.lot = planLot;
+                opt.innerText = `${planPart} (Lot: ${planLot} - คงเหลือผลิตอีก ${diff.toLocaleString()} ชิ้น)`;
+                selectPart.appendChild(opt);
+            }
         });
     }
 }
@@ -1527,8 +1593,7 @@ function submitActual(e) {
             actuals.push(actual);
 
             // ---------------------------------------------------------
-            // เงื่อนไข: ถ้าระบุ Process (เช่น 1/3, 2/3) จะ "ไม่นำเข้า Stock WIP"
-            // จะนำเข้า Stock WIP ก็ต่อเมื่อช่อง Process ว่างเปล่าเท่านั้น!
+            // เงื่อนไข: ถ้าระบุ Process จะ "ไม่นำเข้า Stock WIP" จะเข้าเฉพาะขั้นตอนสุดท้าย
             // ---------------------------------------------------------
             if (processSuffix === '' && typeof wipStock !== 'undefined') {
                 const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
@@ -1564,9 +1629,11 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
+
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
-    if (typeof scriptUrl === 'undefined') return;
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    if (!scriptUrl) return;
     
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
@@ -1592,7 +1659,6 @@ function loadActualsFromCloud() {
         .catch(err => console.error("Error loading Actuals:", err));
 }
 
-// ฟังก์ชันแสดงผลตาราง
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
@@ -1604,15 +1670,13 @@ function renderActuals() {
         return;
     }
 
-    // 📌 จัดเรียงข้อมูลตามวันที่จากใหม่ไปเก่าอย่างถูกต้อง
     const sortedActuals = [...actuals].sort((a, b) => {
         let dateA = new Date(a.date || a['Date'] || 0);
         let dateB = new Date(b.date || b['Date'] || 0);
-        return dateB - dateA; // วันที่ใหม่กว่าจะอยู่ด้านบน
+        return dateB - dateA;
     });
 
     sortedActuals.forEach((a) => {
-        // ค้นหา Index จริงในอาเรย์หลักเพื่อป้องกันการลบข้อมูลผิดแถว
         const originalIndex = actuals.indexOf(a);
 
         let rawDate = a.date || a['Date'] || '';
@@ -1647,20 +1711,18 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
-// ฟังก์ชั่นสำหรับดึงข้อมูลทั้งหมดเปิดหน้าเว็บ
+
+// ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    // ดึงข้อมูลทั้งแผนการผลิต (plans) และประวัติการผลิต (actuals) พร้อมกัน
     fetch(scriptUrl)
         .then(res => res.json())
         .then(data => {
-            // รองรับกรณีที่ Google Apps Script ส่งข้อมูลมาเป็น Object หรือ Array
             if (data.plans) plans = data.plans;
             if (data.actuals) actuals = data.actuals;
             
-            // คำนวณรวบยอด actuals เพื่อสร้าง Stock WIP อัตโนมัติ (กรองเฉพาะขั้นตอนสุดท้าย)
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
                 actuals.forEach(a => {
@@ -1668,7 +1730,6 @@ function loadAllData() {
                     const lNo = a.lotNo || a['Lot No.'] || '';
                     const okQty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     
-                    // 🔍 เช็คเงื่อนไข: ถ้า Part No. มีเครื่องหมาย / หรือมีสเต็ปต่อท้าย (เช่น 1/3) จะข้ามไม่ให้นับเข้า Stock WIP
                     const hasSubProcess = pNo.includes('/') || /\s+\d+\/\d+/.test(pNo);
 
                     if (pNo && !hasSubProcess) {
@@ -1687,7 +1748,6 @@ function loadAllData() {
                 });
             }
 
-            // สั่งเรนเดอร์หน้าจอใหม่ทั้งหมด
             renderDashboard();
             renderActuals();
             if (typeof renderWipStock === 'function') renderWipStock();
@@ -1696,7 +1756,6 @@ function loadAllData() {
         .catch(err => console.error("Error loading data:", err));
 }
 
-// สั่งให้โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
