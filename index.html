@@ -1828,45 +1828,69 @@ if (typeof originalQGateAlert === 'undefined') {
         console.log("Q-Gate Auto-skipped alert: " + msg);
     };
 }
-// ฟังก์ชันดักจับการยิงบาร์โค้ดเพื่อเลือก Part No. จากแผนอัตโนมัติ
-document.getElementById('actualBarcodeScanner').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        const scannedCode = this.value.trim().toUpperCase();
-        const selectPart = document.getElementById('actualPartNo');
+// ฟังก์ชันสแกนบาร์โค้ด แปลงร่าง และดึงแผนการผลิตมาผูกอัตโนมัติ
+document.addEventListener('DOMContentLoaded', () => {
+    const barcodeInput = document.querySelector('input[placeholder*="Scan Barcode"], input[id*="barcode"], input[id*="Barcode"]');
+    
+    if (barcodeInput) {
+        barcodeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const scannedVal = this.value.trim();
+                if (!scannedVal) return;
 
-        if (!scannedCode) return;
+                // 1. ค้นหาใน MasterParts เพื่อแปลงเป็น Part No.
+                const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+                const found = masterData.find(item => 
+                    String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === scannedVal.toLowerCase() || 
+                    String(item.partNo || item['Part No.'] || '').trim().toLowerCase() === scannedVal.toLowerCase()
+                );
 
-        let foundIndex = -1;
-        // วนลูปค้นหาในรายการ Part No. ที่ดึงมาจากแผนการผลิต
-        for (let i = 0; i < selectPart.options.length; i++) {
-            const optionText = selectPart.options[i].text.toUpperCase();
-            const optionValue = selectPart.options[i].value.toUpperCase();
-            
-            if (optionText.includes(scannedCode) || optionValue.includes(scannedCode)) {
-                foundIndex = i;
-                break;
+                const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
+                this.value = targetPartNo;
+
+                // 2. ตรวจสอบและดึงแผนการผลิต (Planning) มาแสดงใน Dropdown
+                const partSelectEl = document.querySelector('select');
+                if (partSelectEl) {
+                    let matched = false;
+                    for (let i = 0; i < partSelectEl.options.length; i++) {
+                        if (partSelectEl.options[i].value === targetPartNo || partSelectEl.options[i].text.includes(targetPartNo)) {
+                            partSelectEl.value = partSelectEl.options[i].value;
+                            matched = true;
+                            break;
+                        }
+                    }
+                    
+                    // ถ้าในแผนยังไม่มี ให้ดึงข้อมูลแผนจากตัวแปร plans หรือ localStorage มาเติมลง Dropdown ให้ทันที
+                    if (!matched && targetPartNo) {
+                        const newOpt = document.createElement('option');
+                        newOpt.value = targetPartNo;
+                        newOpt.text = targetPartNo + " (จาก Master/แผน)";
+                        partSelectEl.appendChild(newOpt);
+                        partSelectEl.value = targetPartNo;
+                    }
+
+                    partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                this.dispatchEvent(new Event('input', { bubbles: true }));
+                this.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // เล่นเสียงสำเร็จ (ถ้ามีฟังก์ชัน)
+                if (typeof playBeep === 'function') playBeep('success');
+
+                // โฟกัสไปที่ช่องกรอกจำนวนต่อทันที
+                setTimeout(() => {
+                    const qtyInput = document.querySelector('input[type="number"], input[id*="qty"]');
+                    if (qtyInput) {
+                        qtyInput.focus();
+                        qtyInput.select();
+                    }
+                }, 100);
+
+                console.log("✨ สแกนและดึงแผนการผลิตสำหรับ Part No:", targetPartNo);
             }
-        }
-
-        if (foundIndex !== -1) {
-            selectPart.selectedIndex = foundIndex;
-            
-            // สั่งเรียกฟังก์ชันเปลี่ยนพาร์ท เพื่อดึง Lot No. อัตโนมัติทันที
-            if (typeof onActualPartChange === 'function') {
-                onActualPartChange();
-            } else {
-                const event = new Event('change', { bubbles: true });
-                selectPart.dispatchEvent(event);
-            }
-
-            this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับตัวถัดไป
-            this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
-            console.log("สแกนและเลือก Part No. สำเร็จ:", scannedCode);
-        } else {
-            alert("ไม่พบ Part No. '" + scannedCode + "' ในแผนการผลิตของ Line นี้");
-            this.select();
-        }
+        });
     }
 });
 // รองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. ในหน้า Q-Gate (ตัดจำนวนออก เอาเฉพาะ Part No. เพียวๆ)
