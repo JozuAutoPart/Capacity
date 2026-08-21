@@ -1759,7 +1759,7 @@ function loadAllData() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
-  document.addEventListener('DOMContentLoaded', () => {
+ document.addEventListener('DOMContentLoaded', () => {
     const barcodeInput = document.querySelector('input[placeholder*="Scan Barcode"], input[id*="barcode"], input[id*="Barcode"]');
     
     if (barcodeInput) {
@@ -1779,8 +1779,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
                 this.value = targetPartNo;
 
-                // 2. เลือก Part No. ลงในช่อง Dropdown และบังคับสร้างตัวเลือกถ้ายังไม่มีเพื่อให้ดึงแผนได้
-                const partSelectEl = document.querySelector('select');
+                // 2. ค้นหาช่อง Dropdown Part No. ของแผน (ระบุ ID หรือ name ที่เกี่ยวกับ part)
+                const partSelectEl = document.getElementById('actualPartNo') || document.querySelector('select[name*="part"], select[id*="part"]');
                 if (partSelectEl) {
                     let matched = false;
                     for (let i = 0; i < partSelectEl.options.length; i++) {
@@ -1799,7 +1799,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         partSelectEl.value = targetPartNo;
                     }
 
-                    // ยิง Event เพื่อสั่งให้ระบบแผนการผลิตอัปเดตตาม Part No. ที่เลือก
                     partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
                     partSelectEl.dispatchEvent(new Event('input', { bubbles: true }));
                 }
