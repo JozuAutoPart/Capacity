@@ -3734,6 +3734,7 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
+// ==========================================================
 // ฟังก์ชันคำนวณยอด Stock รวมทั้งฝั่ง WIP และ FG จากหน้าเว็บ
 // ==========================================================
 function renderStockZeroPieChart() {
@@ -3750,16 +3751,12 @@ function renderStockZeroPieChart() {
     if (totalParts === 0) totalParts = 265; // ค่าสำรองถ้ายังไม่โหลด
 
     let availableCount = 0;
-
-    // วิธีที่ชัวร์ที่สุด: อ่านค่าจากตาราง "Stock WIP" และ "Stock FG" ที่แสดงผลอยู่บนหน้าเว็บโดยตรง
-    // โดยเก็บรหัสพาร์ทที่มีสถานะ In Stock หรือมียอดคงเหลือ > 0
     let activePartsSet = new Set();
 
-    // 1. ตรวจสอบตารางคลังสินค้าหว่างผลิต (Stock WIP) - เช็คคอลัมน์ "คงเหลือ WIP ปัจจุบัน"
-    // หาตารางทางซ้าย (Stock WIP)
+    // วิธีที่ชัวร์ที่สุด: อ่านค่าจากตาราง "Stock WIP" และ "Stock FG" ที่แสดงผลอยู่บนหน้าเว็บโดยตรง
     let tables = document.querySelectorAll('table');
     if (tables.length >= 2) {
-        // ตาราง WIP (ตารางแรกๆ)
+        // 1. ตาราง WIP (ตารางแรก) - เช็คทุกแถว
         let wipRows = tables[0].querySelectorAll('tbody tr');
         wipRows.forEach(tr => {
             let cols = tr.querySelectorAll('td');
@@ -3772,30 +3769,41 @@ function renderStockZeroPieChart() {
             }
         });
 
-        // ตาราง FG (ตารางที่สอง) - เช็คคอลัมน์ "คงเหลือ FG จริง"
-        if (tables.length >= 2) {
-            let fgRows = tables[1].querySelectorAll('tbody tr');
-            fgRows.forEach(tr => {
-                let cols = tr.querySelectorAll('td');
-                if (cols.length >= 4) {
-                    let pNo = cols[0].innerText.trim();
-                    let fgBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
-                    if (pNo && fgBal > 0) {
-                        activePartsSet.add(pNo.toLowerCase());
-                    }
+        // 2. ตาราง FG (ตารางที่สอง) - เช็คทุกแถว
+        let fgRows = tables[1].querySelectorAll('tbody tr');
+        fgRows.forEach(tr => {
+            let cols = tr.querySelectorAll('td');
+            if (cols.length >= 4) {
+                let pNo = cols[0].innerText.trim();
+                let fgBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
+                if (pNo && fgBal > 0) {
+                    activePartsSet.add(pNo.toLowerCase());
                 }
-            });
-        }
+            }
+        });
     }
 
-    // ถ้าดึงจากตารางไม่ได้ ให้สำรองเช็คจาก Badge In Stock บนหน้าเว็บ
+    // ถ้าดึงจากตารางไม่ได้ ให้สำรองเช็คจาก Badge In Stock บนหน้าเว็บหรือข้อมูลดิบ
     if (activePartsSet.size === 0) {
         let badges = document.querySelectorAll('.badge');
         badges.forEach(b => {
-            if (b.innerText.trim() === 'In Stock') {
+            let text = b.innerText.trim();
+            if (text === 'In Stock' || text === 'มี Stock') {
                 availableCount++;
             }
         });
+        
+        // ถ้ายังไม่ได้อีก ให้ดึงจาก masterPartsDatabase ถ้ามีข้อมูลยอดคงเหลือ
+        if (availableCount === 0 && masterDb.length > 0) {
+            masterDb.forEach(item => {
+                let pNo = String(item.partNo || '').trim();
+                let stockVal = parseFloat(item.stock || item.balance || 0) || 0;
+                if (pNo && stockVal > 0) {
+                    activePartsSet.add(pNo.toLowerCase());
+                }
+            });
+            availableCount = activePartsSet.size;
+        }
     } else {
         availableCount = activePartsSet.size;
     }
@@ -3826,7 +3834,7 @@ function renderStockZeroPieChart() {
             }]
         },
         options: {
-            animation: false, // <--- เติมตรงนี้ครับ
+            animation: false,
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
