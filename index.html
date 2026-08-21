@@ -1759,6 +1759,27 @@ function loadAllData() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
+// ฟังก์ชันสร้างเสียง Beep แจ้งเตือนแบบไม่ต้องง้อไฟล์เสียง
+function playSystemBeep() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.type = 'square'; // เสียงแบบเครื่องจักร/แจ้งเตือน
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); // ความถี่เสียง (ยิ่งเยอะยิ่งแหลม)
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // ความดัง
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.2); // ดัง 0.2 วินาทีแล้วดับ
+    } catch (e) {
+        console.log("Audio not supported");
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const barcodeInput = document.querySelector('input[placeholder*="Scan Barcode"], input[id*="barcode"], input[id*="Barcode"]');
     
@@ -1791,11 +1812,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // เงื่อนไขเสียง: ถ้าเจอในแผนร้อง success, ถ้าไม่เจอในแผนร้อง beep (เสียงเตือน)
+                    // เช็กว่าเจอในแผนหรือไม่
                     if (matched) {
+                        // เจอในแผน -> เล่นเสียง success ของระบบเดิม
                         if (typeof playBeep === 'function') playBeep('success');
                     } else {
-                        if (typeof playBeep === 'function') playBeep('beep'); // เสียงเตือนเมื่อไม่มีในแผน
+                        // ไม่เจอในแผน -> เล่นเสียง Beep ที่สร้างใหม่ (ดังชัวร์)
+                        playSystemBeep(); 
                         
                         // เพิ่ม Option สำรองกรณีไม่อยู่ในแผน
                         const newOpt = document.createElement('option');
