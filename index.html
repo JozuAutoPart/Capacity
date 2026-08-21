@@ -1885,9 +1885,20 @@ function renderQGate() {
             historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
             qgateHistory.forEach(item => {
+                // จัดการรูปแบบวันที่ให้อ่านค่าแบบตรงๆ ป้องกันปัญหาวันที่ถอยหลัง 1 วันจาก Timezone
+                let displayDate = '';
+                if (item.date) {
+                    let dateStr = String(item.date);
+                    if (dateStr.includes('T')) {
+                        displayDate = dateStr.split('T')[0];
+                    } else {
+                        displayDate = dateStr.substring(0, 10);
+                    }
+                }
+
                 historyBody.innerHTML += `
                     <tr>
-                        <td>${item.date ? item.date.split('T')[0] : ''}</td>
+                        <td>${displayDate}</td>
                         <td><small class="text-warning">${item.timeRange || '-'}</small></td>
                         <td>${item.inspector}</td>
                         <td class="fw-bold">${item.partNo}</td>
