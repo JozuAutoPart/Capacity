@@ -4009,40 +4009,23 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     let todayStr = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
 }
-   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
-function renderZeroStockPartsByLine(selectedLine) {
+  // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
+function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
-    // เช็กว่าตอนนี้เราอยู่หน้า Dashboard หรือไม่ (ดูจากปุ่มแท็บ Dashboard หรือหัวข้อ Dashboard)
-    // หรือเช็กจากลิงก์/สถานะหน้าจอปัจจุบัน
-    const activeTab = document.querySelector('.nav-link.active, .tab-btn.active, [id*="dash"]');
-    
-    // ถ้าหน้าจอหรือแท็บปัจจุบันไม่ใช่ Dashboard ให้ลบกล่องทิ้งทันที แล้วหยุดทำงาน
-    if (window.location.hash && !window.location.hash.includes('dash')) {
-        if (container) container.remove();
-        return;
-    }
-
-    // หรือเช็กง่ายที่สุด: ถ้าไม่มี Element ที่เป็นกราฟ Dashboard บนหน้านี้ ให้ลบกล่องทิ้งทันที
-    const checkDashboardChart = document.getElementById('defectPpmChart');
-    if (!checkDashboardChart) {
-        if (container) container.remove(); // ลบออกจากหน้าเว็บเลย
-        return;
-    }
-
-    // ถ้าอยู่หน้า Dashboard ค่อยสร้างและแสดงผลตามปกติ
+    // ถ้ายังไม่มี container บนหน้าจอ ให้สร้างขึ้นมาใหม่แล้วแปะไว้ในหน้า
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
         container.className = 'col-12 mt-3 mb-4';
 
         const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
-        mainContent.appendChild(container);
+        if (mainContent) {
+            mainContent.appendChild(container);
+        }
     }
     
     if (container) container.style.display = 'block';
-
-    // ... (โค้ดคำนวณและแสดงผลข้างล่างเหมือนเดิมทั้งหมด) ...
 
     // 2. ดึงข้อมูล Master Parts
     const masters = window.masterPartsDatabase || [];
@@ -4089,8 +4072,12 @@ function renderZeroStockPartsByLine(selectedLine) {
 
     // 5. หาพาร์ทที่ Stock <= 0
     const zeroStockParts = targetMasters.filter(master => {
-        const pNo = String(master.partNo || master['Part No.'] || '').trim();
-        const currentStock = stockMap[pNo] !== undefined ? stockMap[pNo] : 0; 
+        const keys = Object.keys(master);
+        const pNo = master.partNo || master['Part No.'] || master['part no'] || (keys.length > 1 ? master[keys[1]] : '') || '';
+        const cleanPNo = String(pNo).trim();
+        if (!cleanPNo) return false;
+        
+        const currentStock = stockMap[cleanPNo] !== undefined ? stockMap[cleanPNo] : 0; 
         return currentStock <= 0;
     }).map(master => {
         const keys = Object.keys(master);
