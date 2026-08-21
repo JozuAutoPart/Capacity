@@ -4013,7 +4013,7 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
-    // ถ้ายังไม่มี container บนหน้าจอ ให้สร้างขึ้นมาใหม่แล้วแปะไว้ในหน้า
+    // ถ้ายังไม่มี container บนหน้าจอ ให้สร้างขึ้นมาใหม่
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
@@ -4050,22 +4050,35 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine === String(selectedLine).trim();
           });
 
-    // 4. คำนวณ Stock จาก Actuals และ Deliveries
+    // 4. คำนวณ Stock ให้ครบถ้วนเหมือนหน้าตาราง Stock WIP/FG (Actuals - QGate/Deliveries)
     const actualsData = window.actuals || [];
+    const qgateData = window.qgate || [];
     const deliveriesData = window.deliveries || [];
     const stockMap = {};
 
+    // รวมยอดผลิตเข้า WIP
     actualsData.forEach(a => {
         const pNo = String(a['Part No.'] || a.partNo || '').trim();
         const okQty = Number(a['OK Qty'] || a.qty || 0);
-        if (!stockMap[pNo]) stockMap[pNo] = 0;
-        stockMap[pNo] += okQty;
+        if (pNo) {
+            stockMap[pNo] = (stockMap[pNo] || 0) + okQty;
+        }
     });
 
+    // หักยอดที่ตรวจผ่าน Q-Gate (หรือตัดโอนออก)
+    qgateData.forEach(q => {
+        const pNo = String(q['Part No.'] || q.partNo || '').trim();
+        const passQty = Number(q.passQty || q.totalQty || 0);
+        if (pNo && stockMap[pNo] !== undefined) {
+            stockMap[pNo] -= passQty;
+        }
+    });
+
+    // หักยอดส่งมอบ (Deliveries)
     deliveriesData.forEach(d => {
         const pNo = String(d.partNo || d['Part No.'] || '').trim();
         const dQty = Number(d.qty || 0);
-        if (stockMap[pNo] !== undefined) {
+        if (pNo && stockMap[pNo] !== undefined) {
             stockMap[pNo] -= dQty;
         }
     });
