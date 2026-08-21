@@ -3746,53 +3746,55 @@ function renderStockZeroPieChart() {
 
     let activePartsSet = new Set();
 
-    // 1. ดึงข้อมูลจากตัวแปรฐานข้อมูลดิบของระบบ (ถ้ามี)
-    if (window.wipStockDatabase && Array.isArray(window.wipStockDatabase)) {
-        window.wipStockDatabase.forEach(item => {
-            let pNo = String(item.partNo || '').trim();
-            let bal = parseFloat(item.wipBal || item.balance || 0) || 0;
-            if (pNo && bal > 0) activePartsSet.add(pNo.toLowerCase());
-        });
-    }
-
-    if (window.fgStockDatabase && Array.isArray(window.fgStockDatabase)) {
-        window.fgStockDatabase.forEach(item => {
-            let pNo = String(item.partNo || '').trim();
-            let bal = parseFloat(item.fgBal || item.balance || 0) || 0;
-            if (pNo && bal > 0) activePartsSet.add(pNo.toLowerCase());
-        });
-    }
-
-    // 2. ถ้าในตาราง HTML มีการแสดงผลอยู่ ให้กวาดอ่านจากตารางด้วย
+    // กวาดเช็กจากตารางบนหน้าเว็บแบบเรียลไทม์ (นับเฉพาะพาร์ทที่มียอดคงเหลือ > 0 จริงๆ)
     let tables = document.querySelectorAll('table');
     if (tables.length >= 2) {
+        // 1. เช็กจากตาราง WIP (คอลัมน์ที่ 3: คงเหลือ WIP ปัจจุบัน)
         let wipRows = tables[0].querySelectorAll('tbody tr');
         wipRows.forEach(tr => {
             let cols = tr.querySelectorAll('td');
             if (cols.length >= 4) {
                 let pNo = cols[0].innerText.trim();
                 let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
-                if (pNo && wipBal > 0) activePartsSet.add(pNo.toLowerCase());
+                if (pNo && wipBal > 0) {
+                    activePartsSet.add(pNo.toLowerCase());
+                }
             }
         });
 
+        // 2. เช็กจากตาราง FG (คอลัมน์ที่ 4: คงเหลือ FG จริง)
         let fgRows = tables[1].querySelectorAll('tbody tr');
         fgRows.forEach(tr => {
             let cols = tr.querySelectorAll('td');
             if (cols.length >= 5) {
                 let pNo = cols[0].innerText.trim();
                 let fgBal = parseFloat(cols[4].innerText.replace(/,/g, '')) || 0;
-                if (pNo && fgBal > 0) activePartsSet.add(pNo.toLowerCase());
+                if (pNo && fgBal > 0) {
+                    activePartsSet.add(pNo.toLowerCase());
+                }
             }
         });
     }
 
-    // บังคับให้แสดงผล 3 รายการตามข้อมูลจริงในตารางล่าสุด (ถ้า Set นับได้น้อยกว่า 3)
-    let availableCount = Math.max(activePartsSet.size, 3);
+    // ใช้จำนวนที่นับได้จริงจากตารางแบบสดๆ (ถ้าตารางยังไม่ถูกเรนเดอร์ ให้เช็กจากสถานะ In Stock ในหน้าจอด้วย)
+    if (activePartsSet.size === 0) {
+        let badges = document.querySelectorAll('.badge, span');
+        badges.forEach(el => {
+            if (el.innerText.trim() === 'In Stock') {
+                let row = el.closest('tr');
+                if (row) {
+                    let firstCol = row.querySelector('td');
+                    if (firstCol) activePartsSet.add(firstCol.innerText.trim().toLowerCase());
+                }
+            }
+        });
+    }
+
+    let availableCount = activePartsSet.size;
     let zeroCount = Math.max(0, totalParts - availableCount);
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
-    // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard
+    // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard ตามจริง
     if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
     if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
     if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
