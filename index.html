@@ -4331,33 +4331,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
-// ฟังก์ชันสแกนบาร์โค้ดหน้าบันทึกยอดผลิต
-document.addEventListener('DOMContentLoaded', () => {
-    document.body.addEventListener('input', function(e) {
-        const target = e.target;
-        if (target && target.tagName === 'INPUT' && target.value.toUpperCase().startsWith('JA')) {
-            const val = target.value.trim();
-            if (val.length >= 3) {
-                const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-                const found = masterData.find(item => 
-                    String(item.barcode || '').trim().toLowerCase() === val.toLowerCase() || 
-                    String(item.partNo || '').trim().toLowerCase() === val.toLowerCase()
-                );
-                if (found) {
-                    const targetPartNo = found.partNo || found['Part No.'];
-                    document.querySelectorAll('select').forEach(sel => {
-                        for (let i = 0; i < sel.options.length; i++) {
-                            if (sel.options[i].value === targetPartNo || sel.options[i].text.includes(targetPartNo)) {
-                                sel.value = sel.options[i].value;
-                                sel.dispatchEvent(new Event('change'));
-                                break;
-                            }
-                        }
-                    });
-                }
-            }
-        }
-    });
 });
 </script>
 </body>
