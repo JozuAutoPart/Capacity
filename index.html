@@ -1759,65 +1759,68 @@ function loadAllData() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
-        // รองรับการยิงบาร์โค้ดที่ช่อง Scan Barcode ในหน้าบันทึกยอดผลิต (พนักงาน)
-const barcodeInputEl = document.getElementById('barcodeInput') || document.querySelector('input[placeholder*="Scan Barcode"], input[id*="barcode"], input[id*="Barcode"]');
+  document.addEventListener('DOMContentLoaded', () => {
+    const barcodeInput = document.querySelector('input[placeholder*="Scan Barcode"], input[id*="barcode"], input[id*="Barcode"]');
+    
+    if (barcodeInput) {
+        barcodeInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const scannedVal = this.value.trim();
+                if (!scannedVal) return;
 
-if (barcodeInputEl) {
-    barcodeInputEl.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            let rawBarcode = barcodeInputEl.value.trim();
-            if (!rawBarcode) return;
+                // 1. แปลงบาร์โค้ดเป็น Part No. จาก MasterParts
+                const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+                const found = masterData.find(item => 
+                    String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === scannedVal.toLowerCase() || 
+                    String(item.partNo || item['Part No.'] || '').trim().toLowerCase() === scannedVal.toLowerCase()
+                );
 
-            // ค้นหาใน masterPartsDatabase ที่ดึงมาจาก Google Sheets
-            const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-            
-            // ค้นหาตัวที่ตรงกับ Barcode หรือ PartNo
-            const found = masterData.find(item => 
-                String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === rawBarcode.toLowerCase() || 
-                String(item.partNo || item['Part No.'] || '').trim().toLowerCase() === rawBarcode.toLowerCase()
-            );
+                const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
+                this.value = targetPartNo;
 
-            let targetPartNo = found ? (found.partNo || found['Part No.']) : rawBarcode;
-
-            // นำ Part No. ที่แปลงได้ไปเลือกใน Dropdown ของหน้าบันทึกยอดผลิต
-            const partSelectEl = document.querySelector('select[name*="part"], select[id*="part"], select');
-            if (partSelectEl) {
-                let matched = false;
-                for (let i = 0; i < partSelectEl.options.length; i++) {
-                    if (partSelectEl.options[i].value === targetPartNo || partSelectEl.options[i].text.includes(targetPartNo)) {
-                        partSelectEl.value = partSelectEl.options[i].value;
-                        matched = true;
-                        break;
+                // 2. เลือก Part No. ลงในช่อง Dropdown และบังคับสร้างตัวเลือกถ้ายังไม่มีเพื่อให้ดึงแผนได้
+                const partSelectEl = document.querySelector('select');
+                if (partSelectEl) {
+                    let matched = false;
+                    for (let i = 0; i < partSelectEl.options.length; i++) {
+                        if (partSelectEl.options[i].value === targetPartNo || partSelectEl.options[i].text.includes(targetPartNo)) {
+                            partSelectEl.value = partSelectEl.options[i].value;
+                            matched = true;
+                            break;
+                        }
                     }
-                }
-                // ถ้าในแผนไม่มี ให้สร้าง Option ใหม่เพิ่มเข้าไปทันที
-                if (!matched && targetPartNo) {
-                    const newOpt = document.createElement('option');
-                    newOpt.value = targetPartNo;
-                    newOpt.text = targetPartNo + " (จาก Barcode)";
-                    partSelectEl.appendChild(newOpt);
-                    partSelectEl.value = targetPartNo;
-                }
-                
-                partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
-            }
+                    
+                    if (!matched && targetPartNo) {
+                        const newOpt = document.createElement('option');
+                        newOpt.value = targetPartNo;
+                        newOpt.text = targetPartNo;
+                        partSelectEl.appendChild(newOpt);
+                        partSelectEl.value = targetPartNo;
+                    }
 
-            if (typeof playBeep === 'function') {
-                playBeep('success');
-            }
-
-            // โฟกัสไปที่ช่องกรอกจำนวน (OK Qty) อัตโนมัติเพื่อให้ทำงานต่อได้ทันที
-            setTimeout(() => {
-                const qtyInput = document.querySelector('input[type="number"], input[id*="qty"], input[name*="qty"]');
-                if (qtyInput) {
-                    qtyInput.focus();
-                    qtyInput.select();
+                    // ยิง Event เพื่อสั่งให้ระบบแผนการผลิตอัปเดตตาม Part No. ที่เลือก
+                    partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    partSelectEl.dispatchEvent(new Event('input', { bubbles: true }));
                 }
-            }, 100);
-        }
-    });
-}
+
+                this.dispatchEvent(new Event('input', { bubbles: true }));
+                this.dispatchEvent(new Event('change', { bubbles: true }));
+
+                if (typeof playBeep === 'function') playBeep('success');
+
+                // โฟกัสไปที่ช่องกรอกจำนวนอัตโนมัติ
+                setTimeout(() => {
+                    const qtyInput = document.querySelector('input[type="number"], input[id*="qty"]');
+                    if (qtyInput) {
+                        qtyInput.focus();
+                        qtyInput.select();
+                    }
+                }, 100);
+            }
+        });
+    }
+});
      // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History
 // ==========================================
