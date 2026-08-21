@@ -1918,9 +1918,9 @@ function renderQGate() {
     }
 }
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
+// ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม - สิ้นสุด)
 function submitQGateTransaction(e) {
     e.preventDefault();
-    const date = document.getElementById('qgateDate').value;
     const startTime = document.getElementById('qgateStartTime').value;
     const endTime = document.getElementById('qgateEndTime').value;
     const timeRange = `${startTime} - ${endTime}`;
@@ -1935,13 +1935,13 @@ function submitQGateTransaction(e) {
     }
 
     if (ngQty > totalQty) {
-        alert("จำนวนของเสีย (NG) ต้องไม่มากกว่ายอดตรวจสอบทั้งหมด!");
+        alert("จำนวนของเสีย (NG) ต้องไม่มากกว่าตรวจสอบทั้งหมด!");
         return;
     }
 
-   const passQty = totalQty - ngQty;
+    const passQty = totalQty - ngQty;
 
-   const newItem = {
+    const newItem = {
         id: Date.now(),
         date: document.getElementById('qgateDate').value,
         timeRange: timeRange,
@@ -1954,21 +1954,21 @@ function submitQGateTransaction(e) {
 
     qgate.unshift(newItem);
     if (typeof saveAll === 'function') {
-        saveAll('saveQgate', newItem);
+        saveAll('saveQgate', newItem); // ส่งข้อมูลชิ้นใหม่ไปบันทึกลง Google Sheets
     }
 
     alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
     document.getElementById('qgateForm').reset();
-
-    // เซ็ตวันที่ปัจจุบันของไทยกลับเข้าช่อง Input หลังรีเซ็ตฟอร์ม
-    const todayNow = new Date();
-    const localToday = new Date(todayNow.getTime() - (todayNow.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    document.getElementById('qgateDate').value = localToday;
+    
+    const nowDate = new Date();
+    const localDate = new Date(nowDate.getTime() - (nowDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    document.getElementById('qgateDate').value = localDate;
 
     renderQGate();
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
     }
+}
 
 // 📌 ฟังก์ชันลบรายการ Q-Gate แบบใส่รหัสผ่าน
 function deleteQGateItem(id) {
