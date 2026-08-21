@@ -1940,9 +1940,13 @@ function submitQGateTransaction(e) {
 
     const passQty = totalQty - ngQty;
 
+    // สร้างตัวแปรดึงวันที่ปัจจุบันตามเวลาไทยตรงนี้ได้เลย
+    const now = new Date();
+    const thaiDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
     const newItem = {
         id: Date.now(),
-        date: date,
+        date: document.getElementById('qgateDate').value || thaiDate, // ใช้ค่าที่เลือกจากช่อง หรือถ้าไม่มีให้ใช้วันที่ไทยปัจจุบัน
         timeRange: timeRange,
         inspector: inspector,
         partNo: partNo,
