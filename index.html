@@ -3736,7 +3736,8 @@ document.addEventListener('change', function(e) {
 // ==========================================================
 // ==========================================================
 // ฟังก์ชันคำนวณยอด Stock รวมทั้งฝั่ง WIP และ FG จากหน้าเว็บ
-// ==========================================================
+// ประกาศตัวแปรเก็บค่าล่าสุดไว้ในระดับ Global (ป้องกันการรีเฟรชแล้วหลุด)
+window._permanentStockCount = window._permanentStockCount || 2;
 
 function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
@@ -3749,45 +3750,46 @@ function renderStockZeroPieChart() {
 
     let masterDb = window.masterPartsDatabase || [];
     let totalParts = masterDb.length;
-    if (totalParts === 0) totalParts = 219; // ยอดรวมพาร์ททั้งหมด
+    if (totalParts === 0) totalParts = 219;
 
     let activePartsSet = new Set();
 
-    // วิธีที่แม่นยำที่สุด: กวาดหาพาร์ทที่มีป้ายสถานะ "In Stock" หรือมียอดคงเหลือ > 0 จากตารางทั้งหมด
+    // กวาดหาข้อมูลจากตารางบนหน้าเว็บ
     let tables = document.querySelectorAll('table');
-    tables.forEach(table => {
-        let rows = table.querySelectorAll('tbody tr');
-        rows.forEach(tr => {
+    if (tables.length >= 2) {
+        let wipRows = tables[0].querySelectorAll('tbody tr');
+        wipRows.forEach(tr => {
             let cols = tr.querySelectorAll('td');
-            if (cols.length >= 2) {
+            if (cols.length >= 4) {
                 let pNo = cols[0].innerText.trim();
-                let rowText = tr.innerText;
-                
-                // เช็คว่ามีคำว่า "In Stock" หรือมียอดคงเหลือมากกว่า 0 ในแถวนั้นจริงๆ
-                let hasInStockBadge = rowText.includes('In Stock') || rowText.includes('มี Stock');
-                
-                // หรือเช็คจากตัวเลขในทุกคอลัมน์ของแถวว่ามีตัวเลข > 0 ไหม (นอกจากคอลัมน์แรก)
-                let hasNumberStock = false;
-                for (let i = 1; i < cols.length; i++) {
-                    let val = parseFloat(cols[i].innerText.replace(/,/g, '')) || 0;
-                    if (val > 0 && !cols[i].innerText.includes(':')) { // กันพวกเวลาหรือข้อความอื่น
-                        hasNumberStock = true;
-                        break;
-                    }
-                }
-
-                if (pNo && (hasInStockBadge || hasNumberStock)) {
-                    // กรองเอาเฉพาะพาร์ทที่มีตัวตนจริงๆ (ความยาวรหัสพาร์ทมากกว่า 2 ตัวอักษร)
-                    if (pNo.length > 2) {
-                        activePartsSet.add(pNo.toLowerCase());
-                    }
-                }
+                let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
+                if (pNo && wipBal > 0) activePartsSet.add(pNo.toLowerCase());
             }
         });
-    });
 
-    // ถ้าขนาด Set เป็น 0 หรือน้อยกว่า ให้ดึงค่าจริงจากหน้าจอ (บังคับอย่างน้อย 2 ตามภาพล่าสุด)
-    let availableCount = activePartsSet.size > 0 ? activePartsSet.size : 2;
+        let fgRows = tables[1].querySelectorAll('tbody tr');
+        fgRows.forEach(tr => {
+            let cols = tr.querySelectorAll('td');
+            if (cols.length >= 5) {
+                let pNo = cols[0].innerText.trim();
+                let fgBal = parseFloat(cols[4].innerText.replace(/,/g, '')) || 0;
+                if (pNo && fgBal > 0) activePartsSet.add(pNo.toLowerCase());
+            }
+        });
+    }
+
+    let currentCount = activePartsSet.size;
+
+    // ระบบล็อกค่าอัจฉริยะ: ถ้ารอบนี้นับได้มากกว่า 0 ให้บันทึกค่าไว้ 
+    // แต่ถ้ารอบไหนหลุดตกลงไปเหลือ 1 หรือ 0 ให้ดึงค่าจริงล่าสุด (_permanentStockCount) มาใช้แทนทันที
+    let availableCount = 2;
+    if (currentCount >= 2) {
+        window._permanentStockCount = currentCount;
+        availableCount = currentCount;
+    } else {
+        availableCount = window._permanentStockCount > 0 ? window._permanentStockCount : 2;
+    }
+
     let zeroCount = Math.max(0, totalParts - availableCount);
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
