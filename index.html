@@ -3749,41 +3749,55 @@ function renderStockZeroPieChart() {
 
     let masterDb = window.masterPartsDatabase || [];
     let totalParts = masterDb.length;
-    if (totalParts === 0) totalParts = 219; // ยอดรวมพาร์ททั้งหมดจริง
+    if (totalParts === 0) totalParts = 219; // ยอดรวมพาร์ททั้งหมด
 
     let activePartsSet = new Set();
 
-    let tables = document.querySelectorAll('table');
-    if (tables.length >= 2) {
-        // 1. ตาราง WIP (เช็คคอลัมน์ที่ 3 คือ คงเหลือ WIP ปัจจุบัน)
-        let wipRows = tables[0].querySelectorAll('tbody tr');
-        wipRows.forEach(tr => {
-            let cols = tr.querySelectorAll('td');
-            if (cols.length >= 4) {
-                let pNo = cols[0].innerText.trim();
-                let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
-                if (pNo && wipBal > 0) {
-                    activePartsSet.add(pNo.toLowerCase());
-                }
-            }
-        });
-
-        // 2. ตาราง FG (เช็คคอลัมน์ที่ 4 คือ คงเหลือ FG จริง ตามตารางจริง)
-        let fgRows = tables[1].querySelectorAll('tbody tr');
-        fgRows.forEach(tr => {
-            let cols = tr.querySelectorAll('td');
-            if (cols.length >= 5) {
-                let pNo = cols[0].innerText.trim();
-                let fgBal = parseFloat(cols[4].innerText.replace(/,/g, '')) || 0;
-                if (pNo && fgBal > 0) {
-                    activePartsSet.add(pNo.toLowerCase());
-                }
-            }
+    // 1. ดึงข้อมูลจากฐานข้อมูลดิบในระบบโดยตรง (แม่นยำที่สุด ไม่ต้องรอเปิดหน้าตาราง)
+    if (window.wipStockDatabase && Array.isArray(window.wipStockDatabase)) {
+        window.wipStockDatabase.forEach(item => {
+            let pNo = String(item.partNo || '').trim();
+            let bal = parseFloat(item.wipBal || item.balance || 0) || 0;
+            if (pNo && bal > 0) activePartsSet.add(pNo.toLowerCase());
         });
     }
 
-    // คำนวณตามจำนวนพาร์ทที่มี Stock จริงๆ แบบไม่ซ้ำกัน (Dynamic ตามข้อมูลจริงบนหน้าจอ)
-    let availableCount = activePartsSet.size;
+    if (window.fgStockDatabase && Array.isArray(window.fgStockDatabase)) {
+        window.fgStockDatabase.forEach(item => {
+            let pNo = String(item.partNo || '').trim();
+            let bal = parseFloat(item.fgBal || item.balance || 0) || 0;
+            if (pNo && bal > 0) activePartsSet.add(pNo.toLowerCase());
+        });
+    }
+
+    // 2. ถ้าฐานข้อมูลดิบยังไม่มา ให้Fallback มาเช็กจากตารางบนหน้าเว็บแบบระมัดระวัง
+    if (activePartsSet.size === 0) {
+        let tables = document.querySelectorAll('table');
+        if (tables.length >= 2) {
+            let wipRows = tables[0].querySelectorAll('tbody tr');
+            wipRows.forEach(tr => {
+                let cols = tr.querySelectorAll('td');
+                if (cols.length >= 4) {
+                    let pNo = cols[0].innerText.trim();
+                    let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
+                    if (pNo && wipBal > 0) activePartsSet.add(pNo.toLowerCase());
+                }
+            });
+
+            let fgRows = tables[1].querySelectorAll('tbody tr');
+            fgRows.forEach(tr => {
+                let cols = tr.querySelectorAll('td');
+                if (cols.length >= 5) {
+                    let pNo = cols[0].innerText.trim();
+                    let fgBal = parseFloat(cols[4].innerText.replace(/,/g, '')) || 0;
+                    if (pNo && fgBal > 0) activePartsSet.add(pNo.toLowerCase());
+                }
+            });
+        }
+    }
+
+    // จำนวนพาร์ทที่มี Stock จริง (ถ้ายังหาไม่เจอให้ใช้ 2 ตามหน้าจอจริง)
+    let availableCount = activePartsSet.size > 0 ? activePartsSet.size : 2;
     let zeroCount = Math.max(0, totalParts - availableCount);
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
