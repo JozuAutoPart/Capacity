@@ -4331,74 +4331,42 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
-});// ฟังก์ชันดึงข้อมูลจาก Google Sheets (MasterParts) และแปลงบาร์โค้ดแบบ Real-time
+// ฟังก์ชันแปลง Barcode เป็น Part No. อัตโนมัติสำหรับหน้าบันทึกยอดผลิต
 document.addEventListener('DOMContentLoaded', () => {
-    document.body.addEventListener('change', function(e) {
-        processBarcodeFromSheets(e.target);
-    });
+    // ค้นหาช่องกรอกบาร์โค้ด (ช่องที่มีข้อความว่า Scan Barcode หรืออยู่ในโซนเดียวกัน)
+    const allInputs = document.querySelectorAll('input[type="text"]');
+    
+    allInputs.forEach(input => {
+        // ดักจับทุกครั้งที่มีการพิมพ์หรือยิงบาร์โค้ด
+        input.addEventListener('input', function() {
+            const val = this.value.trim();
+            if (val.length >= 2) {
+                const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+                
+                // ค้นหา Barcode ที่ตรงกับที่พิมพ์
+                const found = masterData.find(item => 
+                    String(item.barcode || '').trim().toLowerCase() === val.toLowerCase() || 
+                    String(item.partNo || '').trim().toLowerCase() === val.toLowerCase()
+                );
 
-    document.body.addEventListener('keyup', function(e) {
-        if (e.key === 'Enter') {
-            processBarcodeFromSheets(e.target);
-        }
-    });
-
-    async function processBarcodeFromSheets(target) {
-        if (target && target.tagName === 'INPUT' && target.type === 'text' && !target.id.toLowerCase().includes('qty')) {
-            const val = target.value.trim();
-            if (val.length < 2) return;
-
-            console.log("☁️ กำลังดึงข้อมูล MasterParts จาก Google Sheets...");
-            const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
-            if (!scriptUrl) return;
-
-            try {
-                const response = await fetch(`${scriptUrl}?action=getMasterParts`);
-                const result = await response.json();
-
-                if (result && result.status === "success" && result.data) {
-                    const masterData = result.data;
-                    
-                    // ค้นหาบาร์โค้ดหรือ Part No. ที่ตรงกัน (รองรับคีย์จาก Google Sheets เช่น barcode, partNo)
-                    const found = masterData.find(item => 
-                        String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === val.toLowerCase() || 
-                        String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toLowerCase() === val.toLowerCase()
-                    );
-
-                    if (found) {
-                        const targetPartNo = found.partNo || found['Part No.'] || found['partNo'];
-                        const allSelects = document.querySelectorAll('select');
-                        
-                        allSelects.forEach(sel => {
-                            if (sel.options.length > 0 && sel.options[0].text.toLowerCase().includes('part no')) {
-                                let optionMatched = false;
-                                for (let i = 0; i < sel.options.length; i++) {
-                                    if (sel.options[i].value === targetPartNo || sel.options[i].text.includes(targetPartNo)) {
-                                        sel.value = sel.options[i].value;
-                                        optionMatched = true;
-                                        break;
-                                    }
-                                }
-                                if (!optionMatched && targetPartNo) {
-                                    const newOption = document.createElement('option');
-                                    newOption.value = targetPartNo;
-                                    newOption.text = targetPartNo + " (จาก Sheets)";
-                                    sel.appendChild(newOption);
-                                    sel.value = targetPartNo;
-                                }
+                if (found) {
+                    // หาช่อง Dropdown ของ Part No. ในหน้านี้
+                    const selectEls = document.querySelectorAll('select');
+                    selectEls.forEach(sel => {
+                        // เช็กว่าเป็นช่องเลือก Part No.
+                        for (let i = 0; i < sel.options.length; i++) {
+                            if (sel.options[i].value === found.partNo || sel.options[i].text.includes(found.partNo)) {
+                                sel.value = sel.options[i].value;
                                 sel.dispatchEvent(new Event('change'));
-                                console.log("✅ ดึงและเลือก Part No. จาก Sheets สำเร็จ:", targetPartNo);
+                                console.log("✨ แปลงบาร์โค้ดเป็น Part No. สำเร็จ:", found.partNo);
+                                break;
                             }
-                        });
-                    } else {
-                        console.warn("⚠️ ไม่พบข้อมูลบาร์โค้ดนี้ในชีท MasterParts");
-                    }
+                        }
+                    });
                 }
-            } catch (err) {
-                console.error("❌ เกิดข้อผิดพลาดในการดึงข้อมูลจาก Sheets:", err);
             }
-        }
-    }
+        });
+    });
 });
 </script>
 </body>
