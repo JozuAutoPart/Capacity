@@ -57,7 +57,15 @@
         color: #212529 !important;
         border-color: #ced4da !important;
     }
+/* จัดตำแหน่งตัวเลขในตารางสรุปข้อมูลสต็อกพาร์ทให้ชิดขวาและตรงกันสวยงาม */
+.card-body table tr td:nth-child(2), 
+.card-body .table-responsive td:last-child,
+.summary-value {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums; /* ทำให้ตัวเลขมีความกว้างเท่ากัน จัดเรียงสวยไม่ </h1>เต้น */
+}
 
+/* หรือหากใน HTML ของกล่องสรุปใช้คลาสเฉพาะ ให้ปรับให้แสดงผลแบบ flex หรือจัดชิดขวา */
     </style>
 </head>
 <body class="p-3 p-md-4">
