@@ -1941,9 +1941,9 @@ function submitQGateTransaction(e) {
 
    const passQty = totalQty - ngQty;
 
-    const newItem = {
+   const newItem = {
         id: Date.now(),
-        date: date, // ดึงค่าจากช่อง Input วันที่ (บรรทัด 1922) โดยตรง
+        date: document.getElementById('qgateDate').value,
         timeRange: timeRange,
         inspector: inspector,
         partNo: partNo,
