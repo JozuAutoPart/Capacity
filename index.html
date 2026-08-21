@@ -4332,6 +4332,31 @@ window.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
 });
+        // ฟังก์ชันผูกกับการสแกนหรือพิมพ์บาร์โค้ด เพื่อดึง Part No. อัตโนมัติ
+document.addEventListener('DOMContentLoaded', () => {
+    const barcodeInput = document.getElementById('barcodeInput'); // เปลี่ยนไอดีตามช่องสแกนบาร์โค้ดจริงบนหน้าจอพี่มิว
+    const partNoSelect = document.getElementById('qgatePartNo'); // หรือไอดีช่องเลือก Part No. ของหน้าบันทึกยอดผลิต
+
+    if (barcodeInput) {
+        barcodeInput.addEventListener('input', function() {
+            const scannedCode = this.value.trim().toLowerCase();
+            const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+
+            // ค้นหาข้อมูลที่ตรงกับบาร์โค้ด
+            const matchedItem = masterData.find(item => 
+                String(item.barcode).toLowerCase() === scannedCode || 
+                String(item.partNo).toLowerCase() === scannedCode
+            );
+
+            if (matchedItem && partNoSelect) {
+                partNoSelect.value = matchedItem.partNo;
+                // ถ้ามี Event change ให้Trigger เพื่อให้ระบบโหลดข้อมูลย่อยต่อ
+                partNoSelect.dispatchEvent(new Event('change'));
+                console.log("🔍 เจอ Part No. จากบาร์โค้ด:", matchedItem.partNo);
+            }
+        });
+    }
+});
 </script>
 </body>
 </html>
