@@ -3863,10 +3863,18 @@ function updateDashboardVisibility() {
     let dashTab = document.getElementById('tab-dash');
     
     // ตรวจสอบทั้งสถานะ class active และการแสดงผลจริงของแท็บ
+   // ตรวจสอบทั้งสถานะ class active และการแสดงผลจริงของแท็บ
     if (dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'))) {
         box.style.display = 'flex'; // แสดงเฉพาะหน้า Dashboard
         if (typeof renderStockZeroPieChart === 'function') {
-            renderStockZeroPieChart(); // สั่งวาดกราฟ
+            // เช็คว่าถ้ายังไม่ได้กำลังเรนเดอร์ ให้สั่งทำงานและล็อกไว้ 1 วินาที
+            if (!window._isRenderingStock) {
+                window._isRenderingStock = true;
+                renderStockZeroPieChart(); // สั่งวาดกราฟ
+                setTimeout(() => {
+                    window._isRenderingStock = false;
+                }, 1000);
+            }
         }
     } else {
         box.style.display = 'none'; // ซ่อนทันทีในหน้าอื่นๆ ทั้งหมด
