@@ -2701,15 +2701,12 @@ function renderDiePM() {
     actuals.forEach(itemRecord => {
         if (itemRecord.pmReset) return;
         if (!strokeMap[itemRecord.partNo]) strokeMap[itemRecord.partNo] = { line: itemRecord.line || '-', strokes: 0 };
-        strokeMap[itemRecord.partNo].strokes += (Number(itemRecord.qty) + Number(itemRecord.ngQty || 0));
+        // ใช้ฟิลด์ OK Qty (qty) บวกกับ NG Qty (ngQty) สะสม
+        strokeMap[itemRecord.partNo].strokes += (Number(itemRecord.qty || itemRecord['OK Qty'] || 0) + Number(itemRecord.ngQty || itemRecord['NG Qty'] || 0));
     });
 
-      let pmDueCount = 0;
-let pmNearCount = 0;
-let tallyDue = 0;
-let tallyNear = 0;
-const bmTableBody = document.getElementById('bmTableBody');
-if (!bmTableBody) return;
+    let pmDueCount = 0;
+    let pmNearCount = 0;
   
     Object.keys(strokeMap).forEach(partKey => {
         const currentItem = strokeMap[partKey];
@@ -2734,10 +2731,10 @@ if (!bmTableBody) return;
         let badgeHtml = '';
         if (currentStrokes >= PM_LIMIT) {
             badgeHtml = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
-            tallyDue++;
+            pmDueCount++;
         } else if (currentStrokes >= PM_LIMIT * 0.85) {
             badgeHtml = '<span class="badge bg-warning text-dark">NEAR PM</span>';
-            tallyNear++;
+            pmNearCount++;
         }
 
         const rowElem = document.createElement('tr');
@@ -2756,6 +2753,31 @@ if (!bmTableBody) return;
         `;
         tablePmEl.appendChild(rowElem);
     });
+
+    // อัปเดตตัวเลขแจ้งเตือนด้านบน
+    const badgeDueTarget = document.getElementById('diePmDueCount');
+    const badgeNearTarget = document.getElementById('diePmNearCount');
+    if (badgeDueTarget) badgeDueTarget.innerText = pmDueCount;
+    if (badgeNearTarget) badgeNearTarget.innerText = pmNearCount;
+
+    // เรนเดอร์ประวัติการซ่อม (BM) รอบเดียวให้ครบถ้วน
+    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+
+    dieBms.slice().reverse().forEach((breakdownItem, itemIndex) => {
+        const rowElem = document.createElement('tr');
+        rowElem.innerHTML = `
+            <td>${breakdownItem.date || ''}</td>
+            <td class="fw-bold text-info">${breakdownItem.partNo || ''}</td>
+            <td class="text-danger">${breakdownItem.problem || ''}</td>
+            <td>${breakdownItem.reporter || ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${breakdownItem.date}', '${breakdownItem.partNo}', '${breakdownItem.problem}', '${breakdownItem.reporter}')"><i class="fas fa-print"></i></button>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${itemIndex})"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tableBmEl.appendChild(rowElem);
+    });
+}
 
     const badgeDueTarget = document.getElementById('diePmDueCount');
     const badgeNearTarget = document.getElementById('diePmNearCount');
