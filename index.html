@@ -2619,7 +2619,7 @@ function deleteDelivery(id) {
         alert("ยกเลิกการส่งมอบสำเร็จ");
     }
 }
-      // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
+     // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
    const bm = {
@@ -2670,50 +2670,88 @@ function resetDiePm(partNo) {
     if (confirm(`ยืนยันการบันทึก PM ล้างรอบ Stroke สะสมสำหรับ Part No: ${partNo}?`)) {
         // 1. คำนวณยอด Stroke ปัจจุบัน เพื่อเก็บเป็นยอดหักลบ (Offset)
         let currentStrokes = 0;
-        actuals.forEach(a => {
-            if (a.partNo === partNo) {
-                currentStrokes += (Number(a.qty) + Number(a.ngQty || 0));
-            }
-        });
+        let lineName = "-";
+        if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+            actuals.forEach(a => {
+                let pNo = a.partNo || a.part || a['Part No.'];
+                if (pNo === partNo) {
+                    currentStrokes += (Number(a.qty || 0) + Number(a.ngQty || 0));
+                    if (a.line || a.Line) lineName = a.line || a.Line;
+                }
+            });
+        }
 
-        // 2. บันทึกยอดหักลบลงในเครื่อง (อยู่ถาวรแม้กด F5)
+        // 2. บันทึกยอดหักลบลงในเครื่อง (Reset สโตรก)
         let pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
         pmOffsets[partNo] = currentStrokes; 
         localStorage.setItem('sys_pm_offsets', JSON.stringify(pmOffsets));
 
-        // 3. รีเฟรชตารางใหม่
+        // 3. บันทึกประวัติลง LocalStorage ของตารางประวัติแม่พิมพ์
+        let todayStr = new Date().toISOString().split('T')[0];
+        let dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+        
+        let newRecord = {
+            date: todayStr,
+            partNo: partNo,
+            problem: `PM Completed (Line: ${lineName}, Strokes Reset: ${currentStrokes.toLocaleString()})`,
+            reporter: "System PM"
+        };
+        dieBms.push(newRecord);
+        localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+
+        // 4. สร้างและดาวน์โหลดไฟล์ Excel บันทึกประวัติ PM ทันที
+        if (typeof XLSX !== 'undefined') {
+            let excelData = dieBms.map((item, idx) => ({
+                "ลำดับ": idx + 1,
+                "วันที่": item.date || "",
+                "Part No.": item.partNo || "",
+                "รายละเอียด / ปัญหา": item.problem || "",
+                "ผู้แจ้งซ่อม / บันทึก": item.reporter || ""
+            }));
+
+            let worksheet = XLSX.utils.json_to_sheet(excelData);
+            let workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "PM_History");
+            XLSX.writeFile(workbook, `PM_History_${partNo}_${todayStr}.xlsx`);
+        }
+
+        // 5. รีเฟรชตารางหน้าจอ
         renderDiePM();
-        alert("รีเซ็ต PM สำเร็จเรียบร้อยแล้วครับ เริ่มนับรอบใหม่!");
+        alert("รีเซ็ต PM สำเร็จ และดาวน์โหลดไฟล์ Excel บันทึกประวัติเรียบร้อยแล้วครับ!");
     }
 }
-
 function renderDiePM() {
     const tablePmEl = document.getElementById('diePmTableBody');
-    const tableBmEl = document.getElementById('dieBmTableBody');
-    if (!tablePmEl || !tableBmEl) return;
-
+    if (!tablePmEl) return;
     tablePmEl.innerHTML = '';
-    tableBmEl.innerHTML = '';
 
     const savedOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
-    
     const inputSearchEl = document.getElementById('dieSearchInput');
     const queryFilter = inputSearchEl ? inputSearchEl.value.toLowerCase() : '';
+    
+    // กำหนดค่า PM Limit (ใช้ค่าจากระบบหรือค่ามาตรฐาน 40,000)
+    const limitVal = typeof PM_LIMIT !== 'undefined' ? PM_LIMIT : 40000;
 
     const strokeMap = {};
-    actuals.forEach(itemRecord => {
-        if (itemRecord.pmReset) return;
-        if (!strokeMap[itemRecord.partNo]) strokeMap[itemRecord.partNo] = { line: itemRecord.line || '-', strokes: 0 };
-        strokeMap[itemRecord.partNo].strokes += (Number(itemRecord.qty) + Number(itemRecord.ngQty || 0));
-    });
+    if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+        actuals.forEach(itemRecord => {
+            if (itemRecord.pmReset) return;
+            let pNo = itemRecord.partNo || itemRecord.part || itemRecord['Part No.'];
+            if (!pNo) return;
 
-      let pmDueCount = 0;
-let pmNearCount = 0;
-let tallyDue = 0;
-let tallyNear = 0;
-const bmTableBody = document.getElementById('bmTableBody');
-if (!bmTableBody) return;
-  
+            let lineName = itemRecord.line || itemRecord.Line || '-';
+            if (!strokeMap[pNo]) {
+                strokeMap[pNo] = { line: lineName, strokes: 0 };
+            }
+            let qtyVal = Number(itemRecord.qty || itemRecord.actualQty || 0);
+            let ngVal = Number(itemRecord.ngQty || 0);
+            strokeMap[pNo].strokes += (qtyVal + ngVal);
+        });
+    }
+
+    let tallyDue = 0;
+    let tallyNear = 0;
+
     Object.keys(strokeMap).forEach(partKey => {
         const currentItem = strokeMap[partKey];
         let currentStrokes = currentItem.strokes;
@@ -2727,18 +2765,18 @@ if (!bmTableBody) return;
             return;
         }
 
-        // ซ่อนรายการปกติ (OK) แสดงเฉพาะ NEAR PM และ PM DUE เท่านั้น
-        if (currentStrokes < PM_LIMIT * 0.85) {
+        // ซ่อนรายการปกติ (OK) แสดงเฉพาะ NEAR PM (>= 85%) และ PM DUE (>= 100%) เท่านั้น
+        if (currentStrokes < limitVal * 0.85) {
             return;
         }
 
-        const ratioProgress = Math.min(100, Math.round((currentStrokes / PM_LIMIT) * 100));
+        const ratioProgress = Math.min(100, Math.round((currentStrokes / limitVal) * 100));
 
         let badgeHtml = '';
-        if (currentStrokes >= PM_LIMIT) {
+        if (currentStrokes >= limitVal) {
             badgeHtml = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
             tallyDue++;
-        } else if (currentStrokes >= PM_LIMIT * 0.85) {
+        } else if (currentStrokes >= limitVal * 0.85) {
             badgeHtml = '<span class="badge bg-warning text-dark">NEAR PM</span>';
             tallyNear++;
         }
@@ -2748,10 +2786,10 @@ if (!bmTableBody) return;
             <td class="fw-bold text-info">${partKey}</td>
             <td>${currentItem.line}</td>
             <td>${currentStrokes.toLocaleString()}</td>
-            <td>${PM_LIMIT.toLocaleString()}</td>
+            <td>${limitVal.toLocaleString()}</td>
             <td style="width: 150px;">
                 <div class="progress" style="height: 12px;">
-                    <div class="progress-bar ${currentStrokes >= PM_LIMIT ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${ratioProgress}%;"></div>
+                    <div class="progress-bar ${currentStrokes >= limitVal ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${ratioProgress}%;"></div>
                 </div>
             </td>
             <td>${badgeHtml}</td>
@@ -2760,52 +2798,37 @@ if (!bmTableBody) return;
         tablePmEl.appendChild(rowElem);
     });
 
+    // อัปเดตตัวเลขแจ้งเตือนมุมหัวข้อให้ถูกต้อง
     const badgeDueTarget = document.getElementById('diePmDueCount');
     const badgeNearTarget = document.getElementById('diePmNearCount');
     if (badgeDueTarget) badgeDueTarget.innerText = tallyDue;
     if (badgeNearTarget) badgeNearTarget.innerText = tallyNear;
 
-    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-
-    dieBms.slice().reverse().forEach((breakdownItem, itemIndex) => {
-        const rowElem = document.createElement('tr');
-        rowElem.innerHTML = `
-            <td>${breakdownItem.date || ''}</td>
-            <td class="fw-bold text-info">${breakdownItem.partNo || ''}</td>
-            <td class="text-danger">${breakdownItem.problem || ''}</td>
-            <td>${breakdownItem.reporter || ''}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${breakdownItem.date}', '${breakdownItem.partNo}', '${breakdownItem.problem}', '${breakdownItem.reporter}')"><i class="fas fa-print"></i></button>
-                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${itemIndex})"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
-        tableBmEl.appendChild(rowElem);
-    });
-    const dueEl = document.getElementById('diePmDueCount');
-    const nearEl = document.getElementById('diePmNearCount');
-    if (dueEl) dueEl.innerText = pmDueCount;
-    if (nearEl) nearEl.innerText = pmNearCount;
-
-    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-
-    dieBms.slice().reverse().forEach((b, index) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${b.date || ''}</td>
-            <td class="fw-bold text-info">${b.partNo || ''}</td>
-            <td class="text-danger">${b.problem || ''}</td>
-            <td>${b.reporter || ''}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}')"><i class="fas fa-print"></i></button>
-                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
-        bmTableBody.appendChild(tr);
-    });
+    // จัดการตารางประวัติ Breakdown (BM) รอบเดียวจบ
+    const tableBmEl = document.getElementById('dieBmTableBody') || document.getElementById('bmTableBody');
+    if (tableBmEl) {
+        tableBmEl.innerHTML = '';
+        window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+        window.dieBms.slice().reverse().forEach((b, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${b.date || ''}</td>
+                <td class="fw-bold text-info">${b.partNo || ''}</td>
+                <td class="text-danger">${b.problem || ''}</td>
+                <td>${b.reporter || ''}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}')"><i class="fas fa-print"></i></button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tableBmEl.appendChild(tr);
+        });
+    }
 }
 
 function deleteDieBmRecord(index) {
     if (confirm("ต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
+        let dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
         const actualIndex = dieBms.length - 1 - index;
         if (actualIndex >= 0 && actualIndex < dieBms.length) {
             dieBms.splice(actualIndex, 1);
