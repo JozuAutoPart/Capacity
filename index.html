@@ -4465,12 +4465,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 window.masterPartsDatabase = formattedData;
                 console.log("☁️ โหลด Master Parts จาก Cloud สำเร็จ:", formattedData.length, "รายการ");
 
-                // รีเฟรชหน้าจอ Dashboard อัตโนมัติ
+               // รีเฟรชหน้าจอ Dashboard อัตโนมัติ
                 if (typeof renderZeroStockPartsByLine === 'function') {
                     renderZeroStockPartsByLine('ALL');
                 }
+                
                 if (typeof renderDiePM === 'function') {
-           renderDiePM();
+                    renderDiePM();
+                }
             }
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
