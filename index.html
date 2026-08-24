@@ -1710,8 +1710,7 @@ function renderActuals() {
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
         // ⏱️ ดึงค่าฟิลด์ timeWork จาก Google Sheets มาแสดงผลตรงนี้
-        const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || '-'; 
-
+       const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a.time || '-';
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
         const remarkval = a.remark || a['Remark'] || '-';
