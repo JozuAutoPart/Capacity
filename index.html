@@ -3977,7 +3977,7 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                 <div class="container">
                     <table>
                         <tr>
-                            <td style="width: 15%; text-align: center; font-weight: bold;">[ Logo ]</td>
+                            <td style="width: 15%; text-align: center; font-weight: bold;">[ JOZU ]</td>
                             <td style="width: 70%;">
                                 <div class="header-title">ใบแจ้งซ่อมแม่พิมพ์</div>
                                 <div class="header-sub">Die Repair Report</div>
@@ -4005,7 +4005,7 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                         </tr>
                         <tr>
                             <td colspan="6">
-                                <b>ประเภทการซ่อม:</b> 
+                                <b>ประเภทการซ่อม:</b>&nbsp;
                                 <span class="checkbox"></span> ซ่อมตามแผนการซ่อม (PM) &nbsp;&nbsp;&nbsp;&nbsp;
                                 <span class="checkbox"><b>/</b></span> ซ่อมระหว่างใช้งาน (BM) &nbsp;&nbsp;&nbsp;&nbsp;
                                 <span class="checkbox"></span> ซ่อมหลังปฏิบัติงาน
@@ -4013,7 +4013,7 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                         </tr>
                         <tr>
                             <td colspan="6">
-                                <b>ผู้แจ้งซ่อม:</b> ${reporter}
+                                <b>ผู้แจ้งซ่อม / Leader Line:</b> ${reporter}
                             </td>
                         </tr>
                     </table>
@@ -4021,13 +4021,13 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                     <div class="section-hdr" style="border: 1px solid #000; border-top: none;">รายละเอียดปัญหา / อาการเสีย</div>
                     <table>
                         <tr>
-                            <td style="width: 50%; height: 80px; vertical-align: top;">
-                                <b>Preventive Maintenance / อาการ:</b><br>${problem}
+                            <td style="width: 50%; height: 90px; vertical-align: top;">
+                                <b>อาการเสีย / รายละเอียดปัญหา:</b><br>${problem}
                             </td>
-                            <td style="width: 50%; height: 80px; vertical-align: top;">
-                                <b>วิเคราะห์ปัญหาเบื้องต้น:</b><br>
+                            <td style="width: 50%; height: 90px; vertical-align: top;">
+                                <b>รูปถ่ายปัญหา / Die เสีย:</b><br>
                                 <div class="img-box">
-                                    ${imageSrc ? `<img src="${imageSrc}" alt="Die Image">` : ''}
+                                    ${imageSrc ? `<img src="${imageSrc}" alt="Die Image">` : 'ไม่มีรูปภาพ'}
                                 </div>
                             </td>
                         </tr>
@@ -4104,22 +4104,22 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                             <td style="text-align: center;"><b>Production</b></td>
                         </tr>
                         <tr>
-                            <td style="height: 22px;"><b>By:</b></td>
-                            <td style="height: 22px;"><b>By:</b></td>
-                            <td style="height: 22px;"><b>By:</b></td>
-                            <td style="height: 22px;"><b>By:</b></td>
+                            <td style="height: 20px;"><b>By:</b></td>
+                            <td style="height: 20px;"><b>By:</b></td>
+                            <td style="height: 20px;"><b>By:</b></td>
+                            <td style="height: 20px;"><b>By:</b></td>
                         </tr>
                         <tr>
-                            <td style="height: 22px;"><b>Ck:</b></td>
-                            <td style="height: 22px;"><b>Ck:</b></td>
-                            <td style="height: 22px;"><b>Ck:</b></td>
-                            <td style="height: 22px;"><b>Ck:</b></td>
+                            <td style="height: 20px;"><b>Ck:</b></td>
+                            <td style="height: 20px;"><b>Ck:</b></td>
+                            <td style="height: 20px;"><b>Ck:</b></td>
+                            <td style="height: 20px;"><b>Ck:</b></td>
                         </tr>
                         <tr>
-                            <td style="height: 22px;"><b>Apr:</b></td>
-                            <td style="height: 22px;"><b>Apr:</b></td>
-                            <td style="height: 22px;"><b>Apr:</b></td>
-                            <td style="height: 22px;"><b>Apr:</b></td>
+                            <td style="height: 20px;"><b>Apr:</b></td>
+                            <td style="height: 20px;"><b>Apr:</b></td>
+                            <td style="height: 20px;"><b>Apr:</b></td>
+                            <td style="height: 20px;"><b>Apr:</b></td>
                         </tr>
                     </table>
 
@@ -4140,7 +4140,8 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     printWindow.document.close();
     printWindow.print();
 }
-        function exportDieBmExcel() {
+
+function exportDieBmExcel() {
     if (typeof dieBms === 'undefined' || dieBms.length === 0) {
         alert("ยังไม่มีข้อมูลประวัติการซ่อมสำหรับ Export ครับ");
         return;
@@ -4158,7 +4159,6 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     let workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Die Repair History");
     
-    // ตั้งชื่อไฟล์ตามวันที่ปัจจุบัน
     let todayStr = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
 }
