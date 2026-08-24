@@ -4351,9 +4351,13 @@ function loadDieMaintenanceHistory() {
     .catch(error => console.error("Error loading history:", error));
 }
 
-// สั่งให้โหลดข้อมูลประวัติทันทีเมื่อเปิดหน้าเว็บ
+// สั่งให้โหลดข้อมูลประวัติทันทีเมื่อเปิดหน้าเว็บ พร้อมเรนเดอร์ตาราง Die PM
 window.addEventListener('DOMContentLoaded', () => {
     loadDieMaintenanceHistory();
+    
+    if (typeof renderDiePM === 'function') {
+        renderDiePM();
+    }
 });
         // ฟังก์ชันดึงข้อมูล Master Parts จาก Google Sheets อัตโนมัติ
 function fetchMasterPartsFromCloud() {
