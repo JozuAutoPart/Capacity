@@ -2701,22 +2701,18 @@ function renderDiePM() {
     const queryFilter = inputSearchEl ? inputSearchEl.value.toLowerCase() : '';
 
     const strokeMap = {};
-    if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
-        actuals.forEach(itemRecord => {
-            if (itemRecord.pmReset) return;
-            const pNo = itemRecord.partNo || '';
-            if (!pNo) return;
-            if (!strokeMap[pNo]) {
-                strokeMap[pNo] = { line: itemRecord.line || itemRecord['Line/MC'] || '-', strokes: 0 };
-            }
-            const okQty = Number(itemRecord.qty || itemRecord['OK Qty'] || 0);
-            const ngQty = Number(itemRecord.ngQty || itemRecord['NG Qty'] || 0);
-            strokeMap[pNo].strokes += (okQty + ngQty);
-        });
-    }
+    actuals.forEach(itemRecord => {
+        if (itemRecord.pmReset) return;
+        if (!strokeMap[itemRecord.partNo]) strokeMap[itemRecord.partNo] = { line: itemRecord.line || '-', strokes: 0 };
+        strokeMap[itemRecord.partNo].strokes += (Number(itemRecord.qty) + Number(itemRecord.ngQty || 0));
+    });
 
-    let pmDueCount = 0;
-    let pmNearCount = 0;
+      let pmDueCount = 0;
+let pmNearCount = 0;
+let tallyDue = 0;
+let tallyNear = 0;
+const bmTableBody = document.getElementById('bmTableBody');
+if (!bmTableBody) return;
   
     Object.keys(strokeMap).forEach(partKey => {
         const currentItem = strokeMap[partKey];
@@ -2731,7 +2727,7 @@ function renderDiePM() {
             return;
         }
 
-        // ซ่อนรายการปกติ แสดงเฉพาะ NEAR PM และ PM DUE
+        // ซ่อนรายการปกติ (OK) แสดงเฉพาะ NEAR PM และ PM DUE เท่านั้น
         if (currentStrokes < PM_LIMIT * 0.85) {
             return;
         }
@@ -2741,10 +2737,10 @@ function renderDiePM() {
         let badgeHtml = '';
         if (currentStrokes >= PM_LIMIT) {
             badgeHtml = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
-            pmDueCount++;
-       // } else if (currentStrokes >= PM_LIMIT * 0.85) {
+            tallyDue++;
+        } else if (currentStrokes >= PM_LIMIT * 0.85) {
             badgeHtml = '<span class="badge bg-warning text-dark">NEAR PM</span>';
-            pmNearCount++;
+            tallyNear++;
         }
 
         const rowElem = document.createElement('tr');
@@ -2766,11 +2762,11 @@ function renderDiePM() {
 
     const badgeDueTarget = document.getElementById('diePmDueCount');
     const badgeNearTarget = document.getElementById('diePmNearCount');
-    if (badgeDueTarget) badgeDueTarget.innerText = pmDueCount;
-    if (badgeNearTarget) badgeNearTarget.innerText = pmNearCount;
+    if (badgeDueTarget) badgeDueTarget.innerText = tallyDue;
+    if (badgeNearTarget) badgeNearTarget.innerText = tallyNear;
 
-    // เรนเดอร์ประวัติการซ่อม (BM)
-    const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+
     dieBms.slice().reverse().forEach((breakdownItem, itemIndex) => {
         const rowElem = document.createElement('tr');
         rowElem.innerHTML = `
@@ -2785,6 +2781,38 @@ function renderDiePM() {
         `;
         tableBmEl.appendChild(rowElem);
     });
+    const dueEl = document.getElementById('diePmDueCount');
+    const nearEl = document.getElementById('diePmNearCount');
+    if (dueEl) dueEl.innerText = pmDueCount;
+    if (nearEl) nearEl.innerText = pmNearCount;
+
+    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+
+    dieBms.slice().reverse().forEach((b, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${b.date || ''}</td>
+            <td class="fw-bold text-info">${b.partNo || ''}</td>
+            <td class="text-danger">${b.problem || ''}</td>
+            <td>${b.reporter || ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}')"><i class="fas fa-print"></i></button>
+                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        bmTableBody.appendChild(tr);
+    });
+}
+
+function deleteDieBmRecord(index) {
+    if (confirm("ต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
+        const actualIndex = dieBms.length - 1 - index;
+        if (actualIndex >= 0 && actualIndex < dieBms.length) {
+            dieBms.splice(actualIndex, 1);
+            localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+            renderDiePM();
+        }
+    }
 }
        // --- EXPORT TO EXCEL (SheetJS) ---
 function exportToExcelXLSX(type) {
