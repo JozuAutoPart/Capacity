@@ -940,13 +940,16 @@
             let jsonBms = await resBms.json();
             if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-            if (typeof renderAll === "function") {
-                renderAll();
-            }
-        } catch (error) {
-            console.error("Error loading data from cloud:", error);
+            if (typeof renderAll === 'function') {
+            renderAll();
         }
+        if (typeof renderDiePM === 'function') {
+            renderDiePM();
+        }
+    } catch (error) {
+        console.error("Error loading data from cloud:", error);
     }
+}
 
         const PM_LIMIT = 40000;
         const MC_MAX_CAPACITY = 50000;
