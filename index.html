@@ -4173,67 +4173,78 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine === String(selectedLine).trim();
           });
 
-    // 4. คำนวณ Stock ให้ครบถ้วนเหมือนหน้าตาราง Stock WIP/FG (Actuals - QGate/Deliveries)
+    // 4. คำนวณยอดสต็อกจริงของทั้ง WIP และ FG ให้เหมือนหน้า Stock WIP & FG
     const actualsData = window.actuals || [];
     const qgateData = window.qgate || [];
     const deliveriesData = window.deliveries || [];
-    const stockMap = {};
 
-    // รวมยอดผลิตเข้า WIP
+    // คำนวณยอด WIP คงเหลือจริง (ยอดผลิต OK - ยอดโอนเข้า QC/FG)
+    const wipBalanceMap = {};
     actualsData.forEach(a => {
         const pNo = String(a['Part No.'] || a.partNo || '').trim();
         const okQty = Number(a['OK Qty'] || a.qty || 0);
         if (pNo) {
-            stockMap[pNo] = (stockMap[pNo] || 0) + okQty;
+            wipBalanceMap[pNo] = (wipBalanceMap[pNo] || 0) + okQty;
         }
     });
-
-    // หักยอดที่ตรวจผ่าน Q-Gate (หรือตัดโอนออก)
     qgateData.forEach(q => {
         const pNo = String(q['Part No.'] || q.partNo || '').trim();
-        const passQty = Number(q.passQty || q.totalQty || 0);
-        if (pNo && stockMap[pNo] !== undefined) {
-            stockMap[pNo] -= passQty;
+        const totalQ = Number(q['ยอดตรวจทั้งหมด'] || q.totalQty || q.qty || 0);
+        if (pNo) {
+            wipBalanceMap[pNo] = (wipBalanceMap[pNo] || 0) - totalQ;
         }
     });
 
-    // หักยอดส่งมอบ (Deliveries)
+    // คำนวณยอด FG คงเหลือจริง (ยอดรับเข้า FG - ยอด Delivery ส่งมอบ)
+    const fgBalanceMap = {};
+    qgateData.filter(q => {
+        let pass = q['ผ่านเข้า FG (Pass)'] !== undefined ? q['ผ่านเข้า FG (Pass)'] : q.passQty;
+        return Number(pass) > 0;
+    }).forEach(q => {
+        const pNo = String(q['Part No.'] || q.partNo || '').trim();
+        const passQty = Number(q['ผ่านเข้า FG (Pass)'] !== undefined ? q['ผ่านเข้า FG (Pass)'] : q.passQty || 0);
+        if (pNo) {
+            fgBalanceMap[pNo] = (fgBalanceMap[pNo] || 0) + passQty;
+        }
+    });
     deliveriesData.forEach(d => {
-        const pNo = String(d.partNo || d['Part No.'] || '').trim();
-        const dQty = Number(d.qty || 0);
-        if (pNo && stockMap[pNo] !== undefined) {
-            stockMap[pNo] -= dQty;
+        const pNo = String(d['Part No.'] || d.partNo || '').trim();
+        const dQty = Number(d['ยอดส่งมอบ'] || d.deliveryQty || d.qty || 0);
+        if (pNo) {
+            fgBalanceMap[pNo] = (fgBalanceMap[pNo] || 0) - dQty;
         }
     });
 
-    // 5. หาพาร์ทที่ Stock <= 0
-    const zeroStockParts = targetMasters.filter(master => {
-        const keys = Object.keys(master);
-        const pNo = master.partNo || master['Part No.'] || master['part no'] || (keys.length > 1 ? master[keys[1]] : '') || '';
-        const cleanPNo = String(pNo).trim();
-        if (!cleanPNo) return false;
+    // 5. กรองหาพาร์ทที่ยอดคงเหลือทั้ง WIP และ FG เป็น 0 จริงๆ
+    const zeroStockParts = targetMasters.filter(m => {
+        const pNo = String(m['Part No.'] || m.partNo || '').trim();
+        const wipRem = Math.max(0, wipBalanceMap[pNo] || 0);
+        const fgRem = Math.max(0, fgBalanceMap[pNo] || 0);
         
-        const currentStock = stockMap[cleanPNo] !== undefined ? stockMap[cleanPNo] : 0; 
-        return currentStock <= 0;
-    }).map(master => {
-        const keys = Object.keys(master);
-        const pNo = master.partNo || master['Part No.'] || master['part no'] || (keys.length > 1 ? master[keys[1]] : '') || '';
-        return String(pNo).trim();
+        // ถ้ายอดรวมทั้ง WIP และ FG เป็น 0 ถึงจะถือว่า Stock เป็น 0 จริงๆ
+        return (wipRem + fgRem) === 0;
     });
 
-    // 6. แสดงผลลัพธ์ลงบนหน้าจอ
+    // 6. เรนเดอร์แสดงผลลงในกล่องแดง
+    let badgesHtml = zeroStockParts.map(m => {
+        const pNo = String(m['Part No.'] || m.partNo || '').trim();
+        return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
+    }).join('');
+
+    if (zeroStockParts.length === 0) {
+        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่ Stock เป็น 0 ในไลน์นี้</span>`;
+    }
+
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
-                <span class="badge bg-danger ms-2">${zeroStockParts.length} รายการ</span>
+                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine}) 
+                <span class="badge bg-danger text-white ms-2">${zeroStockParts.length} รายการ</span>
             </h6>
-            <div class="d-flex flex-wrap gap-2 mt-2" style="max-height: 200px; overflow-y: auto;">
-                ${zeroStockParts.length > 0  
-                    ? zeroStockParts.map(p => `<span class="badge bg-secondary border border-danger text-warning p-2" style="font-family: monospace; font-size: 13px;">${p}</span>`).join('')  
-                    : '<span class="text-success p-2">ยอดเยี่ยม! ไม่มีพาร์ทที่ Stock เป็น 0 ในไลน์นี้ 🎉</span>'}
+            <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
+                ${badgesHtml}
             </div>
-       </div>
+        </div>
     `;
 }
         function updateClock() {
