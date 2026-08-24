@@ -1709,17 +1709,17 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
+        // ⏱️ ดึงค่าฟิลด์ timeWork จาก Google Sheets มาแสดงผลตรงนี้
+        const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || '-'; 
+
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
-        
-        const timeworkval = a.timeWork || a['Time'] || a['Time Work'] || a['timeRange'] || '-'; 
-        
         const remarkval = a.remark || a['Remark'] || '-';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${cleanDate}</td>
-            <td class="text-warning small fw-bold">${timeworkval}</td> <!-- 👈 ย้ายข้อมูลเวลามาไว้ช่องที่สอง -->
+            <td class="text-warning small fw-bold">${timeworkval}</td>
             <td>${opval}</td>
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
             <td class="fw-bold text-info">${partval}</td>
@@ -1736,7 +1736,6 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
-
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
