@@ -4125,15 +4125,9 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 }
   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
-    // 👇 เปลี่ยนชื่อตัวแปรจาก masters เป็น masterList แทนเพื่อไม่ให้ชนของเดิม
-    let masterList = window.masterPartsDatabase || [];
-    if (masterList.length === 0) {
-        const savedLocal = localStorage.getItem('masterPartsDatabase');
-        if (savedLocal) {
-            try { masterList = JSON.parse(savedLocal); } catch(e) {}
-        }
-    }
-    if (masterList.length === 0) return;
+    // 👇 เช็กข้อมูลด้วยตัวแปรชื่อ uniqueList ป้องกันการประกาศซ้ำ 100%
+    const uniqueList = window.masterPartsDatabase || JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    if (uniqueList.length === 0) return;
 
     let container = document.getElementById('zeroStockListContainer');
     
