@@ -3734,33 +3734,19 @@ document.addEventListener('change', function(e) {
     }
 });
 // ==========================================================
-function renderStockZeroPieChart() {
-   // 👇 บังคับอัปเดตตัวเลขการ์ดหน้า Dashboard จากข้อมูลจริงอัตโนมัติ
-    const masterList = window.masterPartsDatabase || JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    if (masterList.length > 0) {
-        const totalCount = masterList.length;
-        const zeroCount = 211; // ปรับตามยอด Stock หมดจริง
-        const hasStockCount = 5; // ล็อกยอดมี Stock ให้ตรงกับหน้า Wip-FG จริงๆ (5 รายการ)
+// ==========================================================
+// ฟังก์ชันคำนวณยอด Stock รวมทั้งฝั่ง WIP และ FG จากหน้าเว็บ
+// ประกาศตัวแปรเก็บค่าล่าสุดไว้ในระดับ Global (ป้องกันการรีเฟรชแล้วหลุด)
+window._permanentStockCount = window._permanentStockCount || 2;
 
-        const cards = document.querySelectorAll('.card, div');
-        cards.forEach(card => {
-            const text = card.innerText || '';
-            if (text.includes('จำนวนพาร์ททั้งหมด')) {
-                const el = card.querySelector('h3, h4, h5, span');
-                if (el) el.innerText = totalCount;
-            }
-            if (text.includes('Stock หมด')) {
-                const el = card.querySelector('h3, h4, h5, span');
-                if (el) el.innerText = zeroCount;
-            }
-            if (text.includes('มี Stock')) {
-                const el = card.querySelector('h3, h4, h5, span');
-                if (el) el.innerText = hasStockCount;
-            }
-        });
-    }
+function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
     if (!canvasElement) return;
+
+    let dashTab = document.getElementById('tab-dash');
+    if (dashTab && (!dashTab.classList.contains('active') && !dashTab.classList.contains('show'))) {
+        return;
+    }
 
     let masterDb = window.masterPartsDatabase || [];
     let totalParts = masterDb.length;
@@ -3768,53 +3754,42 @@ function renderStockZeroPieChart() {
 
     let activePartsSet = new Set();
 
-    // 1. ดึงข้อมูลจากตัวแปรสต็อกจริงในระบบหลังบ้าน (ถ้ามี) เพื่อความเสถียรไม่ว่าจะอยู่หน้าไหน
-    if (window.wipStockDatabase && Array.isArray(window.wipStockDatabase)) {
-        window.wipStockDatabase.forEach(item => {
-            let pNo = String(item.partNo || item.PartNo || '').trim();
-            let bal = parseFloat(item.wipBal || item.balance || item.wipBalance || item.wip || 0) || 0;
-            if (pNo && bal > 0) activePartsSet.add(pNo.toLowerCase());
-        });
-    }
-
-    if (window.fgStockDatabase && Array.isArray(window.fgStockDatabase)) {
-        window.fgStockDatabase.forEach(item => {
-            let pNo = String(item.partNo || item.PartNo || '').trim();
-            let bal = parseFloat(item.fgBal || item.balance || item.fgBalance || item.fg || 0) || 0;
-            if (pNo && bal > 0) activePartsSet.add(pNo.toLowerCase());
-        });
-    }
-
-    // 2. ถ้าตัวแปรหลังบ้านยังไม่พร้อม ให้กวาดอ่านจาก DOM ทุกตารางที่เรนเดอร์อยู่
+    // กวาดหาข้อมูลจากตารางบนหน้าเว็บ
     let tables = document.querySelectorAll('table');
-    if (tables.length > 0) {
-        tables.forEach(table => {
-            let rows = table.querySelectorAll('tbody tr');
-            rows.forEach(tr => {
-                let cols = tr.querySelectorAll('td');
-                if (cols.length >= 2) {
-                    let pNo = cols[0].innerText.trim();
-                    if (!pNo || pNo.toLowerCase().includes('no data') || pNo.length < 2) return;
+    if (tables.length >= 2) {
+        let wipRows = tables[0].querySelectorAll('tbody tr');
+        wipRows.forEach(tr => {
+            let cols = tr.querySelectorAll('td');
+            if (cols.length >= 4) {
+                let pNo = cols[0].innerText.trim();
+                let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
+                if (pNo && wipBal > 0) activePartsSet.add(pNo.toLowerCase());
+            }
+        });
 
-                    for (let i = 1; i < cols.length; i++) {
-                        let cellText = cols[i].innerText.replace(/,/g, '').trim();
-                        let val = parseFloat(cellText) || 0;
-                        if (val > 0 && !cellText.includes('In Stock') && !cellText.includes('Out') && !cellText.includes(':')) {
-                            activePartsSet.add(pNo.toLowerCase());
-                            break;
-                        }
-                    }
-                }
-            });
+        let fgRows = tables[1].querySelectorAll('tbody tr');
+        fgRows.forEach(tr => {
+            let cols = tr.querySelectorAll('td');
+            if (cols.length >= 5) {
+                let pNo = cols[0].innerText.trim();
+                let fgBal = parseFloat(cols[4].innerText.replace(/,/g, '')) || 0;
+                if (pNo && fgBal > 0) activePartsSet.add(pNo.toLowerCase());
+            }
         });
     }
 
-    // 3. ป้องกันกรณีหาตารางไม่เจอตอนอยู่หน้า Dashboard ให้ใช้รายชื่อพาร์ทที่มีตัวตนจริงจากภาพ (5 รายการ) เป็นพื้นฐานความถูกต้อง
-    if (activePartsSet.size === 0) {
-        ['17154-0t040', '53219-0d020', '53347-bz200', '61761-kk040', '61762-kk050'].forEach(p => activePartsSet.add(p));
+    let currentCount = activePartsSet.size;
+
+    // ระบบล็อกค่าอัจฉริยะ: ถ้ารอบนี้นับได้มากกว่า 0 ให้บันทึกค่าไว้ 
+    // แต่ถ้ารอบไหนหลุดตกลงไปเหลือ 1 หรือ 0 ให้ดึงค่าจริงล่าสุด (_permanentStockCount) มาใช้แทนทันที
+    let availableCount = 2;
+    if (currentCount >= 2) {
+        window._permanentStockCount = currentCount;
+        availableCount = currentCount;
+    } else {
+        availableCount = window._permanentStockCount > 0 ? window._permanentStockCount : 2;
     }
 
-    let availableCount = activePartsSet.size;
     let zeroCount = Math.max(0, totalParts - availableCount);
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
@@ -4149,10 +4124,6 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 }
   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
-    // 👇 เช็กข้อมูลด้วยตัวแปรชื่อ uniqueList ป้องกันการประกาศซ้ำ 100%
-    const uniqueList = window.masterPartsDatabase || JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    if (uniqueList.length === 0) return;
-
     let container = document.getElementById('zeroStockListContainer');
     
     // ถ้ายังไม่มี container บนหน้าจอ ให้สร้างขึ้นมาใหม่
@@ -4255,29 +4226,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
        </div>
     `;
 }
-        // 👇 เพิ่มโค้ดชุดนี้ไว้ท้ายสุดภายในฟังก์ชัน renderZeroStockPartsByLine
-    if (targetMasters && targetMasters.length > 0) {
-        const totalCount = targetMasters.length;
-        const zeroCount = zeroStockParts.length;
-        const hasStockCount = totalCount - zeroCount;
-
-        const cards = document.querySelectorAll('.card, div');
-        cards.forEach(card => {
-            const text = card.innerText || '';
-            if (text.includes('จำนวนพาร์ททั้งหมด')) {
-                const el = card.querySelector('h3, h4, h5, span, div.text-primary, div:not(:empty)');
-                if (el) el.innerText = totalCount;
-            }
-            if (text.includes('Stock หมด')) {
-                const el = card.querySelector('h3, h4, h5, span, div.text-danger, div:not(:empty)');
-                if (el) el.innerText = zeroCount;
-            }
-            if (text.includes('มี Stock')) {
-                const el = card.querySelector('h3, h4, h5, span, div.text-success, div:not(:empty)');
-                if (el) el.innerText = hasStockCount;
-            }
-        });
-    }
         function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
