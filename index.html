@@ -4469,6 +4469,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (typeof renderZeroStockPartsByLine === 'function') {
                     renderZeroStockPartsByLine('ALL');
                 }
+                if (typeof renderDiePM === 'function') {
+           renderDiePM();
             }
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
