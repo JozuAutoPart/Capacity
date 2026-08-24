@@ -3744,7 +3744,7 @@ function renderStockZeroPieChart() {
 
     let activePartsSet = new Set();
 
-    // กวาดหาข้อมูลจากทุกตารางที่มีในหน้าเว็บทั้งหมดแบบเรียลไทม์
+    // กวาดเช็กจากทุกตารางบนหน้าเว็บ และใช้ Set เพื่อให้ Part No. เดียวกันนับเป็น 1 รายการเสมอ
     let tables = document.querySelectorAll('table');
     tables.forEach(table => {
         let rows = table.querySelectorAll('tbody tr');
@@ -3752,18 +3752,19 @@ function renderStockZeroPieChart() {
             let cols = tr.querySelectorAll('td');
             if (cols.length >= 2) {
                 let pNo = cols[0].innerText.trim();
-                // ข้ามแถวที่เป็นข้อความแจ้งว่าไม่มีข้อมูล (No data)
+                // ข้ามแถวที่ไม่มีข้อมูลหรือเป็นข้อความว่าง
                 if (!pNo || pNo.toLowerCase().includes('no data') || pNo.length < 2) return;
 
-                // วนลูปเช็กทุกคอลัมน์ที่เป็นตัวเลขสต็อกคงเหลือ (มักจะอยู่ท้ายๆ เช่น คอลัมน์ 3 หรือ 4)
+                // วนลูปเช็กทุกคอลัมน์ที่เป็นตัวเลขสต็อกคงเหลือ
                 for (let i = 1; i < cols.length; i++) {
                     let cellText = cols[i].innerText.replace(/,/g, '').trim();
                     let val = parseFloat(cellText) || 0;
                     
-                    // ถ้าเจอตัวเลขมากกว่า 0 และไม่ใช่ข้อความสถานะ
+                    // ถ้าเจอตัวเลขสต็อกมากกว่า 0 
                     if (val > 0 && !cellText.includes('In Stock') && !cellText.includes('Out') && !cellText.includes(':')) {
+                        // เก็บเป็นตัวพิมพ์เล็กเหมือนกัน เพื่อให้ Part No. ตัวเดียวกันแตะ Set แล้วยุบเหลือ 1
                         activePartsSet.add(pNo.toLowerCase());
-                        break; // เจอแล้วข้ามไปแถวถัดไปทันที
+                        break; 
                     }
                 }
             }
