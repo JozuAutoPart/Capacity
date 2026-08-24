@@ -469,6 +469,17 @@
                                     <label class="form-label small">วันที่ผลิต</label>
                                     <input type="date" id="actualDate" class="form-control form-control-sm" required>
                                 </div>
+                                <!-- ⏱️ เพิ่มช่องเวลา เริ่ม - สิ้นสุด การทำงาน -->
+<div class="row" style="display: flex; gap: 10px; margin-bottom: 15px;">
+    <div style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาเริ่มต้น (Start Time)</label>
+        <input type="time" id="startTimeInput" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
+    </div>
+    <div style="flex: 1;">
+        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาสิ้นสุด (End Time)</label>
+        <input type="time" id="endTimeInput" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
+    </div>
+</div>
                                 <div class="mb-2">
                                     <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
                                     <input type="text" id="actualOperator" class="form-control form-control-sm" placeholder="เช่น นายสมชาย (OP-01)" required>
