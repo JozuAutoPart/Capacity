@@ -4170,44 +4170,52 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine === String(selectedLine).trim();
           });
 
-    const actualsData = window.actuals || [];
-    const qgateData = window.qgate || [];
-    const deliveriesData = window.deliveries || [];
+    // 🔍 ดึงข้อมูลจากตารางหน้า Stock WIP & FG หรือตัวแปรกลางให้ครอบคลุมที่สุด
+    const actualsData = window.actuals || window.productionActuals || [];
+    const qgateData = window.qgate || window.qGateData || [];
+    const deliveriesData = window.deliveries || window.deliveryData || [];
 
-    // ทำ Map รหัสพาร์ทแบบ Clean (Trim + UpperCase) เพื่อป้องกันปัญหาตัวพิมพ์หรือช่องว่างไม่ตรงกัน
     const wipBalanceMap = {};
-    actualsData.forEach(a => {
-        const pNo = String(a['Part No.'] || a.partNo || '').trim().toUpperCase();
-        const okQty = Number(a['OK Qty'] || a.qty || 0);
-        if (pNo) {
-            wipBalanceMap[pNo] = (wipBalanceMap[pNo] || 0) + okQty;
-        }
-    });
-    qgateData.forEach(q => {
-        const pNo = String(q['Part No.'] || q.partNo || '').trim().toUpperCase();
-        const totalQ = Number(q['ยอดตรวจทั้งหมด'] || q.totalQty || q.qty || 0);
-        if (pNo) {
-            wipBalanceMap[pNo] = (wipBalanceMap[pNo] || 0) - totalQ;
-        }
-    });
-
     const fgBalanceMap = {};
-    qgateData.filter(q => {
-        let pass = q['ผ่านเข้า FG (Pass)'] !== undefined ? q['ผ่านเข้า FG (Pass)'] : q.passQty;
-        return Number(pass) > 0;
-    }).forEach(q => {
-        const pNo = String(q['Part No.'] || q.partNo || '').trim().toUpperCase();
-        const passQty = Number(q['ผ่านเข้า FG (Pass)'] !== undefined ? q['ผ่านเข้า FG (Pass)'] : q.passQty || 0);
-        if (pNo) {
-            fgBalanceMap[pNo] = (fgBalanceMap[pNo] || 0) + passQty;
-        }
-    });
-    deliveriesData.forEach(d => {
-        const pNo = String(d['Part No.'] || d.partNo || '').trim().toUpperCase();
-        const dQty = Number(d['ยอดส่งมอบ'] || d.deliveryQty || d.qty || 0);
-        if (pNo) {
-            fgBalanceMap[pNo] = (fgBalanceMap[pNo] || 0) - dQty;
-        }
+
+    // ถ้าหน้าเว็บมีข้อมูลในตาราง Stock WIP อยู่แล้ว สามารถดึงจากตารางโดยตรงได้เลยเพื่อความชัวร์
+    // แต่ถ้าไม่มี ให้คำนวณจาก actuals / qgate
+    targetMasters.forEach(m => {
+        const rawPNo = String(m['Part No.'] || m.partNo || '').trim();
+        const cleanPNo = rawPNo.toUpperCase();
+        if (!cleanPNo) return;
+
+        // คำนวณ WIP จาก actuals
+        let wipTotal = 0;
+        actualsData.forEach(a => {
+            let p = String(a['Part No.'] || a.partNo || '').trim().toUpperCase();
+            if (p === cleanPNo) {
+                wipTotal += Number(a['OK Qty'] || a.qty || 0);
+            }
+        });
+        qgateData.forEach(q => {
+            let p = String(q['Part No.'] || q.partNo || '').trim().toUpperCase();
+            if (p === cleanPNo) {
+                wipTotal -= Number(q['ยอดตรวจทั้งหมด'] || q.totalQty || q.qty || 0);
+            }
+        });
+        wipBalanceMap[cleanPNo] = Math.max(0, wipTotal);
+
+        // คำนวณ FG จาก qgate และ deliveries
+        let fgTotal = 0;
+        qgateData.forEach(q => {
+            let p = String(q['Part No.'] || q.partNo || '').trim().toUpperCase();
+            if (p === cleanPNo) {
+                fgTotal += Number(q['ผ่านเข้า FG (Pass)'] !== undefined ? q['ผ่านเข้า FG (Pass)'] : (q.passQty || 0));
+            }
+        });
+        deliveriesData.forEach(d => {
+            let p = String(d['Part No.'] || d.partNo || '').trim().toUpperCase();
+            if (p === cleanPNo) {
+                fgTotal -= Number(d['ยอดส่งมอบ'] || d.deliveryQty || d.qty || 0);
+            }
+        });
+        fgBalanceMap[cleanPNo] = Math.max(0, fgTotal);
     });
 
     // กรองหาพาร์ทที่ยอดคงเหลือทั้ง WIP และ FG เป็น 0 จริงๆ
@@ -4215,10 +4223,9 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const rawPNo = String(m['Part No.'] || m.partNo || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         
-        const wipRem = Math.max(0, wipBalanceMap[cleanPNo] || 0);
-        const fgRem = Math.max(0, fgBalanceMap[cleanPNo] || 0);
+        const wipRem = wipBalanceMap[cleanPNo] || 0;
+        const fgRem = fgBalanceMap[cleanPNo] || 0;
         
-        // ถ้ายอดรวมทั้ง WIP และ FG เป็น 0 ถึงจะแสดงเตือน
         return (wipRem + fgRem) === 0;
     });
 
