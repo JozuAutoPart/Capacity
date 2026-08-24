@@ -4006,14 +4006,14 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                         <tr>
                             <td colspan="6">
                                 <b>ประเภทการซ่อม:</b>&nbsp;
-                                <span class="checkbox"></span> ซ่อมตามแผนการซ่อม (PM) &nbsp;&nbsp;&nbsp;&nbsp;
-                                <span class="checkbox"><b>/</b></span> ซ่อมระหว่างใช้งาน (BM) &nbsp;&nbsp;&nbsp;&nbsp;
+                                <span class="checkbox"></span> ซ่อมตามแผนการซ่อม(BM) &nbsp;&nbsp;&nbsp;&nbsp;
+                                <span class="checkbox"><b>/</b></span> ซ่อมระหว่างใช้งาน(BM) &nbsp;&nbsp;&nbsp;&nbsp;
                                 <span class="checkbox"></span> ซ่อมหลังปฏิบัติงาน
                             </td>
                         </tr>
                         <tr>
                             <td colspan="6">
-                                <b>ผู้แจ้งซ่อม / Leader Line:</b> ${reporter}
+                                <b>Leader Line / ผู้แจ้ง:</b> ${reporter}
                             </td>
                         </tr>
                     </table>
@@ -4022,10 +4022,10 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                     <table>
                         <tr>
                             <td style="width: 50%; height: 90px; vertical-align: top;">
-                                <b>อาการเสีย / รายละเอียดปัญหา:</b><br>${problem}
+                                <b>Preventive Maintenance / อาการเสีย:</b><br>${problem}
                             </td>
                             <td style="width: 50%; height: 90px; vertical-align: top;">
-                                <b>รูปถ่ายปัญหา / Die เสีย:</b><br>
+                                <b>วิเคราะห์ปัญหาเบื้องต้น / รูปถ่าย:</b><br>
                                 <div class="img-box">
                                     ${imageSrc ? `<img src="${imageSrc}" alt="Die Image">` : 'ไม่มีรูปภาพ'}
                                 </div>
@@ -4070,10 +4070,10 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                                 <b>Comment:</b><br>
                                 <br><br>
                                 <hr style="border: 0.5px dashed #000;">
-                                <span style="font-size: 10px;">กรณี Special Accept / Not Accept ต้องระบุเหตุผลในช่อง Comment ด้วย</span>
+                                <span style="font-size: 9px;">กรณี Special Accept / Not Accept ต้องระบุเหตุผลในช่อง Comment ด้วย</span>
                             </td>
                             <td style="width: 20%; vertical-align: top; text-align: center;">
-                                <b>ผลการตรวจสอบทดสอบ</b><br><br>
+                                <b>ผลการตรวจสอบ ทดสอบ</b><br><br>
                                 <div style="text-align: left; padding-left: 10px;">
                                     <span class="checkbox"></span> Accept<br>
                                     <span class="checkbox"></span> Special Accept<br>
@@ -4125,7 +4125,7 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 
                     <table style="border-top: none;">
                         <tr>
-                            <td style="border-top: none; font-size: 10px; text-align: right;" class="no-border">F-PR-011 Rev.01 Ref. 14 Jan 11</td>
+                            <td style="border-top: none; font-size: 10px; text-align: right;" class="no-border">J-F-PR-011 Rev.01 Ref. 14 Jan 11</td>
                         </tr>
                         <tr>
                             <td style="border-top: none;">
