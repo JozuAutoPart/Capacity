@@ -3744,50 +3744,31 @@ function renderStockZeroPieChart() {
 
     let activePartsSet = new Set();
 
-    // 1. ดึงข้อมูลจากตัวแปรฐานข้อมูลดิบของระบบโดยตรง (แม่นยำที่สุด ไม่พลาดแน่นอน)
-    if (window.wipStockDatabase && Array.isArray(window.wipStockDatabase)) {
-        window.wipStockDatabase.forEach(item => {
-            let pNo = String(item.partNo || item.PartNo || '').trim();
-            let bal = parseFloat(item.wipBal || item.balance || item.wipBalance || 0) || 0;
-            if (pNo && bal > 0) activePartsSet.add(pNo.toLowerCase());
-        });
-    }
-
-    if (window.fgStockDatabase && Array.isArray(window.fgStockDatabase)) {
-        window.fgStockDatabase.forEach(item => {
-            let pNo = String(item.partNo || item.PartNo || '').trim();
-            let bal = parseFloat(item.fgBal || item.balance || item.fgBalance || 0) || 0;
-            if (pNo && bal > 0) activePartsSet.add(pNo.toLowerCase());
-        });
-    }
-
-    // 2. เสริมด้วยการกวาดอ่านจากหน้าตาราง DOM (เผื่อระบบเก็บข้อมูลในรูปแบบตารางหน้าเว็บ)
+    // กวาดหาข้อมูลจากทุกตารางที่มีในหน้าเว็บทั้งหมดแบบเรียลไทม์
     let tables = document.querySelectorAll('table');
-    if (tables.length >= 2) {
-        let wipRows = tables[0].querySelectorAll('tbody tr');
-        wipRows.forEach(tr => {
+    tables.forEach(table => {
+        let rows = table.querySelectorAll('tbody tr');
+        rows.forEach(tr => {
             let cols = tr.querySelectorAll('td');
-            if (cols.length >= 4) {
+            if (cols.length >= 2) {
                 let pNo = cols[0].innerText.trim();
-                let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
-                if (pNo && wipBal > 0 && !pNo.toLowerCase().includes('no data')) {
-                    activePartsSet.add(pNo.toLowerCase());
-                }
-            }
-        });
+                // ข้ามแถวที่เป็นข้อความแจ้งว่าไม่มีข้อมูล (No data)
+                if (!pNo || pNo.toLowerCase().includes('no data') || pNo.length < 2) return;
 
-        let fgRows = tables[1].querySelectorAll('tbody tr');
-        fgRows.forEach(tr => {
-            let cols = tr.querySelectorAll('td');
-            if (cols.length >= 5) {
-                let pNo = cols[0].innerText.trim();
-                let fgBal = parseFloat(cols[4].innerText.replace(/,/g, '')) || 0;
-                if (pNo && fgBal > 0 && !pNo.toLowerCase().includes('no data')) {
-                    activePartsSet.add(pNo.toLowerCase());
+                // วนลูปเช็กทุกคอลัมน์ที่เป็นตัวเลขสต็อกคงเหลือ (มักจะอยู่ท้ายๆ เช่น คอลัมน์ 3 หรือ 4)
+                for (let i = 1; i < cols.length; i++) {
+                    let cellText = cols[i].innerText.replace(/,/g, '').trim();
+                    let val = parseFloat(cellText) || 0;
+                    
+                    // ถ้าเจอตัวเลขมากกว่า 0 และไม่ใช่ข้อความสถานะ
+                    if (val > 0 && !cellText.includes('In Stock') && !cellText.includes('Out') && !cellText.includes(':')) {
+                        activePartsSet.add(pNo.toLowerCase());
+                        break; // เจอแล้วข้ามไปแถวถัดไปทันที
+                    }
                 }
             }
         });
-    }
+    });
 
     let availableCount = activePartsSet.size;
     let zeroCount = Math.max(0, totalParts - availableCount);
