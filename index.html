@@ -4231,6 +4231,29 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
        </div>
     `;
 }
+        // 👇 เพิ่มโค้ดชุดนี้ไว้ท้ายสุดภายในฟังก์ชัน renderZeroStockPartsByLine
+    if (targetMasters && targetMasters.length > 0) {
+        const totalCount = targetMasters.length;
+        const zeroCount = zeroStockParts.length;
+        const hasStockCount = totalCount - zeroCount;
+
+        const cards = document.querySelectorAll('.card, div');
+        cards.forEach(card => {
+            const text = card.innerText || '';
+            if (text.includes('จำนวนพาร์ททั้งหมด')) {
+                const el = card.querySelector('h3, h4, h5, span, div.text-primary, div:not(:empty)');
+                if (el) el.innerText = totalCount;
+            }
+            if (text.includes('Stock หมด')) {
+                const el = card.querySelector('h3, h4, h5, span, div.text-danger, div:not(:empty)');
+                if (el) el.innerText = zeroCount;
+            }
+            if (text.includes('มี Stock')) {
+                const el = card.querySelector('h3, h4, h5, span, div.text-success, div:not(:empty)');
+                if (el) el.innerText = hasStockCount;
+            }
+        });
+    }
         function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
