@@ -453,7 +453,7 @@
                     </div>
                 </div>
             </div>
-            <!-- TAB 4: ACTUAL PRODUCTION -->
+           <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -469,17 +469,17 @@
                                     <label class="form-label small">วันที่ผลิต</label>
                                     <input type="date" id="actualDate" class="form-control form-control-sm" required>
                                 </div>
-                                <!-- ⏱️ เพิ่มช่องเวลา เริ่ม - สิ้นสุด การทำงาน -->
-<div class="row" style="display: flex; gap: 10px; margin-bottom: 15px;">
-    <div style="flex: 1;">
-        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาเริ่มต้น (Start Time)</label>
-        <input type="time" id="startTimeInput" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
-    </div>
-    <div style="flex: 1;">
-        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาสิ้นสุด (End Time)</label>
-        <input type="time" id="endTimeInput" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
-    </div>
-</div>
+                                <!-- ⏱️ ปรับ ID ให้ตรงกับ JavaScript คือ workStartTime และ workEndTime -->
+                                <div class="row" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาเริ่มต้น (Start Time)</label>
+                                        <input type="time" id="workStartTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาสิ้นสุด (End Time)</label>
+                                        <input type="time" id="workEndTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                                    </div>
+                                </div>
                                 <div class="mb-2">
                                     <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
                                     <input type="text" id="actualOperator" class="form-control form-control-sm" placeholder="เช่น นายสมชาย (OP-01)" required>
@@ -502,9 +502,9 @@
                                 </div>
                                 <!-- ช่อง Scan Barcode สำหรับเลือก Part No. จากแผน -->
                                <div class="mb-2">
-                                       <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
-                                       <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
-                                 </div>
+                                    <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
+                                    <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
+                               </div>
                                 <div class="mb-2">
                                     <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                                     <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
@@ -512,9 +512,9 @@
                                     </select>
                                 </div>
                                 <!-- ช่องระบุ Process ต่อท้าย (เช่น 1/3, 2/3) -->
-                              <div class="mb-2">
-                                  <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
-                                  <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
+                                <div class="mb-2">
+                                    <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
+                                    <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
                                 </div>
                                 <div class="mb-2">
                                     <label class="form-label small">Lot No.</label>
@@ -546,7 +546,7 @@
                                     <i class="fas fa-file-excel me-1"></i> Export ประวัติผลิต
                                 </button>
                             </div>
-                           <!-- ในส่วนตารางประวัติการบันทึกการผลิตของพนักงาน (ฝั่งขวา) -->
+                           <!-- เพิ่มหัวตาราง เวลาทำงาน ให้ตรงกับช่องข้อมูล -->
 <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
     <table class="table table-dark table-hover align-middle m-0">
         <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
@@ -556,6 +556,7 @@
                 <th>Line/MC</th>
                 <th>Part No.</th>
                 <th>Lot No.</th>
+                <th>เวลาทำงาน</th>
                 <th>OK Qty</th>
                 <th>NG Qty</th>
                 <th>Remark</th>
