@@ -2698,12 +2698,19 @@ function renderDiePM() {
     const queryFilter = inputSearchEl ? inputSearchEl.value.toLowerCase() : '';
 
     const strokeMap = {};
-    actuals.forEach(itemRecord => {
-        if (itemRecord.pmReset) return;
-        if (!strokeMap[itemRecord.partNo]) strokeMap[itemRecord.partNo] = { line: itemRecord.line || '-', strokes: 0 };
-        // ใช้ฟิลด์ OK Qty (qty) บวกกับ NG Qty (ngQty) สะสม
-        strokeMap[itemRecord.partNo].strokes += (Number(itemRecord.qty || itemRecord['OK Qty'] || 0) + Number(itemRecord.ngQty || itemRecord['NG Qty'] || 0));
-    });
+    if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+        actuals.forEach(itemRecord => {
+            if (itemRecord.pmReset) return;
+            const pNo = itemRecord.partNo || '';
+            if (!pNo) return;
+            if (!strokeMap[pNo]) {
+                strokeMap[pNo] = { line: itemRecord.line || itemRecord['Line/MC'] || '-', strokes: 0 };
+            }
+            const okQty = Number(itemRecord.qty || itemRecord['OK Qty'] || 0);
+            const ngQty = Number(itemRecord.ngQty || itemRecord['NG Qty'] || 0);
+            strokeMap[pNo].strokes += (okQty + ngQty);
+        });
+    }
 
     let pmDueCount = 0;
     let pmNearCount = 0;
@@ -2721,7 +2728,7 @@ function renderDiePM() {
             return;
         }
 
-        // ซ่อนรายการปกติ (OK) แสดงเฉพาะ NEAR PM และ PM DUE เท่านั้น
+        // ซ่อนรายการปกติ แสดงเฉพาะ NEAR PM และ PM DUE
         if (currentStrokes < PM_LIMIT * 0.85) {
             return;
         }
@@ -2754,15 +2761,13 @@ function renderDiePM() {
         tablePmEl.appendChild(rowElem);
     });
 
-    // อัปเดตตัวเลขแจ้งเตือนด้านบน
     const badgeDueTarget = document.getElementById('diePmDueCount');
     const badgeNearTarget = document.getElementById('diePmNearCount');
     if (badgeDueTarget) badgeDueTarget.innerText = pmDueCount;
     if (badgeNearTarget) badgeNearTarget.innerText = pmNearCount;
 
-    // เรนเดอร์ประวัติการซ่อม (BM) รอบเดียวให้ครบถ้วน
-    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-
+    // เรนเดอร์ประวัติการซ่อม (BM)
+    const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
     dieBms.slice().reverse().forEach((breakdownItem, itemIndex) => {
         const rowElem = document.createElement('tr');
         rowElem.innerHTML = `
@@ -2777,43 +2782,6 @@ function renderDiePM() {
         `;
         tableBmEl.appendChild(rowElem);
     });
-}
-
-    const badgeDueTarget = document.getElementById('diePmDueCount');
-    const badgeNearTarget = document.getElementById('diePmNearCount');
-    if (badgeDueTarget) badgeDueTarget.innerText = tallyDue;
-    if (badgeNearTarget) badgeNearTarget.innerText = tallyNear;
-
-    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-
-    dieBms.slice().reverse().forEach((breakdownItem, itemIndex) => {
-        const rowElem = document.createElement('tr');
-        rowElem.innerHTML = `
-            <td>${breakdownItem.date || ''}</td>
-            <td class="fw-bold text-info">${breakdownItem.partNo || ''}</td>
-            <td class="text-danger">${breakdownItem.problem || ''}</td>
-            <td>${breakdownItem.reporter || ''}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${breakdownItem.date}', '${breakdownItem.partNo}', '${breakdownItem.problem}', '${breakdownItem.reporter}')"><i class="fas fa-print"></i></button>
-                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${itemIndex})"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
-        tableBmEl.appendChild(rowElem);
-    });
-    const dueEl = document.getElementById('diePmDueCount');
-    const nearEl = document.getElementById('diePmNearCount');
-    if (dueEl) dueEl.innerText = pmDueCount;
-    if (nearEl) nearEl.innerText = pmNearCount;
-
-  function deleteDieBmRecord(index) {
-    if (confirm("ต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
-        const actualIndex = dieBms.length - 1 - index;
-        if (actualIndex >= 0 && actualIndex < dieBms.length) {
-            dieBms.splice(actualIndex, 1);
-            localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
-            renderDiePM();
-        }
-    }
 }
        // --- EXPORT TO EXCEL (SheetJS) ---
 function exportToExcelXLSX(type) {
