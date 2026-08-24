@@ -2742,7 +2742,7 @@ function renderDiePM() {
         if (currentStrokes >= PM_LIMIT) {
             badgeHtml = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
             pmDueCount++;
-        } else if (currentStrokes >= PM_LIMIT * 0.85) {
+       // } else if (currentStrokes >= PM_LIMIT * 0.85) {
             badgeHtml = '<span class="badge bg-warning text-dark">NEAR PM</span>';
             pmNearCount++;
         }
