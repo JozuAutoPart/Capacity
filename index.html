@@ -3953,7 +3953,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
    
-function printRepairForm(date, partNo, problem, reporter, imageSrc) {
+function printRepairForm(date, partNo, problem, reporter, imageSrc, dieNo = '-', model = '-', stroke = '-') {
     let printWindow = window.open('', '_blank', 'height=1000,width=1000');
     printWindow.document.write(`
         <html>
@@ -3989,9 +3989,9 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                     <table>
                         <tr>
                             <td style="width: 12%;"><b>Die No.</b></td>
-                            <td style="width: 25%;"></td>
+                            <td style="width: 25%;"><b>${dieNo}</b></td>
                             <td style="width: 12%;"><b>Model</b></td>
-                            <td style="width: 18%;"></td>
+                            <td style="width: 18%;"><b>${model}</b></td>
                             <td style="width: 12%;"><b>Part No.</b></td>
                             <td style="width: 21%;"><b>${partNo}</b></td>
                         </tr>
@@ -4013,7 +4013,7 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
                         </tr>
                         <tr>
                             <td colspan="6">
-                                <b>Leader Line / ผู้แจ้ง:</b> ${reporter}
+                                <b>Leader Line / ผู้แจ้ง:</b> ${reporter} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; <b>Stroke สะสม:</b> ${stroke}
                             </td>
                         </tr>
                     </table>
@@ -4139,28 +4139,6 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
     `);
     printWindow.document.close();
     printWindow.print();
-}
-
-function exportDieBmExcel() {
-    if (typeof dieBms === 'undefined' || dieBms.length === 0) {
-        alert("ยังไม่มีข้อมูลประวัติการซ่อมสำหรับ Export ครับ");
-        return;
-    }
-
-    let dataToExport = dieBms.map((b, index) => ({
-        "ลำดับ": index + 1,
-        "วันที่แจ้งซ่อม": b.date || '',
-        "Part No.": b.partNo || '',
-        "อาการเสีย / รายละเอียด": b.problem || '',
-        "ผู้แจ้งซ่อม": b.reporter || ''
-    }));
-
-    let worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    let workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Die Repair History");
-    
-    let todayStr = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `Die_Repair_History_${todayStr}.xlsx`);
 }
   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
