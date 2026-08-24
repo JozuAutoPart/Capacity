@@ -2805,25 +2805,7 @@ function renderDiePM() {
     if (dueEl) dueEl.innerText = pmDueCount;
     if (nearEl) nearEl.innerText = pmNearCount;
 
-    window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-
-    dieBms.slice().reverse().forEach((b, index) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${b.date || ''}</td>
-            <td class="fw-bold text-info">${b.partNo || ''}</td>
-            <td class="text-danger">${b.problem || ''}</td>
-            <td>${b.reporter || ''}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}')"><i class="fas fa-print"></i></button>
-                <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
-        bmTableBody.appendChild(tr);
-    });
-}
-
-function deleteDieBmRecord(index) {
+  function deleteDieBmRecord(index) {
     if (confirm("ต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
         const actualIndex = dieBms.length - 1 - index;
         if (actualIndex >= 0 && actualIndex < dieBms.length) {
