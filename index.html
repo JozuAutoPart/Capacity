@@ -3735,7 +3735,7 @@ document.addEventListener('change', function(e) {
 });
 // ==========================================================
 function renderStockZeroPieChart() {
-    // 👇 บังคับอัปเดตตัวเลขการ์ดหน้า Dashboard จากข้อมูลจริงอัตโนมัติ
+   // 👇 บังคับอัปเดตตัวเลขการ์ดหน้า Dashboard จากข้อมูลจริงอัตโนมัติ
     const masterList = window.masterPartsDatabase || JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
     if (masterList.length > 0) {
         const totalCount = masterList.length;
