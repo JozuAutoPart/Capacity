@@ -3747,38 +3747,34 @@ function renderStockZeroPieChart() {
 
     let activePartsSet = new Set();
 
-    // กวาดเช็กข้อมูลเฉพาะจากตาราง Stock WIP และ Stock FG บนหน้าเว็บเท่านั้น
+    // กวาดเช็กข้อมูลจากทุกตารางบนหน้าเว็บแบบสดๆ
     let tables = document.querySelectorAll('table');
-    if (tables.length >= 2) {
-        // 1. เช็กตาราง WIP (คอลัมน์ที่ 3: คงเหลือ WIP ปัจจุบัน)
-        let wipRows = tables[0].querySelectorAll('tbody tr');
-        wipRows.forEach(tr => {
+    tables.forEach(table => {
+        let rows = table.querySelectorAll('tbody tr');
+        rows.forEach(tr => {
             let cols = tr.querySelectorAll('td');
-            if (cols.length >= 4) {
+            if (cols.length >= 2) {
                 let pNo = cols[0].innerText.trim();
-                let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
-                if (pNo && wipBal > 0 && !pNo.toLowerCase().includes('no data')) {
-                    activePartsSet.add(pNo.toLowerCase());
+                
+                // ข้ามแถวที่เป็นข้อความว่างหรือ No data
+                if (!pNo || pNo.toLowerCase().includes('no data') || pNo.length < 2) return;
+
+                // ตรวจสอบคอลัมน์ตัวเลขสต็อกคงเหลือ (WIP หรือ FG)
+                for (let i = 1; i < cols.length; i++) {
+                    let cellText = cols[i].innerText.replace(/,/g, '').trim();
+                    let val = parseFloat(cellText) || 0;
+                    
+                    // หากเจอตัวเลขมากกว่า 0 และไม่ใช่ข้อความสถานะ
+                    if (val > 0 && !cellText.includes('In Stock') && !cellText.includes('Out') && !cellText.includes(':')) {
+                        // เก็บ Part No. เป็นตัวพิมพ์เล็ก เพื่อให้ชื่อเดียวกันยุบรวมนับเป็น 1 ชิ้นอัตโนมัติ
+                        activePartsSet.add(pNo.toLowerCase());
+                        break; 
+                    }
                 }
             }
         });
+    });
 
-        // 2. เช็กตาราง FG (คอลัมน์ที่ 4: คงเหลือ FG จริง หรือดูจากสถานะ In Stock)
-        let fgRows = tables[1].querySelectorAll('tbody tr');
-        fgRows.forEach(tr => {
-            let cols = tr.querySelectorAll('td');
-            if (cols.length >= 5) {
-                let pNo = cols[0].innerText.trim();
-                let fgBal = parseFloat(cols[4].innerText.replace(/,/g, '')) || 0;
-                let statusText = cols[5] ? cols[5].innerText.trim() : '';
-                if (pNo && (fgBal > 0 || statusText === 'In Stock') && !pNo.toLowerCase().includes('no data')) {
-                    activePartsSet.add(pNo.toLowerCase());
-                }
-            }
-        });
-    }
-
-    // นับตามจำนวนที่มีอยู่จริงในตาราง ไม่มีตัวเลขล็อกตายตัวอีกต่อไป
     let availableCount = activePartsSet.size;
     let zeroCount = Math.max(0, totalParts - availableCount);
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
