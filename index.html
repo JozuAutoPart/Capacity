@@ -3737,16 +3737,9 @@ document.addEventListener('change', function(e) {
 // ==========================================================
 // ฟังก์ชันคำนวณยอด Stock รวมทั้งฝั่ง WIP และ FG จากหน้าเว็บ
 // ประกาศตัวแปรเก็บค่าล่าสุดไว้ในระดับ Global (ป้องกันการรีเฟรชแล้วหลุด)
-window._permanentStockCount = window._permanentStockCount || 2;
-
 function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
     if (!canvasElement) return;
-
-    let dashTab = document.getElementById('tab-dash');
-    if (dashTab && (!dashTab.classList.contains('active') && !dashTab.classList.contains('show'))) {
-        return;
-    }
 
     let masterDb = window.masterPartsDatabase || [];
     let totalParts = masterDb.length;
@@ -3754,46 +3747,43 @@ function renderStockZeroPieChart() {
 
     let activePartsSet = new Set();
 
-    // กวาดหาข้อมูลจากตารางบนหน้าเว็บ
+    // กวาดเช็กข้อมูลเฉพาะจากตาราง Stock WIP และ Stock FG บนหน้าเว็บเท่านั้น
     let tables = document.querySelectorAll('table');
     if (tables.length >= 2) {
+        // 1. เช็กตาราง WIP (คอลัมน์ที่ 3: คงเหลือ WIP ปัจจุบัน)
         let wipRows = tables[0].querySelectorAll('tbody tr');
         wipRows.forEach(tr => {
             let cols = tr.querySelectorAll('td');
             if (cols.length >= 4) {
                 let pNo = cols[0].innerText.trim();
                 let wipBal = parseFloat(cols[3].innerText.replace(/,/g, '')) || 0;
-                if (pNo && wipBal > 0) activePartsSet.add(pNo.toLowerCase());
+                if (pNo && wipBal > 0 && !pNo.toLowerCase().includes('no data')) {
+                    activePartsSet.add(pNo.toLowerCase());
+                }
             }
         });
 
+        // 2. เช็กตาราง FG (คอลัมน์ที่ 4: คงเหลือ FG จริง หรือดูจากสถานะ In Stock)
         let fgRows = tables[1].querySelectorAll('tbody tr');
         fgRows.forEach(tr => {
             let cols = tr.querySelectorAll('td');
             if (cols.length >= 5) {
                 let pNo = cols[0].innerText.trim();
                 let fgBal = parseFloat(cols[4].innerText.replace(/,/g, '')) || 0;
-                if (pNo && fgBal > 0) activePartsSet.add(pNo.toLowerCase());
+                let statusText = cols[5] ? cols[5].innerText.trim() : '';
+                if (pNo && (fgBal > 0 || statusText === 'In Stock') && !pNo.toLowerCase().includes('no data')) {
+                    activePartsSet.add(pNo.toLowerCase());
+                }
             }
         });
     }
 
-    let currentCount = activePartsSet.size;
-
-    // ระบบล็อกค่าอัจฉริยะ: ถ้ารอบนี้นับได้มากกว่า 0 ให้บันทึกค่าไว้ 
-    // แต่ถ้ารอบไหนหลุดตกลงไปเหลือ 1 หรือ 0 ให้ดึงค่าจริงล่าสุด (_permanentStockCount) มาใช้แทนทันที
-    let availableCount = 2;
-    if (currentCount >= 2) {
-        window._permanentStockCount = currentCount;
-        availableCount = currentCount;
-    } else {
-        availableCount = window._permanentStockCount > 0 ? window._permanentStockCount : 2;
-    }
-
+    // นับตามจำนวนที่มีอยู่จริงในตาราง ไม่มีตัวเลขล็อกตายตัวอีกต่อไป
+    let availableCount = activePartsSet.size;
     let zeroCount = Math.max(0, totalParts - availableCount);
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
-    // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard
+    // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard ตามจริง
     if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
     if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
     if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
