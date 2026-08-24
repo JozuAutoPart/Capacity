@@ -4125,6 +4125,16 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 }
   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
+    // 👇 ดึงและเช็กข้อมูล Master Parts ให้ปลอดภัยก่อนเรนเดอร์
+    let masters = window.masterPartsDatabase || [];
+    if (masters.length === 0) {
+        const savedLocal = localStorage.getItem('masterPartsDatabase');
+        if (savedLocal) {
+            try { masters = JSON.parse(savedLocal); } catch(e) {}
+        }
+    }
+    if (masters.length === 0) return;
+
     let container = document.getElementById('zeroStockListContainer');
     
     // ถ้ายังไม่มี container บนหน้าจอ ให้สร้างขึ้นมาใหม่
