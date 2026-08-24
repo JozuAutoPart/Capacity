@@ -4136,7 +4136,6 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc) {
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
-    // ถ้ายังไม่มี container บนหน้าจอ ให้สร้างขึ้นมาใหม่
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
@@ -4150,7 +4149,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     
     if (container) container.style.display = 'block';
 
-    // 2. ดึงข้อมูล Master Parts
     const masters = window.masterPartsDatabase || [];
 
     if (masters.length === 0) {
@@ -4165,7 +4163,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
-    // 3. กรองตาม Line ที่เลือก
     const targetMasters = selectedLine === 'ALL'  
         ? masters  
         : masters.filter(m => {
@@ -4173,59 +4170,58 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine === String(selectedLine).trim();
           });
 
-    // 4. คำนวณยอดสต็อกจริงของทั้ง WIP และ FG ให้เหมือนหน้า Stock WIP & FG
     const actualsData = window.actuals || [];
     const qgateData = window.qgate || [];
     const deliveriesData = window.deliveries || [];
 
-    // คำนวณยอด WIP คงเหลือจริง (ยอดผลิต OK - ยอดโอนเข้า QC/FG)
+    // ทำ Map รหัสพาร์ทแบบ Clean (Trim + UpperCase) เพื่อป้องกันปัญหาตัวพิมพ์หรือช่องว่างไม่ตรงกัน
     const wipBalanceMap = {};
     actualsData.forEach(a => {
-        const pNo = String(a['Part No.'] || a.partNo || '').trim();
+        const pNo = String(a['Part No.'] || a.partNo || '').trim().toUpperCase();
         const okQty = Number(a['OK Qty'] || a.qty || 0);
         if (pNo) {
             wipBalanceMap[pNo] = (wipBalanceMap[pNo] || 0) + okQty;
         }
     });
     qgateData.forEach(q => {
-        const pNo = String(q['Part No.'] || q.partNo || '').trim();
+        const pNo = String(q['Part No.'] || q.partNo || '').trim().toUpperCase();
         const totalQ = Number(q['ยอดตรวจทั้งหมด'] || q.totalQty || q.qty || 0);
         if (pNo) {
             wipBalanceMap[pNo] = (wipBalanceMap[pNo] || 0) - totalQ;
         }
     });
 
-    // คำนวณยอด FG คงเหลือจริง (ยอดรับเข้า FG - ยอด Delivery ส่งมอบ)
     const fgBalanceMap = {};
     qgateData.filter(q => {
         let pass = q['ผ่านเข้า FG (Pass)'] !== undefined ? q['ผ่านเข้า FG (Pass)'] : q.passQty;
         return Number(pass) > 0;
     }).forEach(q => {
-        const pNo = String(q['Part No.'] || q.partNo || '').trim();
+        const pNo = String(q['Part No.'] || q.partNo || '').trim().toUpperCase();
         const passQty = Number(q['ผ่านเข้า FG (Pass)'] !== undefined ? q['ผ่านเข้า FG (Pass)'] : q.passQty || 0);
         if (pNo) {
             fgBalanceMap[pNo] = (fgBalanceMap[pNo] || 0) + passQty;
         }
     });
     deliveriesData.forEach(d => {
-        const pNo = String(d['Part No.'] || d.partNo || '').trim();
+        const pNo = String(d['Part No.'] || d.partNo || '').trim().toUpperCase();
         const dQty = Number(d['ยอดส่งมอบ'] || d.deliveryQty || d.qty || 0);
         if (pNo) {
             fgBalanceMap[pNo] = (fgBalanceMap[pNo] || 0) - dQty;
         }
     });
 
-    // 5. กรองหาพาร์ทที่ยอดคงเหลือทั้ง WIP และ FG เป็น 0 จริงๆ
+    // กรองหาพาร์ทที่ยอดคงเหลือทั้ง WIP และ FG เป็น 0 จริงๆ
     const zeroStockParts = targetMasters.filter(m => {
-        const pNo = String(m['Part No.'] || m.partNo || '').trim();
-        const wipRem = Math.max(0, wipBalanceMap[pNo] || 0);
-        const fgRem = Math.max(0, fgBalanceMap[pNo] || 0);
+        const rawPNo = String(m['Part No.'] || m.partNo || '').trim();
+        const cleanPNo = rawPNo.toUpperCase();
         
-        // ถ้ายอดรวมทั้ง WIP และ FG เป็น 0 ถึงจะถือว่า Stock เป็น 0 จริงๆ
+        const wipRem = Math.max(0, wipBalanceMap[cleanPNo] || 0);
+        const fgRem = Math.max(0, fgBalanceMap[cleanPNo] || 0);
+        
+        // ถ้ายอดรวมทั้ง WIP และ FG เป็น 0 ถึงจะแสดงเตือน
         return (wipRem + fgRem) === 0;
     });
 
-    // 6. เรนเดอร์แสดงผลลงในกล่องแดง
     let badgesHtml = zeroStockParts.map(m => {
         const pNo = String(m['Part No.'] || m.partNo || '').trim();
         return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
