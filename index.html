@@ -1767,13 +1767,11 @@ function loadAllData() {
                     }
                 });
             }
-        });
-}
 
-            renderDashboard();
-    renderActuals();
-    if (typeof renderWipStock === 'function') renderWipStock();
-    if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+            if (typeof renderDashboard === 'function') renderDashboard();
+            if (typeof renderActuals === 'function') renderActuals();
+            if (typeof renderWipStock === 'function') renderWipStock();
+            if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
         })
         .catch(err => console.error("Error loading data:", err));
 }
