@@ -1678,6 +1678,7 @@ function loadActualsFromCloud() {
 }
 
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -1708,7 +1709,10 @@ function renderActuals() {
 
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
-        const timeworkval = a.timeWork || a['Time'] || a['Time Work'] || '-'; // ⏱️ ค่าเวลาเริ่ม-สิ้นสุด
+        
+        // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด (รองรับหลายชื่อฟิลด์เผื่อข้อมูลเก่าใน Cloud)
+        const timeworkval = a.timeWork || a['Time'] || a['Time Work'] || a['timeRange'] || '-'; 
+        
         const remarkval = a.remark || a['Remark'] || '-';
 
         const tr = document.createElement('tr');
@@ -1718,9 +1722,9 @@ function renderActuals() {
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
             <td class="fw-bold text-info">${partval}</td>
             <td>${lotval}</td>
+            <td class="text-warning small fw-bold">${timeworkval}</td> <!-- 👈 คอลัมน์แสดงเวลาทำงาน -->
             <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
             <td class="text-danger">${ngval.toLocaleString()}</td>
-            <td class="text-warning small">${timeworkval}</td>
             <td class="small text-muted">${remarkval}</td>
             <td class="text-center">
                 <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${originalIndex})" title="ลบรายการ">
