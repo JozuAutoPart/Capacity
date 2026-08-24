@@ -4170,63 +4170,60 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine === String(selectedLine).trim();
           });
 
-    // 🔍 ดึงข้อมูลจากตารางหน้า Stock WIP & FG หรือตัวแปรกลางให้ครอบคลุมที่สุด
-    const actualsData = window.actuals || window.productionActuals || [];
-    const qgateData = window.qgate || window.qGateData || [];
-    const deliveriesData = window.deliveries || window.deliveryData || [];
+    // 🔍 ดึงข้อมูลยอดคงเหลือจากตาราง Stock WIP และ Stock FG บนหน้าเว็บโดยตรง
+    const wipTableRows = document.querySelectorAll('#stockWipTableBody tr, table tr'); // หรือเลือกจากตาราง Stock WIP บนหน้าเว็บ
+    const stockMap = {};
 
-    const wipBalanceMap = {};
-    const fgBalanceMap = {};
-
-    // ถ้าหน้าเว็บมีข้อมูลในตาราง Stock WIP อยู่แล้ว สามารถดึงจากตารางโดยตรงได้เลยเพื่อความชัวร์
-    // แต่ถ้าไม่มี ให้คำนวณจาก actuals / qgate
+    // วนลูปอ่านค่าจากตาราง Stock WIP / FG ที่เรนเดอร์อยู่บนหน้าจอ
     targetMasters.forEach(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return;
 
-        // คำนวณ WIP จาก actuals
-        let wipTotal = 0;
-        actualsData.forEach(a => {
-            let p = String(a['Part No.'] || a.partNo || '').trim().toUpperCase();
-            if (p === cleanPNo) {
-                wipTotal += Number(a['OK Qty'] || a.qty || 0);
-            }
-        });
-        qgateData.forEach(q => {
-            let p = String(q['Part No.'] || q.partNo || '').trim().toUpperCase();
-            if (p === cleanPNo) {
-                wipTotal -= Number(q['ยอดตรวจทั้งหมด'] || q.totalQty || q.qty || 0);
-            }
-        });
-        wipBalanceMap[cleanPNo] = Math.max(0, wipTotal);
+        let totalStock = 0;
 
-        // คำนวณ FG จาก qgate และ deliveries
-        let fgTotal = 0;
-        qgateData.forEach(q => {
-            let p = String(q['Part No.'] || q.partNo || '').trim().toUpperCase();
-            if (p === cleanPNo) {
-                fgTotal += Number(q['ผ่านเข้า FG (Pass)'] !== undefined ? q['ผ่านเข้า FG (Pass)'] : (q.passQty || 0));
+        // ค้นหาแถวในตารางที่มี Part No. นี้ แล้วดึงยอดคงเหลือ WIP / FG มาบวกกัน
+        document.querySelectorAll('tr').forEach(tr => {
+            const text = tr.innerText || '';
+            if (text.includes(rawPNo)) {
+                // พยายามแกะตัวเลขสต็อกคงเหลือจากแถวนั้นๆ
+                const cols = tr.querySelectorAll('td');
+                cols.forEach((td, idx) => {
+                    let val = parseFloat(td.innerText.replace(/,/g, ''));
+                    // ถ้าไม่ใช่คอลัมน์ที่เป็น Part No. และตัวเลขมากกว่า 0 ให้ถือว่าเป็นสต็อก
+                    if (!isNaN(val) && val > 0 && !td.innerText.includes(rawPNo)) {
+                        totalStock += val;
+                    }
+                });
             }
         });
-        deliveriesData.forEach(d => {
-            let p = String(d['Part No.'] || d.partNo || '').trim().toUpperCase();
-            if (p === cleanPNo) {
-                fgTotal -= Number(d['ยอดส่งมอบ'] || d.deliveryQty || d.qty || 0);
-            }
-        });
-        fgBalanceMap[cleanPNo] = Math.max(0, fgTotal);
+
+        stockMap[cleanPNo] = totalStock;
     });
 
-    // กรองหาพาร์ทที่ยอดคงเหลือทั้ง WIP และ FG เป็น 0 จริงๆ
+    // อีกวิธี: ถ้ามีฟังก์ชันคำนวณในระบบ ให้เช็กจาก window.actuals หรือ fallback เช็กจากหน้าตาราง
+    // กรองหาพาร์ทที่ยอดคงเหลือเป็น 0 จริงๆ (ทั้งไม่มีใน stockMap หรือยอดรวมเป็น 0)
     const zeroStockParts = targetMasters.filter(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         
-        const wipRem = wipBalanceMap[cleanPNo] || 0;
-        const fgRem = fgBalanceMap[cleanPNo] || 0;
+        // เช็กจากยอดรวมActuals หรือข้อมูลดิบถ้ามี
+        const actualsData = window.actuals || [];
+        let hasWipOrFg = (stockMap[cleanPNo] && stockMap[cleanPNo] > 0);
         
-        return (wipRem + fgRem) === 0;
+        if (!hasWipOrFg) {
+            // เช็กเผื่อจาก actuals ตรงๆ
+            let wipSum = 0;
+            actualsData.forEach(a => {
+                let p = String(a['Part No.'] || a.partNo || '').trim().toUpperCase();
+                if (p === cleanPNo) {
+                    wipSum += Number(a['OK Qty'] || a.qty || 0);
+                }
+            });
+            if (wipSum > 0) hasWipOrFg = true;
+        }
+
+        return !hasWipOrFg;
     });
 
     let badgesHtml = zeroStockParts.map(m => {
