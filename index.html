@@ -1444,7 +1444,7 @@ function deletePlan(id) {
         alert("ลบแผนสำเร็จ");
     }
 }
-       // --- TAB 4: ACTUAL PRODUCTION ---
+// --- TAB 4: ACTUAL PRODUCTION ---
 // ฟังก์ชันดักจับการยิง Barcode เพื่อแปลงเป็น Part No. จาก Master และเลือกจากแผนอัตโนมัติ
 document.getElementById('actualBarcodeScanner').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
@@ -1581,15 +1581,21 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
+    const startTime = document.getElementById('workStartTime') ? document.getElementById('workStartTime').value : '';
+    const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
+    const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
+
     const actual = {
         date: document.getElementById('actualDate').value,
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
-        partNo: finalPartNo, // 👈 ใช้ชื่อพาร์ทที่รวม Process แล้ว
+        partNo: finalPartNo, // ใช้วิธีรวม Process
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
+        timeWork: timeRange, // 👈 เพิ่มฟิลด์ช่วงเวลาทำงาน
         remark: document.getElementById('actualRemark').value.trim()
     };
 
@@ -1660,6 +1666,7 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+                    timeWork: item.timeWork || item['Time'] || item['Time Work'] || '-', // 👈 รองรับการโหลดเวลา
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
@@ -1677,7 +1684,7 @@ function renderActuals() {
     tbody.innerHTML = '';
 
     if (!actuals || actuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
         return;
     }
 
@@ -1701,6 +1708,7 @@ function renderActuals() {
 
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
+        const timeworkval = a.timeWork || a['Time'] || a['Time Work'] || '-'; // ⏱️ ค่าเวลาเริ่ม-สิ้นสุด
         const remarkval = a.remark || a['Remark'] || '-';
 
         const tr = document.createElement('tr');
@@ -1712,6 +1720,7 @@ function renderActuals() {
             <td>${lotval}</td>
             <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
             <td class="text-danger">${ngval.toLocaleString()}</td>
+            <td class="text-warning small">${timeworkval}</td>
             <td class="small text-muted">${remarkval}</td>
             <td class="text-center">
                 <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${originalIndex})" title="ลบรายการ">
@@ -1758,6 +1767,8 @@ function loadAllData() {
                     }
                 });
             }
+        });
+}
 
             renderDashboard();
             renderActuals();
