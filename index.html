@@ -1637,6 +1637,11 @@ function submitActual(e) {
             document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
             checkAndLoadPlans();
             renderActuals();
+            
+            if (typeof loadAllData === 'function') {
+                loadAllData();
+            }
+
             alert("บันทึกข้อมูลสำเร็จ!");
         } else {
             alert("บันทึกไม่สำเร็จ: " + result.message);
