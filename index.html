@@ -2398,17 +2398,15 @@ function filterFgTable() {
     });
 }
   // ==========================================
-// --- TAB 7: DELIVERY (การส่งมอบ) - COMPLETE ---
+// ==========================================
+// --- TAB 7: DELIVERY (การส่งมอบ) - FIXED ---
 // ==========================================
 
-// ฟังก์ชันดึงรายชื่อลูกค้าอัตโนมัติจาก Master Parts (ตามคอลัมน์ D)
-// --- อัปเดตฟังก์ชันดึงข้อมูลชื่อลูกค้าจากคอลัมน์ D ของ MasterParts ---
+// ฟังก์ชันดึงชื่อลูกค้าจากคอลัมน์ D ของ MasterParts
 function getCustomerMapping() {
     let customerMap = {};
-    // ดึงข้อมูลจาก Google Sheets หรือ Array ฐานข้อมูล Master Parts
     let masterDb = window.masterPartsDatabase || [];
     masterDb.forEach(item => {
-        // รองรับทั้งคีย์ภาษาอังกฤษและตำแหน่งคอลัมน์ Index (คอลัมน์ D คือ index 3 หรือ property customer/cust)
         let pNo = (item.partNo || item.partNumber || item[1] || "").trim().toLowerCase();
         let cust = (item.customer || item.cust || item[3] || "").trim(); // คอลัมน์ D (ชื่อลูกค้า)
         if (pNo && cust) {
@@ -2417,6 +2415,28 @@ function getCustomerMapping() {
     });
     return customerMap;
 }
+
+// แก้ชื่อให้ตรงกับที่ระบบเรียกใช้งานจริง (โหลดรายการพาร์ทรวมสต็อก FG)
+function loadDeliveryParts() {
+    const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
+    const dataList = document.getElementById('deliveryPartList');
+    if (!dataList) return;
+    
+    dataList.innerHTML = '';
+
+    Object.keys(fgMap).forEach(partNo => {
+        if(fgMap[partNo] > 0) {
+            const opt = document.createElement('option');
+            opt.value = partNo;
+            opt.innerText = `คงเหลือ FG: ${fgMap[partNo].toLocaleString()} ชิ้น`;
+            dataList.appendChild(opt);
+        }
+    });
+    updateFgMaxHint();
+}
+
+// สำรองชื่อฟังก์ชันเผื่อบางจุดเรียกชื่อนี้
+window.loadGateParts = window.loadDeliveryParts; 
 
 function updateFgMaxHint() {
     const partNoEl = document.getElementById('deliveryPartNo');
@@ -2427,25 +2447,25 @@ function updateFgMaxHint() {
     if (!partNoEl || !hint || !qtyInput) return;
 
     const partNo = partNoEl.value.trim();
-    const fgMap = getFgBalances();
+    const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
     const available = fgMap[partNo] || 0;
     
     hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
     qtyInput.max = available;
 
-    // ดึงชื่อลูกค้าจากคอลัมน์ D ของ MasterParts ขึ้นมาใส่ให้อัตโนมัติทันที
+    // ดึงชื่อลูกค้าจากคอลัมน์ D อัตโนมัติ
     if (customerEl) {
         const customerMap = getCustomerMapping();
         let foundCust = customerMap[partNo.toLowerCase()];
         if (foundCust) {
             customerEl.value = foundCust;
         } else {
-            customerEl.value = '-'; // ค่าเริ่มต้นถ้าไม่พบ
+            customerEl.value = '-';
         }
     }
 }
 
-// ฟังก์ชันสร้างเสียงแจ้งเตือนแบบ Web Audio API
+// ฟังก์ชันเสียงแจ้งเตือน Web Audio API
 function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2473,15 +2493,7 @@ function playBeep(type) {
     }
 }
 
-// ปิดหน้าต่าง Alert กวนใจทั้งหมด เพื่อไม่ให้ต้องคอยกด OK ซ้ำซ้อน
-if (typeof originalAlert === 'undefined') {
-    var originalAlert = window.alert;
-    window.alert = function(msg) {
-        console.log("Skipped alert: " + msg);
-    };
-}
-
-// รองรับการกด Enter จากเครื่องยิง Barcode และระบบป้องกันห้ามขายหากไม่มีสต็อก FG
+// รองรับการยิงบาร์โค้ดและการตรวจสอบสต็อก FG เป็น 0
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('input', updateFgMaxHint);
@@ -2506,13 +2518,12 @@ if (deliveryPartInputEl) {
             deliveryPartInputEl.value = partNo;
             updateFgMaxHint(); 
 
-            // ตรวจสอบสต็อก FG จริง
-            const fgMap = typeof fgBalances === 'function' ? fgBalances() : {};
+            const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
             const available = fgMap[partNo] || 0;
 
-            // **ล็อกเข้มงวด:** ถ้าไม่มีสต็อก FG หรือเหลือน้อยกว่าหรือเท่ากับ 0 ห้ามขายเด็ดขาด!
+            // ล็อกเข้มงวด: ถ้าไม่มีสต็อก FG ห้ามขายเด็ดขาด
             if (available <= 0) {
-                playBeep('error'); // ส่งเสียงเตือนผิดพลาด
+                playBeep('error');
                 alert(`❌ เตือน: Part No. "${partNo}" ไม่มีสินค้าใน Stock FG (คงเหลือ 0 ชิ้น) ไม่สามารถส่งมอบได้!`);
                 
                 deliveryPartInputEl.value = '';
@@ -2524,7 +2535,7 @@ if (deliveryPartInputEl) {
                 return; 
             }
 
-            playBeep('success'); // เสียงสแกนสำเร็จ
+            playBeep('success');
             
             let finalQty = scannedQty > 0 ? scannedQty : 1;
             
@@ -2544,7 +2555,6 @@ if (deliveryPartInputEl) {
             const hint = document.getElementById('fgMaxHint');
             if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-            // สั่งกดปุ่มบันทึกอัตโนมัติ
             setTimeout(() => {
                 const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                 if (submitBtn) {
@@ -2577,7 +2587,7 @@ function submitDelivery(e) {
         return;
     }
 
-    const fgMap = getFgBalances();
+    const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
     const currentStock = fgMap[partNo] || 0;
 
     if (currentStock <= 0) {
@@ -2601,7 +2611,9 @@ function submitDelivery(e) {
         remark: document.getElementById('deliveryRemark').value.trim() || '-'
     };
 
-    deliveries.push(record);
+    if (typeof deliveries !== 'undefined') {
+        deliveries.push(record);
+    }
     
     if (typeof saveAll === 'function') {
         saveAll('saveDelivery', record);
@@ -2610,7 +2622,7 @@ function submitDelivery(e) {
     document.getElementById('deliveryForm').reset();
     document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
     
-    renderDelivery();
+    if (typeof renderDelivery === 'function') renderDelivery();
     loadDeliveryParts();
     if (typeof renderStock === 'function') {
         renderStock();
@@ -2626,7 +2638,7 @@ function renderDelivery() {
     
     tbody.innerHTML = '';
     
-    if (!deliveries || deliveries.length === 0) {
+    if (!window.deliveries || deliveries.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีประวัติการส่งมอบสินค้า</td></tr>`;
         return;
     }
@@ -2651,7 +2663,7 @@ function renderDelivery() {
 
 function deleteDelivery(id) {
     if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไป)')) {
-        deliveries = deliveries.filter(d => d.id !== id);
+        window.deliveries = deliveries.filter(d => d.id !== id);
         renderDelivery();
         loadDeliveryParts();
         if (typeof renderStock === 'function') {
