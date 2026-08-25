@@ -2425,10 +2425,11 @@ function safeSetValue(elementId, value) {
     if (el) el.value = value;
 }
 
-// ฟังก์ชันดึงชื่อลูกค้าจากคอลัมน์ D ของ MasterParts
+// ฟังก์ชันดึงชื่อลูกค้าจากคอลัมน์ D ของ MasterParts (รองรับทั้ง window และ localStorage)
 function getCustomerMapping() {
     let customerMap = {};
-    let masterDb = window.masterPartsDatabase || [];
+    let masterDb = window.masterPartsDatabase || JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    
     masterDb.forEach(item => {
         let pNo = getSafeString(item.partNo || item.partNumber || item[1]).toLowerCase();
         let cust = getSafeString(item.customer || item.cust || item[3]); // คอลัมน์ D (ชื่อลูกค้า)
@@ -2460,6 +2461,7 @@ function loadDeliveryParts() {
 window.loadGateParts = window.loadDeliveryParts;
 window.updateGateIpInfo = window.updateGateIpInfo || function() {};
 
+// ฟังก์ชันอัปเดตสต็อกคงเหลือและดึงชื่อลูกค้าอัตโนมัติทุกครั้ง
 function updateFgMaxHint() {
     const partNoEl = document.getElementById('deliveryPartNo');
     const qtyInput = document.getElementById('deliveryQty');
@@ -2509,11 +2511,13 @@ function playBeep(type) {
     }
 }
 
-// รองรับการยิงบาร์โค้ดและการตรวจสอบสต็อก
+// ผูก Event คอยดึงชื่อลูกค้าและตรวจสอบสต็อกอัตโนมัติทุกกรณี
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('input', updateFgMaxHint);
     deliveryPartInputEl.addEventListener('change', updateFgMaxHint);
+    deliveryPartInputEl.addEventListener('keyup', updateFgMaxHint);
+    deliveryPartInputEl.addEventListener('blur', updateFgMaxHint);
 
     deliveryPartInputEl.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -2672,7 +2676,7 @@ function renderDelivery() {
 }
 
 function deleteDelivery(id) {
-    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไป)')) {
+    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปเดิม)')) {
         window.deliveries = (window.deliveries || []).filter(d => d.id !== id);
         renderDelivery();
         loadDeliveryParts();
@@ -2681,9 +2685,10 @@ function deleteDelivery(id) {
     }
 }
 
-// โหลดประวัติขึ้นมาแสดงทันทีเมื่อเปิดหน้าเว็บ
+// โหลดประวัติและตั้งค่าเริ่มต้นทันทีเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function() {
     renderDelivery();
+    loadDeliveryParts();
 });
      // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
