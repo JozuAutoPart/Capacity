@@ -2402,35 +2402,20 @@ function filterFgTable() {
 // ==========================================
 
 // ฟังก์ชันดึงรายชื่อลูกค้าอัตโนมัติจาก Master Parts (ตามคอลัมน์ D)
+// --- อัปเดตฟังก์ชันดึงข้อมูลชื่อลูกค้าจากคอลัมน์ D ของ MasterParts ---
 function getCustomerMapping() {
     let customerMap = {};
+    // ดึงข้อมูลจาก Google Sheets หรือ Array ฐานข้อมูล Master Parts
     let masterDb = window.masterPartsDatabase || [];
     masterDb.forEach(item => {
-        let pNo = (item.partNo || item.partNumber || "").trim().toLowerCase();
-        let cust = (item.customer || item.cust || "").trim();
+        // รองรับทั้งคีย์ภาษาอังกฤษและตำแหน่งคอลัมน์ Index (คอลัมน์ D คือ index 3 หรือ property customer/cust)
+        let pNo = (item.partNo || item.partNumber || item[1] || "").trim().toLowerCase();
+        let cust = (item.customer || item.cust || item[3] || "").trim(); // คอลัมน์ D (ชื่อลูกค้า)
         if (pNo && cust) {
             customerMap[pNo] = cust;
         }
     });
     return customerMap;
-}
-
-function loadDeliveryParts() {
-    const fgMap = getFgBalances();
-    const dataList = document.getElementById('deliveryPartList');
-    if (!dataList) return;
-    
-    dataList.innerHTML = '';
-
-    Object.keys(fgMap).forEach(partNo => {
-        if(fgMap[partNo] > 0) {
-            const opt = document.createElement('option');
-            opt.value = partNo;
-            opt.innerText = `คงเหลือ FG: ${fgMap[partNo].toLocaleString()} ชิ้น`;
-            dataList.appendChild(opt);
-        }
-    });
-    updateFgMaxHint();
 }
 
 function updateFgMaxHint() {
@@ -2448,12 +2433,14 @@ function updateFgMaxHint() {
     hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
     qtyInput.max = available;
 
-    // ดึงชื่อลูกค้าขึ้นอัตโนมัติทันทีที่เลือกหรือพิมพ์ Part No.
+    // ดึงชื่อลูกค้าจากคอลัมน์ D ของ MasterParts ขึ้นมาใส่ให้อัตโนมัติทันที
     if (customerEl) {
         const customerMap = getCustomerMapping();
         let foundCust = customerMap[partNo.toLowerCase()];
         if (foundCust) {
             customerEl.value = foundCust;
+        } else {
+            customerEl.value = '-'; // ค่าเริ่มต้นถ้าไม่พบ
         }
     }
 }
