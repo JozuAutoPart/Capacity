@@ -4141,13 +4141,14 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc, dieNo = '-',
     printWindow.print();
 }
   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
-function renderZeroStockPartsByLine(selectedLine = 'ALL') {
-   if (!container) {
+function renderZeroStockPartsByline(selectedLine = 'ALL') {
+    let container = document.getElementById('zeroStockListContainer');
+
+    if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
         container.className = 'col-12 mt-3 mb-4';
         
-        // ให้หาตำแหน่งกล่องสรุปข้อมูลหรือแถวของกราฟ แล้วแทรกไว้ข้างใต้แทนการเอาไปต่อท้ายสุด
         const targetRow = document.querySelector('.row') || document.querySelector('.container-fluid');
         if (targetRow && targetRow.parentNode) {
             targetRow.parentNode.insertBefore(container, targetRow.nextSibling);
@@ -4155,11 +4156,11 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             document.body.appendChild(container);
         }
     }
-    
+
     if (container) container.style.display = 'block';
 
     const masters = window.masterPartsDatabase || [];
-
+    
     if (masters.length === 0) {
         container.innerHTML = `
             <div class="card bg-dark text-white p-3 border-warning shadow">
@@ -4171,7 +4172,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         `;
         return;
     }
-
     const targetMasters = selectedLine === 'ALL'  
         ? masters  
         : masters.filter(m => {
