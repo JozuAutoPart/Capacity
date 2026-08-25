@@ -3829,8 +3829,8 @@ function renderStockZeroPieChart() {
         });
     });
 
-    let zeroCount = activePartsSet.size; // ให้ zeroCount เป็นตัวนับพาร์ทที่ Stock เป็น 0 ก่อน
-    let availableCount = Math.max(0, totalParts - zeroCount); // คำนวณพาร์ทที่มี Stock จาก ยอดทั้งหมด ลบด้วย Stock 0
+   let availableCount = activePartsSet.size; // ตัวนี้กลายเป็นไปนับจำนวนพาร์ทที่มี Stock
+let zeroCount = Math.max(0, totalParts - availableCount); // ตัวนี้กลายเป็นเอาผลลัพธ์มาลบทีหลัง
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
     // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard ตามจริง
