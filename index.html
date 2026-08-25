@@ -2397,12 +2397,10 @@ function filterFgTable() {
         }
     });
 }
-  // ==========================================
 // ==========================================
-// --- TAB 7: DELIVERY (การส่งมอบ) - FULL CODE ---
+// --- TAB 7: DELIVERY (การส่งมอบ) - FINAL FULL CODE ---
 // ==========================================
 
-// ฟังก์ชันแปลงค่าความปลอดภัย ป้องกัน Error .trim is not a function
 function getSafeString(val) {
     if (!val) return "";
     if (typeof val === 'string') return val.trim();
@@ -2414,7 +2412,6 @@ function getSafeString(val) {
     return "";
 }
 
-// ป้องกัน Error กรณี Element ไม่มีอยู่จริงบนหน้าจอ
 function safeSetInnerText(elementId, text) {
     const el = document.getElementById(elementId);
     if (el) el.innerText = text;
@@ -2425,7 +2422,7 @@ function safeSetValue(elementId, value) {
     if (el) el.value = value;
 }
 
-// ฟังก์ชันดึงชื่อลูกค้าจากคอลัมน์ D ของ MasterParts (รองรับทั้ง window และ localStorage)
+// ฟังก์ชันดึงชื่อลูกค้าจากคอลัมน์ D ของ MasterParts
 function getCustomerMapping() {
     let customerMap = {};
     let masterDb = window.masterPartsDatabase || JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
@@ -2461,7 +2458,6 @@ function loadDeliveryParts() {
 window.loadGateParts = window.loadDeliveryParts;
 window.updateGateIpInfo = window.updateGateIpInfo || function() {};
 
-// ฟังก์ชันอัปเดตสต็อกคงเหลือและดึงชื่อลูกค้าอัตโนมัติทุกครั้ง
 function updateFgMaxHint() {
     const partNoEl = document.getElementById('deliveryPartNo');
     const qtyInput = document.getElementById('deliveryQty');
@@ -2483,7 +2479,6 @@ function updateFgMaxHint() {
     }
 }
 
-// ฟังก์ชันเสียงแจ้งเตือน Web Audio API
 function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2511,13 +2506,11 @@ function playBeep(type) {
     }
 }
 
-// ผูก Event คอยดึงชื่อลูกค้าและตรวจสอบสต็อกอัตโนมัติทุกกรณี
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
-    deliveryPartInputEl.addEventListener('input', updateFgMaxHint);
-    deliveryPartInputEl.addEventListener('change', updateFgMaxHint);
-    deliveryPartInputEl.addEventListener('keyup', updateFgMaxHint);
-    deliveryPartInputEl.addEventListener('blur', updateFgMaxHint);
+    ['input', 'change', 'keyup', 'blur', 'focus'].forEach(evt => {
+        deliveryPartInputEl.addEventListener(evt, updateFgMaxHint);
+    });
 
     deliveryPartInputEl.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -2587,9 +2580,10 @@ if (deliveryPartInputEl) {
 }
 
 function submitDelivery(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const partNo = getSafeString(document.getElementById('deliveryPartNo').value);
     const deliveryQty = Number(document.getElementById('deliveryQty').value);
+    const customerEl = document.getElementById('deliveryCustomer');
 
     if (!partNo) {
         playBeep('error');
@@ -2612,12 +2606,16 @@ function submitDelivery(e) {
         return;
     }
 
+    // ดึงชื่อลูกค้าให้ชัวร์ก่อนบันทึก
+    const customerMap = getCustomerMapping();
+    let autoCustomer = customerMap[partNo.toLowerCase()] || (customerEl ? customerEl.value : '-');
+
     const record = {
         id: Date.now(),
         date: document.getElementById('deliveryDate').value,
         partNo: partNo,
         qty: deliveryQty,
-        customer: getSafeString(document.getElementById('deliveryCustomer').value) || '-',
+        customer: getSafeString(autoCustomer) || '-',
         remark: getSafeString(document.getElementById('deliveryRemark').value) || '-'
     };
 
@@ -2657,13 +2655,22 @@ function renderDelivery() {
         return;
     }
 
+    const customerMap = getCustomerMapping();
+
     historyList.slice().reverse().forEach(d => {
+        let pNoStr = getSafeString(d.partNo);
+        // ถ้าประวัติเก่าไม่มีชื่อลูกค้า ให้ดึงจาก MasterParts มาเติมให้อัตโนมัติ
+        let custName = getSafeString(d.customer);
+        if (!custName || custName === '-') {
+            custName = customerMap[pNoStr.toLowerCase()] || '-';
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.date ? d.date.split('T')[0] : ''}</td>
-            <td class="fw-bold text-info">${getSafeString(d.partNo)}</td>
+            <td class="fw-bold text-info">${pNoStr}</td>
             <td class="text-primary fw-bold">${Number(d.qty || 0).toLocaleString()}</td>
-            <td>${getSafeString(d.customer) || '-'}</td>
+            <td>${custName}</td>
             <td class="small text-muted">${getSafeString(d.remark) || '-'}</td>
             <td class="text-center">
                 <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteDelivery(${d.id})" title="ลบรายการนี้">
@@ -2685,7 +2692,6 @@ function deleteDelivery(id) {
     }
 }
 
-// โหลดประวัติและตั้งค่าเริ่มต้นทันทีเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function() {
     renderDelivery();
     loadDeliveryParts();
