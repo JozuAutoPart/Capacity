@@ -4142,16 +4142,17 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc, dieNo = '-',
 }
   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
-    let container = document.getElementById('zeroStockListContainer');
-    
-    if (!container) {
+   if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
         container.className = 'col-12 mt-3 mb-4';
-
-        const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
-        if (mainContent) {
-            mainContent.appendChild(container);
+        
+        // ให้หาตำแหน่งกล่องสรุปข้อมูลหรือแถวของกราฟ แล้วแทรกไว้ข้างใต้แทนการเอาไปต่อท้ายสุด
+        const targetRow = document.querySelector('.row') || document.querySelector('.container-fluid');
+        if (targetRow && targetRow.parentNode) {
+            targetRow.parentNode.insertBefore(container, targetRow.nextSibling);
+        } else {
+            document.body.appendChild(container);
         }
     }
     
