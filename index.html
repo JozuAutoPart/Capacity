@@ -2399,16 +2399,39 @@ function filterFgTable() {
 }
   // ==========================================
 // ==========================================
-// --- TAB 7: DELIVERY (การส่งมอบ) - FIXED ---
+// --- TAB 7: DELIVERY (การส่งมอบ) - FULL CODE ---
 // ==========================================
+
+// ฟังก์ชันแปลงค่าความปลอดภัย ป้องกัน Error .trim is not a function
+function getSafeString(val) {
+    if (!val) return "";
+    if (typeof val === 'string') return val.trim();
+    if (typeof val === 'number' || typeof val === 'boolean') return String(val).trim();
+    if (typeof val === 'object' && val !== null && typeof val.toString === 'function') {
+        let str = val.toString();
+        return str === '[object Object]' ? '' : str.trim();
+    }
+    return "";
+}
+
+// ป้องกัน Error กรณี Element ไม่มีอยู่จริงบนหน้าจอ
+function safeSetInnerText(elementId, text) {
+    const el = document.getElementById(elementId);
+    if (el) el.innerText = text;
+}
+
+function safeSetValue(elementId, value) {
+    const el = document.getElementById(elementId);
+    if (el) el.value = value;
+}
 
 // ฟังก์ชันดึงชื่อลูกค้าจากคอลัมน์ D ของ MasterParts
 function getCustomerMapping() {
     let customerMap = {};
     let masterDb = window.masterPartsDatabase || [];
     masterDb.forEach(item => {
-        let pNo = (item.partNo || item.partNumber || item[1] || "").trim().toLowerCase();
-        let cust = (item.customer || item.cust || item[3] || "").trim(); // คอลัมน์ D (ชื่อลูกค้า)
+        let pNo = getSafeString(item.partNo || item.partNumber || item[1]).toLowerCase();
+        let cust = getSafeString(item.customer || item.cust || item[3]); // คอลัมน์ D (ชื่อลูกค้า)
         if (pNo && cust) {
             customerMap[pNo] = cust;
         }
@@ -2416,7 +2439,6 @@ function getCustomerMapping() {
     return customerMap;
 }
 
-// แก้ชื่อให้ตรงกับที่ระบบเรียกใช้งานจริง (โหลดรายการพาร์ทรวมสต็อก FG)
 function loadDeliveryParts() {
     const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
     const dataList = document.getElementById('deliveryPartList');
@@ -2435,33 +2457,27 @@ function loadDeliveryParts() {
     updateFgMaxHint();
 }
 
-// สำรองชื่อฟังก์ชันเผื่อบางจุดเรียกชื่อนี้
-window.loadGateParts = window.loadDeliveryParts; 
+window.loadGateParts = window.loadDeliveryParts;
+window.updateGateIpInfo = window.updateGateIpInfo || function() {};
 
 function updateFgMaxHint() {
     const partNoEl = document.getElementById('deliveryPartNo');
-    const hint = document.getElementById('fgMaxHint');
     const qtyInput = document.getElementById('deliveryQty');
-    const customerEl = document.getElementById('deliveryCustomer'); // ช่องชื่อลูกค้า
+    const customerEl = document.getElementById('deliveryCustomer');
     
-    if (!partNoEl || !hint || !qtyInput) return;
+    if (!partNoEl || !qtyInput) return;
 
-    const partNo = partNoEl.value.trim();
+    const partNo = getSafeString(partNoEl.value);
     const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
     const available = fgMap[partNo] || 0;
     
-    hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
+    safeSetInnerText('fgMaxHint', `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`);
     qtyInput.max = available;
 
-    // ดึงชื่อลูกค้าจากคอลัมน์ D อัตโนมัติ
     if (customerEl) {
         const customerMap = getCustomerMapping();
         let foundCust = customerMap[partNo.toLowerCase()];
-        if (foundCust) {
-            customerEl.value = foundCust;
-        } else {
-            customerEl.value = '-';
-        }
+        customerEl.value = foundCust ? foundCust : '-';
     }
 }
 
@@ -2493,7 +2509,7 @@ function playBeep(type) {
     }
 }
 
-// รองรับการยิงบาร์โค้ดและการตรวจสอบสต็อก FG เป็น 0
+// รองรับการยิงบาร์โค้ดและการตรวจสอบสต็อก
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('input', updateFgMaxHint);
@@ -2502,7 +2518,7 @@ if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            let rawBarcode = deliveryPartInputEl.value.trim();
+            let rawBarcode = getSafeString(deliveryPartInputEl.value);
             
             let parts = rawBarcode.split('-');
             let partNo = "";
@@ -2521,22 +2537,17 @@ if (deliveryPartInputEl) {
             const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
             const available = fgMap[partNo] || 0;
 
-            // ล็อกเข้มงวด: ถ้าไม่มีสต็อก FG ห้ามขายเด็ดขาด
             if (available <= 0) {
                 playBeep('error');
                 alert(`❌ เตือน: Part No. "${partNo}" ไม่มีสินค้าใน Stock FG (คงเหลือ 0 ชิ้น) ไม่สามารถส่งมอบได้!`);
-                
                 deliveryPartInputEl.value = '';
-                document.getElementById('deliveryQty').value = '';
-                const hint = document.getElementById('fgMaxHint');
-                if (hint) hint.innerText = `คงเหลือใน FG: 0 ชิ้น`;
-                
+                safeSetValue('deliveryQty', '');
+                safeSetInnerText('fgMaxHint', 'คงเหลือใน FG: 0 ชิ้น');
                 deliveryPartInputEl.focus();
                 return; 
             }
 
             playBeep('success');
-            
             let finalQty = scannedQty > 0 ? scannedQty : 1;
             
             if (finalQty > available) {
@@ -2545,26 +2556,21 @@ if (deliveryPartInputEl) {
                 return;
             }
 
+            safeSetValue('deliveryQty', finalQty);
             const qtyInput = document.getElementById('deliveryQty');
             if (qtyInput) {
-                qtyInput.value = finalQty;
                 qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
                 qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
 
-            const hint = document.getElementById('fgMaxHint');
-            if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
+            safeSetInnerText('fgMaxHint', `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`);
 
             setTimeout(() => {
                 const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.click();
-                }
+                if (submitBtn) submitBtn.click();
 
                 setTimeout(() => {
-                    if (typeof saveDeliveryData === 'function') {
-                        saveDeliveryData();
-                    }
+                    if (typeof saveDeliveryData === 'function') saveDeliveryData();
                 }, 100);
                 
                 setTimeout(() => {
@@ -2576,10 +2582,9 @@ if (deliveryPartInputEl) {
     });
 }
 
-// ในฟังก์ชัน submitDelivery หรือฟังก์ชันบันทึกข้อมูล
 function submitDelivery(e) {
     e.preventDefault();
-    const partNo = document.getElementById('deliveryPartNo').value.trim();
+    const partNo = getSafeString(document.getElementById('deliveryPartNo').value);
     const deliveryQty = Number(document.getElementById('deliveryQty').value);
 
     if (!partNo) {
@@ -2608,11 +2613,10 @@ function submitDelivery(e) {
         date: document.getElementById('deliveryDate').value,
         partNo: partNo,
         qty: deliveryQty,
-        customer: document.getElementById('deliveryCustomer').value.trim() || '-',
-        remark: document.getElementById('deliveryRemark').value.trim() || '-'
+        customer: getSafeString(document.getElementById('deliveryCustomer').value) || '-',
+        remark: getSafeString(document.getElementById('deliveryRemark').value) || '-'
     };
 
-    // ตรวจสอบตัวแปร deliveries ให้แน่ใจว่าเป็น Array กลาง
     if (typeof window.deliveries === 'undefined') {
         window.deliveries = [];
     }
@@ -2622,45 +2626,41 @@ function submitDelivery(e) {
         saveAll('saveDelivery', record);
     }
 
-    // ล้างฟอร์ม
-    document.getElementById('deliveryForm').reset();
-    document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
+    const form = document.getElementById('deliveryForm');
+    if (form) form.reset();
     
-    // **จุดสำคัญ:** สั่งเรียกฟังก์ชันเรนเดอร์ข้อมูลตารางประวัติทันทีตรงนี้!
-    if (typeof renderDelivery === 'function') {
-        renderDelivery();
-    }
+    const dateEl = document.getElementById('deliveryDate');
+    if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
     
-    if (typeof loadDeliveryParts === 'function') {
-        loadDeliveryParts();
-    }
-    
-    if (typeof renderStock === 'function') {
-        renderStock();
-    }
+    renderDelivery();
+    loadDeliveryParts();
+    if (typeof renderStock === 'function') renderStock();
 
     playBeep('success');
     alert("✅ บันทึกการส่งมอบสำเร็จ!");
 }
+
 function renderDelivery() {
     const tbody = document.getElementById('deliveryTableBody');
     if (!tbody) return;
     
     tbody.innerHTML = '';
     
-    if (!window.deliveries || deliveries.length === 0) {
+    let historyList = window.deliveries || [];
+
+    if (historyList.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีประวัติการส่งมอบสินค้า</td></tr>`;
         return;
     }
 
-    deliveries.slice().reverse().forEach(d => {
+    historyList.slice().reverse().forEach(d => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.date ? d.date.split('T')[0] : ''}</td>
-            <td class="fw-bold text-info">${d.partNo}</td>
-            <td class="text-primary fw-bold">${Number(d.qty).toLocaleString()}</td>
-            <td>${d.customer}</td>
-            <td class="small text-muted">${d.remark}</td>
+            <td class="fw-bold text-info">${getSafeString(d.partNo)}</td>
+            <td class="text-primary fw-bold">${Number(d.qty || 0).toLocaleString()}</td>
+            <td>${getSafeString(d.customer) || '-'}</td>
+            <td class="small text-muted">${getSafeString(d.remark) || '-'}</td>
             <td class="text-center">
                 <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteDelivery(${d.id})" title="ลบรายการนี้">
                     <i class="fas fa-trash-alt"></i>
@@ -2673,15 +2673,18 @@ function renderDelivery() {
 
 function deleteDelivery(id) {
     if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไป)')) {
-        window.deliveries = deliveries.filter(d => d.id !== id);
+        window.deliveries = (window.deliveries || []).filter(d => d.id !== id);
         renderDelivery();
         loadDeliveryParts();
-        if (typeof renderStock === 'function') {
-            renderStock();
-        }
+        if (typeof renderStock === 'function') renderStock();
         alert("ยกเลิกการส่งมอบสำเร็จ");
     }
 }
+
+// โหลดประวัติขึ้นมาแสดงทันทีเมื่อเปิดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", function() {
+    renderDelivery();
+});
      // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
