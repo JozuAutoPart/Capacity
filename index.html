@@ -2582,23 +2582,20 @@ function submitDelivery(e) {
     const deliveryQty = Number(document.getElementById('deliveryQty').value);
 
     if (!partNo) {
-        playBeep('error');
         alert("กรุณากรอกหรือเลือก Part No. ที่ต้องการส่งมอบ!");
         return;
     }
 
-    const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
+    const fgMap = getFgBalances();
     const currentStock = fgMap[partNo] || 0;
 
     if (currentStock <= 0) {
-        playBeep('error');
-        alert(`❌ ปฏิเสธการบันทึก: Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG (ยอดคงเหลือ 0)!`);
+        alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG หรือพิมพ์ชื่อไม่ถูกต้อง!`);
         return;
     }
 
-    if (deliveryQty > currentStock) {
-        playBeep('error');
-        alert(`❌ จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
+    if(deliveryQty > currentStock) {
+        alert(`จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
         return;
     }
 
@@ -2611,9 +2608,7 @@ function submitDelivery(e) {
         remark: document.getElementById('deliveryRemark').value.trim() || '-'
     };
 
-    if (typeof deliveries !== 'undefined') {
-        deliveries.push(record);
-    }
+    deliveries.push(record);
     
     if (typeof saveAll === 'function') {
         saveAll('saveDelivery', record);
@@ -2622,16 +2617,14 @@ function submitDelivery(e) {
     document.getElementById('deliveryForm').reset();
     document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
     
-    if (typeof renderDelivery === 'function') renderDelivery();
+    renderDelivery();
     loadDeliveryParts();
     if (typeof renderStock === 'function') {
         renderStock();
     }
 
-    playBeep('success');
-    alert("✅ บันทึกการส่งมอบสำเร็จ!");
+    alert("บันทึกการส่งมอบสำเร็จ!");
 }
-
 function renderDelivery() {
     const tbody = document.getElementById('deliveryTableBody');
     if (!tbody) return;
