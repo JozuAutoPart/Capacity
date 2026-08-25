@@ -215,7 +215,19 @@
         </div>
     </div>
           <!-- กราฟวงกลมและกล่องสรุปสัดส่วน Stock Part -->
-<div class="card p-4 border-secondary bg-dark text-white shadow-sm h-100 d-flex flex-column justify-content-center">
+<div class="row mt-4" id="stockSummaryBox" style="display: none;">
+    <!-- ฝั่งซ้าย: กราฟวงกลม -->
+    <div class="col-md-6 mb-3">
+        <div class="card p-3 border-secondary bg-dark text-white shadow-sm h-100">
+            <h5 class="text-center text-warning mb-3">📊 สัดส่วน Stock Part (Minimum เทียบกับทั้งหมด)</h5>
+            <div style="position: relative; height: 260px; width: 100%;">
+                <canvas id="stockZeroPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ฝั่งขวา: กล่องสรุปตัวเลข -->
+   <div class="card p-4 border-secondary bg-dark text-white shadow-sm h-100 d-flex flex-column justify-content-center">
     <h5 class="text-warning mb-3 border-bottom border-secondary pb-2">📋 สรุปข้อมูลสต็อกพาร์ท (Jozu Auto Part)</h5>
     <div class="d-flex flex-column gap-2" style="font-size: 1.05rem;">
         
@@ -4141,26 +4153,24 @@ function printRepairForm(date, partNo, problem, reporter, imageSrc, dieNo = '-',
     printWindow.print();
 }
   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
-function renderZeroStockPartsByline(selectedLine = 'ALL') {
+function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
-
+    
     if (!container) {
         container = document.createElement('div');
         container.id = 'zeroStockListContainer';
         container.className = 'col-12 mt-3 mb-4';
-        
-        const targetRow = document.querySelector('.row') || document.querySelector('.container-fluid');
-        if (targetRow && targetRow.parentNode) {
-            targetRow.parentNode.insertBefore(container, targetRow.nextSibling);
-        } else {
-            document.body.appendChild(container);
+
+        const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
+        if (mainContent) {
+            mainContent.appendChild(container);
         }
     }
-
+    
     if (container) container.style.display = 'block';
 
     const masters = window.masterPartsDatabase || [];
-    
+
     if (masters.length === 0) {
         container.innerHTML = `
             <div class="card bg-dark text-white p-3 border-warning shadow">
@@ -4172,6 +4182,7 @@ function renderZeroStockPartsByline(selectedLine = 'ALL') {
         `;
         return;
     }
+
     const targetMasters = selectedLine === 'ALL'  
         ? masters  
         : masters.filter(m => {
