@@ -227,50 +227,55 @@
     </div>
     
     <!-- ฝั่งขวา: กล่องสรุปตัวเลข -->
-   <div class="row">
-    <!-- ฝั่งซ้าย: กราฟวงกลมสัดส่วน Stock Part -->
-    <div class="col-md-6">
-        <div class="card bg-dark text-white p-3">
-            <h5>สัดส่วน Stock Part (Minimum เทียบกับทั้งหมด)</h5>
-            <!-- โค้ดกราฟวงกลมของคุณ -->
-            <canvas id="stockPieChart"></canvas>
+    <div class="col-md-6 mb-3">
+        <div class="card p-4 border-secondary bg-dark text-white shadow-sm h-100 d-flex flex-column justify-content-center">
+            <h5 class="text-warning mb-3 border-bottom border-secondary pb-2">📋 สรุปข้อมูลสต็อกพาร์ท (Jozu Auto Part)</h5>
+            <div class="d-flex flex-column gap-2" style="font-size: 1.05rem;">
+                <div class="d-flex justify-content-between align-items-center bg-secondary bg-opacity-10 p-2 rounded">
+                    <span>📦 จำนวนพาร์ททั้งหมด:</span>
+                    <span id="summary-total-parts" class="fw-bold text-info fs-5">0</span> รายการ
+                </div>
+                <div class="d-flex justify-content-between align-items-center bg-danger bg-opacity-10 p-2 rounded">
+                    <span>🔴 Stock หมด (Minimum):</span>
+                    <span id="summary-zero-stock" class="fw-bold text-danger fs-5">0</span> รายการ
+                </div>
+                <div class="d-flex justify-content-between align-items-center bg-success bg-opacity-10 p-2 rounded">
+                    <span>🟢 มี Stock :</span>
+                    <span id="summary-available-stock" class="fw-bold text-success fs-5">0</span> รายการ
+                </div>
+                <div class="d-flex justify-content-between align-items-center bg-warning bg-opacity-10 p-2 rounded">
+                    <span>📈 สัดส่วนสินค้าหมด:</span>
+                    <span id="summary-zero-percent" class="fw-bold text-warning fs-5">0%</span>
+                </div>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- ฝั่งขวา: กล่องสรุปข้อมูลสต็อกพาร์ท (ที่ย้ายขึ้นมาใหม่) -->
-   <div class="row" style="display: flex; gap: 15px; margin-bottom: 15px;">
-    
-    <!-- ฝั่งซ้าย: กราฟวงกลม -->
-    <div style="flex: 1; background: #1e1e1e; padding: 15px; border-radius: 6px;">
-        <h5 style="color: #fff; margin-bottom: 10px; font-size: 14px;">📊 สัดส่วน Stock Part (Minimum เทียบกับทั้งหมด)</h5>
-        <!-- โค้ดแสดงกราฟวงกลมของคุณ (ลบอันที่ซ้ำออก ให้เหลืออันเดียว) -->
-        <canvas id="stockPieChart" style="max-height: 220px;"></canvas>
-    </div>
-
-    <!-- ฝั่งขวา: กล่องสรุปข้อมูลสต็อกพาร์ท -->
-    <!-- แทนที่เฉพาะส่วนตารางแสดงตัวเลขเดิมของพี่มิวครับ -->
-<table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-    <tr>
-        <td style="padding: 6px 0;">จำนวนพาร์ททั้งหมด:</td>
-        <td style="text-align: right; font-weight: bold; width: 60px;">219</td>
-        <td style="text-align: right; width: 45px; color: #aaa;">รายการ</td>
-    </tr>
-    <tr>
-        <td style="padding: 6px 0; color: #ff6b6b;">Stock หมด (Minimum):</td>
-        <td style="text-align: right; font-weight: bold; color: #ff6b6b;">219</td>
-        <td style="text-align: right; color: #aaa;">รายการ</td>
-    </tr>
-    <tr>
-        <td style="padding: 6px 0; color: #51cf66;">มี Stock:</td>
-        <td style="text-align: right; font-weight: bold; color: #51cf66;">0</td>
-        <td style="text-align: right; color: #aaa;">รายการ</td>
-    </tr>
-    <tr>
-        <td style="padding: 6px 0; border-top: 1px solid #444;">สัดส่วนสินค้าหมด:</td>
-        <td style="text-align: right; font-weight: bold; border-top: 1px solid #444; color: #ff6b6b;">100.0%</td>
-        <td style="text-align: right; border-top: 1px solid #444;"></td>
-    </tr>
-</table>
+            <!-- TAB 2: CAPACITY -->
+            <div class="tab-pane fade" id="tab-capacity">
+                <div class="card p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>วิเคราะห์กำลังการผลิตเครื่องจักร (Machine Capacity Utilization)</h5>
+                        <span class="badge bg-primary fs-6">Overall Cap: <span id="overallUtilization">0%</span></span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle m-0">
+                            <thead>
+                                <tr>
+                                    <th>Line</th>
+                                    <th>Machine Type.</th>
+                                    <th>Actual Produced (Strokes)</th>
+                                    <th>Max Capacity (Strokes)</th>
+                                    <th>Utilization (%)</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="capacityTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 <!-- TAB: MATERIAL (รับ-จ่าย Material) -->
 <div class="tab-pane fade" id="tab-material">
     <div class="row g-3">
