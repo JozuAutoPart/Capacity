@@ -227,36 +227,48 @@
     </div>
     
     <!-- ฝั่งขวา: กล่องสรุปตัวเลข -->
-    <div style="background-color: #1e1e1e; color: #fff; padding: 15px; border-radius: 6px; font-family: 'Tahoma', sans-serif;">
-    <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px;">
-        📋 สรุปข้อมูลสต็อกพาร์ท (Jozu Auto Part)
+   <div class="row">
+    <!-- ฝั่งซ้าย: กราฟวงกลมสัดส่วน Stock Part -->
+    <div class="col-md-6">
+        <div class="card bg-dark text-white p-3">
+            <h5>สัดส่วน Stock Part (Minimum เทียบกับทั้งหมด)</h5>
+            <!-- โค้ดกราฟวงกลมของคุณ -->
+            <canvas id="stockPieChart"></canvas>
+        </div>
     </div>
-    
-    <!-- ใช้ตารางเพื่อให้ตัวเลขตรงกันเป๊ะทุกบรรทัด -->
-    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-        <tr>
-            <td style="padding: 6px 0;">📦 จำนวนพาร์ททั้งหมด:</td>
-            <td style="text-align: right; font-weight: bold; width: 80px;">219</td>
-            <td style="text-align: right; width: 50px; color: #aaa;">รายการ</td>
-        </tr>
-        <tr>
-            <td style="padding: 6px 0; color: #ff6b6b;">🔴 Stock หมด (Minimum):</td>
-            <td style="text-align: right; font-weight: bold; color: #ff6b6b;">219</td>
-            <td style="text-align: right; color: #aaa;">รายการ</td>
-        </tr>
-        <tr>
-            <td style="padding: 6px 0; color: #51cf66;">🟢 มี Stock:</td>
-            <td style="text-align: right; font-weight: bold; color: #51cf66;">0</td>
-            <td style="text-align: right; color: #aaa;">รายการ</td>
-        </tr>
-        <tr>
-            <td style="padding: 6px 0; border-top: 1px solid #444;">📊 สัดส่วนสินค้าหมด:</td>
-            <td style="text-align: right; font-weight: bold; border-top: 1px solid #444; color: #ff6b6b;">100.0%</td>
-            <td style="text-align: right; border-top: 1px solid #444;"></td>
-        </tr>
-    </table>
-</div>
 
+    <!-- ฝั่งขวา: กล่องสรุปข้อมูลสต็อกพาร์ท (ที่ย้ายขึ้นมาใหม่) -->
+    <div class="col-md-6">
+        <div class="card bg-dark text-white p-3" id="zeroStockListContainer">
+            <!-- โค้ดสรุปข้อมูล 219 รายการ ที่เราจัดแถวตรงกันเมื่อสักครู่ -->
+            <div style="font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px;">
+                📋 สรุปข้อมูลสต็อกพาร์ท (Jozu Auto Part)
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #fff;">
+                <tr>
+                    <td style="padding: 6px 0;">📦 จำนวนพาร์ททั้งหมด:</td>
+                    <td style="text-align: right; font-weight: bold; width: 80px;">219</td>
+                    <td style="text-align: right; width: 50px; color: #aaa;">รายการ</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #ff6b6b;">🔴 Stock หมด (Minimum):</td>
+                    <td style="text-align: right; font-weight: bold; color: #ff6b6b;">219</td>
+                    <td style="text-align: right; color: #aaa;">รายการ</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #51cf66;">🟢 มี Stock:</td>
+                    <td style="text-align: right; font-weight: bold; color: #51cf66;">0</td>
+                    <td style="text-align: right; color: #aaa;">รายการ</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; border-top: 1px solid #444;">📊 สัดส่วนสินค้าหมด:</td>
+                    <td style="text-align: right; font-weight: bold; border-top: 1px solid #444; color: #ff6b6b;">100.0%</td>
+                    <td style="text-align: right; border-top: 1px solid #444;"></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
             <!-- TAB 2: CAPACITY -->
             <div class="tab-pane fade" id="tab-capacity">
                 <div class="card p-3 mb-3">
