@@ -2576,26 +2576,30 @@ if (deliveryPartInputEl) {
     });
 }
 
+// ในฟังก์ชัน submitDelivery หรือฟังก์ชันบันทึกข้อมูล
 function submitDelivery(e) {
     e.preventDefault();
     const partNo = document.getElementById('deliveryPartNo').value.trim();
     const deliveryQty = Number(document.getElementById('deliveryQty').value);
 
     if (!partNo) {
+        playBeep('error');
         alert("กรุณากรอกหรือเลือก Part No. ที่ต้องการส่งมอบ!");
         return;
     }
 
-    const fgMap = getFgBalances();
+    const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
     const currentStock = fgMap[partNo] || 0;
 
     if (currentStock <= 0) {
-        alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG หรือพิมพ์ชื่อไม่ถูกต้อง!`);
+        playBeep('error');
+        alert(`❌ ปฏิเสธการบันทึก: Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG (ยอดคงเหลือ 0)!`);
         return;
     }
 
-    if(deliveryQty > currentStock) {
-        alert(`จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
+    if (deliveryQty > currentStock) {
+        playBeep('error');
+        alert(`❌ จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
         return;
     }
 
@@ -2608,22 +2612,35 @@ function submitDelivery(e) {
         remark: document.getElementById('deliveryRemark').value.trim() || '-'
     };
 
-    deliveries.push(record);
+    // ตรวจสอบตัวแปร deliveries ให้แน่ใจว่าเป็น Array กลาง
+    if (typeof window.deliveries === 'undefined') {
+        window.deliveries = [];
+    }
+    window.deliveries.push(record);
     
     if (typeof saveAll === 'function') {
         saveAll('saveDelivery', record);
     }
 
+    // ล้างฟอร์ม
     document.getElementById('deliveryForm').reset();
     document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
     
-    renderDelivery();
-    loadDeliveryParts();
+    // **จุดสำคัญ:** สั่งเรียกฟังก์ชันเรนเดอร์ข้อมูลตารางประวัติทันทีตรงนี้!
+    if (typeof renderDelivery === 'function') {
+        renderDelivery();
+    }
+    
+    if (typeof loadDeliveryParts === 'function') {
+        loadDeliveryParts();
+    }
+    
     if (typeof renderStock === 'function') {
         renderStock();
     }
 
-    alert("บันทึกการส่งมอบสำเร็จ!");
+    playBeep('success');
+    alert("✅ บันทึกการส่งมอบสำเร็จ!");
 }
 function renderDelivery() {
     const tbody = document.getElementById('deliveryTableBody');
