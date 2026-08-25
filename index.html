@@ -3953,59 +3953,199 @@ document.addEventListener('keypress', function(e) {
     }
 });
    
-// 1. โหลดไลบรารี SheetJS (เพิ่ม script นี้ในหน้า HTML ถ้ายังไม่มี)
-// <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+function printRepairForm(date, partNo, problem, reporter, imageSrc, dieNo = '-', model = '-', partName = '-', stroke = '-') {
+    let printWindow = window.open('', '_blank', 'height=1000,width=1000');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>ใบแจ้งซ่อมแม่พิมพ์ (Die Repair Report)</title>
+                <style>
+                    body { font-family: 'Tahoma', sans-serif; padding: 5px; color: #000; font-size: 10px; }
+                    .container { border: 1px solid #000; padding: 4px; width: 100%; box-sizing: border-box; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 1px; }
+                    th, td { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; font-size: 10px; }
+                    .header-title { text-align: center; font-size: 15px; font-weight: bold; }
+                    .header-sub { text-align: center; font-size: 11px; font-weight: bold; }
+                    .section-hdr { background-color: #f2f2f2; font-weight: bold; text-align: center; padding: 2px; }
+                    .checkbox { display: inline-block; width: 9px; height: 9px; border: 1px solid #000; text-align: center; line-height: 8px; font-size: 9px; margin-right: 2px; }
+                    .img-box { text-align: center; padding: 2px; min-height: 100px; }
+                    .img-box img { max-width: 100%; max-height: 130px; border: 1px solid #ccc; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <!-- Header -->
+                    <table>
+                        <tr>
+                            <td style="width: 15%; text-align: center; font-weight: bold; font-size: 12px;">[ JOZU ]</td>
+                            <td style="width: 70%;">
+                                <div class="header-title">ใบแจ้งซ่อมแม่พิมพ์</div>
+                                <div class="header-sub">Die Repair Report</div>
+                            </td>
+                            <td style="width: 15%;"><b>No.</b></td>
+                        </tr>
+                    </table>
 
-async function printFormFromExcel(filePath, dataMap) {
-    try {
-        // โหลดไฟล์ Excel ตาม path ที่ส่งเข้ามา (เช่น 'ใบแจ้งซ่อม die.xlsx' หรือ 'ใบรายงานการผลิต.xlsx')
-        let response = await fetch(filePath);
-        let arrayBuffer = await response.arrayBuffer();
-        
-        // อ่านไฟล์ Excel
-        let workbook = XLSX.read(arrayBuffer, {type: 'array'});
-        let sheetName = workbook.SheetNames[0];
-        let sheet = workbook.Sheets[sheetName];
-        
-        // แทนที่ข้อมูลลงในเซลล์ที่ต้องการ (เช่น dataMap คือ { 'B2': '17154-0T040', 'D2': 'Model_A' })
-        for (let cell in dataMap) {
-            if (sheet[cell]) {
-                sheet[cell].v = dataMap[cell]; // อัปเดตค่าในเซลล์
-            } else {
-                sheet[cell] = { t: 's', v: dataMap[cell] }; // ถ้ายังไม่มีเซลล์นั้น ให้สร้างใหม่
-            }
-        }
-        
-        // แปลง Sheet เป็น HTML โดยยังคงโครงสร้างตารางของ Excel ไว้
-        let htmlTable = XLSX.utils.sheet_to_html(sheet, { header: "", footer: "" });
-        
-        // เปิดหน้าต่างใหม่เพื่อสั่งพิมพ์
-        let printWindow = window.open('', '_blank', 'height=1000,width=1000');
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Print Form - ${filePath}</title>
-                    <style>
-                        body { font-family: 'Tahoma', sans-serif; padding: 10px; }
-                        table { border-collapse: collapse; width: 100%; }
-                        td, th { border: 1px solid black; padding: 3px 5px; font-size: 10px; vertical-align: middle; }
-                        /* ซ่อนหัวตาราง A, B, C และ 1, 2, 3 ของ Excel ที่ติดมาด้วย */
-                        tr:first-child { display: none; } 
-                        td:first-child { width: 30px; text-align: center; background: #f2f2f2; }
-                    </style>
-                </head>
-                <body>
-                    ${htmlTable}
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
+                    <!-- Info Table -->
+                    <table>
+                        <tr>
+                            <td style="width: 10%;"><b>Die No.</b></td>
+                            <td style="width: 18%;"><b>${dieNo}</b></td>
+                            <td style="width: 8%;"><b>Model</b></td>
+                            <td style="width: 16%;"><b>${model}</b></td>
+                            <td style="width: 10%;"><b>Part No.</b></td>
+                            <td style="width: 18%;"><b>${partNo}</b></td>
+                            <td style="width: 10%;"><b>Part Name</b></td>
+                            <td style="width: 10%;"><b>${partName}</b></td>
+                        </tr>
+                        <tr>
+                            <td><b>Mgr.</b></td>
+                            <td>Nirun</td>
+                            <td><b>Sup.</b></td>
+                            <td>K.Weeraphat</td>
+                            <td><b>Leader Line</b></td>
+                            <td>${reporter}</td>
+                            <td><b>Date</b></td>
+                            <td><b>${date}</b></td>
+                        </tr>
+                        <tr>
+                            <td colspan="4">
+                                <b>ประเภทการซ่อม:</b>&nbsp;
+                                <span class="checkbox"></span> ซ่อมตามแผน(BM) &nbsp;
+                                <span class="checkbox"><b>/</b></span> ซ่อมระหว่างใช้งาน(BM) &nbsp;
+                                <span class="checkbox"></span> ซ่อมหลังปฏิบัติงาน
+                            </td>
+                            <td colspan="4">
+                                <b>Stroke สะสม:</b> ${stroke}
+                            </td>
+                        </tr>
+                    </table>
 
-    } catch (error) {
-        console.error("ไม่สามารถโหลดไฟล์ Excel ได้:", error);
-        alert("เกิดข้อผิดพลาดในการโหลดแบบฟอร์ม Excel");
-    }
+                    <!-- Problem Details -->
+                    <div class="section-hdr" style="border: 1px solid #000; border-top: none;">รายละเอียดปัญหา / อาการเสีย</div>
+                    <table>
+                        <tr>
+                            <td style="width: 50%; height: 80px; vertical-align: top;">
+                                <b>Preventive Maintenance / อาการเสีย:</b><br>${problem}
+                            </td>
+                            <td style="width: 50%; height: 80px; vertical-align: top;">
+                                <b>วิเคราะห์ปัญหาเบื้องต้น / รูปถ่าย:</b><br>
+                                <div class="img-box">
+                                    ${imageSrc ? `<img src="${imageSrc}" alt="Die Image">` : 'ไม่มีรูปภาพ'}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Stock Part -->
+                    <table>
+                        <tr>
+                            <td style="width: 12%;"><b>Stock Part</b></td>
+                            <td style="width: 38%;">P/No............................................ Pcs........</td>
+                            <td style="width: 50%;">ส่งลูกค้าได้ ........................................................................ วัน</td>
+                        </tr>
+                    </table>
+
+                    <!-- Repair Plan Table -->
+                    <div class="section-hdr" style="border: 1px solid #000; border-top: none;">แผนการซ่อม / ปรับปรุง / แก้ไข</div>
+                    <table>
+                        <tr>
+                            <td style="width: 12%;"><b>รายละเอียด</b></td>
+                            <td style="text-align: center; font-size: 8px;" colspan="31">
+                                ${Array.from({length: 31}, (_, i) => `<span style="display:inline-block; width:2.2%; text-align:center; border-right:1px solid #ccc;">${i+1}</span>`).join('')}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><b>ครั้งที่ 1</b></td>
+                            <td colspan="31" style="height: 16px;"></td>
+                        </tr>
+                        <tr>
+                            <td><b>ครั้งที่ 2</b></td>
+                            <td colspan="31" style="height: 16px;"></td>
+                        </tr>
+                        <tr>
+                            <td><b>ครั้งที่ 3</b></td>
+                            <td colspan="31" style="height: 16px;"></td>
+                        </tr>
+                    </table>
+
+                    <!-- Approval & Checking -->
+                    <table>
+                        <tr>
+                            <td style="width: 34%; vertical-align: top; height: 95px;">
+                                <b>Comment:</b><br>
+                                <br><br>
+                                <hr style="border: 0.5px dashed #000; margin: 2px 0;">
+                                <span style="font-size: 8px;">กรณี Special Accept / Not Accept ต้องระบุเหตุผลในช่อง Comment ด้วย</span>
+                            </td>
+                            <td style="width: 22%; vertical-align: top; text-align: center;">
+                                <b>ผลการตรวจสอบ ทดสอบ</b><br>
+                                <div style="text-align: left; padding-left: 8px; margin-top: 4px;">
+                                    <span class="checkbox"></span> Accept<br>
+                                    <span class="checkbox"></span> Special Accept<br>
+                                    <span class="checkbox"></span> Not Accept
+                                </div>
+                            </td>
+                            <td style="width: 22%; vertical-align: top; text-align: center;">
+                                <br>
+                                <div style="text-align: left; padding-left: 8px; margin-top: 4px;">
+                                    <span class="checkbox"></span> Accept<br>
+                                    <span class="checkbox"></span> Special Accept<br>
+                                    <span class="checkbox"></span> Not Accept
+                                </div>
+                            </td>
+                            <td style="width: 22%; vertical-align: top; text-align: center;">
+                                <br>
+                                <div style="text-align: left; padding-left: 8px; margin-top: 4px;">
+                                    <span class="checkbox"></span> Accept<br>
+                                    <span class="checkbox"></span> Special Accept<br>
+                                    <span class="checkbox"></span> Not Accept
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: center;"><b>Tooling</b></td>
+                            <td style="text-align: center;"><b>Tooling</b></td>
+                            <td style="text-align: center;"><b>QA</b></td>
+                            <td style="text-align: center;"><b>Production</b></td>
+                        </tr>
+                        <tr>
+                            <td style="height: 16px;"><b>By:</b></td>
+                            <td style="height: 16px;"><b>By:</b></td>
+                            <td style="height: 16px;"><b>By:</b></td>
+                            <td style="height: 16px;"><b>By:</b></td>
+                        </tr>
+                        <tr>
+                            <td style="height: 16px;"><b>Ck:</b></td>
+                            <td style="height: 16px;"><b>Ck:</b></td>
+                            <td style="height: 16px;"><b>Ck:</b></td>
+                            <td style="height: 16px;"><b>Ck:</b></td>
+                        </tr>
+                        <tr>
+                            <td style="height: 16px;"><b>Apr:</b></td>
+                            <td style="height: 16px;"><b>Apr:</b></td>
+                            <td style="height: 16px;"><b>Apr:</b></td>
+                            <td style="height: 16px;"><b>Apr:</b></td>
+                        </tr>
+                    </table>
+
+                    <!-- Footer -->
+                    <table style="border-top: none;">
+                        <tr>
+                            <td style="border-top: none; font-size: 9px; text-align: right; border: none;">J-F-PR-011 Rev.01 Ref. 14 Jan 11</td>
+                        </tr>
+                        <tr>
+                            <td style="border-top: none; border: 1px solid #000;">
+                                <b>ผู้รับเอกสาร :</b> ............................................................................ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Date :</b> ....................................
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
 }
   // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
