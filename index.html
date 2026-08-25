@@ -3799,38 +3799,39 @@ function renderStockZeroPieChart() {
     let totalParts = masterDb.length;
     if (totalParts === 0) totalParts = 219;
 
-    let activePartsSet = new Set();
+    let zeroStockPartsSet = new Set(); // ใช้เก็บ Part No. ที่ Stock เป็น 0 (นับไม่ซ้ำ)
 
-    // กวาดเช็กข้อมูลจากทุกตารางบนหน้าเว็บแบบสดๆ
-    let tables = document.querySelectorAll('table');
-    tables.forEach(table => {
-        let rows = table.querySelectorAll('tbody tr');
-        rows.forEach(tr => {
-            let cols = tr.querySelectorAll('td');
-            if (cols.length >= 2) {
-                let pNo = cols[0].innerText.trim();
+    // เจาะจงดึงเฉพาะตาราง Stock WIP และ Stock FG โดยตรง
+    let targetTables = document.querySelectorAll('#wipTableBody tr, #fgTableBody tr'); 
+    
+    // ถ้าหาไอดีตารางไม่เจอ ให้ fallback ไปกวาดเฉพาะตารางที่มีข้อมูลสต็อก
+    let rowsToProcess = targetTables.length > 0 ? targetTables : document.querySelectorAll('table tbody tr');
+
+    rowsToProcess.forEach(tr => {
+        let cols = tr.querySelectorAll('td');
+        if (cols.length >= 2) {
+            let pNo = cols[0].innerText.trim();
+            
+            // ข้ามแถวที่เป็นข้อความว่างหรือ No data
+            if (!pNo || pNo.toLowerCase().includes('no data') || pNo.length < 2) return;
+
+            // ตรวจสอบช่องยอดคงเหลือ (ปกติช่องคงเหลือจะอยู่ท้ายๆ เช่น คอลัมน์เกือบสุดท้ายหรือสุดท้าย)
+            // เช็กทุกคอลัมน์ตัวเลขที่เป็นยอดคงเหลือ
+            for (let i = 1; i < cols.length; i++) {
+                let cellText = cols[i].innerText.replace(/,/g, '').trim();
+                let val = parseFloat(cellText) || 0;
                 
-                // ข้ามแถวที่เป็นข้อความว่างหรือ No data
-                if (!pNo || pNo.toLowerCase().includes('no data') || pNo.length < 2) return;
-
-                // ตรวจสอบคอลัมน์ตัวเลขสต็อกคงเหลือ (WIP หรือ FG)
-                for (let i = 1; i < cols.length; i++) {
-                    let cellText = cols[i].innerText.replace(/,/g, '').trim();
-                    let val = parseFloat(cellText) || 0;
-                    
-                    // หากเจอตัวเลขมากกว่า 0 และไม่ใช่ข้อความสถานะ
-                    if (val > 0 && !cellText.includes('In Stock') && !cellText.includes('Out') && !cellText.includes(':')) {
-                        // เก็บ Part No. เป็นตัวพิมพ์เล็ก เพื่อให้ชื่อเดียวกันยุบรวมนับเป็น 1 ชิ้นอัตโนมัติ
-                        activePartsSet.add(pNo.toLowerCase());
-                        break; 
-                    }
+                // เงื่อนไข: ถ้าเจอตัวเลขที่เป็น 0 และไม่ใช่ข้อความสถานะ (เช่นคำว่า Out of Stock หรืออื่นๆ)
+                if (val === 0 && !cellText.includes('In Stock') && !cellText.includes('Out') && !cellText.includes(':')) {
+                    zeroStockPartsSet.add(pNo.toLowerCase()); // เก็บ Part No. ที่ Stock เป็น 0 (นับแค่ 1 ชิ้นต่อพาร์ท)
+                    break; 
                 }
             }
-        });
+        }
     });
 
-   let availableCount = activePartsSet.size; // ตัวนี้กลายเป็นไปนับจำนวนพาร์ทที่มี Stock
-let zeroCount = Math.max(0, totalParts - availableCount); // ตัวนี้กลายเป็นเอาผลลัพธ์มาลบทีหลัง
+    let zeroCount = zeroStockPartsSet.size; // จำนวนพาร์ทที่ Stock เป็น 0 (คำนวณแบบไม่ซ้ำ)
+    let availableCount = Math.max(0, totalParts - zeroCount); // จำนวนพาร์ทที่มี Stock มากกว่า 0
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
     // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard ตามจริง
