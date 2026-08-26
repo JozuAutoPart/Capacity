@@ -1687,7 +1687,7 @@ function submitActual(e) {
     };
 
     // 🔍 ตรวจสอบก่อนบันทึกว่าเป็นพาร์ท Ass'y หรือไม่จาก Master Parts
-    const basePartNo = (actual.partNo || '').split(' ')[0];
+    basePartNo = (actual.partNo || '').split(' ')[0];
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
     const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim().toUpperCase() === String(basePartNo).trim().toUpperCase());
     
