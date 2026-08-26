@@ -4767,15 +4767,25 @@ function checkAndLoadAssyPlans() {
     
     selectPart.innerHTML = '<option value="">-- เลือก Part No. --</option>';
 
-    // กรองเฉพาะพาร์ทที่คอลัมน์ Assy เป็น TRUE (รองรับทั้ง key ชื่อ assy, Assy และ index คอลัมน์ G ที่ 6)
+    // 🛑 [บังคับเพิ่มพิเศษ] รายชื่อพาร์ท Assy ที่ต้องการให้โชว์ชัวร์ๆ 100%
+    const forcedAssyList = ["76344-4JG1A", "76344-4JG1"];
+
+    // กรองพาร์ทที่เป็น Assy จาก Master หรืออยู่ในรายชื่อบังคับ
     const assyParts = masterData.filter(item => {
+        const pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
+        if (forcedAssyList.includes(pNo)) return true;
+
         const assyVal = item.assy ?? item['Assy'] ?? item['assy'] ?? item[6];
         return assyVal === true || String(assyVal).toUpperCase() === 'TRUE';
     });
     
+    // ป้องกันตัวเลือกซ้ำ
+    const addedParts = new Set();
+
     assyParts.forEach(item => {
         const pNo = item.partNo || item['Part No.'] || item['partNo'] || '';
-        if (pNo) {
+        if (pNo && !addedParts.has(pNo)) {
+            addedParts.add(pNo);
             const opt = document.createElement('option');
             opt.value = pNo;
             opt.innerText = pNo;
@@ -4789,7 +4799,6 @@ function checkAndLoadAssyPlans() {
         dateInput.value = new Date().toISOString().split('T')[0];
     }
 }
-
 // เมื่อเลือก Part No. ให้ดึง Line และ Lot No. จากประวัติการผลิตจริงมาแสดงอัตโนมัติ
 function onAssyPartChange() {
     const selectedPartNo = document.getElementById('assyPartNo').value;
