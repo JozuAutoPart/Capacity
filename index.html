@@ -1673,21 +1673,21 @@ function submitActual(e) {
     const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
     const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
 
-    const actual = {
+   const actual = {
         date: document.getElementById('actualDate').value,
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
-        partNo: finalPartNo, // ใช้วิธีรวม Process
+        partNo: finalPartNo,
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
-        timeWork: timeRange, // 👈 เพิ่มฟิลด์ช่วงเวลาทำงาน
+        timeWork: timeRange,
         remark: document.getElementById('actualRemark').value.trim()
     };
 
-    // 🔍 ตรวจสอบก่อนบันทึกว่าเป็นพาร์ท Ass'y หรือไม่จาก Master Parts
-    basePartNo = (actual.partNo || '').split(' ')[0];
+    // 🔍 ตรวจสอบว่าเป็นพาร์ท Ass'y หรือไม่จาก Master Parts
+    const basePartNo = (actual.partNo || '').split(' ')[0];
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
     const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim().toUpperCase() === String(basePartNo).trim().toUpperCase());
     
