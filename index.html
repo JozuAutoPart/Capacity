@@ -4526,7 +4526,12 @@ window.addEventListener('DOMContentLoaded', () => {
         // ignore
     }
 }, { once: true });
-        <!-- แท็กเสียงซ่อนในหน้าเว็บ -->
+      // (โค้ดเก่าของพี่มิวปล่อยไว้ด้านบนตามเดิม ไม่ต้องไปแตะมัน)
+
+// ให้เอาแท็กเสียงและฟังก์ชัน playBeep มาไว้ที่บรรทัดล่างสุดของไฟล์แบบนี้ครับ
+</script>
+
+<!-- แท็กเสียงซ่อน (วางไว้นอกแท็ก script และอยู่ล่างสุด) -->
 <audio id="successAudio" preload="auto">
     <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
 </audio>
@@ -4535,7 +4540,6 @@ window.addEventListener('DOMContentLoaded', () => {
 </audio>
 
 <script>
-// ฟังก์ชันเล่นเสียงแบบดึงจากแท็กซ่อนด้านบน
 function playBeep(type) {
     try {
         if (type === 'success') {
