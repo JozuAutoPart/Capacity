@@ -1083,9 +1083,8 @@ function renderDashboard() {
                            (q.NG !== undefined ? q.NG : 
                            (q.qtyNg !== undefined ? q.qtyNg : 0))));
                 let val = Number(rawNg) || 0;
-               console.log(`[Match Found] Line: "${qLine}" & "${pline}" | Part: "${qPart}" & "${pPart}" | NG: ${val}`);
+               console.log(`[Match Found] Success! Playing audio alert.`);
 
-    // สั่งเล่นเสียงปี๊บตรงนี้ทันที
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') { audioCtx.resume(); }
