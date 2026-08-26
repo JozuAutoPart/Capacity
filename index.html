@@ -1972,8 +1972,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
      // ==========================================
-// 📌 ระบบจัดการ Q-Gate Inspection & History
 // ==========================================
+// 📌 ระบบจัดการ Q-Gate Inspection & History & Stock WIP
+// ==========================================
+
 // ดักจับหน้าต่าง Alert ของ Q-Gate ให้ข้ามอัตโนมัติ ไม่ต้องกด OK
 if (typeof originalQGateAlert === 'undefined') {
     var originalQGateAlert = window.alert;
@@ -1981,6 +1983,19 @@ if (typeof originalQGateAlert === 'undefined') {
         console.log("Q-Gate Auto-skipped alert: " + msg);
     };
 }
+
+// ตั้งค่าเมื่อโหลดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", function() {
+    const today = new Date().toISOString().split('T')[0];
+    if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
+    
+    // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
+    renderQGate();
+    if (typeof checkAndLoadWipForQGate === 'function') {
+        checkAndLoadWipForQGate();
+    }
+});
+
 // ฟังก์ชันสแกนบาร์โค้ด แปลงร่าง และดึงแผนการผลิตมาผูกอัตโนมัติ
 document.addEventListener('DOMContentLoaded', () => {
     const barcodeInput = document.querySelector('input[placeholder*="Scan Barcode"], input[id*="barcode"], input[id*="Barcode"]');
@@ -2002,7 +2017,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
                 this.value = targetPartNo;
 
-                // 2. ตรวจสอบและดึงแผนการผลิต (Planning) มาแสดงใน Dropdown
+                // 2. ตรวจสอบและดึงแผนการผลิตมาแสดงใน Dropdown
                 const partSelectEl = document.querySelector('select');
                 if (partSelectEl) {
                     let matched = false;
@@ -2014,7 +2029,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // ถ้าในแผนยังไม่มี ให้ดึงข้อมูลแผนจากตัวแปร plans หรือ localStorage มาเติมลง Dropdown ให้ทันที
                     if (!matched && targetPartNo) {
                         const newOpt = document.createElement('option');
                         newOpt.value = targetPartNo;
@@ -2029,10 +2043,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.dispatchEvent(new Event('input', { bubbles: true }));
                 this.dispatchEvent(new Event('change', { bubbles: true }));
 
-                // เล่นเสียงสำเร็จ (ถ้ามีฟังก์ชัน)
                 if (typeof playBeep === 'function') playBeep('success');
 
-                // โฟกัสไปที่ช่องกรอกจำนวนต่อทันที
                 setTimeout(() => {
                     const qtyInput = document.querySelector('input[type="number"], input[id*="qty"]');
                     if (qtyInput) {
@@ -2046,7 +2058,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-// รองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. ในหน้า Q-Gate (ตัดจำนวนออก เอาเฉพาะ Part No. เพียวๆ)
+
+// รองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. ในหน้า Q-Gate
 const qgateInputEl = document.getElementById('qgatePartSearch') || document.querySelector('input[placeholder*="พิมพ์เพื่อกรองหา Part No"]');
 if (qgateInputEl) {
     qgateInputEl.addEventListener('keypress', function(e) {
@@ -2058,7 +2071,7 @@ if (qgateInputEl) {
             let partNo = "";
 
             if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
-                parts.pop(); // ตัดจำนวนข้างหลังจาก Tag ออก เอาเฉพาะ Part No.
+                parts.pop(); 
                 partNo = parts.join('-');
             } else {
                 partNo = rawBarcode;
@@ -2068,9 +2081,8 @@ if (qgateInputEl) {
             qgateInputEl.dispatchEvent(new Event('input', { bubbles: true }));
             qgateInputEl.dispatchEvent(new Event('change', { bubbles: true }));
 
-            playBeep('success'); // เสียงสแกนสำเร็จ
+            if (typeof playBeep === 'function') playBeep('success');
 
-            // โฟกัสไปที่ช่องกรอกจำนวนตรวจสอบอัตโนมัติ เพื่อให้คีย์จำนวนต่อได้ทันที
             setTimeout(() => {
                 const inspectQtyInput = document.getElementById('qgateTotalQty') || document.querySelector('input[name="inspectQty"], #inspectQty');
                 if (inspectQtyInput) {
@@ -2081,17 +2093,7 @@ if (qgateInputEl) {
         }
     });
 }
-// ตั้งค่าวันที่ปัจจุบันเมื่อเปิดหน้าเว็บ
-document.addEventListener("DOMContentLoaded", function() {
-    const today = new Date().toISOString().split('T')[0];
-    if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
-    
-    // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
-    renderQGate();
-    if (typeof checkAndLoadWipForQGate === 'function') {
-        checkAndLoadWipForQGate();
-    }
-});
+
 // ฟังก์ชันกรองรายชื่อ Part No. ตามคำค้นหาในหน้า Q-Gate
 const searchInput = document.getElementById('qgatePartSearch');
 if (searchInput) {
@@ -2102,16 +2104,15 @@ if (searchInput) {
         
         const options = selectEl.options;
         for (let i = 0; i < options.length; i++) {
-            if (i === 0) continue; // ข้ามตัวเลือกแรก (-- เลือก Part No. --)
+            if (i === 0) continue; 
             const text = options[i].text.toLowerCase();
             options[i].style.display = text.includes(keyword) ? '' : 'none';
         }
     });
 }
-// ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
+
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
-    // 📌 ใช้ .slice().reverse() เพื่อสลับให้ข้อมูลใหม่ล่าสุดขึ้นมาอยู่ด้านบนสุด
     const qgateHistory = (qgate || []).slice().reverse();
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
@@ -2121,17 +2122,16 @@ function renderQGate() {
             historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
             qgateHistory.forEach(item => {
-              // แปลงวันที่ให้ตรงกับเวลาไทย (+7 ชม.) ป้องกันวันถอยหลังจาก Google Sheets
-            let displayDate = '';
-            if (item.date) {
-                const d = new Date(item.date);
-                if (!isNaN(d.getTime())) {
-                    const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-                    displayDate = localD.toISOString().split('T')[0];
-                } else {
-                    displayDate = String(item.date).substring(0, 10);
+                let displayDate = '';
+                if (item.date) {
+                    const d = new Date(item.date);
+                    if (!isNaN(d.getTime())) {
+                        const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                        displayDate = localD.toISOString().split('T')[0];
+                    } else {
+                        displayDate = String(item.date).substring(0, 10);
+                    }
                 }
-            }
 
                 historyBody.innerHTML += `
                     <tr>
@@ -2153,7 +2153,7 @@ function renderQGate() {
         }
     }
 }
-// ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
+
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม - สิ้นสุด)
 function submitQGateTransaction(e) {
     e.preventDefault();
@@ -2190,7 +2190,7 @@ function submitQGateTransaction(e) {
 
     qgate.unshift(newItem);
     if (typeof saveAll === 'function') {
-        saveAll('saveQgate', newItem); // ส่งข้อมูลชิ้นใหม่ไปบันทึกลง Google Sheets
+        saveAll('saveQgate', newItem); 
     }
 
     alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
@@ -2222,39 +2222,80 @@ function deleteQGateItem(id) {
     }
 }
 
-// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
+// 📌 ฟังก์ชันโหลด Part No. และคำนวณ Stock WIP สำหรับหน้า Q-Gate (แยกพาร์ทปกติ vs พาร์ท Assy ถูกต้อง 100%)
 function checkAndLoadWipForQGate() {
     const selectPart = document.getElementById('qgatePartNo');
     if (!selectPart) return;
     
     selectPart.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
 
-    // คำนวณยอด WIP ปัจจุบันจาก actuals และ qgate
-    const wipMap = {};
-    
-    // ยอดเข้าจาก actuals
-    if (typeof actuals !== 'undefined') {
-        actuals.forEach(a => {
-            let pNo = a.partNo || a['Part No.'] || '';
-            let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-            if (pNo) {
-                wipMap[pNo] = (wipMap[pNo] || 0) + qty;
-            }
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+
+    // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่
+    function checkIfAssy(fullPartStr) {
+        if (!fullPartStr) return false;
+        const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
+        const forcedAssyList = ["76344-4JG1A", "76344-4JG1"];
+        if (forcedAssyList.includes(cleanBase)) return true;
+
+        const matchedMaster = masterData.find(m => {
+            const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
+            return mPart === cleanBase || cleanBase.startsWith(mPart);
         });
+        return matchedMaster && (
+            matchedMaster.assy === true || String(matchedMaster.assy).toUpperCase() === 'TRUE' ||
+            matchedMaster['Assy'] === true || String(matchedMaster['Assy']).toUpperCase() === 'TRUE' ||
+            matchedMaster['ASSY'] === true || String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
+            matchedMaster[6] === true || String(matchedMaster[6]).toUpperCase() === 'TRUE'
+        );
     }
 
-    // หักยอดที่ตรวจ Q-Gate ไปแล้ว
+    const wipMap = {};
+    
+    // 1. รวบรวมรายชื่อ Part ทั้งหมดจาก actuals และ assyRecords
+    const allParts = new Set([
+        ...(typeof actuals !== 'undefined' ? actuals.map(a => a.partNo || a['Part No.'] || '') : []),
+        ...(typeof assyRecords !== 'undefined' ? assyRecords.map(as => as.partNo || as['Part No.'] || '') : [])
+    ]);
+
+    // 2. คำนวณยอดรับเข้า WIP แยกตามประเภทพาร์ท
+    allParts.forEach(pNo => {
+        if (!pNo) return;
+        const isAssy = checkIfAssy(pNo);
+
+        if (isAssy) {
+            // 🛑 พาร์ท Assy: ต้องมาจากหน้า Ass'y / Spot เท่านั้น ห้ามเอาจาก actuals!
+            let assyIn = (typeof assyRecords !== 'undefined' ? assyRecords : [])
+                .filter(as => (as.partNo || as['Part No.'] || '') === pNo)
+                .reduce((sum, as) => sum + Number(as.qty !== undefined ? as.qty : (as['จำนวน'] || 0)), 0);
+            
+            if (assyIn > 0) {
+                wipMap[pNo] = (wipMap[pNo] || 0) + assyIn;
+            }
+        } else {
+            // 🟢 พาร์ทปกติ: มาจากหน้าผลิตปกติ (actuals)
+            let normalIn = (typeof actuals !== 'undefined' ? actuals : [])
+                .filter(a => (a.partNo || a['Part No.'] || '') === pNo)
+                .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
+            
+            if (normalIn > 0) {
+                wipMap[pNo] = (wipMap[pNo] || 0) + normalIn;
+            }
+        }
+    });
+
+    // 3. หักยอดที่ตรวจ Q-Gate ไปแล้วออก
     if (typeof qgate !== 'undefined') {
         qgate.forEach(q => {
             let pNo = q.partNo || q['Part No.'] || '';
-            let qty = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || 0));
-            if (pNo) {
-                wipMap[pNo] = (wipMap[pNo] || 0) - qty;
+            let qty = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || (Number(q.passQty || 0) + Number(q.ngQty || 0))));
+            if (pNo && wipMap[pNo] !== undefined) {
+                wipMap[pNo] -= qty;
             }
         });
     }
 
-    // แสดงเฉพาะตัวที่มี WIP คงเหลือมากกว่า 0
+    // 4. แสดงเฉพาะตัวที่มี WIP คงเหลือมากกว่า 0 ใน Dropdown Q-Gate
     Object.keys(wipMap).forEach(partNo => {
         let currentWip = wipMap[partNo];
         if (currentWip > 0) {
@@ -2265,22 +2306,22 @@ function checkAndLoadWipForQGate() {
         }
     });
 }
-        // ฟังก์ชันทำงานเมื่อพนักงานเปลี่ยน Line
+
+// ฟังก์ชันทำงานเมื่อพนักงานเปลี่ยน Line
 function filterQGateParts() {
     const selectedLine = document.getElementById('qgateLineFilter').value;
     const partSelect = document.getElementById('qgatePartSelect');
     
-    // ล้างตัวเลือกเก่า
+    if (!partSelect) return;
     partSelect.innerHTML = '<option value="">-- เลือก Part No. --</option>';
-    document.getElementById('qgateWipHint').innerText = 'คงเหลือใน WIP: 0 ชิ้น';
+    if(document.getElementById('qgateWipHint')) {
+        document.getElementById('qgateWipHint').innerText = 'คงเหลือใน WIP: 0 ชิ้น';
+    }
 
     if (!selectedLine) return;
 
-    // กรองหา Part No. ที่มีอยู่ใน WIP หรือ Actual Production เฉพาะ Line ที่เลือก
-    // (สมมติฐานดึงจากข้อมูล WIP หรือ Actuals ที่ผูกกับ Line นั้นๆ)
     const availableParts = new Set();
     
-    // ตัวอย่างการค้นหาจากรายการ Actuals หรือ Stock WIP ที่ตรงกับ Line
     if (typeof actuals !== 'undefined') {
         actuals.forEach(a => {
             let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
@@ -2292,7 +2333,6 @@ function filterQGateParts() {
         });
     }
 
-    // เติมตัวเลือก Part No. ลงใน Dropdown
     if (availableParts.size === 0) {
         partSelect.innerHTML = '<option value="">-- ไม่พบ Part No. ใน Line นี้ --</option>';
     } else {
@@ -2306,15 +2346,15 @@ function filterQGateParts() {
 }
 
 function updateQGateWipInfo() {
-    // 📌 แก้ไขตรง ID ให้ตรงกับ HTML เป็น 'qgatePartNo'
     const selectedPart = document.getElementById('qgatePartNo').value;
-    
-    // สั่งให้แสดงรูปภาพจากคอลัมน์ E ทันทีที่เลือกพาร์ท
-    updateQGatePartImage(selectedPart);
+    if (typeof updateQGatePartImage === 'function') {
+        updateQGatePartImage(selectedPart);
+    }
 
-    // คำนวณจำนวนคงเหลือใน WIP (โค้ดเดิมของพี่)
     let wipQty = 0;
-    document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
+    if(document.getElementById('qgateWipHint')) {
+        document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
+    }
 }
  // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
