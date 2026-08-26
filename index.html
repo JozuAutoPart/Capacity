@@ -2335,7 +2335,7 @@ function updateQGateWipInfo() {
     let wipQty = 0;
     document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
 }
-      // --- TAB 6: STOCK WIP & FG ---
+   // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
     // รับเข้า FG จาก Q-Gate
@@ -2360,15 +2360,38 @@ function getFgBalances() {
 }
 
 function renderStock() {
-    // ประกาศดึงตัวแปรสดๆ ไว้ข้างในฟังก์ชันเลย ป้องกันการหาไม่พบ
     const wipbody = document.getElementById('wipTableBody');
     const fgtbody = document.getElementById('fgTableBody');
     if (!wipbody || !fgtbody) return;
 
     wipbody.innerHTML = '';
-    fgtbody.innerHTML = ''; // แก้จาก fgTbody เป็น fgtbody เรียบร้อยแล้วครับ
+    fgtbody.innerHTML = '';
 
-    // ดึง Part No. จากทุกส่วนรองรับทั้งพิมพ์เล็ก/ใหญ่
+    // โหลด Master Parts มาเตรียมเช็ค Assy
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+
+    // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่
+    function checkIfAssy(fullPartStr) {
+        if (!fullPartStr) return false;
+        const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
+        const matchedMaster = masterData.find(m => {
+            const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
+            return mPart === cleanBase || cleanBase.startsWith(mPart);
+        });
+        
+        return matchedMaster && (
+            matchedMaster.assy === true || 
+            String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
+            matchedMaster['Assy'] === true || 
+            String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
+            matchedMaster['ASSY'] === true || 
+            String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
+            matchedMaster[6] === true || 
+            String(matchedMaster[6]).toUpperCase() === 'TRUE'
+        );
+    }
+
+    // ดึง Part No. จากทุกส่วน
     const partsSet = new Set([
         ...actuals.map(a => a.partNo || a['Part No.'] || ''),
         ...qgate.map(q => q.partNo || q['Part No.'] || ''),
@@ -2378,36 +2401,43 @@ function renderStock() {
     partsSet.forEach(partNo => {
         if(!partNo) return;
 
-        // WIP Summary (ยอดผลิตเข้า WIP ทั้งหมด)
-        const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
-            let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-            return sum + (isNaN(val) ? 0 : val);
-        }, 0);
+        const isAssy = checkIfAssy(partNo);
 
-        // WIP Summary (ยอดตัดโอนออกไป FG)
-        const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
-            let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-            return sum + (isNaN(val) ? 0 : val);
-        }, 0);
+        // ==========================================
+        // 1. ตาราง Stock WIP (แสดงเฉพาะพาร์ทที่ไม่ใช่ Assy เท่านั้น!)
+        // ==========================================
+        if (!isAssy) {
+            const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+                let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                return sum + (isNaN(val) ? 0 : val);
+            }, 0);
 
-        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
-        const currentwip = (totalIn - totalTransferred) + adjustWip;
+            const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                return sum + (isNaN(val) ? 0 : val);
+            }, 0);
 
-        const trwip = document.createElement('tr');
-        trwip.innerHTML = `
-            <td class="fw-bold text-info">${partNo}</td>
-            <td>${totalIn.toLocaleString()}</td>
-            <td>${totalTransferred.toLocaleString()}</td>
-            <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
-                    <i class="fas fa-edit"></i> ปรับ
-                </button>
-            </td>
-        `;
-        wipbody.appendChild(trwip);
+            const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+            const currentwip = (totalIn - totalTransferred) + adjustWip;
 
-        // FG Summary
+            const trwip = document.createElement('tr');
+            trwip.innerHTML = `
+                <td class="fw-bold text-info">${partNo}</td>
+                <td>${totalIn.toLocaleString()}</td>
+                <td>${totalTransferred.toLocaleString()}</td>
+                <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
+                        <i class="fas fa-edit"></i> ปรับ
+                    </button>
+                </td>
+            `;
+            wipbody.appendChild(trwip);
+        }
+
+        // ==========================================
+        // 2. ตาราง Stock FG (ทำงานปกติทุกพาร์ท)
+        // ==========================================
         const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
             let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
             return sum + (isNaN(val) ? 0 : val);
