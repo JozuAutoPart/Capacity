@@ -2467,6 +2467,12 @@ function updateFgMaxHint() {
 function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // เพิ่มบรรทัดนี้เพื่อปลดล็อกเสียงอัตโนมัติถ้าเบราว์เซอร์ระงับไว้
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         
@@ -2490,7 +2496,6 @@ function playBeep(type) {
         console.log('Audio not supported');
     }
 }
-
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
