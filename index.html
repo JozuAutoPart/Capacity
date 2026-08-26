@@ -2397,31 +2397,31 @@ function filterFgTable() {
         }
     });
 }
-// --- TAB 7: DELIVERY (การส่งมอบ) - FIXED MAPPING ---
+// --- TAB 7: DELIVERY (การส่งมอบ) - FINAL VERSION ---
 
-// ฟังก์ชันดึงรายชื่อลูกค้าอัตโนมัติ รองรับทั้งแบบ Object และ Array คอลัมน์ D (Index 3)
+// ฟังก์ชันดึงรายชื่อลูกค้าแบบท่าไม้ตาย (ดึงจากคอลัมน์ D ตรงๆ)
 function getCustomerMapping() {
     let customerMap = {};
     let masterDb = window.masterPartsDatabase || [];
-    
+
     masterDb.forEach(item => {
-        let pNo = "";
-        let cust = "";
+        if (item && typeof item === 'object') {
+            let pNo = (item.partNo || item.partNumber || item.PartNo || "").toString().trim().toLowerCase();
+            let cust = (item.customer || item.Customer || item.cust || item.ลูกค้า || "").toString().trim();
 
-        if (Array.isArray(item)) {
-            // กรณีข้อมูลมาจาก Google Sheets แถวอาเรย์ (Index 1 = PartNo, Index 3 = คอลัมน์ D ชื่อลูกค้า)
-            pNo = (item[1] || "").toString().trim().toLowerCase();
-            cust = (item[3] || "").toString().trim();
-        } else if (item && typeof item === 'object') {
-            // กรณีข้อมูลมาเป็น Object ปกติ
-            pNo = (item.partNo || item.partNumber || "").toString().trim().toLowerCase();
-            cust = (item.customer || item.cust || "").toString().trim();
-        }
+            if (!cust || cust === '') {
+                let values = Object.values(item);
+                if (values.length >= 4) {
+                    cust = String(values[3] || "").trim(); 
+                }
+            }
 
-        if (pNo && cust && cust !== '-') {
-            customerMap[pNo] = cust;
+            if (pNo && cust && cust !== '-') {
+                customerMap[pNo] = cust;
+            }
         }
     });
+    
     return customerMap;
 }
 
@@ -2525,9 +2525,9 @@ if (deliveryPartInputEl) {
             }
 
             deliveryPartInputEl.value = partNo;
-            updateFgMaxHint(); // อัปเดตชื่อลูกค้าและจำนวน
+            updateFgMaxHint(); 
 
-            const fgMap = typeof fgBalances === 'function' ? fgBalances() : {};
+            const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
             const available = fgMap[partNo] || 9999;
 
             playBeep('success'); 
@@ -2544,9 +2544,8 @@ if (deliveryPartInputEl) {
             const hint = document.getElementById('fgMaxHint');
             if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-            // หน่วงเวลาเล็กน้อยเพื่อให้ระบบเซ็ตค่าชื่อลูกค้าลงฟอร์มให้เรียบร้อยก่อนกดส่ง
             setTimeout(() => {
-                updateFgMaxHint(); 
+                updateFgMaxHint(); // ย้ำอัปเดตชื่อลูกค้าอีกรอบชัวร์ๆ
 
                 const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                 if (submitBtn) {
@@ -2563,13 +2562,13 @@ if (deliveryPartInputEl) {
                     deliveryPartInputEl.focus();
                     deliveryPartInputEl.select();
                 }, 300);
-            }, 100);
+            }, 150);
         }
     });
 }
 
 function submitDelivery(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const partNo = document.getElementById('deliveryPartNo').value.trim();
     const deliveryQty = Number(document.getElementById('deliveryQty').value);
 
@@ -2591,18 +2590,19 @@ function submitDelivery(e) {
         return;
     }
 
-    // ดึงชื่อลูกค้าผ่าน Mapping โดยตรง เพื่อให้มั่นใจว่าได้ชื่อจากคอลัมน์ D ชัวร์ๆ 100%
+    // ดึงชื่อลูกค้าจากฟอร์มให้ชัวร์ก่อนบันทึก
+    const customerEl = document.getElementById('deliveryCustomer');
     const customerMap = getCustomerMapping();
-    const formCustomer = document.getElementById('deliveryCustomer');
-    const resolvedCustomer = customerMap[partNo.toLowerCase()] || (formCustomer ? formCustomer.value.trim() : '-');
-    const finalCustomer = (!resolvedCustomer || resolvedCustomer === '-') ? '-' : resolvedCustomer;
+    const resolvedCustomer = (customerEl && customerEl.value.trim() && customerEl.value.trim() !== '-') 
+        ? customerEl.value.trim() 
+        : (customerMap[partNo.toLowerCase()] || '-');
 
     const record = {
         id: Date.now(),
         date: document.getElementById('deliveryDate').value,
         partNo: partNo,
         qty: deliveryQty,
-        customer: finalCustomer,
+        customer: resolvedCustomer,
         remark: document.getElementById('deliveryRemark').value.trim() || '-'
     };
 
@@ -2639,8 +2639,9 @@ function renderDelivery() {
 
     deliveries.slice().reverse().forEach(d => {
         let pNoStr = (d.partNo || "").trim();
-        let custName = d.customer;
-        // หากประวัติเก่าหรือรายการไหนไม่มีชื่อ ให้ดึงจาก Mapping คอลัมน์ D มาแสดงสำรองทันที
+        let custName = (d.customer || "").trim();
+        
+        // 🌟 แปลงประวัติเก่าทั้งหมดที่เป็นขีด - ให้ดึงชื่อลูกค้าจาก Master Parts มาแสดงให้อัตโนมัติทันที
         if (!custName || custName === '-') {
             custName = customerMap[pNoStr.toLowerCase()] || '-';
         }
