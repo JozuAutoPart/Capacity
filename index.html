@@ -2465,24 +2465,27 @@ function updateFgMaxHint() {
 }
 
 // ฟังก์ชันเล่นเสียงแบบใช้ไฟล์เสียงสั้น (รับรองว่าดังออกลำโพงแน่นอน)
+// ฟังก์ชันเล่นเสียงแบบฝังไฟล์มีเดียซ่อนในเว็บ
 function playBeep(type) {
     try {
-        let audioUrl = "";
+        // สร้าง Audio Element ใหม่ทุกครั้งที่สแกน
+        let audio = new Audio();
         if (type === 'success') {
-            // เสียงติ๊ง/ปี๊บสำเร็จ (เสียงสั้นใส)
-            audioUrl = "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
+            audio.src = "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
         } else {
-            // เสียงเตือนผิดพลาด
-            audioUrl = "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg";
+            audio.src = "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg";
         }
+        audio.volume = 1.0;
         
-        const sound = new Audio(audioUrl);
-        sound.volume = 1.0; // เร่งเสียงดังสุด
-        sound.play().catch(err => {
-            console.log("Audio play blocked or failed:", err);
-        });
+        // สั่งเล่นเสียงทันที
+        let promise = audio.play();
+        if (promise !== undefined) {
+            promise.catch(error => {
+                console.log("Audio play blocked, trying fallback method:", error);
+            });
+        }
     } catch (e) {
-        console.log('Audio error:', e);
+        console.log("Play error:", e);
     }
 }
 
