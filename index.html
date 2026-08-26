@@ -2316,7 +2316,7 @@ function updateQGateWipInfo() {
     let wipQty = 0;
     document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
 }
-   // --- TAB 6: STOCK WIP & FG ---
+ // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
     // รับเข้า FG จาก Q-Gate
@@ -2378,11 +2378,12 @@ function renderStock() {
         );
     }
 
-    // ดึง Part No. จากทุกส่วน
+    // ดึง Part No. จากทุกส่วน (รวมถึง assyRecords ด้วย เพื่อให้พาร์ท Assy โผล่มาคำนวณในฝั่ง FG หรือส่วนที่เกี่ยวข้อง)
     const partsSet = new Set([
         ...actuals.map(a => a.partNo || a['Part No.'] || ''),
         ...qgate.map(q => q.partNo || q['Part No.'] || ''),
-        ...deliveries.map(d => d.partNo || d['Part No.'] || '')
+        ...deliveries.map(d => d.partNo || d['Part No.'] || ''),
+        ...(typeof assyRecords !== 'undefined' ? assyRecords.map(as => as.partNo || as['Part No.'] || '') : [])
     ]);
 
     partsSet.forEach(partNo => {
@@ -2391,7 +2392,7 @@ function renderStock() {
         const isAssy = checkIfAssy(partNo);
 
         // ==========================================
-        // 1. ตาราง Stock WIP (ตัดพาร์ท Assy ทิ้งแบบเด็ดขาด)
+        // 1. ตาราง Stock WIP (ตัดพาร์ท Assy ทิ้งแบบเด็ดขาด ห้ามให้พาร์ท Assy หลุดเข้าหน้า WIP จากการผลิตปกติ)
         // ==========================================
         if (!isAssy) {
             const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
