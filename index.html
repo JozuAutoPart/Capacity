@@ -2397,15 +2397,16 @@ function filterFgTable() {
         }
     });
 }
- // --- TAB 7: DELIVERY (การส่งมอบ) ---
+// --- TAB 7: DELIVERY (การส่งมอบ) ---
 
 // ฟังก์ชันดึงรายชื่อลูกค้าอัตโนมัติจาก Master Parts (ตามคอลัมน์ D ของพี่มิว)
 function getCustomerMapping() {
     let customerMap = {};
     let masterDb = window.masterPartsDatabase || [];
     masterDb.forEach(item => {
-        let pNo = (item.partNo || item.partNumber || "").trim().toLowerCase();
-        let cust = (item.customer || item.cust || "").trim();
+        // รองรับทั้งแบบ Object ทั่วไป และแบบ Array แถวข้อมูลใน Google Sheets (Index 1 = PartNo, Index 3 = ชื่อลูกค้า Column D)
+        let pNo = (item.partNo || item.partNumber || item[1] || "").toString().trim().toLowerCase();
+        let cust = (item.customer || item.cust || item[3] || "").toString().trim();
         if (pNo && cust) {
             customerMap[pNo] = cust;
         }
@@ -2452,6 +2453,8 @@ function updateFgMaxHint() {
         let foundCust = customerMap[partNo.toLowerCase()];
         if (foundCust) {
             customerEl.value = foundCust;
+        } else {
+            customerEl.value = '-';
         }
     }
 }
@@ -2536,8 +2539,11 @@ if (deliveryPartInputEl) {
             const hint = document.getElementById('fgMaxHint');
             if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-            // สั่งกดปุ่มบันทึก
+            // เพิ่มจังหวะหน่วงเวลานิดเดียวเพื่อให้ช่องลูกค้าอัปเดตค่าเสร็จก่อนกด Submit
             setTimeout(() => {
+                updateFgMaxHint(); 
+
+                // สั่งกดปุ่มบันทึก
                 const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.click();
@@ -2553,7 +2559,7 @@ if (deliveryPartInputEl) {
                     deliveryPartInputEl.focus();
                     deliveryPartInputEl.select();
                 }, 300);
-            }, 250);
+            }, 100);
         }
     });
 }
@@ -2581,12 +2587,18 @@ function submitDelivery(e) {
         return;
     }
 
+    // ดึงชื่อลูกค้าจาก Mapping ตรงๆ อีกรอบเพื่อความชัวร์ 100% ว่าไม่เป็นขีด - แน่นอน
+    const customerMap = getCustomerMapping();
+    const formCustomer = document.getElementById('deliveryCustomer');
+    const resolvedCustomer = customerMap[partNo.toLowerCase()] || (formCustomer ? formCustomer.value.trim() : '-');
+    const finalCustomer = (!resolvedCustomer || resolvedCustomer === '-') ? '-' : resolvedCustomer;
+
     const record = {
         id: Date.now(),
         date: document.getElementById('deliveryDate').value,
         partNo: partNo,
         qty: deliveryQty,
-        customer: document.getElementById('deliveryCustomer').value.trim() || '-',
+        customer: finalCustomer,
         remark: document.getElementById('deliveryRemark').value.trim() || '-'
     };
 
@@ -2619,13 +2631,21 @@ function renderDelivery() {
         return;
     }
 
+    const customerMap = getCustomerMapping();
+
     deliveries.slice().reverse().forEach(d => {
+        // หากประวัติเก่าเคยบันทึกเป็นขีด - ให้ดึงจาก Mapping มาแปะโชว์ให้ด้วยอัตโนมัติ
+        let custName = d.customer;
+        if (!custName || custName === '-') {
+            custName = customerMap[(d.partNo || "").trim().toLowerCase()] || '-';
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.date ? d.date.split('T')[0] : ''}</td>
             <td class="fw-bold text-info">${d.partNo}</td>
             <td class="text-primary fw-bold">${Number(d.qty).toLocaleString()}</td>
-            <td>${d.customer}</td>
+            <td class="fw-bold text-success">${custName}</td>
             <td class="small text-muted">${d.remark}</td>
             <td class="text-center">
                 <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteDelivery(${d.id})" title="ลบรายการนี้">
