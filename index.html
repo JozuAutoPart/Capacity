@@ -2464,37 +2464,7 @@ function updateFgMaxHint() {
     }
 }
 
-// ฟังก์ชันเล่นเสียงแบบสร้างเสียงดิจิทัลสดๆ ในตัวเบราว์เซอร์ (ไม่ต้องโหลดไฟล์นอก)
-function playBeep(type) {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-        
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        if (type === 'success') {
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // ความถี่เสียงใส (A5)
-            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); // เร่งความดัง 50%
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.12);
-        } else {
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(220, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.25);
-        }
-    } catch (e) {
-        console.log("Web Audio not supported:", e);
-    }
-}
+
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
@@ -4556,6 +4526,37 @@ window.addEventListener('DOMContentLoaded', () => {
         // ignore
     }
 }, { once: true });
+        <!-- แท็กเสียงซ่อนในหน้าเว็บ -->
+<audio id="successAudio" preload="auto">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
+<audio id="errorAudio" preload="auto">
+    <source src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" type="audio/ogg">
+</audio>
+
+<script>
+// ฟังก์ชันเล่นเสียงแบบดึงจากแท็กซ่อนด้านบน
+function playBeep(type) {
+    try {
+        if (type === 'success') {
+            const sound = document.getElementById('successAudio');
+            if (sound) {
+                sound.currentTime = 0;
+                sound.volume = 1.0;
+                sound.play().catch(e => console.log("Play blocked:", e));
+            }
+        } else {
+            const sound = document.getElementById('errorAudio');
+            if (sound) {
+                sound.currentTime = 0;
+                sound.volume = 1.0;
+                sound.play().catch(e => console.log("Play blocked:", e));
+            }
+        }
+    } catch (e) {
+        console.log("Audio error:", e);
+    }
+}
 </script>
 </body>
 </html>
