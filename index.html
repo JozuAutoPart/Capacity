@@ -1658,17 +1658,14 @@ function onActualPartChange() {
 function submitActual(e) {
     e.preventDefault();
     
-    // 1. ดึงค่า Part No. หลัก และ Process ที่พนักงานพิมพ์เพิ่ม
     const basePartNo = document.getElementById('actualPartNo').value;
     const processSuffix = document.getElementById('actualProcess').value.trim();
 
-    // 2. รวมร่าง Part No. กับ Process
     let finalPartNo = basePartNo;
     if (processSuffix !== '') {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
     const startTime = document.getElementById('workStartTime') ? document.getElementById('workStartTime').value : '';
     const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
     const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
@@ -1686,7 +1683,6 @@ function submitActual(e) {
         remark: document.getElementById('actualRemark').value.trim()
     };
 
-    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         body: JSON.stringify({ action: 'saveActual', data: actual })
@@ -1696,9 +1692,7 @@ function submitActual(e) {
         if (result.status === "success") {
             actuals.push(actual);
 
-            // ---------------------------------------------------------
-            // 🔍 ตรวจสอบว่าเป็นพาร์ท Ass'y หรือไม่ จาก Master Parts
-            // ---------------------------------------------------------
+            // เช็ค Master Parts ว่าเป็น Assy หรือไม่
             const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
             const cleanBase = basePartNo.trim().toUpperCase();
             const matchedMaster = masterData.find(m => {
@@ -1717,11 +1711,15 @@ function submitActual(e) {
                 String(matchedMaster[6]).toUpperCase() === 'TRUE'
             );
 
-            // ถ้าเป็น Assy ให้หยุดการทำงานส่วน WIP ทันที ห้ามให้เข้า Stock WIP เด็ดขาด
             if (isAssyPart) {
-                console.log("🚫 [Blocked WIP] พาร์ทนี้เป็น Ass'y ห้ามเข้า Stock WIP เด็ดขาด:", basePartNo);
+                // 🛑 เงื่อนไขจบสำหรับพาร์ท Assy: ส่งไปหน้า Assy และล็อกไม่ให้เข้า Stock WIP 100%
+                console.log("🛑 [Final Block] พาร์ท Assy บันทึกไปหน้า Ass'y และตัดออกจาก Stock WIP ทันที:", basePartNo);
+                if (typeof assyRecords !== 'undefined') {
+                    assyRecords.push(actual);
+                    if (typeof renderAssyTable === 'function') renderAssyTable();
+                }
             } else {
-                // ถ้าไม่ใช่ Assy ค่อยมาเช็คเงื่อนไขส่งเข้า Stock WIP ปกติ
+                // ✅ เงื่อนไขปกติ: ถ้าไม่ใช่ Assy ถึงจะยอมให้เข้า Stock WIP
                 if (processSuffix === '' && typeof wipStock !== 'undefined') {
                     const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
                     if (existingWip) {
@@ -1739,7 +1737,6 @@ function submitActual(e) {
                     if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
                 }
             }
-            // ---------------------------------------------------------
 
             document.getElementById('actualForm').reset();
             document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
