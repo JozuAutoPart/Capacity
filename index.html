@@ -1673,59 +1673,92 @@ function submitActual(e) {
     const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
     const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
 
-   const actual = {
+    const actual = {
         date: document.getElementById('actualDate').value,
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
-        partNo: finalPartNo,
+        partNo: finalPartNo, // ใช้วิธีรวม Process
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
-        timeWork: timeRange,
+        timeWork: timeRange, // 👈 เพิ่มฟิลด์ช่วงเวลาทำงาน
         remark: document.getElementById('actualRemark').value.trim()
     };
 
-  // ตรวจสอบและดักพาร์ท Ass'y ก่อนส่งข้อมูล
-    const _basePartNo = (actual.partNo || '').split(' ')[0];
-    const _masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    const _matchedMaster = _masterData.find(m => String(m.partNo || m['Part No.'] || '').trim().toUpperCase() === String(_basePartNo).trim().toUpperCase());
-    
-    const isAssyPart = _matchedMaster && (
-        _matchedMaster.assy === true || 
-        String(_matchedMaster.assy).toUpperCase() === 'TRUE' || 
-        _matchedMaster['Assy'] === true || 
-        String(_matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
-        _matchedMaster['ASSY'] === true || 
-        String(_matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
-        _matchedMaster[6] === true || 
-        String(_matchedMaster[6]).toUpperCase() === 'TRUE'
-    );
-
-    const targetAction = isAssyPart ? 'saveAssy' : 'saveActual';
-
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: targetAction, data: actual })
+        body: JSON.stringify({ action: 'saveActual', data: actual })
     })
     .then(response => response.json())
     .then(result => {
         if (result.status === "success") {
+            actuals.push(actual);
+
+            // ---------------------------------------------------------
+            // 🔍 ตรวจสอบว่าเป็นพาร์ท Ass'y หรือไม่ จาก Master Parts (คอลัมน์ G / Assy)
+            // ---------------------------------------------------------
+            const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+            const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim() === String(basePartNo).trim());
+            
+            const isAssyPart = matchedMaster && (
+                matchedMaster.assy === true || 
+                String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
+                matchedMaster['Assy'] === true || 
+                String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
+                matchedMaster[6] === true || 
+                String(matchedMaster[6]).toUpperCase() === 'TRUE'
+            );
+
             if (isAssyPart) {
-                alert("บันทึกพาร์ท Ass'y สำเร็จ (ส่งไปหน้า Ass'y / Spot แล้ว)");
+                // ถ้าเป็นพาร์ท Ass'y ให้ข้ามการเข้า Stock WIP ทันที เพื่อไปทำรายการที่หน้า Ass'y / Spot ก่อน
+                console.log("พาร์ทนี้เป็น Ass'y ส่งข้อมูลไปพักที่หน้า Ass'y / Spot:", basePartNo);
+            } else if (processSuffix === '' && typeof wipStock !== 'undefined') {
+                // ถ้าไม่ใช่ Ass'y และไม่มี Sub Process ให้วิ่งเข้า Stock WIP ตามปกติ
+                const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
+                if (existingWip) {
+                    existingWip.qty = (Number(existingWip.qty) || 0) + actual.qty;
+                } else {
+                    wipStock.push({
+                        date: actual.date,
+                        line: actual.line,
+                        partNo: actual.partNo,
+                        lotNo: actual.lotNo,
+                        qty: actual.qty
+                    });
+                }
+                if (typeof renderWipStock === 'function') renderWipStock();
+                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
             } else {
-                actuals.push(actual);
-                alert("บันทึกยอดผลิตสำเร็จ!");
+                console.log("ข้ามการเข้า Stock WIP เนื่องจากเป็นกระบวนการย่อย:", processSuffix);
             }
-            location.reload();
+            // ---------------------------------------------------------
+
+            document.getElementById('actualForm').reset();
+            document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
+            checkAndLoadPlans();
+            renderActuals();
+            
+            if (typeof loadAllData === 'function') {
+                loadAllData();
+            }
+
+            if (isAssyPart) {
+                alert("บันทึกการผลิตสำเร็จ! (พาร์ท Ass'y ถูกส่งไปรอทำรายการที่หน้า Ass'y / Spot)");
+            } else {
+                alert("บันทึกข้อมูลสำเร็จ!");
+            }
         } else {
-            alert("เกิดข้อผิดพลาด: " + result.message);
+            alert("บันทึกไม่สำเร็จ: " + result.message);
         }
     })
     .catch(error => {
-        console.error("Error:", error);
-        alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+        console.error('Error:', error);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
+}
+
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
