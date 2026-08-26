@@ -1700,6 +1700,7 @@ function submitActual(e) {
             // 🔍 ตรวจสอบว่าเป็นพาร์ท Ass'y หรือไม่ จาก Master Parts (คอลัมน์ G / Assy)
             // ---------------------------------------------------------
            // 🔍 ตรวจสอบว่าเป็นพาร์ท Ass'y หรือไม่ จาก Master Parts (เช็คทุกรูปแบบคอลัมน์)
+// 🔍 ตรวจสอบว่าเป็นพาร์ท Ass'y หรือไม่ จาก Master Parts (เช็คทุกรูปแบบคอลัมน์)
 const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
 const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim().toUpperCase() === String(basePartNo).trim().toUpperCase());
 
@@ -1713,7 +1714,6 @@ const isAssyPart = matchedMaster && (
     matchedMaster[6] === true || 
     String(matchedMaster[6]).toUpperCase() === 'TRUE'
 );
-
             if (isAssyPart) {
                 // ถ้าเป็นพาร์ท Ass'y ให้ข้ามการเข้า Stock WIP ทันที เพื่อไปทำรายการที่หน้า Ass'y / Spot ก่อน
                 console.log("พาร์ทนี้เป็น Ass'y ส่งข้อมูลไปพักที่หน้า Ass'y / Spot:", basePartNo);
@@ -1859,6 +1859,7 @@ function loadAllData() {
             if (data.actuals) actuals = data.actuals;
             
             // ในฟังก์ชัน loadAllData() ตรงส่วนประมวลผล wipStock
+// ในฟังก์ชัน loadAllData() ตรงส่วนประมวลผล wipStock
 if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
     wipStock = [];
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
@@ -1900,7 +1901,6 @@ if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
         }
     });
 }
-
             if (typeof renderDashboard === 'function') renderDashboard();
             if (typeof renderActuals === 'function') renderActuals();
             if (typeof renderWipStock === 'function') renderWipStock();
