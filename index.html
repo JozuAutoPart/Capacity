@@ -2464,31 +2464,37 @@ function updateFgMaxHint() {
     }
 }
 
-// ฟังก์ชันเล่นเสียงแบบใช้ไฟล์เสียงสั้น (รับรองว่าดังออกลำโพงแน่นอน)
-// ฟังก์ชันเล่นเสียงแบบฝังไฟล์มีเดียซ่อนในเว็บ
+// ฟังก์ชันเล่นเสียงแบบสร้างเสียงดิจิทัลสดๆ ในตัวเบราว์เซอร์ (ไม่ต้องโหลดไฟล์นอก)
 function playBeep(type) {
     try {
-        // สร้าง Audio Element ใหม่ทุกครั้งที่สแกน
-        let audio = new Audio();
-        if (type === 'success') {
-            audio.src = "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
-        } else {
-            audio.src = "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg";
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
         }
-        audio.volume = 1.0;
         
-        // สั่งเล่นเสียงทันที
-        let promise = audio.play();
-        if (promise !== undefined) {
-            promise.catch(error => {
-                console.log("Audio play blocked, trying fallback method:", error);
-            });
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'success') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // ความถี่เสียงใส (A5)
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); // เร่งความดัง 50%
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.12);
+        } else {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(220, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.7, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.25);
         }
     } catch (e) {
-        console.log("Play error:", e);
+        console.log("Web Audio not supported:", e);
     }
 }
-
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
