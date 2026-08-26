@@ -1686,31 +1686,48 @@ function submitActual(e) {
         remark: document.getElementById('actualRemark').value.trim()
     };
 
-    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
+    // 🔍 ตรวจสอบก่อนบันทึกว่าเป็นพาร์ท Ass'y หรือไม่จาก Master Parts
+    const basePartNo = (actual.partNo || '').split(' ')[0];
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim().toUpperCase() === String(basePartNo).trim().toUpperCase());
+    
+    const isAssyPart = matchedMaster && (
+        matchedMaster.assy === true || 
+        String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
+        matchedMaster['Assy'] === true || 
+        String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
+        matchedMaster['ASSY'] === true || 
+        String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
+        matchedMaster[6] === true || 
+        String(matchedMaster[6]).toUpperCase() === 'TRUE'
+    );
+
+    // แยก Action ปลายทาง (ถ้าเป็น Assy ไป ASSY_RECORDS ถ้าไม่ใช่ไป ACTUAL PRODUCTION)
+    const targetAction = isAssyPart ? 'saveAssy' : 'saveActual';
+
+    // ส่งข้อมูลไปบันทึกที่ Cloud ตาม Action ที่แยกไว้
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'saveActual', data: actual })
+        body: JSON.stringify({ action: targetAction, data: actual })
     })
     .then(response => response.json())
     .then(result => {
         if (result.status === "success") {
-            actuals.push(actual);
-
-            // ---------------------------------------------------------
-            // 🔍 ตรวจสอบว่าเป็นพาร์ท Ass'y หรือไม่ จาก Master Parts (คอลัมน์ G / Assy)
-            // ---------------------------------------------------------
-            const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-            const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim() === String(basePartNo).trim());
-            
-            const isAssyPart = matchedMaster && (
-                matchedMaster.assy === true || 
-                String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
-                matchedMaster['Assy'] === true || 
-                String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
-                matchedMaster[6] === true || 
-                String(matchedMaster[6]).toUpperCase() === 'TRUE'
-            );
-
+            if (isAssyPart) {
+                alert("บันทึกพาร์ท Ass'y สำเร็จ (ส่งไปหน้า Ass'y / Spot แล้ว)");
+            } else {
+                actuals.push(actual);
+                alert("บันทึกยอดผลิตสำเร็จ!");
+            }
+            location.reload();
+        } else {
+            alert("เกิดข้อผิดพลาด: " + result.message);
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error);
+        alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    });
             if (isAssyPart) {
                 // ถ้าเป็นพาร์ท Ass'y ให้ข้ามการเข้า Stock WIP ทันที เพื่อไปทำรายการที่หน้า Ass'y / Spot ก่อน
                 console.log("พาร์ทนี้เป็น Ass'y ส่งข้อมูลไปพักที่หน้า Ass'y / Spot:", basePartNo);
