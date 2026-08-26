@@ -1697,9 +1697,25 @@ function submitActual(e) {
             actuals.push(actual);
 
             // ---------------------------------------------------------
-            // เงื่อนไข: ถ้าระบุ Process จะ "ไม่นำเข้า Stock WIP" จะเข้าเฉพาะขั้นตอนสุดท้าย
+            // 🔍 ตรวจสอบว่าเป็นพาร์ท Ass'y หรือไม่ จาก Master Parts (คอลัมน์ G / Assy)
             // ---------------------------------------------------------
-            if (processSuffix === '' && typeof wipStock !== 'undefined') {
+            const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+            const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim() === String(basePartNo).trim());
+            
+            const isAssyPart = matchedMaster && (
+                matchedMaster.assy === true || 
+                String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
+                matchedMaster['Assy'] === true || 
+                String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
+                matchedMaster[6] === true || 
+                String(matchedMaster[6]).toUpperCase() === 'TRUE'
+            );
+
+            if (isAssyPart) {
+                // ถ้าเป็นพาร์ท Ass'y ให้ข้ามการเข้า Stock WIP ทันที เพื่อไปทำรายการที่หน้า Ass'y / Spot ก่อน
+                console.log("พาร์ทนี้เป็น Ass'y ส่งข้อมูลไปพักที่หน้า Ass'y / Spot:", basePartNo);
+            } else if (processSuffix === '' && typeof wipStock !== 'undefined') {
+                // ถ้าไม่ใช่ Ass'y และไม่มี Sub Process ให้วิ่งเข้า Stock WIP ตามปกติ
                 const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
                 if (existingWip) {
                     existingWip.qty = (Number(existingWip.qty) || 0) + actual.qty;
@@ -1728,7 +1744,11 @@ function submitActual(e) {
                 loadAllData();
             }
 
-            alert("บันทึกข้อมูลสำเร็จ!");
+            if (isAssyPart) {
+                alert("บันทึกการผลิตสำเร็จ! (พาร์ท Ass'y ถูกส่งไปรอทำรายการที่หน้า Ass'y / Spot)");
+            } else {
+                alert("บันทึกข้อมูลสำเร็จ!");
+            }
         } else {
             alert("บันทึกไม่สำเร็จ: " + result.message);
         }
@@ -1758,7 +1778,7 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    timeWork: item.timeWork || item['Time'] || item['Time Work'] || '-', // 👈 รองรับการโหลดเวลา
+                    timeWork: item.timeWork || item['Time'] || item['Time Work'] || '-', 
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
@@ -1769,8 +1789,6 @@ function loadActualsFromCloud() {
         .catch(err => console.error("Error loading Actuals:", err));
 }
 
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
@@ -1800,8 +1818,7 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        // ⏱️ ดึงค่าฟิลด์ timeWork จาก Google Sheets มาแสดงผลตรงนี้
-       const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a.time || '-';
+        const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a.time || '-';
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
         const remarkval = a.remark || a['Remark'] || '-';
@@ -1826,6 +1843,7 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
+
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
@@ -1839,14 +1857,29 @@ function loadAllData() {
             
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
+                const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+
                 actuals.forEach(a => {
                     const pNo = a.partNo || a['Part No.'] || '';
                     const lNo = a.lotNo || a['Lot No.'] || '';
                     const okQty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     
+                    const basePart = pNo.split(' ')[0];
+                    const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim() === String(basePart).trim());
+                    
+                    const isAssyPart = matchedMaster && (
+                        matchedMaster.assy === true || 
+                        String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
+                        matchedMaster['Assy'] === true || 
+                        String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
+                        matchedMaster[6] === true || 
+                        String(matchedMaster[6]).toUpperCase() === 'TRUE'
+                    );
+
                     const hasSubProcess = pNo.includes('/') || /\s+\d+\/\d+/.test(pNo);
 
-                    if (pNo && !hasSubProcess) {
+                    // ถ้ารักษาเงื่อนไข: ไม่ใช่พาร์ท Assy และไม่มี Sub Process ถึงจะวิ่งเข้า Stock WIP อัตโนมัติ
+                    if (pNo && !hasSubProcess && !isAssyPart) {
                         let existing = wipStock.find(w => w.partNo === pNo && w.lotNo === lNo);
                         if (existing) {
                             existing.qty += okQty;
@@ -1873,6 +1906,7 @@ function loadAllData() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
+
 // ฟังก์ชันสร้างเสียง Beep แจ้งเตือนแบบไม่ต้องง้อไฟล์เสียง
 function playSystemBeep() {
     try {
@@ -1880,15 +1914,15 @@ function playSystemBeep() {
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         
-        oscillator.type = 'square'; // เสียงแบบเครื่องจักร/แจ้งเตือน
-        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); // ความถี่เสียง (ยิ่งเยอะยิ่งแหลม)
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // ความดัง
+        oscillator.type = 'square'; 
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); 
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
         
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.2); // ดัง 0.2 วินาทีแล้วดับ
+        oscillator.stop(audioCtx.currentTime + 0.2); 
     } catch (e) {
         console.log("Audio not supported");
     }
@@ -1904,7 +1938,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const scannedVal = this.value.trim();
                 if (!scannedVal) return;
 
-                // 1. แปลงบาร์โค้ดเป็น Part No. จาก MasterParts
                 const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
                 const found = masterData.find(item => 
                     String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === scannedVal.toLowerCase() || 
@@ -1914,7 +1947,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
                 this.value = targetPartNo;
 
-                // 2. ค้นหาช่อง Dropdown Part No. ของแผน
                 const partSelectEl = document.getElementById('actualPartNo') || document.querySelector('select[name*="part"], select[id*="part"]');
                 if (partSelectEl) {
                     let matched = false;
@@ -1926,15 +1958,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // เช็กว่าเจอในแผนหรือไม่
                     if (matched) {
-                        // เจอในแผน -> เล่นเสียง success ของระบบเดิม
                         if (typeof playBeep === 'function') playBeep('success');
                     } else {
-                        // ไม่เจอในแผน -> เล่นเสียง Beep ที่สร้างใหม่ (ดังชัวร์)
                         playSystemBeep(); 
                         
-                        // เพิ่ม Option สำรองกรณีไม่อยู่ในแผน
                         const newOpt = document.createElement('option');
                         newOpt.value = targetPartNo;
                         newOpt.text = targetPartNo + " (นอกแผน)";
@@ -1949,7 +1977,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.dispatchEvent(new Event('input', { bubbles: true }));
                 this.dispatchEvent(new Event('change', { bubbles: true }));
 
-                // โฟกัสไปที่ช่องกรอกจำนวนอัตโนมัติ
                 setTimeout(() => {
                     const qtyInput = document.querySelector('input[type="number"], input[id*="qty"]');
                     if (qtyInput) {
