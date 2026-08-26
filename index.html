@@ -4532,6 +4532,21 @@ window.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
 });
+        document.addEventListener('click', function unlockAudioOnce() {
+    try {
+        const silentAudio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+        silentAudio.volume = 0.01; // เสียงเบาเกือบเงียบ
+        silentAudio.play().then(() => {
+            console.log("Audio unlocked successfully!");
+            // ถอด Listener ออกทันทีหลังจากปลดล็อกแล้ว จะได้ไม่รันซ้ำ
+            document.removeEventListener('click', unlockAudioOnce);
+        }).catch(e => {
+            console.log("Waiting for user interaction to unlock audio...");
+        });
+    } catch (e) {
+        // ignore
+    }
+}, { once: true });
 </script>
 </body>
 </html>
