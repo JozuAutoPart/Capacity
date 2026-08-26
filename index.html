@@ -1655,6 +1655,7 @@ function onActualPartChange() {
     document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
 }
 
+// 1. ฟังก์ชันบันทึกการผลิตแบบล็อกเป้าพาร์ท Assy แยกออกจาก WIP เด็ดขาด
 function submitActual(e) {
     e.preventDefault();
     
@@ -1683,74 +1684,54 @@ function submitActual(e) {
         remark: document.getElementById('actualRemark').value.trim()
     };
 
+    // เช็คสถานะ Assy จาก Master Parts ก่อนบันทึก
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    const cleanBase = basePartNo.trim().toUpperCase();
+    const matchedMaster = masterData.find(m => {
+        const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
+        return mPart === cleanBase || cleanBase.startsWith(mPart);
+    });
+    
+    const isAssyPart = matchedMaster && (
+        matchedMaster.assy === true || 
+        String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
+        matchedMaster['Assy'] === true || 
+        String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
+        matchedMaster['ASSY'] === true || 
+        String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
+        matchedMaster[6] === true || 
+        String(matchedMaster[6]).toUpperCase() === 'TRUE'
+    );
+
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'saveActual', data: actual })
+        body: JSON.stringify({ action: isAssyPart ? 'saveAssy' : 'saveActual', data: actual })
     })
     .then(response => response.json())
     .then(result => {
         if (result.status === "success") {
-            actuals.push(actual);
-
-            // เช็ค Master Parts ว่าเป็น Assy หรือไม่
-            const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-            const cleanBase = basePartNo.trim().toUpperCase();
-            const matchedMaster = masterData.find(m => {
-                const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
-                return mPart === cleanBase || cleanBase.startsWith(mPart);
-            });
-            
-            const isAssyPart = matchedMaster && (
-                matchedMaster.assy === true || 
-                String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
-                matchedMaster['Assy'] === true || 
-                String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
-                matchedMaster['ASSY'] === true || 
-                String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
-                matchedMaster[6] === true || 
-                String(matchedMaster[6]).toUpperCase() === 'TRUE'
-            );
-
             if (isAssyPart) {
-                // 🛑 เงื่อนไขจบสำหรับพาร์ท Assy: ส่งไปหน้า Assy และล็อกไม่ให้เข้า Stock WIP 100%
-                console.log("🛑 [Final Block] พาร์ท Assy บันทึกไปหน้า Ass'y และตัดออกจาก Stock WIP ทันที:", basePartNo);
+                // ถ้าเป็น Assy ให้เก็บเข้าตัวแปร Assy โดยตรง ห้ามเข้า actuals ของ WIP
                 if (typeof assyRecords !== 'undefined') {
                     assyRecords.push(actual);
-                    if (typeof renderAssyTable === 'function') renderAssyTable();
                 }
+                alert("บันทึกสำเร็จ! (พาร์ท Ass'y ถูกส่งตรงไปหน้า Ass'y / Spot เรียบร้อย)");
             } else {
-                // ✅ เงื่อนไขปกติ: ถ้าไม่ใช่ Assy ถึงจะยอมให้เข้า Stock WIP
-                if (processSuffix === '' && typeof wipStock !== 'undefined') {
-                    const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
-                    if (existingWip) {
-                        existingWip.qty = (Number(existingWip.qty) || 0) + actual.qty;
-                    } else {
-                        wipStock.push({
-                            date: actual.date,
-                            line: actual.line,
-                            partNo: actual.partNo,
-                            lotNo: actual.lotNo,
-                            qty: actual.qty
-                        });
-                    }
-                    if (typeof renderWipStock === 'function') renderWipStock();
-                    if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-                }
+                // ถ้าไม่ใช่ Assy ให้เก็บเข้า actuals ปกติเพื่อเข้า Stock WIP
+                actuals.push(actual);
+                alert("บันทึกข้อมูลสำเร็จ!");
             }
 
             document.getElementById('actualForm').reset();
             document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
-            checkAndLoadPlans();
-            renderActuals();
+            if (typeof checkAndLoadPlans === 'function') checkAndLoadPlans();
+            if (typeof renderActuals === 'function') renderActuals();
+            if (typeof renderAssyTable === 'function') renderAssyTable();
+            if (typeof renderStock === 'function') renderStock();
             
             if (typeof loadAllData === 'function') {
                 loadAllData();
-            }
-
-            if (isAssyPart) {
-                alert("บันทึกการผลิตสำเร็จ! (พาร์ท Ass'y ถูกแยกไปหน้า Ass'y / Spot เรียบร้อย)");
-            } else {
-                alert("บันทึกข้อมูลสำเร็จ!");
             }
         } else {
             alert("บันทึกไม่สำเร็จ: " + result.message);
