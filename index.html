@@ -4716,6 +4716,25 @@ function deleteAssy(index) {
         renderAssyTable();
     }
 }
+        function checkAndLoadAssyPlans() {
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    const selectPart = document.getElementById('assyPartNo');
+    if (!selectPart) return;
+    
+    selectPart.innerHTML = '<option value="">-- เลือก Part No. ที่ต้องทำ Ass\'y --</option>';
+
+    const assyParts = masterData.filter(item => item.assy === true || String(item.assy).toUpperCase() === 'TRUE');
+    
+    assyParts.forEach(item => {
+        const pNo = item.partNo || item['Part No.'] || '';
+        if (pNo) {
+            const opt = document.createElement('option');
+            opt.value = pNo;
+            opt.innerText = pNo;
+            selectPart.appendChild(opt);
+        }
+    });
+}
 </script>
 </body>
 </html>
