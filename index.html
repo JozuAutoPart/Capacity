@@ -1083,7 +1083,8 @@ function renderDashboard() {
                            (q.NG !== undefined ? q.NG : 
                            (q.qtyNg !== undefined ? q.qtyNg : 0))));
                 let val = Number(rawNg) || 0;
-                console.log(`[Match Found] Line: "${qLine}" & "${pLine}" | Part: "${qPart}" & "${pPart}" | NG: ${val}`);
+                console.log(`[Match Found] Line: "${qLine}" & "${pline}" | Part: "${qPart}" & "${pPart}" | NG: ${val}`);
+playBeep('success'); // เพิ่มคำสั่งสั่งให้เล่นเสียงตรงนี้ครับ!
                 return sum + val;
             }
             return sum;
