@@ -2467,6 +2467,12 @@ function updateFgMaxHint() {
 function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // 🌟 เพิ่มคำสั่งปลุกระบบเสียงตรงนี้ เพื่อป้องกันเบราว์เซอร์บล็อกเสียง
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         
@@ -2476,18 +2482,18 @@ function playBeep(type) {
         if (type === 'success') {
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime); // เพิ่มความดังขึ้นนิดนึง
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.15);
         } else {
             oscillator.type = 'sawtooth';
             oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.3);
         }
     } catch (e) {
-        console.log('Audio not supported');
+        console.log('Audio not supported', e);
     }
 }
 
