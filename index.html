@@ -2397,17 +2397,28 @@ function filterFgTable() {
         }
     });
 }
-// --- TAB 7: DELIVERY (การส่งมอบ) ---
+// --- TAB 7: DELIVERY (การส่งมอบ) - FIXED MAPPING ---
 
-// ฟังก์ชันดึงรายชื่อลูกค้าอัตโนมัติจาก Master Parts (ตามคอลัมน์ D ของพี่มิว)
+// ฟังก์ชันดึงรายชื่อลูกค้าอัตโนมัติ รองรับทั้งแบบ Object และ Array คอลัมน์ D (Index 3)
 function getCustomerMapping() {
     let customerMap = {};
     let masterDb = window.masterPartsDatabase || [];
+    
     masterDb.forEach(item => {
-        // รองรับทั้งแบบ Object ทั่วไป และแบบ Array แถวข้อมูลใน Google Sheets (Index 1 = PartNo, Index 3 = ชื่อลูกค้า Column D)
-        let pNo = (item.partNo || item.partNumber || item[1] || "").toString().trim().toLowerCase();
-        let cust = (item.customer || item.cust || item[3] || "").toString().trim();
-        if (pNo && cust) {
+        let pNo = "";
+        let cust = "";
+
+        if (Array.isArray(item)) {
+            // กรณีข้อมูลมาจาก Google Sheets แถวอาเรย์ (Index 1 = PartNo, Index 3 = คอลัมน์ D ชื่อลูกค้า)
+            pNo = (item[1] || "").toString().trim().toLowerCase();
+            cust = (item[3] || "").toString().trim();
+        } else if (item && typeof item === 'object') {
+            // กรณีข้อมูลมาเป็น Object ปกติ
+            pNo = (item.partNo || item.partNumber || "").toString().trim().toLowerCase();
+            cust = (item.customer || item.cust || "").toString().trim();
+        }
+
+        if (pNo && cust && cust !== '-') {
             customerMap[pNo] = cust;
         }
     });
@@ -2447,15 +2458,11 @@ function updateFgMaxHint() {
     hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
     qtyInput.max = available;
 
-    // ดึงชื่อลูกค้าขึ้นอัตโนมัติทันทีที่เลือกหรือพิมพ์ Part No. (ดึงจากคอลัมน์ลูกค้า)
+    // ดึงชื่อลูกค้าขึ้นอัตโนมัติทันทีที่เลือกหรือพิมพ์ Part No.
     if (customerEl) {
         const customerMap = getCustomerMapping();
         let foundCust = customerMap[partNo.toLowerCase()];
-        if (foundCust) {
-            customerEl.value = foundCust;
-        } else {
-            customerEl.value = '-';
-        }
+        customerEl.value = foundCust ? foundCust : '-';
     }
 }
 
@@ -2487,7 +2494,7 @@ function playBeep(type) {
     }
 }
 
-// ปิดหน้าต่าง Alert กวนใจทั้งหมด เพื่อไม่ให้ต้องคอยกด OK
+// ปิดหน้าต่าง Alert กวนใจทั้งหมด
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
@@ -2495,10 +2502,9 @@ if (typeof originalAlert === 'undefined') {
     };
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode, ดึงจำนวน และสั่งบันทึกข้อมูลลงตารางทันทีแบบอัตโนมัติ
+// รองรับการกด Enter จากเครื่องยิง Barcode
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
-    // เพิ่ม Event ฟังตอนเปลี่ยนค่า เพื่อสั่งอัปเดตชื่อลูกค้าอัตโนมัติทันที
     deliveryPartInputEl.addEventListener('input', updateFgMaxHint);
     deliveryPartInputEl.addEventListener('change', updateFgMaxHint);
 
@@ -2519,16 +2525,15 @@ if (deliveryPartInputEl) {
             }
 
             deliveryPartInputEl.value = partNo;
-            updateFgMaxHint(); // อัปเดตชื่อลูกค้าและจำนวนคงเหลือทันที
+            updateFgMaxHint(); // อัปเดตชื่อลูกค้าและจำนวน
 
             const fgMap = typeof fgBalances === 'function' ? fgBalances() : {};
             const available = fgMap[partNo] || 9999;
 
-            playBeep('success'); // เสียงสแกนสำเร็จ
+            playBeep('success'); 
             
             let finalQty = scannedQty > 0 ? scannedQty : 1;
             
-            // ใส่จำนวนลงในช่อง Qty
             const qtyInput = document.getElementById('deliveryQty');
             if (qtyInput) {
                 qtyInput.value = finalQty;
@@ -2539,11 +2544,10 @@ if (deliveryPartInputEl) {
             const hint = document.getElementById('fgMaxHint');
             if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
-            // เพิ่มจังหวะหน่วงเวลานิดเดียวเพื่อให้ช่องลูกค้าอัปเดตค่าเสร็จก่อนกด Submit
+            // หน่วงเวลาเล็กน้อยเพื่อให้ระบบเซ็ตค่าชื่อลูกค้าลงฟอร์มให้เรียบร้อยก่อนกดส่ง
             setTimeout(() => {
                 updateFgMaxHint(); 
 
-                // สั่งกดปุ่มบันทึก
                 const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.click();
@@ -2587,7 +2591,7 @@ function submitDelivery(e) {
         return;
     }
 
-    // ดึงชื่อลูกค้าจาก Mapping ตรงๆ อีกรอบเพื่อความชัวร์ 100% ว่าไม่เป็นขีด - แน่นอน
+    // ดึงชื่อลูกค้าผ่าน Mapping โดยตรง เพื่อให้มั่นใจว่าได้ชื่อจากคอลัมน์ D ชัวร์ๆ 100%
     const customerMap = getCustomerMapping();
     const formCustomer = document.getElementById('deliveryCustomer');
     const resolvedCustomer = customerMap[partNo.toLowerCase()] || (formCustomer ? formCustomer.value.trim() : '-');
@@ -2634,19 +2638,20 @@ function renderDelivery() {
     const customerMap = getCustomerMapping();
 
     deliveries.slice().reverse().forEach(d => {
-        // หากประวัติเก่าเคยบันทึกเป็นขีด - ให้ดึงจาก Mapping มาแปะโชว์ให้ด้วยอัตโนมัติ
+        let pNoStr = (d.partNo || "").trim();
         let custName = d.customer;
+        // หากประวัติเก่าหรือรายการไหนไม่มีชื่อ ให้ดึงจาก Mapping คอลัมน์ D มาแสดงสำรองทันที
         if (!custName || custName === '-') {
-            custName = customerMap[(d.partNo || "").trim().toLowerCase()] || '-';
+            custName = customerMap[pNoStr.toLowerCase()] || '-';
         }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.date ? d.date.split('T')[0] : ''}</td>
-            <td class="fw-bold text-info">${d.partNo}</td>
-            <td class="text-primary fw-bold">${Number(d.qty).toLocaleString()}</td>
+            <td class="fw-bold text-info">${pNoStr}</td>
+            <td class="text-primary fw-bold">${Number(d.qty || 0).toLocaleString()}</td>
             <td class="fw-bold text-success">${custName}</td>
-            <td class="small text-muted">${d.remark}</td>
+            <td class="small text-muted">${d.remark || '-'}</td>
             <td class="text-center">
                 <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteDelivery(${d.id})" title="ลบรายการนี้">
                     <i class="fas fa-trash-alt"></i>
