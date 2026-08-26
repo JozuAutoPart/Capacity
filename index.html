@@ -2464,36 +2464,25 @@ function updateFgMaxHint() {
     }
 }
 
+// ฟังก์ชันเล่นเสียงแบบใช้ไฟล์เสียงสั้น (รับรองว่าดังออกลำโพงแน่นอน)
 function playBeep(type) {
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // 🌟 เพิ่มคำสั่งปลุกระบบเสียงตรงนี้ เพื่อป้องกันเบราว์เซอร์บล็อกเสียง
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
+        let audioUrl = "";
         if (type === 'success') {
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime); // เพิ่มความดังขึ้นนิดนึง
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.15);
+            // เสียงติ๊ง/ปี๊บสำเร็จ (เสียงสั้นใส)
+            audioUrl = "https://actions.google.com/sounds/v1/alarms/beep_short.ogg";
         } else {
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.3);
+            // เสียงเตือนผิดพลาด
+            audioUrl = "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg";
         }
+        
+        const sound = new Audio(audioUrl);
+        sound.volume = 1.0; // เร่งเสียงดังสุด
+        sound.play().catch(err => {
+            console.log("Audio play blocked or failed:", err);
+        });
     } catch (e) {
-        console.log('Audio not supported', e);
+        console.log('Audio error:', e);
     }
 }
 
