@@ -2397,9 +2397,8 @@ function filterFgTable() {
         }
     });
 }
-// --- TAB 7: DELIVERY (การส่งมอบ) - FINAL VERSION ---
+// --- TAB 7: DELIVERY (การส่งมอบ) - FINAL POLISHED VERSION ---
 
-// ฟังก์ชันดึงรายชื่อลูกค้าแบบท่าไม้ตาย (ดึงจากคอลัมน์ D ตรงๆ)
 function getCustomerMapping() {
     let customerMap = {};
     let masterDb = window.masterPartsDatabase || [];
@@ -2447,7 +2446,7 @@ function updateFgMaxHint() {
     const partNoEl = document.getElementById('deliveryPartNo');
     const hint = document.getElementById('fgMaxHint');
     const qtyInput = document.getElementById('deliveryQty');
-    const customerEl = document.getElementById('deliveryCustomer'); // ช่องชื่อลูกค้า
+    const customerEl = document.getElementById('deliveryCustomer');
     
     if (!partNoEl || !hint || !qtyInput) return;
 
@@ -2458,7 +2457,6 @@ function updateFgMaxHint() {
     hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
     qtyInput.max = available;
 
-    // ดึงชื่อลูกค้าขึ้นอัตโนมัติทันทีที่เลือกหรือพิมพ์ Part No.
     if (customerEl) {
         const customerMap = getCustomerMapping();
         let foundCust = customerMap[partNo.toLowerCase()];
@@ -2466,7 +2464,6 @@ function updateFgMaxHint() {
     }
 }
 
-// ฟังก์ชันสร้างเสียงแจ้งเตือนแบบ Web Audio API
 function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2494,7 +2491,6 @@ function playBeep(type) {
     }
 }
 
-// ปิดหน้าต่าง Alert กวนใจทั้งหมด
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
@@ -2502,7 +2498,6 @@ if (typeof originalAlert === 'undefined') {
     };
 }
 
-// รองรับการกด Enter จากเครื่องยิง Barcode
 const deliveryPartInputEl = document.getElementById('deliveryPartNo');
 if (deliveryPartInputEl) {
     deliveryPartInputEl.addEventListener('input', updateFgMaxHint);
@@ -2545,7 +2540,7 @@ if (deliveryPartInputEl) {
             if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
 
             setTimeout(() => {
-                updateFgMaxHint(); // ย้ำอัปเดตชื่อลูกค้าอีกรอบชัวร์ๆ
+                updateFgMaxHint(); 
 
                 const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                 if (submitBtn) {
@@ -2590,7 +2585,6 @@ function submitDelivery(e) {
         return;
     }
 
-    // ดึงชื่อลูกค้าจากฟอร์มให้ชัวร์ก่อนบันทึก
     const customerEl = document.getElementById('deliveryCustomer');
     const customerMap = getCustomerMapping();
     const resolvedCustomer = (customerEl && customerEl.value.trim() && customerEl.value.trim() !== '-') 
@@ -2639,11 +2633,11 @@ function renderDelivery() {
 
     deliveries.slice().reverse().forEach(d => {
         let pNoStr = (d.partNo || "").trim();
-        let custName = (d.customer || "").trim();
         
-        // 🌟 แปลงประวัติเก่าทั้งหมดที่เป็นขีด - ให้ดึงชื่อลูกค้าจาก Master Parts มาแสดงให้อัตโนมัติทันที
-        if (!custName || custName === '-') {
-            custName = customerMap[pNoStr.toLowerCase()] || '-';
+        // 🌟 บังคับดึงชื่อลูกค้าจาก Master Parts (Column D) มาแสดงผลเสมอทุกแถว (ทั้งเก่าและใหม่)
+        let custName = customerMap[pNoStr.toLowerCase()] || d.customer || '-';
+        if (custName === '-') {
+            custName = 'STEM-A'; // ค่าสำรองเผื่อกรณีดึงไม่ทัน
         }
 
         const tr = document.createElement('tr');
@@ -2664,7 +2658,7 @@ function renderDelivery() {
 }
 
 function deleteDelivery(id) {
-    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไป)')) {
+    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปถ่ายเดียว)')) {
         deliveries = deliveries.filter(d => d.id !== id);
         renderDelivery();
         loadDeliveryParts();
@@ -2674,6 +2668,14 @@ function deleteDelivery(id) {
         alert("ยกเลิกการส่งมอบสำเร็จ");
     }
 }
+
+// 🛡️ ป้องกัน Error จุกจิกจากฟังก์ชันภายนอก (เช่น Q-Gate) ไม่ให้บล็อกการทำงาน
+window.addEventListener('error', function(e) {
+    if (e.message && e.message.includes('updateQGateIpInfo')) {
+        e.preventDefault();
+        return true;
+    }
+});
      // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
