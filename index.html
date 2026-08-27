@@ -2454,45 +2454,7 @@ function renderStock() {
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
 
     // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่
-    function checkIfAssy(fullPartStr) {
-        if (!fullPartStr) return false;
-        const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
-        
-        const forcedAssyList = ["76344-4JG1A", "76344-4JG1"]; 
-        if (forcedAssyList.includes(cleanBase)) {
-            return true;
-        }
-
-        const matchedMaster = masterData.find(m => {
-            const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
-            return mPart === cleanBase || cleanBase.startsWith(mPart);
-        });
-        
-        return matchedMaster && (
-            matchedMaster.assy === true || 
-            String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
-            matchedMaster['Assy'] === true || 
-            String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
-            matchedMaster['ASSY'] === true || 
-            String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
-            matchedMaster[6] === true || 
-            String(matchedMaster[6]).toUpperCase() === 'TRUE'
-        );
-    }
-
-    // ดึง Part No. จากทุกส่วนรวมถึง assyRecords
-    const partsSet = new Set([
-        ...actuals.map(a => a.partNo || a['Part No.'] || ''),
-        ...qgate.map(q => q.partNo || q['Part No.'] || ''),
-        ...deliveries.map(d => d.partNo || d['Part No.'] || ''),
-        ...(typeof assyRecords !== 'undefined' ? assyRecords.map(as => as.partNo || as['Part No.'] || '') : [])
-    ]);
-
-    partsSet.forEach(partNo => {
-        if(!partNo) return;
-
-        const isAssy = checkIfAssy(partNo);
-
+   
         // ==========================================
         // 1. ตาราง Stock WIP (แยกพาร์ทปกติ vs พาร์ท Assy ถูกต้อง)
         // ==========================================
