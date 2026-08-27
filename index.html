@@ -466,34 +466,42 @@
 <!-- ⚙️ สคริปต์คำนวณน้ำหนักและเปิดหน้าพิมพ์ Tag -->
 <script>
 function calculatePlanFromWeight() {
-    const partNo = document.getElementById('planPartNo').value;
+    const partNoInput = document.getElementById('planPartNo');
     const inputElement = document.getElementById('planWeightKg');
-    const inputVal = parseFloat(inputElement.value) || 0;
     const planQtyInput = document.getElementById('planQty');
     const tagBadge = document.getElementById('tagCountBadge');
 
-    if (!partNo) return;
+    if (!partNoInput || !inputElement) return;
+
+    const partNoVal = String(partNoInput.value).trim().toUpperCase();
+    const inputVal = parseFloat(inputElement.value) || 0;
+
+    if (!partNoVal) return;
 
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    const cleanBase = String(partNo).split(' ')[0].trim().toUpperCase();
     
+    // ค้นหาแบบยืดหยุ่น: ตรงกันเป๊ะ หรือมีข้อความขึ้นต้นเหมือนกัน (ตัดช่องว่างออกทั้งหมดเพื่อความชัวร์)
+    const cleanSearchKey = partNoVal.replace(/\s+/g, '');
     const matchedMaster = masterData.find(m => {
-        const mPart = String(m.partNo || '').trim().toUpperCase();
-        return mPart === cleanBase || cleanBase.startsWith(mPart);
+        const mPart = String(m.partNo || '').trim().toUpperCase().replace(/\s+/g, '');
+        const mCode = String(m.barcode || '').trim().toUpperCase().replace(/\s+/g, '');
+        return mPart === cleanSearchKey || mCode === cleanSearchKey || cleanSearchKey.startsWith(mPart) || cleanSearchKey.startsWith(mCode);
     });
 
     if (!matchedMaster) {
-        if(tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบ Part No. นี้ใน Master Parts</span>`;
+        if(tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ไม่พบพาร์ท [${partNoVal}] ใน Master Parts (ลองกดอัปโหลด Master Barcode สีเหลืองอีกรอบ)</span>`;
+        if(planQtyInput) planQtyInput.value = '';
         return;
     }
 
-    const weightPerPiece = Number(matchedMaster.weightPerPiece || 0);
-    const piecePerSheet = Number(matchedMaster.piecePerSheet || 0);
-    const pcsPerTag = Number(matchedMaster.tagQty || 50);
+    const weightPerPiece = Number(matchedMaster.weightPerPiece) || 0;
+    const piecePerSheet = Number(matchedMaster.piecePerSheet) || 0;
+    const pcsPerTag = Number(matchedMaster.tagQty) > 0 ? Number(matchedMaster.tagQty) : 50;
 
     let calculatedPcs = 0;
     let calculationText = '';
 
+    // เงื่อนไขคำนวณระหว่างเหล็กแผ่นกับเหล็ก Coil
     if (piecePerSheet > 0 && weightPerPiece === 0) {
         calculatedPcs = Math.round(inputVal * piecePerSheet);
         calculationText = `เหล็กแผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
@@ -502,16 +510,19 @@ function calculatePlanFromWeight() {
         calculationText = `เหล็ก Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
     }
 
+    // คำนวณจำนวนใบ Tag โดยหารด้วยจำนวนจากคอลัมน์ C (จำนวน) จริงๆ
     let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
 
+    // หยอดค่าลงช่อง Plan Qty
     if (inputVal > 0) {
         planQtyInput.value = calculatedPcs;
     } else {
         planQtyInput.value = '';
     }
 
+    // แสดงผลสรุปที่ Badge
     if(tagBadge) {
-        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (ใบละ ${pcsPerTag} ชิ้นจากคอลัมน์จำนวน)`;
+        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (ใบละ ${pcsPerTag} ชิ้น จากคอลัมน์จำนวน)`;
     }
 }
 </script>
@@ -1002,27 +1013,33 @@ async function loadAllDataFromCloud() {
         let jsonBms = await resBms.json();
         if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-        // 🔄 ดึง Master Parts และแมตช์ชื่อคอลัมน์ภาษาอังกฤษ/ไทยให้ครบถ้วน
+        // 🔄 ดึง Master Parts และแปลงข้อมูลให้รองรับทุกชื่อคีย์แบบครอบจักรวาล
         let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
         let jsonMaster = await resMaster.json();
         if (jsonMaster.status === "success") {
             const rawMasterData = jsonMaster.data || [];
-            const formattedMaster = rawMasterData.map(m => ({
-                barcode: m.barcode || m['barcode'] || '',
-                partNo: String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase(),
-                weightPerPiece: parseFloat(m.weightPerPiece || m['Weight per piece'] || m['weight per piece'] || m['WEIGHT PER PIECE'] || 0),
-                piecePerSheet: parseFloat(m.piecePerSheet || m['Piece per sheet'] || m['piece per sheet'] || m['PIECE PER SHEET'] || 0),
-                tagQty: parseInt(m.tagQty || m['จำนวน'] || m['Tag Qty'] || 100)
-            }));
+            const formattedMaster = rawMasterData.map(m => {
+                // ดึงค่าทุกฟิลด์เผื่อสลับชื่อคอลัมน์ไทย/อังกฤษ
+                const pNo = String(m.partNo || m['Part No.'] || m['partNo'] || m['PART_NO'] || '').trim();
+                const bCode = String(m.barcode || m['barcode'] || m['BARCODE'] || '').trim();
+                const wPiece = parseFloat(m.weightPerPiece || m['Weight per piece'] || m['weight per piece'] || m['WEIGHT PER PIECE'] || 0);
+                const pSheet = parseFloat(m.piecePerSheet || m['Piece per sheet'] || m['piece per sheet'] || m['PIECE PER SHEET'] || 0);
+                const tQty = parseInt(m.tagQty || m['จำนวน'] || m['Tag Qty'] || m['tagQty'] || 50);
+
+                return {
+                    barcode: bCode,
+                    partNo: pNo,
+                    weightPerPiece: wPiece,
+                    piecePerSheet: pSheet,
+                    tagQty: tQty > 0 ? tQty : 50
+                };
+            });
             localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
+            console.log("Master Parts Loaded Success:", formattedMaster.length, "items");
         }
 
-        if (typeof renderAll === 'function') {
-            renderAll();
-        }
-        if (typeof renderDiePM === 'function') {
-            renderDiePM();
-        }
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof renderDiePM === 'function') renderDiePM();
     } catch (error) {
         console.error("Error loading data from cloud:", error);
     }
