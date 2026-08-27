@@ -587,7 +587,37 @@ function calculatePlanFromWeight() {
         tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิงจำนวน = <b>${pcsPerTag}</b> ชิ้น/ใบ)`;
     }
 }
+// 🎯 ฟังก์ชันบังคับเติมข้อมูลพาร์ทลง Dropdown แบบชัวร์ 100%
+function forcePopulatePartNo() {
+    const partNoSelect = document.getElementById('planPartNo');
+    if (!partNoSelect) return;
 
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    if (masterData.length === 0) return;
+
+    // ถ้าในกล่องมีแค่ตัวเลือกเริ่มแรกอันเดียว ให้ยัดข้อมูลทั้งหมดเข้าไปทันที
+    if (partNoSelect.options.length <= 1) {
+        let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
+        masterData.forEach(m => {
+            if (m.partNo) {
+                optionsHtml += `<option value="${m.partNo}">${m.partNo}</option>`;
+            }
+        });
+        partNoSelect.innerHTML = optionsHtml;
+        console.log("🎉 เติมรายชื่อพาร์ทลง Dropdown สำเร็จจำนวน:", masterData.length, "รายการ");
+    }
+}
+
+// 🖱️ ดักรอจังหวะที่พี่มิวคลิกที่กล่อง Dropdown หรือเอาเมาส์ไปโดน ให้มันอัปเดตรายชื่อทันที
+document.addEventListener('mousedown', function(e) {
+    if (e.target && e.target.id === 'planPartNo') {
+        forcePopulatePartNo();
+    }
+});
+
+// 🔄 และสั่งรันซ้ำอัตโนมัติเผื่อหน้าเว็บโหลดเสร็จแล้ว
+setTimeout(forcePopulatePartNo, 500);
+setTimeout(forcePopulatePartNo, 1500);
 // 🚀 รันคำสั่งดึงข้อมูลทันทีเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function() {
     setTimeout(loadAllDataFromCloud, 300);
