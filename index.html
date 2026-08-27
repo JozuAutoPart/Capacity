@@ -494,32 +494,31 @@ async function loadAllDataFromCloud() {
         let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
         let jsonMaster = await resMaster.json();
         
-        let formattedMaster = [];
-        if (jsonMaster.status === "success") {
-            const rawMasterData = jsonMaster.data || [];
-            formattedMaster = rawMasterData.map(m => {
-                let keys = Object.keys(m);
-                let pNoKey = keys.find(k => k.toLowerCase().includes('part') || k.toLowerCase().includes('พาร์ท'));
-                let tagKey = keys.find(k => k.includes('จำนวน') || k.toLowerCase().includes('tag') || k.toLowerCase().includes('qty'));
-                let weightKey = keys.find(k => k.toLowerCase().includes('weight') || k.toLowerCase().includes('น้ำหนัก'));
-                let sheetKey = keys.find(k => k.toLowerCase().includes('sheet') || k.toLowerCase().includes('แผ่น'));
+       let formattedMaster = [];
+                if (jsonMaster.status === "success") {
+                    const rawMasterData = jsonMaster.data || [];
+                    formattedMaster = rawMasterData.map(m => {
+                        let partNoVal = m['partNo'] || m['Part No.'] || m['PARTNO'] || m[1] || '';
+                        
+                        // 🎯 ดึง "จำนวน" จากคอลัมน์ C (และเผื่อช่องว่างให้เป็น 50)
+                        let cVal = m['จำนวน'] !== undefined && m['จำนวน'] !== "" ? m['จำนวน'] : 50;
+                        
+                        // 🎯 ดึง "Weight per piece" จากคอลัมน์ J
+                        let jVal = m['Weight per piece'] !== undefined && m['Weight per piece'] !== "" ? m['Weight per piece'] : 0;
+                        
+                        let kVal = m['Piece per sheet'] !== undefined && m['Piece per sheet'] !== "" ? m['Piece per sheet'] : 0;
 
-                let partNoVal = pNoKey ? m[pNoKey] : (m['Part No.'] || m['partNo'] || m[1] || '');
-                let cVal = tagKey ? m[tagKey] : (m['จำนวน'] || m[2] || 50);
-                let jVal = weightKey ? m[weightKey] : (m['Weight per piece'] || m[9] || 0);
-                let kVal = sheetKey ? m[sheetKey] : (m['Piece per sheet'] || m[10] || 0);
+                        return {
+                            partNo: String(partNoVal).trim(),
+                            tagQty: parseInt(cVal) > 0 ? parseInt(cVal) : 50,
+                            weightPerPiece: parseFloat(jVal) || 0,
+                            piecePerSheet: parseFloat(kVal) || 0
+                        };
+                    }).filter(m => m.partNo !== '' && m.partNo !== 'undefined' && m.partNo !== 'null');
 
-                return {
-                    partNo: String(partNoVal).trim(),
-                    tagQty: parseInt(cVal) > 0 ? parseInt(cVal) : 50,
-                    weightPerPiece: parseFloat(jVal) || 0,
-                    piecePerSheet: parseFloat(kVal) || 0
-                };
-            }).filter(m => m.partNo !== '' && m.partNo !== 'undefined');
-
-            localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
-            console.log("✅ โหลดและแมป Master Parts สำเร็จ:", formattedMaster.length, "รายการ");
-
+                    localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
+                    console.log("✅ โหลด Master Parts และแมปค่าคอลัมน์ C, J สำเร็จ:", formattedMaster.length, "รายการ");
+                }
             // 🔑 เติมรายชื่อพาร์ททั้งหมดลงในกล่อง Dropdown ทันที
             const partNoSelect = document.getElementById('planPartNo');
             if (partNoSelect) {
