@@ -4741,6 +4741,18 @@ window.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
 });
+        // โหลดประวัติ Ass'y จาก Cloud อัตโนมัติเมื่อเปิดเว็บ
+    fetch(`${scriptUrl}?action=getAssyRecords`)
+        .then(response => response.json())
+        .then(result => {
+            if (result && result.status === "success" && Array.isArray(result.data)) {
+                assyRecords = result.data;
+                if (typeof renderAssyTable === 'function') renderAssyTable();
+                if (typeof renderStock === 'function') renderStock();
+                console.log("🟢 โหลดประวัติ Ass'y สำเร็จ:", assyRecords.length, "รายการ");
+            }
+        })
+        .catch(err => console.error("❌ โหลดประวัติ Ass'y ไม่สำเร็จ:", err));
       // --- Ass'y / Spot Process ---
 let assyRecords = [];
 
