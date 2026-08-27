@@ -2441,22 +2441,27 @@ function renderStock() {
         if (!fullPartStr) return false;
         const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
         
-       // เช็คสถานะ Assy จากฐานข้อมูล Master ที่ดึงมาจาก Google Sheets โดยตรง
-    const matchedMaster = masterData.find(m => {
-        const mPart = String(m.partNo || m['partNo'] || m['Part No.'] || '').trim().toUpperCase();
-        return mPart === cleanBase || cleanBase.startsWith(mPart);
-    });
+        const forcedAssyList = ["76344-4JG1A", "76344-4JG1"]; 
+        if (forcedAssyList.includes(cleanBase)) {
+            return true;
+        }
 
-    return matchedMaster && (
-        matchedMaster.assy === true || 
-        String(matchedMaster.assy).toUpperCase() === 'TRUE' ||
-        matchedMaster['Assy'] === true || 
-        String(matchedMaster['Assy']).toUpperCase() === 'TRUE' ||
-        matchedMaster['assy'] === true || 
-        String(matchedMaster['assy']).toUpperCase() === 'TRUE' ||
-        matchedMaster[6] === true || 
-        String(matchedMaster[6]).toUpperCase() === 'TRUE'
-    );
+        const matchedMaster = masterData.find(m => {
+            const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
+            return mPart === cleanBase || cleanBase.startsWith(mPart);
+        });
+        
+        return matchedMaster && (
+            matchedMaster.assy === true || 
+            String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
+            matchedMaster['Assy'] === true || 
+            String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
+            matchedMaster['ASSY'] === true || 
+            String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
+            matchedMaster[6] === true || 
+            String(matchedMaster[6]).toUpperCase() === 'TRUE'
+        );
+    }
 
     // ดึง Part No. จากทุกส่วนรวมถึง assyRecords
     const partsSet = new Set([
@@ -4795,19 +4800,18 @@ function submitAssy(e) {
             const existingWip = wipStock.find(w => w.partNo === assyData.partNo && w.lotNo === assyData.lotNo);
             if (existingWip) {
                 existingWip.qty += assyData.qty;
-                existingWip.source = 'assy'; // กำหนดแหล่งที่มาว่าเป็น Ass'y
             } else {
                 wipStock.push({
                     line: assyData.line,
                     partNo: assyData.partNo,
                     lotNo: assyData.lotNo,
-                    qty: assyData.qty,
-                    source: 'assy' // กำหนดแหล่งที่มาว่าเป็น Ass'y
+                    qty: assyData.qty
                 });
             }
             if (typeof renderWipStock === 'function') renderWipStock();
             if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
         }
+
         document.getElementById('assyForm').reset();
         document.getElementById('assyDate').value = new Date().toISOString().split('T')[0];
         renderAssyTable();
@@ -4857,24 +4861,30 @@ function deleteAssy(index) {
     }
 }
 
-// ฟังก์ชันสำหรับดึงรายการพาร์ทที่เป็น Assy มาแสดงที่หน้า Ass'y / Spot
 function checkAndLoadAssyPlans() {
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
     const selectPart = document.getElementById('assyPartNo');
     if (!selectPart) return;
     
-    selectPart.innerHTML = '<option value="">-- เลือกหรือยิงบาร์โค้ด Part No. --</option>';
+    selectPart.innerHTML = '<option value="">-- เลือก Part No. --</option>';
 
-    // กรองพาร์ทที่คอลัมน์ Assy เป็น TRUE หรือ true
+    // 🛑 [บังคับเพิ่มพิเศษ] รายชื่อพาร์ท Assy ที่ต้องการให้โชว์ชัวร์ๆ 100%
+    const forcedAssyList = ["76344-4JG1A", "76344-4JG1"];
+
+    // กรองพาร์ทที่เป็น Assy จาก Master หรืออยู่ในรายชื่อบังคับ
     const assyParts = masterData.filter(item => {
-        const assyVal = item.Assy ?? item.assy ?? item['Assy'] ?? item['assy'] ?? item[6];
-        return assyVal === true || String(assyVal).trim().toUpperCase() === 'TRUE';
+        const pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
+        if (forcedAssyList.includes(pNo)) return true;
+
+        const assyVal = item.assy ?? item['Assy'] ?? item['assy'] ?? item[6];
+        return assyVal === true || String(assyVal).toUpperCase() === 'TRUE';
     });
     
+    // ป้องกันตัวเลือกซ้ำ
     const addedParts = new Set();
 
     assyParts.forEach(item => {
-        const pNo = item.partNo || item['partNo'] || item['Part No.'] || item[1] || '';
+        const pNo = item.partNo || item['Part No.'] || item['partNo'] || '';
         if (pNo && !addedParts.has(pNo)) {
             addedParts.add(pNo);
             const opt = document.createElement('option');
@@ -4884,44 +4894,12 @@ function checkAndLoadAssyPlans() {
         }
     });
 
+    // กำหนดวันที่เป็นปัจจุบัน
     const dateInput = document.getElementById('assyDate');
     if (dateInput && !dateInput.value) {
         dateInput.value = new Date().toISOString().split('T')[0];
     }
 }
-        // --- โค้ดสำหรับรองรับการยิงบาร์โค้ดที่ช่อง Part No. ---
-document.addEventListener('DOMContentLoaded', () => {
-    const partNoInput = document.getElementById('assyPartNo');
-    
-    if (partNoInput) {
-        // รองรับทั้งการเลือกจาก Dropdown และการยิงบาร์โค้ดเข้ามาตรงๆ
-        partNoInput.addEventListener('change', function() {
-            let scannedPart = this.value.trim();
-            if (!scannedPart) return;
-
-            console.log("📷 ตรวจพบ Part No. :", scannedPart);
-            
-            // เรียกฟังก์ชันดึง Line และ Lot No. อัตโนมัติ (ถ้ามีฟังก์ชัน onAssyPartChange)
-            if (typeof onAssyPartChange === 'function') {
-                onAssyPartChange();
-            }
-        });
-
-        // ดักจับกรณีเครื่องยิงบาร์โค้ดส่งค่าแบบรวดเร็ว (Keypress / Enter)
-        partNoInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                let scannedPart = this.value.trim();
-                if (scannedPart) {
-                    console.log("⚡ ยิงบาร์โค้ดสมบูรณ์ (Enter):", scannedPart);
-                    // สามารถสั่งให้โฟกัสไปที่ช่องจำนวน (Qty) ต่อได้เลยทันที เพื่อความรวดเร็วในการทำงาน
-                    const qtyField = document.getElementById('assyQty');
-                    if (qtyField) qtyField.focus();
-                }
-            }
-        });
-    }
-});
 // เมื่อเลือก Part No. ให้ดึง Line และ Lot No. จากประวัติการผลิตจริงมาแสดงอัตโนมัติ
 function onAssyPartChange() {
     const selectedPartNo = document.getElementById('assyPartNo').value;
