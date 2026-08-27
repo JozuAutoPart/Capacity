@@ -2478,8 +2478,8 @@ function renderStock() {
         const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
         const currentwip = (totalIn - totalTransferred) + adjustWip;
 
-        // แสดงเฉพาะพาร์ทที่มีการเคลื่อนไหวหรือมี WIP คงเหลือ
-        if (totalIn > 0 || currentwip > 0) {
+        // แสดงเฉพาะพาร์ทที่มีการเคลื่อนไหวหรือมี WIP คงเหลือ (หรือเป็นพาร์ท Assy บังคับโชว์)
+        if (totalIn > 0 || currentwip > 0 || isAssy) {
             const trwip = document.createElement('tr');
             trwip.innerHTML = `
                 <td class="fw-bold text-info">${partNo}</td>
