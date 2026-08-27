@@ -2380,12 +2380,12 @@ function updateQGateWipInfo() {
         document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
     }
 }
-// --- TAB 6: STOCK WIP & FG ---
+ // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
     // รับเข้า FG จาก Q-Gate
     qgate.forEach(q => {
-        const pNo = String(q.partNo || q['Part No.'] || '').trim();
+        const pNo = q.partNo || q['Part No.'] || '';
         const pQty = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
         if(pNo) {
             if(!fgMap[pNo]) fgMap[pNo] = 0;
@@ -2394,7 +2394,29 @@ function getFgBalances() {
     });
     // ตัดส่งมอบออก (Delivery)
     deliveries.forEach(d => {
-        const pNo = String(d.partNo || d['Part No.'] || '').trim();
+        const pNo = d.partNo || d['Part No.'] || '';
+        const dQty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
+        if(pNo) {
+            if(!fgMap[pNo]) fgMap[pNo] = 0;
+            fgMap[pNo] -= dQty;
+        }
+    });
+    return fgMap;
+}
+
+// --- TAB 6: STOCK WIP & FG ---
+function getFgBalances() {
+    const fgMap = {};
+    qgate.forEach(q => {
+        const pNo = q.partNo || q['Part No.'] || '';
+        const pQty = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
+        if(pNo) {
+            if(!fgMap[pNo]) fgMap[pNo] = 0;
+            fgMap[pNo] += pQty;
+        }
+    });
+    deliveries.forEach(d => {
+        const pNo = d.partNo || d['Part No.'] || '';
         const dQty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
         if(pNo) {
             if(!fgMap[pNo]) fgMap[pNo] = 0;
@@ -2414,7 +2436,7 @@ function renderStock() {
 
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
 
-    // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่ (เคลียร์ช่องว่างและแปลงเป็นตัวพิมพ์ใหญ่อัตโนมัติ)
+    // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่
     function checkIfAssy(fullPartStr) {
         if (!fullPartStr) return false;
         const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
@@ -2441,15 +2463,15 @@ function renderStock() {
         );
     }
 
-    // รวบรวม Part No. ทั้งหมดและทำความสะอาดช่องว่างรอบตัวอักษร
-    const rawPartsSet = new Set([
-        ...actuals.map(a => String(a.partNo || a['Part No.'] || '').trim()),
-        ...qgate.map(q => String(q.partNo || q['Part No.'] || '').trim()),
-        ...deliveries.map(d => String(d.partNo || d['Part No.'] || '').trim()),
-        ...(typeof assyRecords !== 'undefined' ? assyRecords.map(as => String(as.partNo || as['Part No.'] || '').trim()) : [])
+    // ดึง Part No. จากทุกส่วนรวมถึง assyRecords
+    const partsSet = new Set([
+        ...actuals.map(a => a.partNo || a['Part No.'] || ''),
+        ...qgate.map(q => q.partNo || q['Part No.'] || ''),
+        ...deliveries.map(d => d.partNo || d['Part No.'] || ''),
+        ...(typeof assyRecords !== 'undefined' ? assyRecords.map(as => as.partNo || as['Part No.'] || '') : [])
     ]);
 
-    rawPartsSet.forEach(partNo => {
+    partsSet.forEach(partNo => {
         if(!partNo) return;
 
         const isAssy = checkIfAssy(partNo);
@@ -2461,20 +2483,20 @@ function renderStock() {
         let sourceLabel = '';
 
         if (isAssy) {
-            // 🛑 พาร์ท Assy: นับยอดรับเข้าจากหน้า Ass'y เท่านั้น ห้ามเอา actuals มาปน
+            // 🛑 พาร์ท Assy: นับยอดรับเข้าจากหน้า Ass'y เท่านั้น ห้ามเอา actuals
             totalIn = (typeof assyRecords !== 'undefined' ? assyRecords : [])
-                .filter(as => String(as.partNo || as['Part No.'] || '').trim() === partNo)
+                .filter(as => (as.partNo || as['Part No.'] || '') === partNo)
                 .reduce((sum, as) => sum + Number(as.qty !== undefined ? as.qty : (as['จำนวน'] || 0)), 0);
             sourceLabel = ' <small class="text-muted">(จาก Ass\'y)</small>';
         } else {
             // 🟢 พาร์ทปกติ: นับยอดรับเข้าจากหน้าผลิตปกติ (actuals)
             totalIn = actuals
-                .filter(a => String(a.partNo || a['Part No.'] || '').trim() === partNo)
+                .filter(a => (a.partNo || a['Part No.'] || '') === partNo)
                 .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
         }
 
         const totalTransferred = qgate
-            .filter(q => String(q.partNo || q['Part No.'] || '').trim() === partNo)
+            .filter(q => (q.partNo || q['Part No.'] || '') === partNo)
             .reduce((sum, q) => sum + Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || 0) + Number(q.ngQty || 0)))), 0);
 
         const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
@@ -2496,32 +2518,7 @@ function renderStock() {
             `;
             wipbody.appendChild(trwip);
         }
-    });
 
-    // ==========================================
-    // 2. ส่วนตาราง FG (เพิ่มเติมให้ครบถ้วนตามฟังก์ชันเดิม)
-    // ==========================================
-    const fgBalances = getFgBalances();
-    Object.keys(fgBalances).forEach(partNo => {
-        const fgQty = fgBalances[partNo];
-        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
-        const finalFg = fgQty + adjustFg;
-
-        if (finalFg !== 0 || fgQty !== 0) {
-            const trfg = document.createElement('tr');
-            trfg.innerHTML = `
-                <td class="fw-bold text-success">${partNo}</td>
-                <td class="fw-bold ${finalFg > 0 ? 'text-success' : ''}">${finalFg.toLocaleString()} ${adjustFg !== 0 ? `<span class="badge bg-success text-white">(${adjustFg > 0 ? '+' : ''}${adjustFg})</span>` : ''}</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-success py-0 px-2" onclick="adjustStock('${partNo}', 'FG')" title="ปรับสต็อก FG">
-                        <i class="fas fa-edit"></i> ปรับ
-                    </button>
-                </td>
-            `;
-            fgtbody.appendChild(trfg);
-        }
-    });
-}
         // ==========================================
         // 2. ตาราง Stock FG (ทำงานปกติทุกพาร์ท)
         // ==========================================
@@ -2550,7 +2547,7 @@ function renderStock() {
             </td>
         `;
         fgtbody.appendChild(trfg);
-});
+    });
 }
 
 // 📌 ฟังก์ชันสำหรับแอดมินปรับเพิ่ม/ลดสต็อกสิ้นเดือน
