@@ -2441,27 +2441,22 @@ function renderStock() {
         if (!fullPartStr) return false;
         const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
         
-        const forcedAssyList = ["76344-4JG1A", "76344-4JG1"]; 
-        if (forcedAssyList.includes(cleanBase)) {
-            return true;
-        }
+       // เช็คสถานะ Assy จากฐานข้อมูล Master ที่ดึงมาจาก Google Sheets โดยตรง
+    const matchedMaster = masterData.find(m => {
+        const mPart = String(m.partNo || m['partNo'] || m['Part No.'] || '').trim().toUpperCase();
+        return mPart === cleanBase || cleanBase.startsWith(mPart);
+    });
 
-        const matchedMaster = masterData.find(m => {
-            const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
-            return mPart === cleanBase || cleanBase.startsWith(mPart);
-        });
-        
-        return matchedMaster && (
-            matchedMaster.assy === true || 
-            String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
-            matchedMaster['Assy'] === true || 
-            String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
-            matchedMaster['ASSY'] === true || 
-            String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
-            matchedMaster[6] === true || 
-            String(matchedMaster[6]).toUpperCase() === 'TRUE'
-        );
-    }
+    return matchedMaster && (
+        matchedMaster.assy === true || 
+        String(matchedMaster.assy).toUpperCase() === 'TRUE' ||
+        matchedMaster['Assy'] === true || 
+        String(matchedMaster['Assy']).toUpperCase() === 'TRUE' ||
+        matchedMaster['assy'] === true || 
+        String(matchedMaster['assy']).toUpperCase() === 'TRUE' ||
+        matchedMaster[6] === true || 
+        String(matchedMaster[6]).toUpperCase() === 'TRUE'
+    );
 
     // ดึง Part No. จากทุกส่วนรวมถึง assyRecords
     const partsSet = new Set([
