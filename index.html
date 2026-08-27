@@ -133,9 +133,6 @@
                 <button class="nav-link" id="actual-tab" data-bs-toggle="tab" data-bs-target="#tab-actual" type="button" onclick="checkAndLoadPlans()"><i class="fas fa-user-edit me-2"></i>บันทึกยอดผลิต (พนักงาน)</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" id="assy-tab" data-bs-toggle="tab" data-bs-target="#tab-assy" type="button" onclick="checkAndLoadAssyPlans()"><i class="fas fa-tools me-2 text-warning"></i>Ass'y / Spot</button>
-            </li>
-            <li class="nav-item">
                 <button class="nav-link" id="qgate-tab" data-bs-toggle="tab" data-bs-target="#tab-qgate" type="button" onclick="loadQGateParts()"><i class="fas fa-clipboard-check me-2 text-warning"></i>Q-Gate Inspection</button>
             </li>
             <li class="nav-item">
@@ -574,86 +571,6 @@
                     </div>
                 </div>
             </div>
-          <!-- TAB: Ass'y / Spot -->
-<div class="tab-pane fade" id="tab-assy" role="tabpanel">
-    <div class="container-fluid py-3">
-        <h3 class="text-white mb-3"><i class="fas fa-tools text-warning me-2"></i>บันทึกการทำ Ass'y / Spot Nut & Bolt</h3>
-        
-        <!-- ฟอร์มกรอกข้อมูล Ass'y -->
-<div class="card bg-dark text-white border-secondary mb-4">
-    <div class="card-body">
-        <form id="assyForm" onsubmit="submitAssy(event)">
-            <div class="row g-3">
-                <div class="col-md-2">
-                    <label class="form-label">วันที่</label>
-                    <input type="date" class="form-control" id="assyDate" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Part No.</label>
-                    <select class="form-select" id="assyPartNo" onchange="onAssyPartChange()" required>
-                        <option value="">-- เลือก Part No. --</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Line การผลิต</label>
-                    <select class="form-select" id="assyLine" required>
-                        <option value="">-- เลือก Line --</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Lot No.</label>
-                    <select class="form-select" id="assyLotNo" required>
-                        <option value="">-- เลือก Lot No. --</option>
-                    </select>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">จำนวน</label>
-                    <input type="number" class="form-control" id="assyQty" min="1" placeholder="0" required>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">ผู้บันทึก</label>
-                    <input type="text" class="form-control" id="assyOperator" placeholder="ชื่อพนักงาน" required>
-                </div>
-            </div>
-            <div class="mt-3 text-end">
-                <button type="submit" class="btn btn-warning fw-bold px-4">
-                    <i class="fas fa-save me-2"></i>บันทึก Ass'y
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-        <!-- ตารางแสดงประวัติ -->
-        <div class="card bg-dark text-white border-secondary">
-            <div class="card-header bg-secondary text-white fw-bold">
-                <i class="fas fa-list me-2"></i>ประวัติการทำ Ass'y / Spot ล่าสุด
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-dark table-striped table-hover mb-0 align-middle">
-                        <thead>
-                            <tr>
-                                <th>วันที่</th>
-                                <th>Line</th>
-                                <th>Part No.</th>
-                                <th>Lot No.</th>
-                                <th>จำนวน</th>
-                                <th>ผู้บันทึก</th>
-                                <th>จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="assyTableBody">
-                            <tr>
-                                <td colspan="7" class="text-center text-muted">ยังไม่มีประวัติการทำ Ass'y</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 <!-- TAB: Q-GATE INSPECTION -->
 <div class="tab-pane fade" id="tab-qgate">
     <div class="row g-3">
@@ -995,35 +912,11 @@
     
     let plans = [];
     let actuals = [];
-    let assyRecords = [];
     let qgate = [];
     let deliveries = [];
     let bms = [];
     let currentFilterLine = 'ALL';
-function handleLogin() {
-    var pass = document.getElementById('loginPassword').value.trim();
-    var overlay = document.getElementById('loginOverlay');
-    var errorMsg = document.getElementById('loginError');
 
-    if (pass === "1111" || pass === "2222" || pass === "3333" || pass === "9999") {
-        if (overlay) {
-            overlay.style.display = 'none';
-        }
-    } else {
-        if (errorMsg) {
-            errorMsg.style.display = 'block';
-        }
-    }
-}
-
-document.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        var overlay = document.getElementById('loginOverlay');
-        if (overlay && overlay.style.display !== 'none') {
-            handleLogin();
-        }
-    }
-});
     // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
     async function loadAllDataFromCloud() {
         try {
@@ -1679,18 +1572,20 @@ function onActualPartChange() {
     document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
 }
 
-// 1. ฟังก์ชันบันทึกการผลิตแบบล็อกเป้าพาร์ท Assy แยกออกจาก WIP เด็ดขาด
 function submitActual(e) {
     e.preventDefault();
     
+    // 1. ดึงค่า Part No. หลัก และ Process ที่พนักงานพิมพ์เพิ่ม
     const basePartNo = document.getElementById('actualPartNo').value;
     const processSuffix = document.getElementById('actualProcess').value.trim();
 
+    // 2. รวมร่าง Part No. กับ Process (เช่น "17154-0T040 1/3")
     let finalPartNo = basePartNo;
     if (processSuffix !== '') {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
     const startTime = document.getElementById('workStartTime') ? document.getElementById('workStartTime').value : '';
     const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
     const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
@@ -1700,63 +1595,57 @@ function submitActual(e) {
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
-        partNo: finalPartNo,
+        partNo: finalPartNo, // ใช้วิธีรวม Process
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
-        timeWork: timeRange,
+        timeWork: timeRange, // 👈 เพิ่มฟิลด์ช่วงเวลาทำงาน
         remark: document.getElementById('actualRemark').value.trim()
     };
 
-    // เช็คสถานะ Assy จาก Master Parts ก่อนบันทึก
-    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    const cleanBase = basePartNo.trim().toUpperCase();
-    const matchedMaster = masterData.find(m => {
-        const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
-        return mPart === cleanBase || cleanBase.startsWith(mPart);
-    });
-    
-    const isAssyPart = matchedMaster && (
-        matchedMaster.assy === true || 
-        String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
-        matchedMaster['Assy'] === true || 
-        String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
-        matchedMaster['ASSY'] === true || 
-        String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
-        matchedMaster[6] === true || 
-        String(matchedMaster[6]).toUpperCase() === 'TRUE'
-    );
-
-    // ส่งข้อมูลไปบันทึกที่ Google Sheets
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: isAssyPart ? 'saveAssy' : 'saveActual', data: actual })
+        body: JSON.stringify({ action: 'saveActual', data: actual })
     })
     .then(response => response.json())
     .then(result => {
         if (result.status === "success") {
-            if (isAssyPart) {
-                // ถ้าเป็น Assy ให้เก็บเข้าตัวแปร Assy โดยตรง ห้ามเข้า actuals ของ WIP
-                if (typeof assyRecords !== 'undefined') {
-                    assyRecords.push(actual);
+            actuals.push(actual);
+
+            // ---------------------------------------------------------
+            // เงื่อนไข: ถ้าระบุ Process จะ "ไม่นำเข้า Stock WIP" จะเข้าเฉพาะขั้นตอนสุดท้าย
+            // ---------------------------------------------------------
+            if (processSuffix === '' && typeof wipStock !== 'undefined') {
+                const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
+                if (existingWip) {
+                    existingWip.qty = (Number(existingWip.qty) || 0) + actual.qty;
+                } else {
+                    wipStock.push({
+                        date: actual.date,
+                        line: actual.line,
+                        partNo: actual.partNo,
+                        lotNo: actual.lotNo,
+                        qty: actual.qty
+                    });
                 }
-                alert("บันทึกสำเร็จ! (พาร์ท Ass'y ถูกส่งตรงไปหน้า Ass'y / Spot เรียบร้อย)");
+                if (typeof renderWipStock === 'function') renderWipStock();
+                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
             } else {
-                // ถ้าไม่ใช่ Assy ให้เก็บเข้า actuals ปกติเพื่อเข้า Stock WIP
-                actuals.push(actual);
-                alert("บันทึกข้อมูลสำเร็จ!");
+                console.log("ข้ามการเข้า Stock WIP เนื่องจากเป็นกระบวนการย่อย:", processSuffix);
             }
+            // ---------------------------------------------------------
 
             document.getElementById('actualForm').reset();
             document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
-            if (typeof checkAndLoadPlans === 'function') checkAndLoadPlans();
-            if (typeof renderActuals === 'function') renderActuals();
-            if (typeof renderAssyTable === 'function') renderAssyTable();
-            if (typeof renderStock === 'function') renderStock();
+            checkAndLoadPlans();
+            renderActuals();
             
             if (typeof loadAllData === 'function') {
                 loadAllData();
             }
+
+            alert("บันทึกข้อมูลสำเร็จ!");
         } else {
             alert("บันทึกไม่สำเร็จ: " + result.message);
         }
@@ -1766,6 +1655,7 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
+
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
@@ -1785,7 +1675,7 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    timeWork: item.timeWork || item['Time'] || item['Time Work'] || '-', 
+                    timeWork: item.timeWork || item['Time'] || item['Time Work'] || '-', // 👈 รองรับการโหลดเวลา
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
@@ -1796,6 +1686,8 @@ function loadActualsFromCloud() {
         .catch(err => console.error("Error loading Actuals:", err));
 }
 
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
@@ -1825,7 +1717,8 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a.time || '-';
+        // ⏱️ ดึงค่าฟิลด์ timeWork จาก Google Sheets มาแสดงผลตรงนี้
+       const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a.time || '-';
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
         const remarkval = a.remark || a['Remark'] || '-';
@@ -1850,7 +1743,6 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 }
-
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
@@ -1864,29 +1756,14 @@ function loadAllData() {
             
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
-                const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-
                 actuals.forEach(a => {
                     const pNo = a.partNo || a['Part No.'] || '';
                     const lNo = a.lotNo || a['Lot No.'] || '';
                     const okQty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     
-                    const basePart = pNo.split(' ')[0];
-                    const matchedMaster = masterData.find(m => String(m.partNo || m['Part No.'] || '').trim() === String(basePart).trim());
-                    
-                    const isAssyPart = matchedMaster && (
-                        matchedMaster.assy === true || 
-                        String(matchedMaster.assy).toUpperCase() === 'TRUE' || 
-                        matchedMaster['Assy'] === true || 
-                        String(matchedMaster['Assy']).toUpperCase() === 'TRUE' || 
-                        matchedMaster[6] === true || 
-                        String(matchedMaster[6]).toUpperCase() === 'TRUE'
-                    );
-
                     const hasSubProcess = pNo.includes('/') || /\s+\d+\/\d+/.test(pNo);
 
-                    // ถ้ารักษาเงื่อนไข: ไม่ใช่พาร์ท Assy และไม่มี Sub Process ถึงจะวิ่งเข้า Stock WIP อัตโนมัติ
-                    if (pNo && !hasSubProcess && !isAssyPart) {
+                    if (pNo && !hasSubProcess) {
                         let existing = wipStock.find(w => w.partNo === pNo && w.lotNo === lNo);
                         if (existing) {
                             existing.qty += okQty;
@@ -1913,7 +1790,6 @@ function loadAllData() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
-
 // ฟังก์ชันสร้างเสียง Beep แจ้งเตือนแบบไม่ต้องง้อไฟล์เสียง
 function playSystemBeep() {
     try {
@@ -1921,15 +1797,15 @@ function playSystemBeep() {
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         
-        oscillator.type = 'square'; 
-        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); 
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+        oscillator.type = 'square'; // เสียงแบบเครื่องจักร/แจ้งเตือน
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); // ความถี่เสียง (ยิ่งเยอะยิ่งแหลม)
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // ความดัง
         
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.2); 
+        oscillator.stop(audioCtx.currentTime + 0.2); // ดัง 0.2 วินาทีแล้วดับ
     } catch (e) {
         console.log("Audio not supported");
     }
@@ -1945,6 +1821,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const scannedVal = this.value.trim();
                 if (!scannedVal) return;
 
+                // 1. แปลงบาร์โค้ดเป็น Part No. จาก MasterParts
                 const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
                 const found = masterData.find(item => 
                     String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === scannedVal.toLowerCase() || 
@@ -1954,6 +1831,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
                 this.value = targetPartNo;
 
+                // 2. ค้นหาช่อง Dropdown Part No. ของแผน
                 const partSelectEl = document.getElementById('actualPartNo') || document.querySelector('select[name*="part"], select[id*="part"]');
                 if (partSelectEl) {
                     let matched = false;
@@ -1965,11 +1843,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
+                    // เช็กว่าเจอในแผนหรือไม่
                     if (matched) {
+                        // เจอในแผน -> เล่นเสียง success ของระบบเดิม
                         if (typeof playBeep === 'function') playBeep('success');
                     } else {
+                        // ไม่เจอในแผน -> เล่นเสียง Beep ที่สร้างใหม่ (ดังชัวร์)
                         playSystemBeep(); 
                         
+                        // เพิ่ม Option สำรองกรณีไม่อยู่ในแผน
                         const newOpt = document.createElement('option');
                         newOpt.value = targetPartNo;
                         newOpt.text = targetPartNo + " (นอกแผน)";
@@ -1984,6 +1866,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.dispatchEvent(new Event('input', { bubbles: true }));
                 this.dispatchEvent(new Event('change', { bubbles: true }));
 
+                // โฟกัสไปที่ช่องกรอกจำนวนอัตโนมัติ
                 setTimeout(() => {
                     const qtyInput = document.querySelector('input[type="number"], input[id*="qty"]');
                     if (qtyInput) {
@@ -1996,10 +1879,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
      // ==========================================
+// 📌 ระบบจัดการ Q-Gate Inspection & History
 // ==========================================
-// 📌 ระบบจัดการ Q-Gate Inspection & History & Stock WIP
-// ==========================================
-
 // ดักจับหน้าต่าง Alert ของ Q-Gate ให้ข้ามอัตโนมัติ ไม่ต้องกด OK
 if (typeof originalQGateAlert === 'undefined') {
     var originalQGateAlert = window.alert;
@@ -2007,19 +1888,6 @@ if (typeof originalQGateAlert === 'undefined') {
         console.log("Q-Gate Auto-skipped alert: " + msg);
     };
 }
-
-// ตั้งค่าเมื่อโหลดหน้าเว็บ
-document.addEventListener("DOMContentLoaded", function() {
-    const today = new Date().toISOString().split('T')[0];
-    if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
-    
-    // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
-    renderQGate();
-    if (typeof checkAndLoadWipForQGate === 'function') {
-        checkAndLoadWipForQGate();
-    }
-});
-
 // ฟังก์ชันสแกนบาร์โค้ด แปลงร่าง และดึงแผนการผลิตมาผูกอัตโนมัติ
 document.addEventListener('DOMContentLoaded', () => {
     const barcodeInput = document.querySelector('input[placeholder*="Scan Barcode"], input[id*="barcode"], input[id*="Barcode"]');
@@ -2041,7 +1909,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
                 this.value = targetPartNo;
 
-                // 2. ตรวจสอบและดึงแผนการผลิตมาแสดงใน Dropdown
+                // 2. ตรวจสอบและดึงแผนการผลิต (Planning) มาแสดงใน Dropdown
                 const partSelectEl = document.querySelector('select');
                 if (partSelectEl) {
                     let matched = false;
@@ -2053,6 +1921,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
+                    // ถ้าในแผนยังไม่มี ให้ดึงข้อมูลแผนจากตัวแปร plans หรือ localStorage มาเติมลง Dropdown ให้ทันที
                     if (!matched && targetPartNo) {
                         const newOpt = document.createElement('option');
                         newOpt.value = targetPartNo;
@@ -2067,8 +1936,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.dispatchEvent(new Event('input', { bubbles: true }));
                 this.dispatchEvent(new Event('change', { bubbles: true }));
 
+                // เล่นเสียงสำเร็จ (ถ้ามีฟังก์ชัน)
                 if (typeof playBeep === 'function') playBeep('success');
 
+                // โฟกัสไปที่ช่องกรอกจำนวนต่อทันที
                 setTimeout(() => {
                     const qtyInput = document.querySelector('input[type="number"], input[id*="qty"]');
                     if (qtyInput) {
@@ -2082,8 +1953,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
-// รองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. ในหน้า Q-Gate
+// รองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. ในหน้า Q-Gate (ตัดจำนวนออก เอาเฉพาะ Part No. เพียวๆ)
 const qgateInputEl = document.getElementById('qgatePartSearch') || document.querySelector('input[placeholder*="พิมพ์เพื่อกรองหา Part No"]');
 if (qgateInputEl) {
     qgateInputEl.addEventListener('keypress', function(e) {
@@ -2095,7 +1965,7 @@ if (qgateInputEl) {
             let partNo = "";
 
             if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
-                parts.pop(); 
+                parts.pop(); // ตัดจำนวนข้างหลังจาก Tag ออก เอาเฉพาะ Part No.
                 partNo = parts.join('-');
             } else {
                 partNo = rawBarcode;
@@ -2105,8 +1975,9 @@ if (qgateInputEl) {
             qgateInputEl.dispatchEvent(new Event('input', { bubbles: true }));
             qgateInputEl.dispatchEvent(new Event('change', { bubbles: true }));
 
-            if (typeof playBeep === 'function') playBeep('success');
+            playBeep('success'); // เสียงสแกนสำเร็จ
 
+            // โฟกัสไปที่ช่องกรอกจำนวนตรวจสอบอัตโนมัติ เพื่อให้คีย์จำนวนต่อได้ทันที
             setTimeout(() => {
                 const inspectQtyInput = document.getElementById('qgateTotalQty') || document.querySelector('input[name="inspectQty"], #inspectQty');
                 if (inspectQtyInput) {
@@ -2117,7 +1988,17 @@ if (qgateInputEl) {
         }
     });
 }
-
+// ตั้งค่าวันที่ปัจจุบันเมื่อเปิดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", function() {
+    const today = new Date().toISOString().split('T')[0];
+    if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
+    
+    // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
+    renderQGate();
+    if (typeof checkAndLoadWipForQGate === 'function') {
+        checkAndLoadWipForQGate();
+    }
+});
 // ฟังก์ชันกรองรายชื่อ Part No. ตามคำค้นหาในหน้า Q-Gate
 const searchInput = document.getElementById('qgatePartSearch');
 if (searchInput) {
@@ -2128,15 +2009,16 @@ if (searchInput) {
         
         const options = selectEl.options;
         for (let i = 0; i < options.length; i++) {
-            if (i === 0) continue; 
+            if (i === 0) continue; // ข้ามตัวเลือกแรก (-- เลือก Part No. --)
             const text = options[i].text.toLowerCase();
             options[i].style.display = text.includes(keyword) ? '' : 'none';
         }
     });
 }
-
+// ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
+    // 📌 ใช้ .slice().reverse() เพื่อสลับให้ข้อมูลใหม่ล่าสุดขึ้นมาอยู่ด้านบนสุด
     const qgateHistory = (qgate || []).slice().reverse();
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
@@ -2146,16 +2028,17 @@ function renderQGate() {
             historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
             qgateHistory.forEach(item => {
-                let displayDate = '';
-                if (item.date) {
-                    const d = new Date(item.date);
-                    if (!isNaN(d.getTime())) {
-                        const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-                        displayDate = localD.toISOString().split('T')[0];
-                    } else {
-                        displayDate = String(item.date).substring(0, 10);
-                    }
+              // แปลงวันที่ให้ตรงกับเวลาไทย (+7 ชม.) ป้องกันวันถอยหลังจาก Google Sheets
+            let displayDate = '';
+            if (item.date) {
+                const d = new Date(item.date);
+                if (!isNaN(d.getTime())) {
+                    const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                    displayDate = localD.toISOString().split('T')[0];
+                } else {
+                    displayDate = String(item.date).substring(0, 10);
                 }
+            }
 
                 historyBody.innerHTML += `
                     <tr>
@@ -2177,7 +2060,7 @@ function renderQGate() {
         }
     }
 }
-
+// ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม-สิ้นสุด)
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม - สิ้นสุด)
 function submitQGateTransaction(e) {
     e.preventDefault();
@@ -2214,7 +2097,7 @@ function submitQGateTransaction(e) {
 
     qgate.unshift(newItem);
     if (typeof saveAll === 'function') {
-        saveAll('saveQgate', newItem); 
+        saveAll('saveQgate', newItem); // ส่งข้อมูลชิ้นใหม่ไปบันทึกลง Google Sheets
     }
 
     alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
@@ -2246,97 +2129,39 @@ function deleteQGateItem(id) {
     }
 }
 
-// 📌 ฟังก์ชันโหลด Part No. และคำนวณ Stock WIP สำหรับหน้า Q-Gate (แยกพาร์ทปกติ vs พาร์ท Assy ถูกต้อง 100%)
+// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
 function checkAndLoadWipForQGate() {
     const selectPart = document.getElementById('qgatePartNo');
     if (!selectPart) return;
     
     selectPart.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
 
-    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-
-  // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่ (โหลดและเช็คค่าจาก MasterParts โดยตรง 100%)
-function checkIfAssy(fullPartStr) {
-    if (!fullPartStr) return false;
-    const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
+    // คำนวณยอด WIP ปัจจุบันจาก actuals และ qgate
+    const wipMap = {};
     
-    // ดึงข้อมูล Master Parts ล่าสุดจาก LocalStorage
-    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    if (masterData.length === 0) return false;
-
-    const matchedMaster = masterData.find(m => {
-        const mPart = String(
-            m.partNo || m['Part No.'] || m['รหัสพาร์ท'] || m[1] || ''
-        ).trim().toUpperCase();
-        return mPart === cleanBase || cleanBase.startsWith(mPart);
-    });
-    
-    if (!matchedMaster) return false;
-
-    // ตรวจสอบทุกคอลัมน์ที่เป็นไปได้ว่ามีการระบุ Assy เป็น TRUE หรือไม่ (รวมถึงคอลัมน์ G / Index 6)
-    const assyValues = [
-        matchedMaster.assy,
-        matchedMaster['Assy'],
-        matchedMaster['ASSY'],
-        matchedMaster['assy'],
-        matchedMaster[6],
-        matchedMaster['คอลัมน์G']
-    ];
-
-    return assyValues.some(val => {
-        if (val === true) return true;
-        if (typeof val === 'string' && val.trim().toUpperCase() === 'TRUE') return true;
-        return false;
-    });
-}
-
-const wipMap = {};
-
-// 1. รวบรวมรายชื่อ Part ทั้งหมดจากทุกหน้า เพื่อไม่ให้ข้อมูลตกหล่น
-const allParts = new Set([
-    ...(typeof actuals !== 'undefined' ? actuals.map(a => a.partNo || a['Part No.'] || '') : []),
-    ...(typeof qgate !== 'undefined' ? qgate.map(q => q.partNo || q['Part No.'] || '') : []),
-    ...(typeof deliveries !== 'undefined' ? deliveries.map(d => d.partNo || d['Part No.'] || '') : []),
-    ...(typeof assyRecords !== 'undefined' ? assyRecords.map(as => as.partNo || as['Part No.'] || '') : [])
-]);
-
-// 2. คำนวณยอดรับเข้า WIP แยกตามประเภทพาร์ท
-allParts.forEach(pNo => {
-    if (!pNo) return;
-    const isAssy = checkIfAssy(pNo);
-
-    if (isAssy) {
-        // 🛑 พาร์ท Assy: ต้องมาจากหน้า Ass'y / Spot เท่านั้น ห้ามเอาจาก actuals!
-        let assyIn = (typeof assyRecords !== 'undefined' ? assyRecords : [])
-            .filter(as => (as.partNo || as['Part No.'] || '') === pNo)
-            .reduce((sum, as) => sum + Number(as.qty !== undefined ? as.qty : (as['จำนวน'] || 0)), 0);
-        
-        if (assyIn > 0) {
-            wipMap[pNo] = (wipMap[pNo] || 0) + assyIn;
-        }
-    } else {
-        // 🟢 พาร์ทปกติ: มาจากหน้าผลิตปกติ (actuals)
-        let normalIn = (typeof actuals !== 'undefined' ? actuals : [])
-            .filter(a => (a.partNo || a['Part No.'] || '') === pNo)
-            .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
-        
-        if (normalIn > 0) {
-            wipMap[pNo] = (wipMap[pNo] || 0) + normalIn;
-        }
-    }
-});
-    // 3. หักยอดที่ตรวจ Q-Gate ไปแล้วออก
-    if (typeof qgate !== 'undefined') {
-        qgate.forEach(q => {
-            let pNo = q.partNo || q['Part No.'] || '';
-            let qty = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || (Number(q.passQty || 0) + Number(q.ngQty || 0))));
-            if (pNo && wipMap[pNo] !== undefined) {
-                wipMap[pNo] -= qty;
+    // ยอดเข้าจาก actuals
+    if (typeof actuals !== 'undefined') {
+        actuals.forEach(a => {
+            let pNo = a.partNo || a['Part No.'] || '';
+            let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+            if (pNo) {
+                wipMap[pNo] = (wipMap[pNo] || 0) + qty;
             }
         });
     }
 
-    // 4. แสดงเฉพาะตัวที่มี WIP คงเหลือมากกว่า 0 ใน Dropdown Q-Gate
+    // หักยอดที่ตรวจ Q-Gate ไปแล้ว
+    if (typeof qgate !== 'undefined') {
+        qgate.forEach(q => {
+            let pNo = q.partNo || q['Part No.'] || '';
+            let qty = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || 0));
+            if (pNo) {
+                wipMap[pNo] = (wipMap[pNo] || 0) - qty;
+            }
+        });
+    }
+
+    // แสดงเฉพาะตัวที่มี WIP คงเหลือมากกว่า 0
     Object.keys(wipMap).forEach(partNo => {
         let currentWip = wipMap[partNo];
         if (currentWip > 0) {
@@ -2347,22 +2172,22 @@ allParts.forEach(pNo => {
         }
     });
 }
-
-// ฟังก์ชันทำงานเมื่อพนักงานเปลี่ยน Line
+        // ฟังก์ชันทำงานเมื่อพนักงานเปลี่ยน Line
 function filterQGateParts() {
     const selectedLine = document.getElementById('qgateLineFilter').value;
     const partSelect = document.getElementById('qgatePartSelect');
     
-    if (!partSelect) return;
+    // ล้างตัวเลือกเก่า
     partSelect.innerHTML = '<option value="">-- เลือก Part No. --</option>';
-    if(document.getElementById('qgateWipHint')) {
-        document.getElementById('qgateWipHint').innerText = 'คงเหลือใน WIP: 0 ชิ้น';
-    }
+    document.getElementById('qgateWipHint').innerText = 'คงเหลือใน WIP: 0 ชิ้น';
 
     if (!selectedLine) return;
 
+    // กรองหา Part No. ที่มีอยู่ใน WIP หรือ Actual Production เฉพาะ Line ที่เลือก
+    // (สมมติฐานดึงจากข้อมูล WIP หรือ Actuals ที่ผูกกับ Line นั้นๆ)
     const availableParts = new Set();
     
+    // ตัวอย่างการค้นหาจากรายการ Actuals หรือ Stock WIP ที่ตรงกับ Line
     if (typeof actuals !== 'undefined') {
         actuals.forEach(a => {
             let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
@@ -2374,6 +2199,7 @@ function filterQGateParts() {
         });
     }
 
+    // เติมตัวเลือก Part No. ลงใน Dropdown
     if (availableParts.size === 0) {
         partSelect.innerHTML = '<option value="">-- ไม่พบ Part No. ใน Line นี้ --</option>';
     } else {
@@ -2387,17 +2213,17 @@ function filterQGateParts() {
 }
 
 function updateQGateWipInfo() {
+    // 📌 แก้ไขตรง ID ให้ตรงกับ HTML เป็น 'qgatePartNo'
     const selectedPart = document.getElementById('qgatePartNo').value;
-    if (typeof updateQGatePartImage === 'function') {
-        updateQGatePartImage(selectedPart);
-    }
+    
+    // สั่งให้แสดงรูปภาพจากคอลัมน์ E ทันทีที่เลือกพาร์ท
+    updateQGatePartImage(selectedPart);
 
+    // คำนวณจำนวนคงเหลือใน WIP (โค้ดเดิมของพี่)
     let wipQty = 0;
-    if(document.getElementById('qgateWipHint')) {
-        document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
-    }
+    document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
 }
- // --- TAB 6: STOCK WIP & FG ---
+      // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
     // รับเข้า FG จาก Q-Gate
@@ -2421,93 +2247,64 @@ function getFgBalances() {
     return fgMap;
 }
 
-// --- TAB 6: STOCK WIP & FG ---
-function getFgBalances() {
-    const fgMap = {};
-    qgate.forEach(q => {
-        const pNo = q.partNo || q['Part No.'] || '';
-        const pQty = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0));
-        if(pNo) {
-            if(!fgMap[pNo]) fgMap[pNo] = 0;
-            fgMap[pNo] += pQty;
-        }
-    });
-    deliveries.forEach(d => {
-        const pNo = d.partNo || d['Part No.'] || '';
-        const dQty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0));
-        if(pNo) {
-            if(!fgMap[pNo]) fgMap[pNo] = 0;
-            fgMap[pNo] -= dQty;
-        }
-    });
-    return fgMap;
-}
-
 function renderStock() {
+    // ประกาศดึงตัวแปรสดๆ ไว้ข้างในฟังก์ชันเลย ป้องกันการหาไม่พบ
     const wipbody = document.getElementById('wipTableBody');
     const fgtbody = document.getElementById('fgTableBody');
     if (!wipbody || !fgtbody) return;
 
     wipbody.innerHTML = '';
-    fgtbody.innerHTML = '';
+    fgtbody.innerHTML = ''; // แก้จาก fgTbody เป็น fgtbody เรียบร้อยแล้วครับ
 
-    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    // ดึง Part No. จากทุกส่วนรองรับทั้งพิมพ์เล็ก/ใหญ่
+    const partsSet = new Set([
+        ...actuals.map(a => a.partNo || a['Part No.'] || ''),
+        ...qgate.map(q => q.partNo || q['Part No.'] || ''),
+        ...deliveries.map(d => d.partNo || d['Part No.'] || '')
+    ]);
 
-    // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่
-   
-        // ==========================================
-        // 1. ตาราง Stock WIP (แยกพาร์ทปกติ vs พาร์ท Assy ถูกต้อง)
-        // ==========================================
-        let totalIn = 0;
-        let sourceLabel = '';
+    partsSet.forEach(partNo => {
+        if(!partNo) return;
 
-        if (isAssy) {
-            // 🛑 พาร์ท Assy: นับยอดรับเข้าจากหน้า Ass'y เท่านั้น ห้ามเอา actuals
-            totalIn = (typeof assyRecords !== 'undefined' ? assyRecords : [])
-                .filter(as => (as.partNo || as['Part No.'] || '') === partNo)
-                .reduce((sum, as) => sum + Number(as.qty !== undefined ? as.qty : (as['จำนวน'] || 0)), 0);
-            sourceLabel = ' <small class="text-muted">(จาก Ass\'y)</small>';
-        } else {
-            // 🟢 พาร์ทปกติ: นับยอดรับเข้าจากหน้าผลิตปกติ (actuals)
-            totalIn = actuals
-                .filter(a => (a.partNo || a['Part No.'] || '') === partNo)
-                .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
-        }
+        // WIP Summary (ยอดผลิตเข้า WIP ทั้งหมด)
+        const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+            let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+            return sum + (isNaN(val) ? 0 : val);
+        }, 0);
 
-        const totalTransferred = qgate
-            .filter(q => (q.partNo || q['Part No.'] || '') === partNo)
-            .reduce((sum, q) => sum + Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || 0) + Number(q.ngQty || 0)))), 0);
+        // WIP Summary (ยอดตัดโอนออกไป FG)
+        const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+            let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+            return sum + (isNaN(val) ? 0 : val);
+        }, 0);
 
         const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
         const currentwip = (totalIn - totalTransferred) + adjustWip;
 
-        // แสดงเฉพาะพาร์ทที่มีการเคลื่อนไหวหรือมี WIP คงเหลือ (หรือเป็นพาร์ท Assy บังคับโชว์)
-        if (totalIn > 0 || currentwip > 0 || isAssy) {
-            const trwip = document.createElement('tr');
-            trwip.innerHTML = `
-                <td class="fw-bold text-info">${partNo}</td>
-                <td>${totalIn.toLocaleString()}${sourceLabel}</td>
-                <td>${totalTransferred.toLocaleString()}</td>
-                <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
-                        <i class="fas fa-edit"></i> ปรับ
-                    </button>
-                </td>
-            `;
-            wipbody.appendChild(trwip);
-        }
+        const trwip = document.createElement('tr');
+        trwip.innerHTML = `
+            <td class="fw-bold text-info">${partNo}</td>
+            <td>${totalIn.toLocaleString()}</td>
+            <td>${totalTransferred.toLocaleString()}</td>
+            <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
+                    <i class="fas fa-edit"></i> ปรับ
+                </button>
+            </td>
+        `;
+        wipbody.appendChild(trwip);
 
-        // ==========================================
-        // 2. ตาราง Stock FG (ทำงานปกติทุกพาร์ท)
-        // ==========================================
-        const fgPass = qgate
-            .filter(q => (q.partNo || q['Part No.'] || '') === partNo)
-            .reduce((sum, q) => sum + Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || 0)), 0);
+        // FG Summary
+        const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+            let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
+            return sum + (isNaN(val) ? 0 : val);
+        }, 0);
 
-        const fgDelivered = deliveries
-            .filter(d => (d.partNo || d['Part No.'] || '') === partNo)
-            .reduce((sum, d) => sum + Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || 0)), 0);
+        const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
+            let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['จำนวนส่งมอบ'] || 0));
+            return sum + (isNaN(val) ? 0 : val);
+        }, 0);
 
         const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
         const currentFg = (fgPass - fgDelivered) + adjustFg;
@@ -2529,7 +2326,7 @@ function renderStock() {
     });
 }
 
-// 📌 ฟังก์ชันสำหรับแอดมินปรับเพิ่ม/ลดสต็อกสิ้นเดือน
+// 📌 ฟังก์ชันสำหรับแอดมินปรับเพิ่ม/ลดสต็อกสิ้นเดือน (วางไว้ท้ายสุดได้เลย)
 function adjustStock(partNo, type) {
     const key = `stock_adjust_${type}_${partNo}`;
     const currentVal = localStorage.getItem(key) || 0;
@@ -2540,6 +2337,7 @@ function adjustStock(partNo, type) {
         if (!isNaN(val)) {
             localStorage.setItem(key, val);
 
+            // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
             if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
@@ -3451,25 +3249,7 @@ function loadAllDataFromCloud() {
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
-// ดึงข้อมูล Ass'y จาก Google Sheets
-    fetch(scriptUrl + "?action=getAssyRecords")
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                assyRecords = res.data.map(d => ({
-                    id: d.id || Date.now(),
-                    date: d.date || d['วันที่'] || '',
-                    line: d.line || d['Line'] || '',
-                    partNo: d.partNo || d['Part No.'] || '',
-                    lotNo: d.lotNo || d['Lot No.'] || '',
-                    qty: Number(d.qty !== undefined ? d.qty : d['Qty'] || 0),
-                    operator: d.operator || d['Operator'] || '-'
-                }));
-            }
-            if (typeof renderAssyTable === 'function') renderAssyTable();
-            if (typeof renderStock === 'function') renderStock();
-        })
-        .catch(err => console.error("Error loading assy records:", err));
+
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
         .then(res => res.json())
@@ -3512,7 +3292,6 @@ function loadAllDataFromCloud() {
                 }
             })
             .catch(err => console.error("Error loading deliveries:", err));
-    
     // ดึงข้อมูล BMS (รับ-จ่าย Material) จาก Google Sheets
     fetch(scriptUrl + "?action=getBms")
         .then(res => res.json())
@@ -4206,7 +3985,30 @@ document.addEventListener('change', function(e) {
     }
 });
 
+function handleLogin() {
+    var pass = document.getElementById('loginPassword').value.trim();
+    var overlay = document.getElementById('loginOverlay');
+    var errorMsg = document.getElementById('loginError');
 
+    if (pass === "1111" || pass === "2222" || pass === "3333" || pass === "9999") {
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+    } else {
+        if (errorMsg) {
+            errorMsg.style.display = 'block';
+        }
+    }
+}
+
+document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        var overlay = document.getElementById('loginOverlay');
+        if (overlay && overlay.style.display !== 'none') {
+            handleLogin();
+        }
+    }
+});
    
 function printRepairForm(date, partNo, problem, reporter, imageSrc, dieNo = '-', model = '-', partName = '-', stroke = '-') {
     let printWindow = window.open('', '_blank', 'height=1000,width=1000');
@@ -4740,183 +4542,6 @@ window.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
 });
-        // โหลดประวัติ Ass'y จาก Cloud อัตโนมัติเมื่อเปิดเว็บ
-    fetch(`${scriptUrl}?action=getAssyRecords`)
-        .then(response => response.json())
-        .then(result => {
-            if (result && result.status === "success" && Array.isArray(result.data)) {
-                assyRecords = result.data;
-                if (typeof renderAssyTable === 'function') renderAssyTable();
-                if (typeof renderStock === 'function') renderStock();
-                console.log("🟢 โหลดประวัติ Ass'y สำเร็จ:", assyRecords.length, "รายการ");
-            }
-        })
-        .catch(err => console.error("❌ โหลดประวัติ Ass'y ไม่สำเร็จ:", err));
-      // --- Ass'y / Spot Process ---
-function submitAssy(e) {
-    e.preventDefault();
-    
-    const assyData = {
-        id: Date.now(),
-        date: document.getElementById('assyDate').value,
-        line: document.getElementById('assyLine').value,
-        partNo: document.getElementById('assyPartNo').value,
-        lotNo: document.getElementById('assyLotNo').value,
-        qty: Number(document.getElementById('assyQty').value),
-        operator: document.getElementById('assyOperator').value.trim()
-    };
-
-    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
-    fetch(scriptUrl, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'saveAssy', data: assyData })
-    })
-    .then(res => res.json())
-    .then(result => {
-        assyRecords.push(assyData);
-
-        if (typeof wipStock !== 'undefined') {
-            const existingWip = wipStock.find(w => w.partNo === assyData.partNo && w.lotNo === assyData.lotNo);
-            if (existingWip) {
-                existingWip.qty += assyData.qty;
-            } else {
-                wipStock.push({
-                    line: assyData.line,
-                    partNo: assyData.partNo,
-                    lotNo: assyData.lotNo,
-                    qty: assyData.qty
-                });
-            }
-            if (typeof renderWipStock === 'function') renderWipStock();
-            if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-        }
-
-        document.getElementById('assyForm').reset();
-        document.getElementById('assyDate').value = new Date().toISOString().split('T')[0];
-        renderAssyTable();
-        alert("บันทึก Ass'y และส่งเข้า Stock WIP สำเร็จ!");
-    })
-    .catch(err => {
-        console.error("Error saving assy:", err);
-        assyRecords.push(assyData);
-        renderAssyTable();
-        alert("บันทึก Ass'y สำเร็จ (Local)");
-    });
-}
-
-function renderAssyTable() {
-    const tbody = document.getElementById('assyTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    if (assyRecords.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีประวัติการทำ Ass'y</td></tr>`;
-        return;
-    }
-
-    assyRecords.forEach((item, index) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${item.date}</td>
-            <td><span class="badge bg-secondary">${item.line}</span></td>
-            <td class="fw-bold text-info">${item.partNo}</td>
-            <td>${item.lotNo}</td>
-            <td class="text-success fw-bold">${item.qty.toLocaleString()}</td>
-            <td>${item.operator}</td>
-            <td>
-                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteAssy(${index})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function deleteAssy(index) {
-    if (confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) {
-        assyRecords.splice(index, 1);
-        renderAssyTable();
-    }
-}
-
-function checkAndLoadAssyPlans() {
-    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    const selectPart = document.getElementById('assyPartNo');
-    if (!selectPart) return;
-    
-    selectPart.innerHTML = '<option value="">-- เลือก Part No. --</option>';
-
-    // 🛑 [บังคับเพิ่มพิเศษ] รายชื่อพาร์ท Assy ที่ต้องการให้โชว์ชัวร์ๆ 100%
-    const forcedAssyList = ["76344-4JG1A", "76344-4JG1"];
-
-    // กรองพาร์ทที่เป็น Assy จาก Master หรืออยู่ในรายชื่อบังคับ
-    const assyParts = masterData.filter(item => {
-        const pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
-        if (forcedAssyList.includes(pNo)) return true;
-
-        const assyVal = item.assy ?? item['Assy'] ?? item['assy'] ?? item[6];
-        return assyVal === true || String(assyVal).toUpperCase() === 'TRUE';
-    });
-    
-    // ป้องกันตัวเลือกซ้ำ
-    const addedParts = new Set();
-
-    assyParts.forEach(item => {
-        const pNo = item.partNo || item['Part No.'] || item['partNo'] || '';
-        if (pNo && !addedParts.has(pNo)) {
-            addedParts.add(pNo);
-            const opt = document.createElement('option');
-            opt.value = pNo;
-            opt.innerText = pNo;
-            selectPart.appendChild(opt);
-        }
-    });
-
-    // กำหนดวันที่เป็นปัจจุบัน
-    const dateInput = document.getElementById('assyDate');
-    if (dateInput && !dateInput.value) {
-        dateInput.value = new Date().toISOString().split('T')[0];
-    }
-}
-// เมื่อเลือก Part No. ให้ดึง Line และ Lot No. จากประวัติการผลิตจริงมาแสดงอัตโนมัติ
-function onAssyPartChange() {
-    const selectedPartNo = document.getElementById('assyPartNo').value;
-    const lineSelect = document.getElementById('assyLine');
-    const lotSelect = document.getElementById('assyLotNo');
-
-    lineSelect.innerHTML = '<option value="">-- เลือก Line --</option>';
-    lotSelect.innerHTML = '<option value="">-- เลือก Lot No. --</option>';
-
-    if (!selectedPartNo) return;
-
-    // ดึงข้อมูลจากการผลิตจริง
-    const productionRecords = typeof actuals !== 'undefined' ? actuals : JSON.parse(localStorage.getItem('actualsDatabase') || '[]');
-    
-    const matchedRecords = productionRecords.filter(r => r.partNo === selectedPartNo);
-
-    // ดึงรายการ Line ที่ไม่ซ้ำกัน
-    const uniqueLines = [...new Set(matchedRecords.map(r => r.line))];
-    uniqueLines.forEach(line => {
-        if (line) {
-            const opt = document.createElement('option');
-            opt.value = line;
-            opt.innerText = line;
-            lineSelect.appendChild(opt);
-        }
-    });
-
-    // ดึงรายการ Lot No. ที่ไม่ซ้ำกัน
-    const uniqueLots = [...new Set(matchedRecords.map(r => r.lotNo))];
-    uniqueLots.forEach(lot => {
-        if (lot) {
-            const opt = document.createElement('option');
-            opt.value = lot;
-            opt.innerText = lot;
-            lotSelect.appendChild(opt);
-        }
-    });
-}
 </script>
 </body>
 </html>
