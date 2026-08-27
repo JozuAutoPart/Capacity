@@ -488,17 +488,19 @@ function calculatePlanFromWeight() {
         return;
     }
 
-    // 2. ดึงค่าจากคอลัมน์ใน Google Sheet (รองรับหลายรูปแบบตัวพิมพ์เล็ก/ใหญ่)
+    // 2. ดึงค่าจากคอลัมน์ใน Google Sheet แบบครอบคลุมทุกรูปแบบชื่อ
     const weightPerPiece = Number(
         matchedMaster.weightPerPiece || 
         matchedMaster['Weight per piece'] || 
-        matchedMaster['weight per piece'] || 0
+        matchedMaster['weight per piece'] || 
+        matchedMaster['WEIGHT PER PIECE'] || 0
     );
     
     const piecePerSheet = Number(
         matchedMaster.piecePerSheet || 
         matchedMaster['Piece per sheet'] || 
-        matchedMaster['piece per sheet'] || 0
+        matchedMaster['piece per sheet'] || 
+        matchedMaster['PIECE PER SHEET'] || 0
     );
     
     const pcsPerTag = Number(matchedMaster.tagQty || matchedMaster['Tag Qty'] || 100);
@@ -506,7 +508,7 @@ function calculatePlanFromWeight() {
     let calculatedPcs = 0;
     let calculationText = '';
 
-    // 3. เงื่อนไขอัจฉริยะแยกตามประเภทวัสดุจาก Sheet
+    // 3. เงื่อนไขคำนวณอัตโนมัติระหว่าง Coil กับ Sheet
     if (piecePerSheet > 0 && weightPerPiece === 0) {
         // กรณีเหล็กแผ่น: จำนวนแผ่น * Piece per sheet
         calculatedPcs = Math.round(inputVal * piecePerSheet);
@@ -517,17 +519,17 @@ function calculatePlanFromWeight() {
         calculationText = `เหล็ก Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
     }
 
-    // 4. คำนวณจำนวนใบ Tag (ปัดเศษขึ้น)
+    // 4. คำนวณจำนวนใบ Tag
     let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
 
-    // 5. หยอดค่าลงช่องจำนวนแผนผลิต
+    // 5. หยอดผลลัพธ์ลงฟอร์ม
     if (inputVal > 0) {
         planQtyInput.value = calculatedPcs;
     } else {
         planQtyInput.value = '';
     }
 
-    // 6. แสดงผลแจ้งเตือนที่ Badge ด้านล่าง
+    // 6. แสดงผลที่ Badge
     if(tagBadge) {
         tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (ใบละ ${pcsPerTag} ชิ้น)`;
     }
