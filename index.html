@@ -474,12 +474,11 @@ function calculatePlanFromWeight() {
 
     if (!partNo) return;
 
-    // 1. ดึงข้อมูล Master Parts จาก LocalStorage
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
     const cleanBase = String(partNo).split(' ')[0].trim().toUpperCase();
     
     const matchedMaster = masterData.find(m => {
-        const mPart = String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase();
+        const mPart = String(m.partNo || '').trim().toUpperCase();
         return mPart === cleanBase || cleanBase.startsWith(mPart);
     });
 
@@ -488,33 +487,13 @@ function calculatePlanFromWeight() {
         return;
     }
 
-    // 2. ดึงค่าน้ำหนักต่อชิ้น
-    const weightPerPiece = Number(
-        matchedMaster.weightPerPiece || 
-        matchedMaster['Weight per piece'] || 
-        matchedMaster['weight per piece'] || 
-        matchedMaster['WEIGHT PER PIECE'] || 0
-    );
-    
-    const piecePerSheet = Number(
-        matchedMaster.piecePerSheet || 
-        matchedMaster['Piece per sheet'] || 
-        matchedMaster['piece per sheet'] || 
-        matchedMaster['PIECE PER SHEET'] || 0
-    );
-    
-    // 3. ดึงจำนวนชิ้นต่อ Tag จากคอลัมน์ C (จำนวน) ใน Google Sheet โดยตรง
-    const pcsPerTag = Number(
-        matchedMaster.jumlah || 
-        matchedMaster['จำนวน'] || 
-        matchedMaster['Tag Qty'] || 
-        matchedMaster['tagQty'] || 50 // ค่าdefalutเผื่อไว้ถ้าหาไม่เจอ
-    );
+    const weightPerPiece = Number(matchedMaster.weightPerPiece || 0);
+    const piecePerSheet = Number(matchedMaster.piecePerSheet || 0);
+    const pcsPerTag = Number(matchedMaster.tagQty || 50);
 
     let calculatedPcs = 0;
     let calculationText = '';
 
-    // 4. คำนวณจำนวนแผนผลิต (Plan Qty)
     if (piecePerSheet > 0 && weightPerPiece === 0) {
         calculatedPcs = Math.round(inputVal * piecePerSheet);
         calculationText = `เหล็กแผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
@@ -523,17 +502,14 @@ function calculatePlanFromWeight() {
         calculationText = `เหล็ก Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
     }
 
-    // 5. คำนวณจำนวนใบ Tag โดยหารด้วยจำนวนจากคอลัมน์ C จริงๆ
     let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
 
-    // 6. หยอดผลลัพธ์ลงฟอร์ม
     if (inputVal > 0) {
         planQtyInput.value = calculatedPcs;
     } else {
         planQtyInput.value = '';
     }
 
-    // 7. แสดงผลที่ Badge แจ้งจำนวนชิ้นต่อ Tag ตามตาราง
     if(tagBadge) {
         tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (ใบละ ${pcsPerTag} ชิ้นจากคอลัมน์จำนวน)`;
     }
@@ -1026,19 +1002,18 @@ async function loadAllDataFromCloud() {
         let jsonBms = await resBms.json();
         if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-        // 🔄 เพิ่มการดึง Master Parts จาก Google Sheet มาเก็บไว้คำนวณน้ำหนัก/แผ่น
+        // 🔄 ดึง Master Parts และแมตช์ชื่อคอลัมน์ภาษาอังกฤษ/ไทยให้ครบถ้วน
         let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
         let jsonMaster = await resMaster.json();
         if (jsonMaster.status === "success") {
             const rawMasterData = jsonMaster.data || [];
             const formattedMaster = rawMasterData.map(m => ({
-    barcode: m.barcode || m['barcode'] || '',
-    partNo: String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase(),
-    // เพิ่มการดึงคีย์ภาษาไทยและตัวพิมพ์ใหญ่-เล็กของช่องน้ำหนัก
-    weightPerPiece: parseFloat(m.weightPerPiece || m['Weight per piece'] || m['weight per piece'] || m['WEIGHT PER PIECE'] || 0),
-    piecePerSheet: parseFloat(m.piecePerSheet || m['Piece per sheet'] || m['piece per sheet'] || m['PIECE PER SHEET'] || 0),
-    tagQty: parseInt(m.tagQty || m['จำนวน'] || m['Tag Qty'] || 100)
-}));
+                barcode: m.barcode || m['barcode'] || '',
+                partNo: String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase(),
+                weightPerPiece: parseFloat(m.weightPerPiece || m['Weight per piece'] || m['weight per piece'] || m['WEIGHT PER PIECE'] || 0),
+                piecePerSheet: parseFloat(m.piecePerSheet || m['Piece per sheet'] || m['piece per sheet'] || m['PIECE PER SHEET'] || 0),
+                tagQty: parseInt(m.tagQty || m['จำนวน'] || m['Tag Qty'] || 100)
+            }));
             localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
         }
 
