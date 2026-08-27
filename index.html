@@ -382,7 +382,7 @@
         </div>
     </div>
 </div>
- <!-- TAB 3: PLANNING -->
+<!-- TAB 3: PLANNING -->
 <div class="tab-pane fade" id="tab-plan">
     <div class="row g-3">
         <div class="col-md-4">
@@ -490,7 +490,7 @@ async function loadAllDataFromCloud() {
         let jsonBms = await resBms.json();
         if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-        // 🔄 โหลด Master Parts
+        // 🔄 ดึง Master Parts และแมปข้อมูลแบบยืดหยุ่นรองรับทุกคอลัมน์
         let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
         let jsonMaster = await resMaster.json();
         
@@ -498,11 +498,16 @@ async function loadAllDataFromCloud() {
         if (jsonMaster.status === "success") {
             const rawMasterData = jsonMaster.data || [];
             formattedMaster = rawMasterData.map(m => {
-                // 🎯 ดึงคอลัมน์ partNo และ คอลัมน์อื่นๆ ตามหัวชีทจริงในภาพเป๊ะๆ
-                let partNoVal = m['partNo'] || m['Part No.'] || m['PARTNO'] || m[1] || '';
-                let cVal = m['จำนวน'] !== undefined ? m['จำนวน'] : 50;
-                let jVal = m['Weight per piece'] !== undefined ? m['Weight per piece'] : 0;
-                let kVal = m['Piece per sheet'] !== undefined ? m['Piece per sheet'] : 0;
+                let keys = Object.keys(m);
+                let pNoKey = keys.find(k => k.toLowerCase().includes('part') || k.toLowerCase().includes('พาร์ท'));
+                let tagKey = keys.find(k => k.includes('จำนวน') || k.toLowerCase().includes('tag') || k.toLowerCase().includes('qty'));
+                let weightKey = keys.find(k => k.toLowerCase().includes('weight') || k.toLowerCase().includes('น้ำหนัก'));
+                let sheetKey = keys.find(k => k.toLowerCase().includes('sheet') || k.toLowerCase().includes('แผ่น'));
+
+                let partNoVal = pNoKey ? m[pNoKey] : (m['Part No.'] || m['partNo'] || m[1] || '');
+                let cVal = tagKey ? m[tagKey] : (m['จำนวน'] || m[2] || 50);
+                let jVal = weightKey ? m[weightKey] : (m['Weight per piece'] || m[9] || 0);
+                let kVal = sheetKey ? m[sheetKey] : (m['Piece per sheet'] || m[10] || 0);
 
                 return {
                     partNo: String(partNoVal).trim(),
@@ -510,12 +515,12 @@ async function loadAllDataFromCloud() {
                     weightPerPiece: parseFloat(jVal) || 0,
                     piecePerSheet: parseFloat(kVal) || 0
                 };
-            }).filter(m => m.partNo !== '' && m.partNo !== 'undefined' && m.partNo !== 'null');
+            }).filter(m => m.partNo !== '' && m.partNo !== 'undefined');
 
             localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
-            console.log("✅ โหลด Master Parts สำเร็จ:", formattedMaster.length, "รายการ");
+            console.log("✅ โหลดและแมป Master Parts สำเร็จ:", formattedMaster.length, "รายการ");
 
-            // 🔑 ยัดรายชื่อพาร์ททั้งหมดลงในกล่อง Dropdown ทันที
+            // 🔑 เติมรายชื่อพาร์ททั้งหมดลงในกล่อง Dropdown ทันที
             const partNoSelect = document.getElementById('planPartNo');
             if (partNoSelect) {
                 let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
@@ -523,20 +528,7 @@ async function loadAllDataFromCloud() {
                     optionsHtml += `<option value="${m.partNo}">${m.partNo}</option>`;
                 });
                 partNoSelect.innerHTML = optionsHtml;
-                console.log("🎉 ดึงรายชื่อขึ้น Dropdown สำเร็จเรียบร้อย!");
             }
-        }
-        // 🔑 บังคับยัดข้อมูลใส่ Dropdown แบบชัวร์ 100%
-        const partNoSelect = document.getElementById('planPartNo');
-        if (partNoSelect) {
-            let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
-            formattedMaster.forEach(m => {
-                optionsHtml += `<option value="${m.partNo}">${m.partNo}</option>`;
-            });
-            partNoSelect.innerHTML = optionsHtml;
-            console.log("🎉 ยัดรายชื่อลง Dropdown สำเร็จจำนวน:", formattedMaster.length);
-        } else {
-            console.error("❌ หา Element ID 'planPartNo' ไม่พบ!");
         }
 
         if (typeof renderAll === 'function') renderAll();
@@ -545,6 +537,61 @@ async function loadAllDataFromCloud() {
         console.error("Error loading data from cloud:", error);
     }
 }
+
+function calculatePlanFromWeight() {
+    const partNoSelect = document.getElementById('planPartNo');
+    const inputElement = document.getElementById('planWeightKg');
+    const planQtyInput = document.getElementById('planQty');
+    const tagBadge = document.getElementById('tagCountBadge');
+
+    if (!partNoSelect || !inputElement) return;
+
+    const partNoVal = String(partNoSelect.value).trim().toUpperCase();
+    const inputVal = parseFloat(inputElement.value) || 0;
+
+    if (!partNoVal) return;
+
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    const matchedMaster = masterData.find(m => String(m.partNo || '').trim().toUpperCase() === partNoVal);
+
+    if (!matchedMaster) {
+        if(tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ทนี้ในระบบ</span>`;
+        if(planQtyInput) planQtyInput.value = '';
+        return;
+    }
+
+    const weightPerPiece = Number(matchedMaster.weightPerPiece) || 0; 
+    const piecePerSheet = Number(matchedMaster.piecePerSheet) || 0;   
+    const pcsPerTag = Number(matchedMaster.tagQty) > 0 ? Number(matchedMaster.tagQty) : 50; 
+
+    let calculatedPcs = 0;
+    let calculationText = '';
+
+    if (piecePerSheet > 0 && weightPerPiece === 0) {
+        calculatedPcs = Math.round(inputVal * piecePerSheet);
+        calculationText = `เหล็กแผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
+    } else {
+        calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
+        calculationText = `เหล็ก Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
+    }
+
+    let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
+
+    if (inputVal > 0) {
+        planQtyInput.value = calculatedPcs;
+    } else {
+        planQtyInput.value = '';
+    }
+
+    if(tagBadge) {
+        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิงจำนวน = <b>${pcsPerTag}</b> ชิ้น/ใบ)`;
+    }
+}
+
+// 🚀 รันคำสั่งดึงข้อมูลทันทีเมื่อเปิดหน้าเว็บ
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(loadAllDataFromCloud, 300);
+});
 </script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
