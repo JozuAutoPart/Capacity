@@ -4868,17 +4868,22 @@ function checkAndLoadAssyPlans() {
     
     selectPart.innerHTML = '<option value="">-- เลือกหรือยิงบาร์โค้ด Part No. --</option>';
 
-    // กรองพาร์ทที่เป็น Assy จาก MasterParts โดยเช็คค่า TRUE จาก Google Sheets ทันที (รองรับทุกรูปแบบ)
+    // กรองหาพาร์ทที่เป็น Assy โดยเช็คทุกคอลัมน์ที่มีคำว่า TRUE หรือ true
     const assyParts = masterData.filter(item => {
-        const assyVal = item.assy ?? item['Assy'] ?? item['assy'] ?? item[6];
-        return assyVal === true || String(assyVal).trim().toUpperCase() === 'TRUE';
+        // วนลูปเช็คทุก Property ใน object ของพาร์ทนั้นๆ ว่ามีตัวไหนเป็น TRUE บ้าง
+        for (let key in item) {
+            let val = String(item[key]).trim().toUpperCase();
+            if (val === 'TRUE') return true;
+        }
+        return false;
     });
     
     // ป้องกันตัวเลือกซ้ำ
     const addedParts = new Set();
 
     assyParts.forEach(item => {
-        const pNo = item.partNo || item['Part No.'] || item['partNo'] || '';
+        // ดึงค่า Part No. จากทุกคอลัมน์ที่เป็นไปได้
+        const pNo = item.partNo || item['Part No.'] || item['partNo'] || item[1] || '';
         if (pNo && !addedParts.has(pNo)) {
             addedParts.add(pNo);
             const opt = document.createElement('option');
