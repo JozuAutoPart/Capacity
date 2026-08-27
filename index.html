@@ -995,6 +995,7 @@
     
     let plans = [];
     let actuals = [];
+    let assyRecords = [];
     let qgate = [];
     let deliveries = [];
     let bms = [];
@@ -3448,7 +3449,25 @@ function loadAllDataFromCloud() {
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
-
+// ดึงข้อมูล Ass'y จาก Google Sheets
+    fetch(scriptUrl + "?action=getAssyRecords")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                assyRecords = res.data.map(d => ({
+                    id: d.id || Date.now(),
+                    date: d.date || d['วันที่'] || '',
+                    line: d.line || d['Line'] || '',
+                    partNo: d.partNo || d['Part No.'] || '',
+                    lotNo: d.lotNo || d['Lot No.'] || '',
+                    qty: Number(d.qty !== undefined ? d.qty : d['Qty'] || 0),
+                    operator: d.operator || d['Operator'] || '-'
+                }));
+            }
+            if (typeof renderAssyTable === 'function') renderAssyTable();
+            if (typeof renderStock === 'function') renderStock();
+        })
+        .catch(err => console.error("Error loading assy records:", err));
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
         .then(res => res.json())
@@ -3491,6 +3510,7 @@ function loadAllDataFromCloud() {
                 }
             })
             .catch(err => console.error("Error loading deliveries:", err));
+    
     // ดึงข้อมูล BMS (รับ-จ่าย Material) จาก Google Sheets
     fetch(scriptUrl + "?action=getBms")
         .then(res => res.json())
