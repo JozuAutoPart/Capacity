@@ -1032,12 +1032,13 @@ async function loadAllDataFromCloud() {
         if (jsonMaster.status === "success") {
             const rawMasterData = jsonMaster.data || [];
             const formattedMaster = rawMasterData.map(m => ({
-                barcode: m.barcode || m['barcode'] || '',
-                partNo: String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase(),
-                weightPerPiece: parseFloat(m.weightPerPiece || m['Weight per piece'] || m['weight per piece'] || 0),
-                piecePerSheet: parseFloat(m.piecePerSheet || m['Piece per sheet'] || m['piece per sheet'] || 0),
-                tagQty: parseInt(m.tagQty || m['Tag Qty'] || 100)
-            }));
+    barcode: m.barcode || m['barcode'] || '',
+    partNo: String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase(),
+    // เพิ่มการดึงคีย์ภาษาไทยและตัวพิมพ์ใหญ่-เล็กของช่องน้ำหนัก
+    weightPerPiece: parseFloat(m.weightPerPiece || m['Weight per piece'] || m['weight per piece'] || m['WEIGHT PER PIECE'] || 0),
+    piecePerSheet: parseFloat(m.piecePerSheet || m['Piece per sheet'] || m['piece per sheet'] || m['PIECE PER SHEET'] || 0),
+    tagQty: parseInt(m.tagQty || m['จำนวน'] || m['Tag Qty'] || 100)
+}));
             localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
         }
 
