@@ -1112,32 +1112,39 @@ async function loadAllDataFromCloud() {
         // 🔄 โหลด Master Parts และแมปตำแหน่งคอลัมน์จาก Google Sheet โดยตรง
         let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
         let jsonMaster = await resMaster.json();
+        
+        let formattedMaster = [];
         if (jsonMaster.status === "success") {
             const rawMasterData = jsonMaster.data || [];
-            const formattedMaster = rawMasterData.map(m => {
-                // รองรับทั้งการดึงแบบ Object คีย์ และแบบตำแหน่งอาเรย์ (C=index 2, J=index 9, K=index 10)
-                let cVal = m['จำนวน'] !== undefined ? m['จำนวน'] : (m[2] !== undefined ? m[2] : 50);
-                let jVal = m['Weight per piece'] !== undefined ? m['Weight per piece'] : (m[9] !== undefined ? m[9] : 0);
-                let kVal = m['Piece per sheet'] !== undefined ? m['Piece per sheet'] : (m[10] !== undefined ? m[10] : 0);
+            formattedMaster = rawMasterData.map(m => {
+                // 🎯 ดึงคอลัมน์ partNo และ คอลัมน์อื่นๆ ตามหัวชีทจริงในภาพเป๊ะๆ
+                let partNoVal = m['partNo'] || m['Part No.'] || m['PARTNO'] || m[1] || '';
+                let cVal = m['จำนวน'] !== undefined ? m['จำนวน'] : 50;
+                let jVal = m['Weight per piece'] !== undefined ? m['Weight per piece'] : 0;
+                let kVal = m['Piece per sheet'] !== undefined ? m['Piece per sheet'] : 0;
 
                 return {
-                    barcode: String(m.barcode || m['barcode'] || m[0] || '').trim(),
-                    partNo: String(m.partNo || m['Part No.'] || m['partNo'] || m[1] || '').trim(),
-                    tagQty: parseInt(cVal) > 0 ? parseInt(cVal) : 50,                  // คอลัมน์ C (จำนวน)
-                    weightPerPiece: parseFloat(jVal) || 0,                            // คอลัมน์ J (Weight per piece)
-                    piecePerSheet: parseFloat(kVal) || 0                              // คอลัมน์ K (Piece per sheet)
+                    partNo: String(partNoVal).trim(),
+                    tagQty: parseInt(cVal) > 0 ? parseInt(cVal) : 50,
+                    weightPerPiece: parseFloat(jVal) || 0,
+                    piecePerSheet: parseFloat(kVal) || 0
                 };
-            });
+            }).filter(m => m.partNo !== '' && m.partNo !== 'undefined' && m.partNo !== 'null');
+
             localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
             console.log("✅ โหลด Master Parts สำเร็จ:", formattedMaster.length, "รายการ");
-        }
 
-        if (typeof renderAll === 'function') renderAll();
-        if (typeof renderDiePM === 'function') renderDiePM();
-    } catch (error) {
-        console.error("Error loading data from cloud:", error);
-    }
-}
+            // 🔑 ยัดรายชื่อพาร์ททั้งหมดลงในกล่อง Dropdown ทันที
+            const partNoSelect = document.getElementById('planPartNo');
+            if (partNoSelect) {
+                let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
+                formattedMaster.forEach(m => {
+                    optionsHtml += `<option value="${m.partNo}">${m.partNo}</option>`;
+                });
+                partNoSelect.innerHTML = optionsHtml;
+                console.log("🎉 ดึงรายชื่อขึ้น Dropdown สำเร็จเรียบร้อย!");
+            }
+        }
         const PM_LIMIT = 40000;
         const MC_MAX_CAPACITY = 50000;
 
