@@ -382,7 +382,7 @@
         </div>
     </div>
 </div>
-   <!-- TAB 3: PLANNING -->
+  <!-- TAB 3: PLANNING -->
 <div class="tab-pane fade" id="tab-plan">
     <div class="row g-3">
         <div class="col-md-4">
@@ -409,7 +409,7 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Part No.</label>
-                        <!-- 🔄 เปลี่ยนเป็น Dropdown เพื่อให้เลือกพาร์ทจากฐานข้อมูลที่โหลดมาได้ถูกต้อง -->
+                        <!-- 🔄 Dropdown สำหรับเลือก Part No. จากฐานข้อมูล Master Parts -->
                         <select id="planPartNo" class="form-select form-select-sm" required onchange="calculatePlanFromWeight()">
                             <option value="">-- เลือก Part No. --</option>
                         </select>
@@ -466,7 +466,7 @@
     </div>
 </div>
 
-<!-- ⚙️ สคริปต์โหลดข้อมูลและคำนวณ -->
+<!-- ⚙️ สคริปต์โหลดข้อมูลและคำนวณอัตโนมัติ -->
 <script>
 async function loadAllDataFromCloud() {
     try {
@@ -490,7 +490,7 @@ async function loadAllDataFromCloud() {
         let jsonBms = await resBms.json();
         if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-        // 🔄 ดึง Master Parts และแมปตำแหน่งคอลัมน์ (C=จำนวน, J=Weight, K=Piece per sheet)
+        // 🔄 โหลด Master Parts และแมปตำแหน่งคอลัมน์ (C=จำนวน, J=Weight, K=Piece per sheet)
         let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
         let jsonMaster = await resMaster.json();
         if (jsonMaster.status === "success") {
@@ -510,7 +510,7 @@ async function loadAllDataFromCloud() {
             });
             localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
             
-            // เติมข้อมูลลงใน Dropdown Part No. ทันทีที่โหลดเสร็จ
+            // 🔑 เติมข้อมูลลงใน Dropdown Part No. ทันที
             const partNoSelect = document.getElementById('planPartNo');
             if (partNoSelect) {
                 partNoSelect.innerHTML = '<option value="">-- เลือก Part No. --</option>' + 
@@ -548,9 +548,9 @@ function calculatePlanFromWeight() {
         return;
     }
 
-    const weightPerPiece = Number(matchedMaster.weightPerPiece) || 0; // คอลัมน์ J
-    const piecePerSheet = Number(matchedMaster.piecePerSheet) || 0;   // คอลัมน์ K
-    const pcsPerTag = Number(matchedMaster.tagQty) > 0 ? Number(matchedMaster.tagQty) : 50; // คอลัมน์ C
+    const weightPerPiece = Number(matchedMaster.weightPerPiece) || 0; // ดึงจากคอลัมน์ J
+    const piecePerSheet = Number(matchedMaster.piecePerSheet) || 0;   // ดึงจากคอลัมน์ K
+    const pcsPerTag = Number(matchedMaster.tagQty) > 0 ? Number(matchedMaster.tagQty) : 50; // ดึงจากคอลัมน์ C
 
     let calculatedPcs = 0;
     let calculationText = '';
@@ -575,6 +575,13 @@ function calculatePlanFromWeight() {
         tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิงจากคอลัมน์ C จำนวน = <b>${pcsPerTag}</b> ชิ้น/ใบ)`;
     }
 }
+
+// 🚀 สั่งให้โหลดข้อมูลทั้งหมดทันทีที่เปิดหน้าเว็บขึ้นมา
+document.addEventListener("DOMContentLoaded", function() {
+    if (typeof loadAllDataFromCloud === "function") {
+        loadAllDataFromCloud();
+    }
+});
 </script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
