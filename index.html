@@ -1000,7 +1000,30 @@
     let deliveries = [];
     let bms = [];
     let currentFilterLine = 'ALL';
+function handleLogin() {
+    var pass = document.getElementById('loginPassword').value.trim();
+    var overlay = document.getElementById('loginOverlay');
+    var errorMsg = document.getElementById('loginError');
 
+    if (pass === "1111" || pass === "2222" || pass === "3333" || pass === "9999") {
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+    } else {
+        if (errorMsg) {
+            errorMsg.style.display = 'block';
+        }
+    }
+}
+
+document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        var overlay = document.getElementById('loginOverlay');
+        if (overlay && overlay.style.display !== 'none') {
+            handleLogin();
+        }
+    }
+});
     // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
     async function loadAllDataFromCloud() {
         try {
@@ -4204,30 +4227,7 @@ document.addEventListener('change', function(e) {
     }
 });
 
-function handleLogin() {
-    var pass = document.getElementById('loginPassword').value.trim();
-    var overlay = document.getElementById('loginOverlay');
-    var errorMsg = document.getElementById('loginError');
 
-    if (pass === "1111" || pass === "2222" || pass === "3333" || pass === "9999") {
-        if (overlay) {
-            overlay.style.display = 'none';
-        }
-    } else {
-        if (errorMsg) {
-            errorMsg.style.display = 'block';
-        }
-    }
-}
-
-document.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        var overlay = document.getElementById('loginOverlay');
-        if (overlay && overlay.style.display !== 'none') {
-            handleLogin();
-        }
-    }
-});
    
 function printRepairForm(date, partNo, problem, reporter, imageSrc, dieNo = '-', model = '-', partName = '-', stroke = '-') {
     let printWindow = window.open('', '_blank', 'height=1000,width=1000');
