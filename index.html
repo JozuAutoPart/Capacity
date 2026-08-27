@@ -488,7 +488,7 @@ function calculatePlanFromWeight() {
         return;
     }
 
-    // 2. ดึงค่าจากคอลัมน์ใน Google Sheet แบบครอบคลุมทุกรูปแบบชื่อ
+    // 2. ดึงค่าน้ำหนักต่อชิ้น
     const weightPerPiece = Number(
         matchedMaster.weightPerPiece || 
         matchedMaster['Weight per piece'] || 
@@ -503,35 +503,39 @@ function calculatePlanFromWeight() {
         matchedMaster['PIECE PER SHEET'] || 0
     );
     
-    const pcsPerTag = Number(matchedMaster.tagQty || matchedMaster['Tag Qty'] || 100);
+    // 3. ดึงจำนวนชิ้นต่อ Tag จากคอลัมน์ C (จำนวน) ใน Google Sheet โดยตรง
+    const pcsPerTag = Number(
+        matchedMaster.jumlah || 
+        matchedMaster['จำนวน'] || 
+        matchedMaster['Tag Qty'] || 
+        matchedMaster['tagQty'] || 50 // ค่าdefalutเผื่อไว้ถ้าหาไม่เจอ
+    );
 
     let calculatedPcs = 0;
     let calculationText = '';
 
-    // 3. เงื่อนไขคำนวณอัตโนมัติระหว่าง Coil กับ Sheet
+    // 4. คำนวณจำนวนแผนผลิต (Plan Qty)
     if (piecePerSheet > 0 && weightPerPiece === 0) {
-        // กรณีเหล็กแผ่น: จำนวนแผ่น * Piece per sheet
         calculatedPcs = Math.round(inputVal * piecePerSheet);
         calculationText = `เหล็กแผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
     } else {
-        // กรณีเหล็ก Coil: น้ำหนักรวม (KG) / Weight per piece
         calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
         calculationText = `เหล็ก Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
     }
 
-    // 4. คำนวณจำนวนใบ Tag
+    // 5. คำนวณจำนวนใบ Tag โดยหารด้วยจำนวนจากคอลัมน์ C จริงๆ
     let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
 
-    // 5. หยอดผลลัพธ์ลงฟอร์ม
+    // 6. หยอดผลลัพธ์ลงฟอร์ม
     if (inputVal > 0) {
         planQtyInput.value = calculatedPcs;
     } else {
         planQtyInput.value = '';
     }
 
-    // 6. แสดงผลที่ Badge
+    // 7. แสดงผลที่ Badge แจ้งจำนวนชิ้นต่อ Tag ตามตาราง
     if(tagBadge) {
-        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (ใบละ ${pcsPerTag} ชิ้น)`;
+        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (ใบละ ${pcsPerTag} ชิ้นจากคอลัมน์จำนวน)`;
     }
 }
 </script>
