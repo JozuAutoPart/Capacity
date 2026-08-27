@@ -2255,59 +2255,76 @@ function checkAndLoadWipForQGate() {
 
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
 
-    // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่
-    function checkIfAssy(fullPartStr) {
-        if (!fullPartStr) return false;
-        const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
-        const forcedAssyList = ["76344-4JG1A", "76344-4JG1"];
-        if (forcedAssyList.includes(cleanBase)) return true;
-
-        const matchedMaster = masterData.find(m => {
-            const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
-            return mPart === cleanBase || cleanBase.startsWith(mPart);
-        });
-        return matchedMaster && (
-            matchedMaster.assy === true || String(matchedMaster.assy).toUpperCase() === 'TRUE' ||
-            matchedMaster['Assy'] === true || String(matchedMaster['Assy']).toUpperCase() === 'TRUE' ||
-            matchedMaster['ASSY'] === true || String(matchedMaster['ASSY']).toUpperCase() === 'TRUE' ||
-            matchedMaster[6] === true || String(matchedMaster[6]).toUpperCase() === 'TRUE'
-        );
-    }
-
-    const wipMap = {};
+  // ฟังก์ชันเช็คว่าเป็นพาร์ท Assy หรือไม่ (โหลดและเช็คค่าจาก MasterParts โดยตรง 100%)
+function checkIfAssy(fullPartStr) {
+    if (!fullPartStr) return false;
+    const cleanBase = String(fullPartStr).split(' ')[0].trim().toUpperCase();
     
-    // 1. รวบรวมรายชื่อ Part ทั้งหมดจาก actuals และ assyRecords
-    const allParts = new Set([
-        ...(typeof actuals !== 'undefined' ? actuals.map(a => a.partNo || a['Part No.'] || '') : []),
-        ...(typeof assyRecords !== 'undefined' ? assyRecords.map(as => as.partNo || as['Part No.'] || '') : [])
-    ]);
+    // ดึงข้อมูล Master Parts ล่าสุดจาก LocalStorage
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    if (masterData.length === 0) return false;
 
-    // 2. คำนวณยอดรับเข้า WIP แยกตามประเภทพาร์ท
-    allParts.forEach(pNo => {
-        if (!pNo) return;
-        const isAssy = checkIfAssy(pNo);
-
-        if (isAssy) {
-            // 🛑 พาร์ท Assy: ต้องมาจากหน้า Ass'y / Spot เท่านั้น ห้ามเอาจาก actuals!
-            let assyIn = (typeof assyRecords !== 'undefined' ? assyRecords : [])
-                .filter(as => (as.partNo || as['Part No.'] || '') === pNo)
-                .reduce((sum, as) => sum + Number(as.qty !== undefined ? as.qty : (as['จำนวน'] || 0)), 0);
-            
-            if (assyIn > 0) {
-                wipMap[pNo] = (wipMap[pNo] || 0) + assyIn;
-            }
-        } else {
-            // 🟢 พาร์ทปกติ: มาจากหน้าผลิตปกติ (actuals)
-            let normalIn = (typeof actuals !== 'undefined' ? actuals : [])
-                .filter(a => (a.partNo || a['Part No.'] || '') === pNo)
-                .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
-            
-            if (normalIn > 0) {
-                wipMap[pNo] = (wipMap[pNo] || 0) + normalIn;
-            }
-        }
+    const matchedMaster = masterData.find(m => {
+        const mPart = String(
+            m.partNo || m['Part No.'] || m['รหัสพาร์ท'] || m[1] || ''
+        ).trim().toUpperCase();
+        return mPart === cleanBase || cleanBase.startsWith(mPart);
     });
+    
+    if (!matchedMaster) return false;
 
+    // ตรวจสอบทุกคอลัมน์ที่เป็นไปได้ว่ามีการระบุ Assy เป็น TRUE หรือไม่ (รวมถึงคอลัมน์ G / Index 6)
+    const assyValues = [
+        matchedMaster.assy,
+        matchedMaster['Assy'],
+        matchedMaster['ASSY'],
+        matchedMaster['assy'],
+        matchedMaster[6],
+        matchedMaster['คอลัมน์G']
+    ];
+
+    return assyValues.some(val => {
+        if (val === true) return true;
+        if (typeof val === 'string' && val.trim().toUpperCase() === 'TRUE') return true;
+        return false;
+    });
+}
+
+const wipMap = {};
+
+// 1. รวบรวมรายชื่อ Part ทั้งหมดจากทุกหน้า เพื่อไม่ให้ข้อมูลตกหล่น
+const allParts = new Set([
+    ...(typeof actuals !== 'undefined' ? actuals.map(a => a.partNo || a['Part No.'] || '') : []),
+    ...(typeof qgate !== 'undefined' ? qgate.map(q => q.partNo || q['Part No.'] || '') : []),
+    ...(typeof deliveries !== 'undefined' ? deliveries.map(d => d.partNo || d['Part No.'] || '') : []),
+    ...(typeof assyRecords !== 'undefined' ? assyRecords.map(as => as.partNo || as['Part No.'] || '') : [])
+]);
+
+// 2. คำนวณยอดรับเข้า WIP แยกตามประเภทพาร์ท
+allParts.forEach(pNo => {
+    if (!pNo) return;
+    const isAssy = checkIfAssy(pNo);
+
+    if (isAssy) {
+        // 🛑 พาร์ท Assy: ต้องมาจากหน้า Ass'y / Spot เท่านั้น ห้ามเอาจาก actuals!
+        let assyIn = (typeof assyRecords !== 'undefined' ? assyRecords : [])
+            .filter(as => (as.partNo || as['Part No.'] || '') === pNo)
+            .reduce((sum, as) => sum + Number(as.qty !== undefined ? as.qty : (as['จำนวน'] || 0)), 0);
+        
+        if (assyIn > 0) {
+            wipMap[pNo] = (wipMap[pNo] || 0) + assyIn;
+        }
+    } else {
+        // 🟢 พาร์ทปกติ: มาจากหน้าผลิตปกติ (actuals)
+        let normalIn = (typeof actuals !== 'undefined' ? actuals : [])
+            .filter(a => (a.partNo || a['Part No.'] || '') === pNo)
+            .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
+        
+        if (normalIn > 0) {
+            wipMap[pNo] = (wipMap[pNo] || 0) + normalIn;
+        }
+    }
+});
     // 3. หักยอดที่ตรวจ Q-Gate ไปแล้วออก
     if (typeof qgate !== 'undefined') {
         qgate.forEach(q => {
