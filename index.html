@@ -1441,7 +1441,7 @@ function renderPlans() {
         let actualQty = Number(plan.actualQty) || 0;
         let diff = planQty - actualQty;
 
-        // เงื่อนไขตัดทิ้งเมื่อเหลือ <= 1%
+        // เงื่อนไขตัดทิ้งเมื่อเหลือ <= 2%
         if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.02) {
             return false; 
         }
@@ -1459,28 +1459,41 @@ function renderPlans() {
     });
 
     if (!activePlans || activePlans.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลแผนการผลิต</td></tr>`;
         return;
     }
 
     activePlans.forEach(plan => {
-        // โค้ดสร้างแถวตารางแสดงผลเดิมของพี่มิว...
+        const partNoVal = plan["Part No."] || '';
+        const lotNoVal = plan["Lot No."] || '';
+        const qtyVal = plan["Plan Qty"] || 0;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
             <td>${plan.Finish ? plan.Finish.split('T')[0] : ''}</td>
             <td><span class="badge bg-secondary">${plan.Line || ''}</span></td>
-            <td class="fw-bold text-info">${plan["Part No."] || ''}</td>
-            <td>${plan["Lot No."] || ''}</td>
-            <td>${Number(plan["Plan Qty"] || 0).toLocaleString()}</td>
-            <td class="text-center">
+            <td class="fw-bold text-info">${partNoVal}</td>
+            <td>${lotNoVal}</td>
+            <td>${Number(qtyVal).toLocaleString()} Pcs</td>
+            <td class="text-center text-nowrap">
+                <!-- 🖨️ เพิ่มปุ่มพิมพ์ Tag ตรงนี้ครับ -->
+                <button class="btn btn-success btn-sm py-0 px-2 me-1" onclick="openPrintTag('${partNoVal}', '${lotNoVal}', '${qtyVal}')" title="พิมพ์ Tag">
+                    <i class="fas fa-print me-1"></i> พิมพ์ Tag
+                </button>
                 <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deletePlan(${plan.id})" title="ลบแผนผังนี้">
-                    <i class="fas fa-fa-trash"></i>
+                    <i class="fas fa-trash"></i>
                 </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+// ฟังก์ชันเปิดหน้าต่างพิมพ์ Tag ไปที่ไฟล์ print-tag.html
+function openPrintTag(partNo, lotNo, qty) {
+    const url = `print-tag.html?partNo=${encodeURIComponent(partNo)}&lotNo=${encodeURIComponent(lotNo)}&qty=${qty}`;
+    window.open(url, '_blank');
 }
 
 function deletePlan(id) {
