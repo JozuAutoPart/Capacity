@@ -997,30 +997,45 @@ function calculatePlanFromWeight() {
     let bms = [];
     let currentFilterLine = 'ALL';
 
-    // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
-    async function loadAllDataFromCloud() {
-        try {
-            let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
-            let jsonPlans = await resPlans.json();
-            if (jsonPlans.status === "success") plans = jsonPlans.data || [];
+   // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
+async function loadAllDataFromCloud() {
+    try {
+        let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
+        let jsonPlans = await resPlans.json();
+        if (jsonPlans.status === "success") plans = jsonPlans.data || [];
 
-            let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
-            let jsonActuals = await resActuals.json();
-            if (jsonActuals.status === "success") actuals = jsonActuals.data || [];
+        let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
+        let jsonActuals = await resActuals.json();
+        if (jsonActuals.status === "success") actuals = jsonActuals.data || [];
 
-            let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
-            let jsonQgate = await resQgate.json();
-            if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
+        let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
+        let jsonQgate = await resQgate.json();
+        if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
 
-            let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
-            let jsonDeliveries = await resDeliveries.json();
-            if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
+        let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
+        let jsonDeliveries = await resDeliveries.json();
+        if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
 
-            let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
-            let jsonBms = await resBms.json();
-            if (jsonBms.status === "success") bms = jsonBms.data || [];
+        let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
+        let jsonBms = await resBms.json();
+        if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-            if (typeof renderAll === 'function') {
+        // 🔄 เพิ่มการดึง Master Parts จาก Google Sheet มาเก็บไว้คำนวณน้ำหนัก/แผ่น
+        let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
+        let jsonMaster = await resMaster.json();
+        if (jsonMaster.status === "success") {
+            const rawMasterData = jsonMaster.data || [];
+            const formattedMaster = rawMasterData.map(m => ({
+                barcode: m.barcode || m['barcode'] || '',
+                partNo: String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase(),
+                weightPerPiece: parseFloat(m.weightPerPiece || m['Weight per piece'] || m['weight per piece'] || 0),
+                piecePerSheet: parseFloat(m.piecePerSheet || m['Piece per sheet'] || m['piece per sheet'] || 0),
+                tagQty: parseInt(m.tagQty || m['Tag Qty'] || 100)
+            }));
+            localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
+        }
+
+        if (typeof renderAll === 'function') {
             renderAll();
         }
         if (typeof renderDiePM === 'function') {
@@ -1030,7 +1045,6 @@ function calculatePlanFromWeight() {
         console.error("Error loading data from cloud:", error);
     }
 }
-
         const PM_LIMIT = 40000;
         const MC_MAX_CAPACITY = 50000;
 
