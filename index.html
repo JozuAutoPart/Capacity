@@ -382,77 +382,120 @@
         </div>
     </div>
 </div>
-            <!-- TAB 3: PLANNING -->
-            <div class="tab-pane fade" id="tab-plan">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="card p-3">
-                            <h5 class="mb-3"><i class="fas fa-plus-circle me-2"></i>เพิ่มแผนการผลิต</h5>
-                            <form id="planForm" onsubmit="submitPlan(event)">
-                                <div class="mb-2">
-                                    <label class="form-label small">วันที่เริ่มผลิต (Start Date)</label>
-                                    <input type="date" id="planDate" class="form-control form-control-sm" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">วันที่สิ้นสุด (Finish Date)</label>
-                                    <input type="date" id="planFinishDate" class="form-control form-control-sm" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">Line ผลิต</label>
-                                    <select id="planLine" class="form-select form-select-sm" required>
-                                        <option value="Line A">Line A</option>
-                                        <option value="Line Q">Line Q</option>
-                                        <option value="Line C1">Line C1</option>
-                                        <option value="Line C2">Line C2</option>
-                                        <option value="Line C3">Line C3</option>
-                                    </select>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">Part No.</label>
-                                    <input type="text" id="planPartNo" class="form-control form-control-sm" placeholder="เช่น 17154-0T040" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">Lot No.</label>
-                                    <input type="text" id="planLotNo" class="form-control form-control-sm" placeholder="เช่น 1254" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small">จำนวนแผนผลิต (Plan Qty)</label>
-                                    <input type="number" id="planQty" class="form-control form-control-sm" placeholder="0" min="1" required>
-                                </div>
-                                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-save me-1"></i> บันทึกแผนการผลิต</button>
-                            </form>
+         <!-- TAB 3: PLANNING -->
+<div class="tab-pane fade" id="tab-plan">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card p-3">
+                <h5 class="mb-3"><i class="fas fa-plus-circle me-2"></i>เพิ่มแผนการผลิต</h5>
+                <form id="planForm" onsubmit="submitPlan(event)">
+                    <div class="mb-2">
+                        <label class="form-label small">วันที่เริ่มผลิต (Start Date)</label>
+                        <input type="date" id="planDate" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">วันที่สิ้นสุด (Finish Date)</label>
+                        <input type="date" id="planFinishDate" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Line ผลิต</label>
+                        <select id="planLine" class="form-select form-select-sm" required>
+                            <option value="Line A">Line A</option>
+                            <option value="Line Q">Line Q</option>
+                            <option value="Line C1">Line C1</option>
+                            <option value="Line C2">Line C2</option>
+                            <option value="Line C3">Line C3</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Part No.</label>
+                        <input type="text" id="planPartNo" class="form-control form-control-sm" placeholder="เช่น 17154-0T040" required oninput="calculatePlanFromWeight()">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Lot No.</label>
+                        <input type="text" id="planLotNo" class="form-control form-control-sm" placeholder="เช่น 1254" required>
+                    </div>
+                    <!-- ⚖️ ช่องกรอกน้ำหนักรวม (KG) -->
+                    <div class="mb-2">
+                        <label class="form-label small text-warning fw-bold">น้ำหนักรวม (KG)</label>
+                        <input type="number" step="0.01" id="planWeightKg" class="form-control form-control-sm" placeholder="กรอกน้ำหนัก KG เพื่อคำนวณชิ้น" oninput="calculatePlanFromWeight()">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">จำนวนแผนผลิต (Plan Qty)</label>
+                        <input type="number" id="planQty" class="form-control form-control-sm bg-dark text-white" placeholder="0" min="1" required>
+                        <!-- 📋 แสดงจำนวนใบ Tag แบบ Real-time -->
+                        <div id="tagCountBadge" class="form-text text-info fw-bold mt-1" style="font-size: 12px;">
+                            📋 ต้องใช้ Tag: - ใบ
                         </div>
                     </div>
-                   <div class="col-md-8">
-    <div class="card p-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="m-0 text-white">รายการแผนการผลิตทั้งหมด</h5>
-            <div class="d-flex align-items-center gap-2">
-                <input type="text" id="planSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Lot No...." style="width: 200px;" oninput="renderPlans()">
-                <button class="btn btn-outline-success btn-sm text-nowrap" onclick="exportToExcelXLSX('plans')"><i class="fas fa-file-excel me-1"></i>Export</button>
-                <button class="btn btn-outline-danger btn-sm text-nowrap" onclick="clearAllPlans()"><i class="fas fa-trash me-1"></i>ล้างแผน</button>
+                    <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-save me-1"></i> บันทึกแผนการผลิต</button>
+                </form>
             </div>
         </div>
-        <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle m-0">
-                <thead>
-                    <tr>
-                        <th>Start</th>
-                        <th>Finish</th>
-                        <th>Line</th>
-                        <th>Part No.</th>
-                        <th>Lot No.</th>
-                        <th>Plan Qty</th>
-                        <th class="text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="planTableBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
+        <div class="col-md-8">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0 text-white">รายการแผนการผลิตทั้งหมด</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="text" id="planSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Lot No...." style="width: 200px;" oninput="renderPlans()">
+                        <button class="btn btn-outline-success btn-sm text-nowrap" onclick="exportToExcelXLSX('plans')"><i class="fas fa-file-excel me-1"></i>Export</button>
+                        <button class="btn btn-outline-danger btn-sm text-nowrap" onclick="clearAllPlans()"><i class="fas fa-trash me-1"></i>ล้างแผน</button>
                     </div>
                 </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead>
+                            <tr>
+                                <th>Start</th>
+                                <th>Finish</th>
+                                <th>Line</th>
+                                <th>Part No.</th>
+                                <th>Lot No.</th>
+                                <th>Plan Qty</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="planTableBody"></tbody>
+                    </table>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ⚙️ สคริปต์คำนวณน้ำหนักและเปิดหน้าพิมพ์ Tag -->
+<script>
+function calculatePlanFromWeight() {
+    const partNo = document.getElementById('planPartNo').value;
+    const totalKg = parseFloat(document.getElementById('planWeightKg').value) || 0;
+    const planQtyInput = document.getElementById('planQty');
+    const tagBadge = document.getElementById('tagCountBadge');
+
+    if (!partNo || totalKg <= 0) return;
+
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    const cleanBase = String(partNo).split(' ')[0].trim().toUpperCase();
+    
+    const matchedMaster = masterData.find(m => {
+        const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
+        return mPart === cleanBase || cleanBase.startsWith(mPart);
+    });
+
+    const weightPerPcs = matchedMaster ? Number(matchedMaster.weight || matchedMaster['Weight'] || 1) : 1;
+    const pcsPerTag = matchedMaster ? Number(matchedMaster.tagQty || matchedMaster['Tag Qty'] || 100) : 100;
+
+    let calculatedPcs = weightPerPcs > 0 ? Math.round(totalKg / weightPerPcs) : Math.round(totalKg);
+    let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
+
+    planQtyInput.value = calculatedPcs;
+    if(tagBadge) tagBadge.innerText = `📋 ต้องใช้ Tag: ${tagCount} ใบ (ใบละ ${pcsPerTag} ชิ้น)`;
+}
+
+function openPrintTag(partNo, lotNo, qty) {
+    const url = `print-tag.html?partNo=${encodeURIComponent(partNo)}&lotNo=${encodeURIComponent(lotNo)}&qty=${qty}`;
+    window.open(url, '_blank');
+}
+</script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
                 <div class="row g-3">
