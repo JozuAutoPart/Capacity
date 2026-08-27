@@ -479,50 +479,45 @@ function calculatePlanFromWeight() {
     if (!partNoVal) return;
 
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    
-    // ค้นหาแบบยืดหยุ่น: ตรงกันเป๊ะ หรือมีข้อความขึ้นต้นเหมือนกัน (ตัดช่องว่างออกทั้งหมดเพื่อความชัวร์)
     const cleanSearchKey = partNoVal.replace(/\s+/g, '');
+
     const matchedMaster = masterData.find(m => {
         const mPart = String(m.partNo || '').trim().toUpperCase().replace(/\s+/g, '');
         const mCode = String(m.barcode || '').trim().toUpperCase().replace(/\s+/g, '');
-        return mPart === cleanSearchKey || mCode === cleanSearchKey || cleanSearchKey.startsWith(mPart) || cleanSearchKey.startsWith(mCode);
+        return mPart === cleanSearchKey || mCode === cleanSearchKey || cleanSearchKey.startsWith(mPart);
     });
 
     if (!matchedMaster) {
-        if(tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ไม่พบพาร์ท [${partNoVal}] ใน Master Parts (ลองกดอัปโหลด Master Barcode สีเหลืองอีกรอบ)</span>`;
+        if(tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ท [${partNoVal}] ใน Master Parts กรุณากดปุ่ม 'อัปโหลด Master Barcode'</span>`;
         if(planQtyInput) planQtyInput.value = '';
         return;
     }
 
-    const weightPerPiece = Number(matchedMaster.weightPerPiece) || 0;
-    const piecePerSheet = Number(matchedMaster.piecePerSheet) || 0;
-    const pcsPerTag = Number(matchedMaster.tagQty) > 0 ? Number(matchedMaster.tagQty) : 50;
+    const weightPerPiece = Number(matchedMaster.weightPerPiece) || 0; // ดึงจากคอลัมน์ J
+    const piecePerSheet = Number(matchedMaster.piecePerSheet) || 0;   // ดึงจากคอลัมน์ K
+    const pcsPerTag = Number(matchedMaster.tagQty) > 0 ? Number(matchedMaster.tagQty) : 50; // ดึงจากคอลัมน์ C
 
     let calculatedPcs = 0;
     let calculationText = '';
 
-    // เงื่อนไขคำนวณระหว่างเหล็กแผ่นกับเหล็ก Coil
     if (piecePerSheet > 0 && weightPerPiece === 0) {
         calculatedPcs = Math.round(inputVal * piecePerSheet);
-        calculationText = `เหล็กแผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
+        calculationText = `เหล็กแผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น จากคอลัมน์ K)`;
     } else {
         calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
-        calculationText = `เหล็ก Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
+        calculationText = `เหล็ก Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น จากคอลัมน์ J)`;
     }
 
-    // คำนวณจำนวนใบ Tag โดยหารด้วยจำนวนจากคอลัมน์ C (จำนวน) จริงๆ
     let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
 
-    // หยอดค่าลงช่อง Plan Qty
     if (inputVal > 0) {
         planQtyInput.value = calculatedPcs;
     } else {
         planQtyInput.value = '';
     }
 
-    // แสดงผลสรุปที่ Badge
     if(tagBadge) {
-        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (ใบละ ${pcsPerTag} ชิ้น จากคอลัมน์จำนวน)`;
+        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิงจากคอลัมน์ C จำนวน = <b>${pcsPerTag}</b> ชิ้น/ใบ)`;
     }
 }
 </script>
@@ -1013,29 +1008,27 @@ async function loadAllDataFromCloud() {
         let jsonBms = await resBms.json();
         if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-        // 🔄 ดึง Master Parts และแปลงข้อมูลให้รองรับทุกชื่อคีย์แบบครอบจักรวาล
+        // 🔄 โหลด Master Parts และแมปตำแหน่งคอลัมน์จาก Google Sheet โดยตรง
         let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
         let jsonMaster = await resMaster.json();
         if (jsonMaster.status === "success") {
             const rawMasterData = jsonMaster.data || [];
             const formattedMaster = rawMasterData.map(m => {
-                // ดึงค่าทุกฟิลด์เผื่อสลับชื่อคอลัมน์ไทย/อังกฤษ
-                const pNo = String(m.partNo || m['Part No.'] || m['partNo'] || m['PART_NO'] || '').trim();
-                const bCode = String(m.barcode || m['barcode'] || m['BARCODE'] || '').trim();
-                const wPiece = parseFloat(m.weightPerPiece || m['Weight per piece'] || m['weight per piece'] || m['WEIGHT PER PIECE'] || 0);
-                const pSheet = parseFloat(m.piecePerSheet || m['Piece per sheet'] || m['piece per sheet'] || m['PIECE PER SHEET'] || 0);
-                const tQty = parseInt(m.tagQty || m['จำนวน'] || m['Tag Qty'] || m['tagQty'] || 50);
+                // รองรับทั้งการดึงแบบ Object คีย์ และแบบตำแหน่งอาเรย์ (C=index 2, J=index 9, K=index 10)
+                let cVal = m['จำนวน'] !== undefined ? m['จำนวน'] : (m[2] !== undefined ? m[2] : 50);
+                let jVal = m['Weight per piece'] !== undefined ? m['Weight per piece'] : (m[9] !== undefined ? m[9] : 0);
+                let kVal = m['Piece per sheet'] !== undefined ? m['Piece per sheet'] : (m[10] !== undefined ? m[10] : 0);
 
                 return {
-                    barcode: bCode,
-                    partNo: pNo,
-                    weightPerPiece: wPiece,
-                    piecePerSheet: pSheet,
-                    tagQty: tQty > 0 ? tQty : 50
+                    barcode: String(m.barcode || m['barcode'] || m[0] || '').trim(),
+                    partNo: String(m.partNo || m['Part No.'] || m['partNo'] || m[1] || '').trim(),
+                    tagQty: parseInt(cVal) > 0 ? parseInt(cVal) : 50,                  // คอลัมน์ C (จำนวน)
+                    weightPerPiece: parseFloat(jVal) || 0,                            // คอลัมน์ J (Weight per piece)
+                    piecePerSheet: parseFloat(kVal) || 0                              // คอลัมน์ K (Piece per sheet)
                 };
             });
             localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
-            console.log("Master Parts Loaded Success:", formattedMaster.length, "items");
+            console.log("✅ โหลด Master Parts สำเร็จ:", formattedMaster.length, "รายการ");
         }
 
         if (typeof renderAll === 'function') renderAll();
