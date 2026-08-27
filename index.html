@@ -4866,18 +4866,12 @@ function checkAndLoadAssyPlans() {
     const selectPart = document.getElementById('assyPartNo');
     if (!selectPart) return;
     
-    selectPart.innerHTML = '<option value="">-- เลือก Part No. --</option>';
+    selectPart.innerHTML = '<option value="">-- เลือกหรือยิงบาร์โค้ด Part No. --</option>';
 
-    // 🛑 [บังคับเพิ่มพิเศษ] รายชื่อพาร์ท Assy ที่ต้องการให้โชว์ชัวร์ๆ 100%
-    const forcedAssyList = ["76344-4JG1A", "76344-4JG1"];
-
-    // กรองพาร์ทที่เป็น Assy จาก Master หรืออยู่ในรายชื่อบังคับ
+    // กรองพาร์ทที่เป็น Assy จาก MasterParts โดยเช็คค่า TRUE จาก Google Sheets ทันที (รองรับทุกรูปแบบ)
     const assyParts = masterData.filter(item => {
-        const pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
-        if (forcedAssyList.includes(pNo)) return true;
-
         const assyVal = item.assy ?? item['Assy'] ?? item['assy'] ?? item[6];
-        return assyVal === true || String(assyVal).toUpperCase() === 'TRUE';
+        return assyVal === true || String(assyVal).trim().toUpperCase() === 'TRUE';
     });
     
     // ป้องกันตัวเลือกซ้ำ
