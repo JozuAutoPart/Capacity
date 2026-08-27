@@ -467,33 +467,70 @@
 <script>
 function calculatePlanFromWeight() {
     const partNo = document.getElementById('planPartNo').value;
-    const totalKg = parseFloat(document.getElementById('planWeightKg').value) || 0;
+    const inputElement = document.getElementById('planWeightKg');
+    const inputVal = parseFloat(inputElement.value) || 0;
     const planQtyInput = document.getElementById('planQty');
     const tagBadge = document.getElementById('tagCountBadge');
 
-    if (!partNo || totalKg <= 0) return;
+    if (!partNo) return;
 
+    // 1. ดึงข้อมูล Master Parts จาก LocalStorage
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
     const cleanBase = String(partNo).split(' ')[0].trim().toUpperCase();
     
     const matchedMaster = masterData.find(m => {
-        const mPart = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
+        const mPart = String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase();
         return mPart === cleanBase || cleanBase.startsWith(mPart);
     });
 
-    const weightPerPcs = matchedMaster ? Number(matchedMaster.weight || matchedMaster['Weight'] || 1) : 1;
-    const pcsPerTag = matchedMaster ? Number(matchedMaster.tagQty || matchedMaster['Tag Qty'] || 100) : 100;
+    if (!matchedMaster) {
+        if(tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบ Part No. นี้ใน Master Parts</span>`;
+        return;
+    }
 
-    let calculatedPcs = weightPerPcs > 0 ? Math.round(totalKg / weightPerPcs) : Math.round(totalKg);
+    // 2. ดึงค่าจากคอลัมน์ใน Google Sheet (รองรับหลายรูปแบบตัวพิมพ์เล็ก/ใหญ่)
+    const weightPerPiece = Number(
+        matchedMaster.weightPerPiece || 
+        matchedMaster['Weight per piece'] || 
+        matchedMaster['weight per piece'] || 0
+    );
+    
+    const piecePerSheet = Number(
+        matchedMaster.piecePerSheet || 
+        matchedMaster['Piece per sheet'] || 
+        matchedMaster['piece per sheet'] || 0
+    );
+    
+    const pcsPerTag = Number(matchedMaster.tagQty || matchedMaster['Tag Qty'] || 100);
+
+    let calculatedPcs = 0;
+    let calculationText = '';
+
+    // 3. เงื่อนไขอัจฉริยะแยกตามประเภทวัสดุจาก Sheet
+    if (piecePerSheet > 0 && weightPerPiece === 0) {
+        // กรณีเหล็กแผ่น: จำนวนแผ่น * Piece per sheet
+        calculatedPcs = Math.round(inputVal * piecePerSheet);
+        calculationText = `เหล็กแผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
+    } else {
+        // กรณีเหล็ก Coil: น้ำหนักรวม (KG) / Weight per piece
+        calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
+        calculationText = `เหล็ก Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
+    }
+
+    // 4. คำนวณจำนวนใบ Tag (ปัดเศษขึ้น)
     let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
 
-    planQtyInput.value = calculatedPcs;
-    if(tagBadge) tagBadge.innerText = `📋 ต้องใช้ Tag: ${tagCount} ใบ (ใบละ ${pcsPerTag} ชิ้น)`;
-}
+    // 5. หยอดค่าลงช่องจำนวนแผนผลิต
+    if (inputVal > 0) {
+        planQtyInput.value = calculatedPcs;
+    } else {
+        planQtyInput.value = '';
+    }
 
-function openPrintTag(partNo, lotNo, qty) {
-    const url = `print-tag.html?partNo=${encodeURIComponent(partNo)}&lotNo=${encodeURIComponent(lotNo)}&qty=${qty}`;
-    window.open(url, '_blank');
+    // 6. แสดงผลแจ้งเตือนที่ Badge ด้านล่าง
+    if(tagBadge) {
+        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (ใบละ ${pcsPerTag} ชิ้น)`;
+    }
 }
 </script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
