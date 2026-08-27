@@ -4900,6 +4900,39 @@ function checkAndLoadAssyPlans() {
         dateInput.value = new Date().toISOString().split('T')[0];
     }
 }
+        // --- โค้ดสำหรับรองรับการยิงบาร์โค้ดที่ช่อง Part No. ---
+document.addEventListener('DOMContentLoaded', () => {
+    const partNoInput = document.getElementById('assyPartNo');
+    
+    if (partNoInput) {
+        // รองรับทั้งการเลือกจาก Dropdown และการยิงบาร์โค้ดเข้ามาตรงๆ
+        partNoInput.addEventListener('change', function() {
+            let scannedPart = this.value.trim();
+            if (!scannedPart) return;
+
+            console.log("📷 ตรวจพบ Part No. :", scannedPart);
+            
+            // เรียกฟังก์ชันดึง Line และ Lot No. อัตโนมัติ (ถ้ามีฟังก์ชัน onAssyPartChange)
+            if (typeof onAssyPartChange === 'function') {
+                onAssyPartChange();
+            }
+        });
+
+        // ดักจับกรณีเครื่องยิงบาร์โค้ดส่งค่าแบบรวดเร็ว (Keypress / Enter)
+        partNoInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                let scannedPart = this.value.trim();
+                if (scannedPart) {
+                    console.log("⚡ ยิงบาร์โค้ดสมบูรณ์ (Enter):", scannedPart);
+                    // สามารถสั่งให้โฟกัสไปที่ช่องจำนวน (Qty) ต่อได้เลยทันที เพื่อความรวดเร็วในการทำงาน
+                    const qtyField = document.getElementById('assyQty');
+                    if (qtyField) qtyField.focus();
+                }
+            }
+        });
+    }
+});
 // เมื่อเลือก Part No. ให้ดึง Line และ Lot No. จากประวัติการผลิตจริงมาแสดงอัตโนมัติ
 function onAssyPartChange() {
     const selectedPartNo = document.getElementById('assyPartNo').value;
