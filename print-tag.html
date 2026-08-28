@@ -6,7 +6,6 @@
     <!-- โหลดไลบรารี JsBarcode สำหรับสร้างบาร์โค้ดอัตโนมัติ -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
-        /* ตั้งค่าหน้ากระดาษ A4 แนวนอน (Landscape) */
         @page {
             size: A4 landscape;
             margin: 8mm;
@@ -26,8 +25,8 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 2 คอลัมน์ */
-            grid-template-rows: repeat(3, 1fr);    /* 3 แถว (รวมเป็น 6 ช่องต่อแผ่น) */
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
             gap: 6mm;
         }
         @media print {
@@ -35,8 +34,6 @@
             .page { box-shadow: none; margin: 0; page-break-after: always; }
             .no-print { display: none; }
         }
-
-        /* ดีไซน์กรอบ Tag แต่ละใบให้เป็นแนวนอนตรงตามต้นฉบับ Excel */
         .tag-card {
             border: 2px solid #000;
             padding: 5px;
@@ -46,7 +43,7 @@
             flex-direction: column;
             justify-content: space-between;
             background: #fff;
-            height: 60mm; /* ความสูงพอดีสำหรับ 3 แถวในหน้าแนวนอน */
+            height: 60mm;
         }
         table.tag-table {
             width: 100%;
@@ -58,13 +55,9 @@
             padding: 2px 4px;
             vertical-align: middle;
         }
-        .label-title {
-            font-weight: bold;
-        }
+        .label-title { font-weight: bold; }
         .text-center { text-align: center; }
         .fw-bold { font-weight: bold; }
-        
-        /* สไตล์ช่อง Barcode และ Logo ให้ใหญ่ขึ้นเพื่อให้อ่านง่าย */
         .footer-section {
             display: flex;
             justify-content: space-between;
@@ -85,93 +78,93 @@
             margin-right: 10px;
         }
         .barcode-box svg {
-            max-height: 35px; /* ขยายความสูงช่องใส่บาร์โค้ด */
+            max-height: 35px;
             width: 100%;
         }
     </style>
 </head>
 <body>
 
-    <!-- ปุ่มสั่งพิมพ์สำหรับกดหน้าเว็บ -->
     <div class="no-print" style="text-align: center; margin-bottom: 20px;">
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังโหลดข้อมูลจาก Google Sheets...</span>
     </div>
 
-    <!-- พื้นที่แสดงผลใบ Tag -->
     <div id="tagContainer"></div>
 
     <script>
-        function generateTags() {
-            // 1. ดึงค่าพารามิเตอร์จาก URL
+        // กำหนด URL ของ Apps Script Web App ของพี่มิวตรงนี้ (อันเดียวกับที่ใช้ในหน้า Index หลัก)
+        const SCRIPT_URL = "ใส่_URL_Google_Apps_Script_ของพี่มิวตรงนี้"; 
+
+        async function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
             const paramPartNo = urlParams.get('partNo') || '61761-KK040';
             const paramLotNo = urlParams.get('lotNo') || '124';
             const paramQty = Number(urlParams.get('qty')) || 667;
-            const paramLine = urlParams.get('line') || 'Line A';
 
-            // 2. ค่าเริ่มต้น (Fallback)
             let masterPartName = "STEERING ASSY";
-            let masterStemCode = "STEM-ST-01";
-            let masterPcsPerTag = 100; 
+            let masterStemCode = "-";
+            let masterPcsPerTag = 100;
 
             try {
-                const savedMaster = localStorage.getItem('masterParts');
-                if (savedMaster) {
-                    const masterList = JSON.parse(savedMaster);
-                    console.log("Master Data loaded from localStorage:", masterList);
+                // 1. ลองดึงจาก localStorage ก่อน (เผื่อมีอยู่แล้ว)
+                let masterList = JSON.parse(localStorage.getItem('masterParts') || '[]');
 
-                    // ค้นหารายการที่ Part No. ตรงกัน
-                    const found = masterList.find(m => {
-                        if (!m) return false;
-                        if (Array.isArray(m)) {
-                            // ถ้าเก็บเป็น Array เช่น m[0]=No, m[1]=PartNo หรือเช็คทุกช่อง
-                            return m.some(cell => String(cell).trim() === String(paramPartNo).trim());
-                        } else {
-                            // ถ้าเก็บเป็น Object
-                            let pNo = m["Part No."] || m.partNo || m["PartNo"] || m["1"] || "";
-                            return String(pNo).trim() === String(paramPartNo).trim();
-                        }
-                    });
-
-                    if (found) {
-                        console.log("Found matching part in master:", found);
-                        if (Array.isArray(found)) {
-                            // ดึงตามตำแหน่ง Index ของ Google Sheet (Column H = Index 7, Column I = Index 8)
-                            if (found[7]) masterPartName = found[7];
-                            if (found[8]) masterStemCode = found[8];
-                        } else {
-                            // ดึงจาก Object คีย์ต่างๆ
-                            masterPartName = found["Part Name"] || found.partName || found["Column H"] || found["7"] || masterPartName;
-                            masterStemCode = found["STEM Code"] || found.stemCode || found["Column I"] || found["8"] || masterStemCode;
-                        }
-                    } else {
-                        console.warn("Part No not found in masterParts localStorage:", paramPartNo);
+                // 2. ถ้าใน localStorage ไม่มี ให้ดึงตรงจาก Google Sheets (Apps Script) ทันที
+                if (masterList.length === 0 && SCRIPT_URL !== "ใส่_URL_Google_Apps_Script_ของพี่มิวตรงนี้") {
+                    const response = await fetch(`${SCRIPT_URL}?action=getMaster`);
+                    const result = await response.json();
+                    if (result && result.data) {
+                        masterList = result.data;
+                        localStorage.setItem('masterParts', JSON.stringify(masterList));
                     }
-                } else {
-                    console.warn("No masterParts found in localStorage!");
+                }
+
+                // ค้นหา Part No. ตรงกับ คอลัมน์ B (Index 1)
+                const found = masterList.find(m => {
+                    if (!m) return false;
+                    if (Array.isArray(m)) {
+                        return String(m[1]).trim() === String(paramPartNo).trim();
+                    } else {
+                        let pNo = m["partNo"] || m["Part No."] || "";
+                        return String(pNo).trim() === String(paramPartNo).trim();
+                    }
+                });
+
+                if (found) {
+                    if (Array.isArray(found)) {
+                        // คอลัมน์ H = Index 7 (Part Name), คอลัมน์ I = Index 8 (STEM Code)
+                        if (found[7]) masterPartName = found[7];
+                        if (found[8]) masterStemCode = found[8];
+                    } else {
+                        masterPartName = found["Part Name"] || found["partName"] || masterPartName;
+                        masterStemCode = found["STEM Code"] || found["stemCode"] || masterStemCode;
+                    }
                 }
             } catch (e) {
-                console.error("Error reading master data:", e);
+                console.error("Error fetching master data:", e);
             }
 
-            const printData = {
+            // สั่งสร้าง Tag แสดงผล
+            generateTagsUI({
                 partNo: paramPartNo,
                 lotNo: paramLotNo,
-                totalQty: paramQty,       
-                pcsPerTag: masterPcsPerTag, 
-                partName: masterPartName, // คอลัมน์ H
-                stemCode: masterStemCode  // คอลัมน์ I
-            };
+                totalQty: paramQty,
+                pcsPerTag: masterPcsPerTag,
+                partName: masterPartName,
+                stemCode: masterStemCode
+            });
+        }
 
+        function generateTagsUI(printData) {
             const container = document.getElementById('tagContainer');
             container.innerHTML = '';
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
             
-            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
+            document.getElementById('tagInfoSummary'].innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
 
             let allTagsHTML = '';
             let currentA4PageHTML = '';
@@ -256,7 +249,7 @@
             });
         }
 
-        window.onload = generateTags;
+        window.onload = initTagPage;
     </script>
 </body>
 </html>
