@@ -109,7 +109,6 @@
             let masterPcsPerTag = 45; 
 
             try {
-                // ดึงข้อมูลผ่าน JSONP เพื่อหลบปัญหา CORS
                 const responseData = await new Promise((resolve, reject) => {
                     const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
                     window[callbackName] = function(res) {
@@ -128,33 +127,27 @@
                 });
 
                 if (responseData && responseData.data) {
-                    const masterList = responseData.data; // มาจาก getDataFromSheet จะเป็น Array ของ Object
+                    const masterList = responseData.data;
                     
                     const found = masterList.find(m => {
-                        // ดึงค่าจาก Object โดยเช็คค่าที่เป็น Part No. (ดูจากคอลัมน์ในชีทของพี่มิว เช่น "Part No." หรือ key ตัวที่ 2)
-                        const keys = Object.keys(m);
-                        let pNo = m["Part No."] || m["partNo"] || m[keys[1]] || "";
+                        // เช็คเทียบ Part No จากคอลัมน์ partNo หรือ barcode
+                        let pNo = m["partNo"] || m["barcode"] || "";
                         return String(pNo).trim() === String(paramPartNo).trim();
                     });
 
                     if (found) {
-                        const keys = Object.keys(found);
-                        // คอลัมน์ C คือ Index 2 (หรือระบุชื่อคอลัมน์ตรงๆ ถ้าทราบ)
-                        let colCQty = found["Q'ty"] !== undefined ? found["Q'ty"] : found[keys[2]];
-                        if (colCQty !== undefined && !isNaN(colCQty) && Number(colCQty) > 0) {
-                            masterPcsPerTag = Number(colCQty);
+                        // ดึงค่าตามหัวตารางจริงในชีท MasterParts
+                        let colQty = found["จำนวน"] !== undefined ? found["จำนวน"] : found["Q'ty"];
+                        if (colQty !== undefined && !isNaN(colQty) && Number(colQty) > 0) {
+                            masterPcsPerTag = Number(colQty);
                         }
 
-                        // คอลัมน์ H คือ Index 7 = Part Name
-                        let colHName = found["Part Name"] !== undefined ? found["Part Name"] : found[keys[7]];
-                        if (colHName !== undefined && colHName !== "") {
-                            masterPartName = colHName;
+                        if (found["Part Name"] !== undefined && found["Part Name"] !== "") {
+                            masterPartName = found["Part Name"];
                         }
 
-                        // คอลัมน์ I คือ Index 8 = STEM Code
-                        let colISub = found["STEM Code"] !== undefined ? found["STEM Code"] : found[keys[8]];
-                        if (colISub !== undefined && colISub !== "") {
-                            masterStemCode = colISub;
+                        if (found["STEM Code"] !== undefined && found["STEM Code"] !== "") {
+                            masterStemCode = found["STEM Code"];
                         }
                     }
                 }
