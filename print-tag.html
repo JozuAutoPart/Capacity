@@ -96,7 +96,8 @@
     <div id="tagContainer"></div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbXLVXRc08O-0v6x_qexiga5-H_35aod-6N0ZGQhg1q2cQmnB8ZIKpOMQS3IKz_rOfCw/exec";
+        // แก้ไขลิงก์ SCRIPT_URL ให้ถูกต้องตรงกับ Apps Script ของพี่มิว
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLVXRo080-Ov6x_qexlga5-H_35aod-6N0ZGQhg1q2cQMnb8ZZikP0MQS3iKE_zRoFCw/exec";
 
         async function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -129,26 +130,15 @@
                 if (responseData && responseData.data) {
                     const masterList = responseData.data;
                     
-                    // ค้นหาแถวที่ Part No (index 1 หรือค่าในคอลัมน์ B) ตรงกับที่ส่งมา
-                    const found = masterList.find(m => {
-                        const keys = Object.keys(m);
-                        // เช็คทุกคอลัมน์ในแถวเพื่อความชัวร์ว่าเจอ Part No นี้แน่ๆ
-                        return keys.some(k => String(m[k]).trim() === String(paramPartNo).trim());
-                    });
+                    // ค้นหาข้อมูลตาม Part No ที่ส่งมา
+                    const found = masterList.find(m => String(m.partNo).trim() === String(paramPartNo).trim());
 
                     if (found) {
-                        const keys = Object.keys(found);
-                        
-                        // ดึงตามลำดับ Key (ตำแหน่งคอลัมน์ใน Object ที่แปลงมาจากแถวชีท)
-                        // keys[1] = Part No, keys[2] = จำนวน, keys[7] = Part Name, keys[8] = STEM Code
-                        if (keys.length > 2 && found[keys[2]] !== undefined && !isNaN(found[keys[2]]) && Number(found[keys[2]]) > 0) {
-                            masterPcsPerTag = Number(found[keys[2]]);
+                        if (found["Part Name"] !== undefined && found["Part Name"] !== "") {
+                            masterPartName = found["Part Name"];
                         }
-                        if (keys.length > 7 && found[keys[7]] !== undefined && found[keys[7]] !== "") {
-                            masterPartName = found[keys[7]];
-                        }
-                        if (keys.length > 8 && found[keys[8]] !== undefined && found[keys[8]] !== "") {
-                            masterStemCode = found[keys[8]];
+                        if (found["STEM Code"] !== undefined && found["STEM Code"] !== "") {
+                            masterStemCode = found["STEM Code"];
                         }
                     }
                 }
@@ -226,7 +216,7 @@
                             <tr>
                                 <td style="height: 10mm;"></td>
                                 <td></td>
-                                <td></td>
+                               <td></td>
                                 <td></td>
                             </tr>
                             <tr>
