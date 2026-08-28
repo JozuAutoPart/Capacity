@@ -484,6 +484,8 @@
     }
 
     // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น
+   <script>
+    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (รองรับการอ่านชื่อคอลัมน์หลายรูปแบบ)
     function calculatePlanFromWeight() {
         const partNoSelect = document.getElementById('planPartNo');
         const inputElement = document.getElementById('planWeightKg');
@@ -498,7 +500,12 @@
         if (!partNoVal) return;
 
         const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-        const matchedMaster = masterData.find(m => String(m.partNo || '').trim().toUpperCase() === partNoVal);
+        
+        // ค้นหาพาร์ทโดยเช็กทั้งคอลัมน์ partNo หรือ Part No.
+        const matchedMaster = masterData.find(m => {
+            const pNo = String(m.partNo || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
+            return pNo === partNoVal;
+        });
 
         if (!matchedMaster) {
             if (tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ทนี้ในระบบ Master</span>`;
@@ -506,9 +513,10 @@
             return;
         }
 
-        const weightPerPiece = Number(matchedMaster.weightPerPiece) || 0;
-        const piecePerSheet = Number(matchedMaster.piecePerSheet) || 0;
-        const pcsPerTag = Number(matchedMaster.tagQty) > 0 ? Number(matchedMaster.tagQty) : 50;
+        // ดึงค่าน้ำหนักและจำนวนชิ้นต่อแผ่นจากหลายๆ ชื่อคอลัมน์ที่เป็นไปได้
+        const weightPerPiece = parseFloat(matchedMaster.weightPerPiece || matchedMaster['Weight per piece'] || matchedMaster['Weight'] || 0);
+        const piecePerSheet = parseFloat(matchedMaster.piecePerSheet || matchedMaster['Piece per sheet'] || matchedMaster['Sheet'] || 0);
+        const pcsPerTag = parseInt(matchedMaster.tagQty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.tagQty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
 
         let calculatedPcs = 0;
         let calculationText = '';
@@ -528,9 +536,6 @@
             tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
         }
     }
-
-    // สั่งรันเติมข้อมูล Dropdown ทันทีเมื่อโหลดส่วนนี้
-    setTimeout(populatePlanPartNoDropdown, 300);
 </script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
