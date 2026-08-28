@@ -104,7 +104,7 @@
 
             let masterPartName = "STEERING ASSY";
             let masterStemCode = "-";
-            let masterPcsPerTag = 50; // ค่าสำรองถ้าหาไม่เจอ
+            let masterPcsPerTag = 50;
 
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getMasterParts`);
@@ -113,20 +113,27 @@
                 if (result && result.data) {
                     const masterList = result.data;
                     
-                    // ค้นหาแถวที่ Part No ตรงกัน (เช็คทั้งคอลัมน์ partNo หรือ Part No.)
+                    // ค้นหาแถวที่ Part No ตรงกัน
                     const found = masterList.find(m => {
                         let pNo = m["partNo"] || m["Part No."] || m["PartNo"] || "";
                         return String(pNo).trim() === String(paramPartNo).trim();
                     });
 
                     if (found) {
-                        masterPartName = found["Part Name"] || found["partName"] || masterPartName;
-                        masterStemCode = found["STEM Code"] || found["stemCode"] || masterStemCode;
-                        
-                        // ดึงค่าจำนวนจากคอลัมน์ 'จำนวน' โดยตรง
+                        // ดึงจำนวนจากคอลัมน์ C (คีย์ 'จำนวน')
                         let qtyCol = found["จำนวน"];
                         if (qtyCol !== undefined && qtyCol !== null && !isNaN(qtyCol) && Number(qtyCol) > 0) {
                             masterPcsPerTag = Number(qtyCol);
+                        }
+
+                        // ดึง Part Name จากคอลัมน์ H (คีย์ 'Part Name')
+                        if (found["Part Name"]) {
+                            masterPartName = found["Part Name"];
+                        }
+
+                        // ดึง STEM Code จากคอลัมน์ I (คีย์ 'STEM Code')
+                        if (found["STEM Code"]) {
+                            masterStemCode = found["STEM Code"];
                         }
                     }
                 }
