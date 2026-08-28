@@ -113,29 +113,31 @@
                 if (result && result.data) {
                     const masterList = result.data;
                     
-                    // ค้นหาแถวที่ Part No ตรงกัน (รองรับทั้งชื่อคีย์ตัวพิมพ์เล็ก/ใหญ่ และตำแหน่งอาเรย์)
+                    // ค้นหาแถวที่ตรงกับ Part No.
                     const found = masterList.find(m => {
-                        let pNo = m["partNo"] || m["Part No."] || m["PartNo"] || m[1] || "";
+                        let pNo = "";
+                        if (Array.isArray(m)) {
+                            pNo = m[1]; // ช่อง index 1 คือคอลัมน์ partNo
+                        } else if (typeof m === 'object' && m !== null) {
+                            pNo = m["partNo"] || m["Part No."] || m["PartNo"] || Object.values(m)[1];
+                        }
                         return String(pNo).trim() === String(paramPartNo).trim();
                     });
 
                     if (found) {
-                        // 1. ดึงจำนวน จากคอลัมน์ C (Index 2 หรือคีย์ 'จำนวน' / 'qty')
-                        let qtyCol = found["จำนวน"] || found["qty"] || found[2];
-                        if (qtyCol !== undefined && qtyCol !== null && !isNaN(qtyCol) && Number(qtyCol) > 0) {
-                            masterPcsPerTag = Number(qtyCol);
-                        }
-
-                        // 2. ดึง Part Name จากคอลัมน์ H (Index 7 หรือคีย์ 'Part Name')
-                        let nameCol = found["Part Name"] || found["partName"] || found[7];
-                        if (nameCol) {
-                            masterPartName = nameCol;
-                        }
-
-                        // 3. ดึง STEM Code จากคอลัมน์ I (Index 8 หรือคีย์ 'STEM Code')
-                        let stemCol = found["STEM Code"] || found["stemCode"] || found[8];
-                        if (stemCol) {
-                            masterStemCode = stemCol;
+                        if (Array.isArray(found)) {
+                            // กรณีข้อมูลมาเป็นอาเรย์เรียงตามคอลัมน์ (A=0, B=1, C=2, H=7, I=8)
+                            if (found[2] && !isNaN(found[2])) masterPcsPerTag = Number(found[2]);
+                            if (found[7]) masterPartName = found[7];
+                            if (found[8]) masterStemCode = found[8];
+                        } else {
+                            // กรณีข้อมูลมาเป็น Object
+                            let qtyCol = found["จำนวน"] || found["qty"] || found["Q'ty"];
+                            if (qtyCol !== undefined && !isNaN(qtyCol) && Number(qtyCol) > 0) {
+                                masterPcsPerTag = Number(qtyCol);
+                            }
+                            if (found["Part Name"]) masterPartName = found["Part Name"];
+                            if (found["STEM Code"]) masterStemCode = found["STEM Code"];
                         }
                     }
                 }
