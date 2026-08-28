@@ -500,6 +500,7 @@
 
     // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น
    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (อัปเดตชื่อคีย์ตาม Google Sheets ล่าสุด)
+// ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (แบบครอบคลุมทุกรูปแบบคีย์)
 function calculatePlanFromWeight() {
     const partNoSelect = document.getElementById('planPartNo');
     const inputElement = document.getElementById('planWeightKg');
@@ -515,8 +516,9 @@ function calculatePlanFromWeight() {
 
     const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
     
+    // ค้นหาพาร์ทโดยแปลงเป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อตัดปัญหาตัวพิมพ์เล็กใหญ่ไม่ตรงกัน
     const matchedMaster = masterData.find(m => {
-        const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || '').trim().toUpperCase();
+        const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
         return pNo === partNoVal;
     });
 
@@ -526,10 +528,33 @@ function calculatePlanFromWeight() {
         return;
     }
 
-    // ดึงค่าตามชื่อหัวตารางใน Google Sheets จริง
-    const weightPerPiece = parseFloat(matchedMaster.weightPerPiece || matchedMaster['Weight per piece'] || matchedMaster['weightperpiece'] || 0);
-    const piecePerSheet = parseFloat(matchedMaster.piecePerSheet || matchedMaster['Piece per sheet'] || matchedMaster['piecepersheet'] || 0);
-    const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || 50) : 50;
+    // ปริ้นท์ข้อมูลพาร์ทนี้ออกมาดูใน Console เพื่อให้พี่มิวเช็กชื่อคีย์จริงได้ง่ายขึ้น
+    console.log("Matched Master Data:", matchedMaster);
+
+    // วนหาค่าน้ำหนักจากทุกคีย์ที่เป็นไปได้ทั้งหมด
+    let weightPerPiece = 0;
+    for (let key in matchedMaster) {
+        if (key.toLowerCase().includes('weight') || key.toLowerCase().includes('น้ำหนัก')) {
+            let val = parseFloat(matchedMaster[key]);
+            if (!isNaN(val) && val > 0) {
+                weightPerPiece = val;
+                break;
+            }
+        }
+    }
+
+    let piecePerSheet = 0;
+    for (let key in matchedMaster) {
+        if (key.toLowerCase().includes('sheet') || key.toLowerCase().includes('piece') || key.toLowerCase().includes('แผ่น')) {
+            let val = parseFloat(matchedMaster[key]);
+            if (!isNaN(val) && val > 0) {
+                piecePerSheet = val;
+                break;
+            }
+        }
+    }
+
+    const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
 
     let calculatedPcs = 0;
     let calculationText = '';
