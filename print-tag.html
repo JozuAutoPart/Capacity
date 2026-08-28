@@ -112,7 +112,7 @@
             const paramQty = Number(urlParams.get('qty')) || 667;
             const paramLine = urlParams.get('line') || 'Line A';
 
-            // 2. ค้นหาข้อมูลเสริมจาก Master Data ใน localStorage
+            // 2. ค่าเริ่มต้น (Fallback)
             let masterPartName = "STEERING ASSY";
             let masterStemCode = "STEM-ST-01";
             let masterPcsPerTag = 100; 
@@ -121,28 +121,37 @@
                 const savedMaster = localStorage.getItem('masterParts');
                 if (savedMaster) {
                     const masterList = JSON.parse(savedMaster);
+                    console.log("Master Data loaded from localStorage:", masterList);
+
+                    // ค้นหารายการที่ Part No. ตรงกัน
                     const found = masterList.find(m => {
-                        // รองรับทั้งแบบ Object และแบบ Array (Row Index จาก Google Sheet)
-                        let pNo = "";
+                        if (!m) return false;
                         if (Array.isArray(m)) {
-                            pNo = m[1] || m[0] || ""; // สมมติ Part No อยู่คอลัมน์ B หรือ A
+                            // ถ้าเก็บเป็น Array เช่น m[0]=No, m[1]=PartNo หรือเช็คทุกช่อง
+                            return m.some(cell => String(cell).trim() === String(paramPartNo).trim());
                         } else {
-                            pNo = m["Part No."] || m.partNo || "";
+                            // ถ้าเก็บเป็น Object
+                            let pNo = m["Part No."] || m.partNo || m["PartNo"] || m["1"] || "";
+                            return String(pNo).trim() === String(paramPartNo).trim();
                         }
-                        return String(pNo).trim() === String(paramPartNo).trim();
                     });
 
                     if (found) {
+                        console.log("Found matching part in master:", found);
                         if (Array.isArray(found)) {
-                            // ถ้าเก็บเป็น Array แถว Google Sheet (Index 7 = คอลัมน์ H, Index 8 = คอลัมน์ I)
+                            // ดึงตามตำแหน่ง Index ของ Google Sheet (Column H = Index 7, Column I = Index 8)
                             if (found[7]) masterPartName = found[7];
                             if (found[8]) masterStemCode = found[8];
                         } else {
-                            // ถ้าเก็บเป็น Object
-                            masterPartName = found["Part Name"] || found.partName || found["Column H"] || masterPartName;
-                            masterStemCode = found["STEM Code"] || found.stemCode || found["Column I"] || masterStemCode;
+                            // ดึงจาก Object คีย์ต่างๆ
+                            masterPartName = found["Part Name"] || found.partName || found["Column H"] || found["7"] || masterPartName;
+                            masterStemCode = found["STEM Code"] || found.stemCode || found["Column I"] || found["8"] || masterStemCode;
                         }
+                    } else {
+                        console.warn("Part No not found in masterParts localStorage:", paramPartNo);
                     }
+                } else {
+                    console.warn("No masterParts found in localStorage!");
                 }
             } catch (e) {
                 console.error("Error reading master data:", e);
@@ -153,8 +162,8 @@
                 lotNo: paramLotNo,
                 totalQty: paramQty,       
                 pcsPerTag: masterPcsPerTag, 
-                partName: masterPartName, // ดึงจากคอลัมน์ H
-                stemCode: masterStemCode  // ดึงจากคอลัมน์ I
+                partName: masterPartName, // คอลัมน์ H
+                stemCode: masterStemCode  // คอลัมน์ I
             };
 
             const container = document.getElementById('tagContainer');
@@ -174,7 +183,6 @@
                     if (remainder > 0) currentQty = remainder;
                 }
 
-                // โครงสร้างตาราง Tag แนวนอนตรงตามต้นฉบับ Excel
                 const tagHTML = `
                     <div class="tag-card">
                         <table class="tag-table">
@@ -220,7 +228,6 @@
                         <div class="footer-section">
                             <div class="logo-box">STEM</div>
                             <div class="barcode-box">
-                                <!-- บาร์โค้ดเฉพาะ Part No. -->
                                 <svg class="barcode" data-barcode="${printData.partNo}"></svg>
                             </div>
                             <div style="font-size: 8px; text-align: right;"></div>
@@ -238,7 +245,6 @@
 
             container.innerHTML = allTagsHTML;
 
-            // ตั้งค่าการเรนเดอร์บาร์โค้ด
             document.querySelectorAll('.barcode').forEach(svg => {
                 JsBarcode(svg, svg.getAttribute('data-barcode'), {
                     format: "CODE128",
