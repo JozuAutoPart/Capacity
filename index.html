@@ -469,44 +469,39 @@
 <!-- ⚙️ สคริปต์โหลดข้อมูล ดึงชื่อพาร์ทอัตโนมัติ และคำนวณ -->
 <script>
 async function loadAllDataFromCloud() {
-    try {
-        let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
-        let jsonPlans = await resPlans.json();
-        if (jsonPlans.status === "success") plans = jsonPlans.data || [];
+            try {
+                let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
+                let jsonPlans = await resPlans.json();
+                if (jsonPlans.status === "success") plans = jsonPlans.data || [];
 
-        let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
-        let jsonActuals = await resActuals.json();
-        if (jsonActuals.status === "success") actuals = jsonActuals.data || [];
+                let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
+                let jsonActuals = await resActuals.json();
+                if (jsonActuals.status === "success") actuals = jsonActuals.data || [];
 
-        let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
-        let jsonQgate = await resQgate.json();
-        if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
+                let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
+                let jsonQgate = await resQgate.json();
+                if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
 
-        let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
-        let jsonDeliveries = await resDeliveries.json();
-        if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
+                let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
+                let jsonDeliveries = await resDeliveries.json();
+                if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
 
-        let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
-        let jsonBms = await resBms.json();
-        if (jsonBms.status === "success") bms = jsonBms.data || [];
+                let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
+                let jsonBms = await resBms.json();
+                if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-        // 🔄 โหลด Master Parts
-        let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
-        let jsonMaster = await resMaster.json();
-        
-       let formattedMaster = [];
+                // 🎯 โหลด Master Parts จาก Google Sheet
+                let resMaster = await fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`);
+                let jsonMaster = await resMaster.json();
+                
+                let formattedMaster = [];
                 if (jsonMaster.status === "success") {
                     const rawMasterData = jsonMaster.data || [];
                     formattedMaster = rawMasterData.map(m => {
                         let partNoVal = m['partNo'] || m['Part No.'] || m['PARTNO'] || m[1] || '';
-                        
-                        // 🎯 ดึง "จำนวน" จากคอลัมน์ C (และเผื่อช่องว่างให้เป็น 50)
-                        let cVal = m['จำนวน'] !== undefined && m['จำนวน'] !== "" ? m['จำนวน'] : 50;
-                        
-                        // 🎯 ดึง "Weight per piece" จากคอลัมน์ J
-                        let jVal = m['Weight per piece'] !== undefined && m['Weight per piece'] !== "" ? m['Weight per piece'] : 0;
-                        
-                        let kVal = m['Piece per sheet'] !== undefined && m['Piece per sheet'] !== "" ? m['Piece per sheet'] : 0;
+                        let cVal = m['จำนวน'] !== undefined ? m['จำนวน'] : 50;
+                        let jVal = m['Weight per piece'] !== undefined ? m['Weight per piece'] : 0;
+                        let kVal = m['Piece per sheet'] !== undefined ? m['Piece per sheet'] : 0;
 
                         return {
                             partNo: String(partNoVal).trim(),
@@ -516,28 +511,22 @@ async function loadAllDataFromCloud() {
                         };
                     }).filter(m => m.partNo !== '' && m.partNo !== 'undefined' && m.partNo !== 'null');
 
+                    // บันทึกลงเครื่อง (LocalStorage)
                     localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedMaster));
-                    console.log("✅ โหลด Master Parts และแมปค่าคอลัมน์ C, J สำเร็จ:", formattedMaster.length, "รายการ");
+                    console.log("✅ โหลด Master Parts สำเร็จ:", formattedMaster.length, "รายการ");
+                } else {
+                    formattedMaster = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
                 }
-        // 🔑 บังคับยัดข้อมูลใส่ Dropdown แบบชัวร์ 100%
-        const partNoSelect = document.getElementById('planPartNo');
-        if (partNoSelect) {
-            let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
-            formattedMaster.forEach(m => {
-                optionsHtml += `<option value="${m.partNo}">${m.partNo}</option>`;
-            });
-            partNoSelect.innerHTML = optionsHtml;
-            console.log("🎉 ยัดรายชื่อลง Dropdown สำเร็จจำนวน:", formattedMaster.length);
-        } else {
-            console.error("❌ หา Element ID 'planPartNo' ไม่พบ!");
-        }
 
-        if (typeof renderAll === 'function') renderAll();
-        if (typeof renderDiePM === 'function') renderDiePM();
-    } catch (error) {
-        console.error("Error loading data from cloud:", error);
-    }
-}
+                // สั่งเติมข้อมูลลง Dropdown ทันทีหลังโหลดเสร็จ
+                forcePopulatePartNo();
+
+                if (typeof renderAll === 'function') renderAll();
+                if (typeof renderDiePM === 'function') renderDiePM();
+            } catch (error) {
+                console.error("Error loading data from cloud:", error);
+            }
+        }
 function calculatePlanFromWeight() {
     const partNoSelect = document.getElementById('planPartNo');
     const inputElement = document.getElementById('planWeightKg');
