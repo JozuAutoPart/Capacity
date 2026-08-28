@@ -2,12 +2,14 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Print STEM Tags (6 Tags / A4 Landscape)</title>
+    <title>Print STEM Tags (6 Tags / A4)</title>
+    <!-- โหลดไลบรารี JsBarcode สำหรับสร้างบาร์โค้ดอัตโนมัติ -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
+        /* ตั้งค่าหน้ากระดาษ A4 สำหรับพิมพ์ */
         @page {
-            size: A4 landscape;
-            margin: 8mm;
+            size: A4;
+            margin: 10mm;
         }
         body {
             font-family: 'Tahoma', sans-serif;
@@ -16,59 +18,65 @@
             padding: 20px;
         }
         .page {
-            width: 297mm;
-            min-height: 210mm;
-            padding: 8mm;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
             margin: 0 auto 20px auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 6mm;
+            grid-template-columns: repeat(2, 1fr); /* 2 คอลัมน์ */
+            grid-template-rows: repeat(3, 1fr);    /* 3 แถว (รวมเป็น 6 ช่องต่อแผ่น) */
+            gap: 8mm;
         }
         @media print {
             body { background: none; padding: 0; }
             .page { box-shadow: none; margin: 0; page-break-after: always; }
             .no-print { display: none; }
         }
+
+        /* ดีไซน์กรอบ Tag แต่ละใบให้เหมือนต้นฉบับ Excel */
         .tag-card {
             border: 2px solid #000;
-            padding: 5px;
+            padding: 6px;
             box-sizing: border-box;
-            font-size: 10px;
+            font-size: 11px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             background: #fff;
-            height: 60mm;
+            height: 88mm; /* ความสูงพอดีสำหรับ 3 แถวใน A4 */
         }
         table.tag-table {
             width: 100%;
             border-collapse: collapse;
             border: 1px solid #000;
-            table-layout: fixed;
         }
         table.tag-table th, table.tag-table td {
             border: 1px solid #000;
-            padding: 2px 4px;
+            padding: 3px 5px;
             vertical-align: middle;
-            overflow: hidden;
         }
-        .label-title { font-weight: bold; }
+        .label-title {
+            font-weight: bold;
+            width: 25%;
+        }
         .text-center { text-align: center; }
+        .text-right { text-align: right; }
         .fw-bold { font-weight: bold; }
+        
+        /* สไตล์ช่อง Barcode และ Logo */
         .footer-section {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 2px;
+            margin-top: 4px;
         }
         .logo-box {
             font-weight: bold;
             font-style: italic;
-            font-size: 14px;
+            font-size: 16px;
             color: #003366;
             font-family: 'Arial Black', sans-serif;
         }
@@ -76,71 +84,62 @@
             text-align: center;
             flex-grow: 1;
             margin-left: 10px;
-            margin-right: 10px;
         }
         .barcode-box svg {
-            max-height: 35px;
+            max-height: 30px;
             width: 100%;
         }
     </style>
 </head>
 <body>
 
+    <!-- ปุ่มสั่งพิมพ์สำหรับกดหน้าเว็บ -->
     <div class="no-print" style="text-align: center; margin-bottom: 20px;">
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
-            🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
+            🖨️ พิมพ์ใบ Tag ทั้งหมด
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังสร้างใบ Tag...</span>
     </div>
 
+    <!-- พื้นที่แสดงผลใบ Tag (ระบบจะ Generate ใส่ในนี้อัตโนมัติ) -->
     <div id="tagContainer"></div>
 
     <script>
-        function initTagPage() {
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            const printData = {
-                partNo: urlParams.get('partNo') || '-',
-                lotNo: urlParams.get('lotNo') || '-',
-                totalQty: Number(urlParams.get('qty')) || 0,
-                pcsPerTag: Number(urlParams.get('pcsPerTag')) || 50,
-                partName: urlParams.get('partName') || '-',
-                stemCode: urlParams.get('stemCode') || '-'
-            };
+        // ตัวอย่างข้อมูลที่รับมาจากหน้า Planning และ Google Sheet (Master Parts)
+        // ในการใช้งานจริง สามารถส่งค่านี่มาจากฟังก์ชันกดปุ่มพิมพ์ในหน้า Planning ได้เลยครับ
+        const printData = {
+            partNo: "76344-4JG1A",
+            lotNo: "LOT-2026-0827",
+            totalQty: 3500,       // ยอดรวมทั้งหมดที่คำนวณได้
+            pcsPerTag: 100,       // จำนวนมาตรฐานต่อ 1 ใบ Tag (ดึงจาก Master)
+            partName: "STEERING ASSY", // ดึงจาก Google Sheet
+            stemCode: "STEM-ST-01"     // ดึงจาก Google Sheet
+        };
 
-            generateTagsUI(printData);
-        }
-
-        function generateTagsUI(printData) {
+        function generateTags() {
             const container = document.getElementById('tagContainer');
             container.innerHTML = '';
 
+            // คำนวณจำนวนใบ Tag ทั้งหมด (เช่น 3500 / 100 = 35 ใบ)
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
             
-            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
-
             let allTagsHTML = '';
             let currentA4PageHTML = '';
 
             for (let i = 1; i <= totalTags; i++) {
+                // คำนวณเศษชิ้นสุดท้าย (ถ้าหารไม่ลงตัว)
                 let currentQty = printData.pcsPerTag;
                 if (i === totalTags) {
                     let remainder = printData.totalQty % printData.pcsPerTag;
                     if (remainder > 0) currentQty = remainder;
                 }
 
+                // โครงสร้าง HTML ของ Tag แต่ละใบตามเงื่อนไขสีแดง
                 const tagHTML = `
                     <div class="tag-card">
                         <table class="tag-table">
-                            <colgroup>
-                                <col style="width: 25%;">
-                                <col style="width: 25%;">
-                                <col style="width: 25%;">
-                                <col style="width: 25%;">
-                            </colgroup>
                             <tr>
                                 <td class="label-title">Part No.</td>
-                                <td colspan="3" class="fw-bold" style="font-size: 12px;">${printData.partNo}</td>
+                                <td colspan="3" class="fw-bold" style="font-size: 13px;">${printData.partNo}</td>
                             </tr>
                             <tr>
                                 <td class="label-title">Part Name</td>
@@ -148,67 +147,61 @@
                             </tr>
                             <tr>
                                 <td class="label-title">Q'ty</td>
-                                <td><span class="fw-bold" style="font-size: 13px;">${currentQty}</span> Pcs.</td>
-                                <td class="label-title text-center">Stamp Mark</td>
-                                <td></td>
+                                <td colspan="3"><span class="fw-bold" style="font-size: 14px;">${currentQty}</span> Pcs.</td>
                             </tr>
                             <tr>
-                                <td class="label-title" style="font-size: 9px;">Production Data / Lot No.:</td>
+                                <td class="label-title">Prod' Data / Lot No.</td>
                                 <td>${printData.lotNo}</td>
-                                <td class="label-title text-center">STEM Code</td>
+                                <td class="label-title">STEM Code</td>
                                 <td>${printData.stemCode}</td>
                             </tr>
                             <tr>
-                                <td class="text-center fw-bold" style="font-size: 8px;">Production Date</td>
-                                <td class="text-center fw-bold" style="font-size: 8px;">Supplier Check</td>
-                                <td class="text-center fw-bold" style="font-size: 8px;">Delivery Date</td>
-                                <td class="text-center fw-bold" style="font-size: 8px;">STEM QC Receiving</td>
+                                <td class="text-center" style="font-size:9px;">Production Date</td>
+                                <td class="text-center" style="font-size:9px;">Supplier Check</td>
+                                <td class="text-center" style="font-size:9px;">Delivery Date</td>
+                                <td class="text-center fw-bold" style="font-size:9px;">STEM QC Receiving</td>
                             </tr>
                             <tr>
-                                <td style="height: 10mm;"></td>
+                                <td style="height: 18mm;"></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
-                            </tr>
-                            <tr>
-                                <td class="text-center" style="font-size: 8.5px;">Time</td>
-                                <td class="text-center" style="font-size: 8.5px;">Time</td>
-                                <td class="text-center" style="font-size: 8.5px;">Time</td>
-                                <td class="text-center" style="font-size: 8.5px;">by.</td>
                             </tr>
                         </table>
                         <div class="footer-section">
                             <div class="logo-box">STEM</div>
                             <div class="barcode-box">
-                                <svg class="barcode" data-barcode="${printData.partNo}"></svg>
+                                <!-- ช่องใส่ Barcode อัตโนมัติ -->
+                                <svg class="barcode" data-barcode="${printData.partNo}-${i}"></svg>
                             </div>
-                            <div style="font-size: 8px; text-align: right;"></div>
+                            <div style="font-size: 9px; text-align: right;">by.</div>
                         </div>
                     </div>
                 `;
 
                 currentA4PageHTML += tagHTML;
 
+                // ทุกๆ 6 Tag จะถูกจับรวมเป็น 1 หน้ากระดาษ A4
                 if (i % 6 === 0 || i === totalTags) {
                     allTagsHTML += `<div class="page">${currentA4PageHTML}</div>`;
-                    currentA4PageHTML = ''; 
+                    currentA4PageHTML = ''; // รีเซ็ตหน้าใหม่
                 }
             }
 
             container.innerHTML = allTagsHTML;
 
+            // สั่งสร้างรูป Barcode ลงในทุก Tag หลังจาก Render เสร็จ
             document.querySelectorAll('.barcode').forEach(svg => {
                 JsBarcode(svg, svg.getAttribute('data-barcode'), {
                     format: "CODE128",
-                    displayValue: false,
-                    width: 1.8,
-                    height: 28,
-                    margin: 1
+                    displayValue: false, // ซ่อนตัวอักษรใต้บาร์โค้ดเพื่อให้พอดีช่อง
+                    margin: 2
                 });
             });
         }
 
-        window.onload = initTagPage;
+        // รันฟังก์ชันสร้าง Tag ทันทีเมื่อเปิดหน้าเว็บ
+        window.onload = generateTags;
     </script>
 </body>
 </html>
