@@ -88,60 +88,88 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังโหลดข้อมูลจาก MasterParts...</span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        // ฐานข้อมูลจับคู่ PartNo กับ PartName และ STEM Code (พี่มิวสามารถเพิ่มรายการอื่นๆ เข้ามาตรงนี้ได้เรื่อยๆ ครับ)
+        // ฐานข้อมูลสำรอง (เผื่อกรณีออฟไลน์)
         const partDatabase = {
-            "53219-0D020": { name: "SUPPORT,RADIATOR,LWR,RR", stem: "JA114" },
-            "55330-0D480-10": { name: "REINFORCEMENT ASSY INSTRUMENT PA", stem: "JA118" },
-            "55330-0D490-10": { name: "REINFORCEMENT ASSY INSTRUMENT PA", stem: "JA119" },
-            "61761-KK040": { name: "REINFROCE,SEAT BELT ANCHOR,NO.1 U", stem: "JA183" },
-            "61762-KK050": { name: "REINFROCE,SELT ANCHOR,NO.1 UPR LH", stem: "JA184" },
-            "55428-0D010": { name: "BRACKET,AIR BAG PASSENGER MT,NO.2", stem: "JA197" },
-            "55428-0D020": { name: "BRACKET,AIR BAG PASSENGER MT,NO.2", stem: "JA199" },
-            "55309-06190": { name: "RETAINER SUB ASSY LUG DOOR LOCK", stem: "JA217" },
-            "57248-0D010": { name: "BRK,T FLEXIBLE HOSE NO.1 OR", stem: "JA112" },
-            "57249-0D040": { name: "BRK,T FLEXIBLE HOSE NO.1 OL", stem: "JA113" },
-            "67323-0D090": { name: "EXTENSION,FR DOOR BEAM RR RH", stem: "JA121" },
-            "67324-0D080": { name: "EXTENSION,FR DOOR BEAM RR LH", stem: "JA122" },
-            "62590-47A50": { name: "RIF-RAD CORE LWR", stem: "JA160" },
-            "62590-47A5A": { name: "RIF-RAD CORE LWR", stem: "JA161" },
-            "76294-47A0A": { name: "BULKHEAD ASSY-FR PLR LWR RH", stem: "JA168" },
-            "76295-47A0A": { name: "BULKHEAD ASSY-FR PLR LWR LH", stem: "JA167" },
-            "76344-47GLA": { name: "ANCH ASSY-SEAT BELT", stem: "JA168" },
-            "55328-KK030": { name: "STAY INSTRUMENT PANEL NO.3", stem: "JA176" },
-            "55328-KK040": { name: "STAY INSTRUMENT PANEL NO.3", stem: "JA177" },
-            "55329-KK030": { name: "STAY INSTRUMENT PANEL NO.4", stem: "JA178" },
-            "55329-KK040": { name: "STAY INSTRUMENT PANEL NO.4", stem: "JA179" },
-            "58221-KK010": { name: "REINFORCEMENT,FLOOR PANEL,FR RH", stem: "JA186" },
-            "58221-KK020": { name: "REINFORCEMENT,FLOOR PANEL,FR LH", stem: "JA187" },
-            "58222-KK010": { name: "REINFORCEMENT,FLOOR PANEL,FR RH", stem: "JA192" }
+            "53219-0D020": { name: "SUPPORT,RADIATOR,LWR,RR", stem: "JA114", pcs: 50 },
+            "55330-0D480-10": { name: "REINFORCEMENT ASSY INSTRUMENT PA", stem: "JA118", pcs: 25 },
+            "55330-0D490-10": { name: "REINFORCEMENT ASSY INSTRUMENT PA", stem: "JA119", pcs: 25 },
+            "61761-KK040": { name: "REINFROCE,SEAT BELT ANCHOR,NO.1 U", stem: "JA183", pcs: 45 },
+            "61762-KK050": { name: "REINFROCE,SELT ANCHOR,NO.1 UPR LH", stem: "JA184", pcs: 45 },
+            "55428-0D010": { name: "BRACKET,AIR BAG PASSENGER MT,NO.2", stem: "JA197", pcs: 50 },
+            "55428-0D020": { name: "BRACKET,AIR BAG PASSENGER MT,NO.2", stem: "JA199", pcs: 50 },
+            "55309-06190": { name: "RETAINER SUB ASSY LUG DOOR LOCK", stem: "JA217", pcs: 90 },
+            "57248-0D010": { name: "BRK,T FLEXIBLE HOSE NO.1 OR", stem: "JA112", pcs: 100 },
+            "57249-0D040": { name: "BRK,T FLEXIBLE HOSE NO.1 OL", stem: "JA113", pcs: 100 },
+            "67323-0D090": { name: "EXTENSION,FR DOOR BEAM RR RH", stem: "JA121", pcs: 80 },
+            "67324-0D080": { name: "EXTENSION,FR DOOR BEAM RR LH", stem: "JA122", pcs: 80 },
+            "62590-47A50": { name: "RIF-RAD CORE LWR", stem: "JA160", pcs: 80 },
+            "62590-47A5A": { name: "RIF-RAD CORE LWR", stem: "JA161", pcs: 80 },
+            "76294-47A0A": { name: "BULKHEAD ASSY-FR PLR LWR RH", stem: "JA168", pcs: 60 },
+            "76295-47A0A": { name: "BULKHEAD ASSY-FR PLR LWR LH", stem: "JA167", pcs: 60 },
+            "76344-47GLA": { name: "ANCH ASSY-SEAT BELT", stem: "JA168", pcs: 60 },
+            "55328-KK030": { name: "STAY INSTRUMENT PANEL NO.3", stem: "JA176", pcs: 50 },
+            "55328-KK040": { name: "STAY INSTRUMENT PANEL NO.3", stem: "JA177", pcs: 70 },
+            "55329-KK030": { name: "STAY INSTRUMENT PANEL NO.4", stem: "JA178", pcs: 70 },
+            "55329-KK040": { name: "STAY INSTRUMENT PANEL NO.4", stem: "JA179", pcs: 50 },
+            "58221-KK010": { name: "REINFORCEMENT,FLOOR PANEL,FR RH", stem: "JA186", pcs: 100 },
+            "58221-KK020": { name: "REINFORCEMENT,FLOOR PANEL,FR LH", stem: "JA187", pcs: 100 },
+            "58222-KK010": { name: "REINFORCEMENT,FLOOR PANEL,FR RH", stem: "JA192", pcs: 100 }
         };
 
-        function initTagPage() {
+        async function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
             const partNo = (urlParams.get('partNo') || '').trim();
             const lotNo = urlParams.get('lotNo') || '-';
             const totalQty = Number(urlParams.get('qty')) || 0;
-            const pcsPerTag = Number(urlParams.get('pcsPerTag')) || 50;
 
-            // ดึงชื่อและ STEM Code จากฐานข้อมูลในโค้ดอัตโนมัติ
             let partName = '-';
             let stemCode = '-';
+            let pcsPerTag = 50; // ค่าเริ่มต้น
 
-            if (partDatabase[partNo]) {
-                partName = partDatabase[partNo].name;
-                stemCode = partDatabase[partNo].stem;
-            } else {
-                // เผื่อกรณีมีส่งพารามิเตอร์มาตรงๆ
-                partName = urlParams.get('partName') || '-';
-                stemCode = urlParams.get('stemCode') || '-';
+            // 1. ดึงข้อมูลสดจาก Google Sheets (MasterParts) คอลัมน์ C (จำนวน), H (Name), I (STEM)
+            try {
+                const sheetId = '1rCouYPQOq3G-C8SM1UwHPP1MneohkVmlPrbGbWus';
+                const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=MasterParts`;
+                
+                const res = await fetch(url);
+                const text = await res.text();
+                const json = JSON.parse(text.substring(47, text.length - 2));
+                const rows = json.table.rows;
+
+                let found = false;
+                for (let r of rows) {
+                    const c = r.c;
+                    if (c[1] && c[1].v && c[1].v.toString().trim() === partNo) {
+                        if (c[2] && c[2].v !== null) pcsPerTag = Number(c[2].v) || 50; // Col C: จำนวน
+                        if (c[7] && c[7].v) partName = c[7].v.toString();               // Col H: Part Name
+                        if (c[8] && c[8].v) stemCode = c[8].v.toString();               // Col I: STEM Code
+                        found = true;
+                        break;
+                    }
+                }
+
+                // ถ้าไม่เจอในชีต ให้ลองดึงจากตารางสำรองในโค้ด
+                if (!found && partDatabase[partNo]) {
+                    partName = partDatabase[partNo].name;
+                    stemCode = partDatabase[partNo].stem;
+                    pcsPerTag = partDatabase[partNo].pcs;
+                }
+            } catch (e) {
+                console.log('ดึงข้อมูลชีตไม่ได้ ใช้ฐานข้อมูลสำรองแทน', e);
+                if (partDatabase[partNo]) {
+                    partName = partDatabase[partNo].name;
+                    stemCode = partDatabase[partNo].stem;
+                    pcsPerTag = partDatabase[partNo].pcs;
+                }
             }
 
+            // ถ้าไม่มีค่า qty ส่งมาใน URL แต่มีพารามิเตอร์อื่น
             generateTagsUI({
                 partNo: partNo || '-',
                 lotNo: lotNo,
@@ -158,7 +186,7 @@
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
             
-            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Part Name: ${printData.partName} | STEM: ${printData.stemCode} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
+            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Part Name: ${printData.partName} | STEM: ${printData.stemCode} | จำนวน/ใบ: ${printData.pcsPerTag} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
 
             let allTagsHTML = '';
             let currentA4PageHTML = '';
