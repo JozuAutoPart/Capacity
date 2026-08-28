@@ -1582,7 +1582,20 @@ function deletePlan(id) {
             tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
         }
     }
-
+// สำหรับฟังก์ชันแปลงพารามิเตอร์ส่งไปหน้า print-tag.html ด้วย Java (ถ้าใช้งานฝั่ง Backend เช่น Spring Boot หรือ Servlet)
+public String generatePrintTagUrl(String partNo, String lotNo, int qty, String line) {
+    try {
+        String encodedPartNo = java.net.URLEncoder.encode(partNo, "UTF-8");
+        String encodedLotNo = java.net.URLEncoder.encode(lotNo, "UTF-8");
+        String encodedLine = java.net.URLEncoder.encode(line, "UTF-8");
+        
+        return String.format("print-tag.html?partNo=%s&lotNo=%s&qty=%d&line=%s", 
+                encodedPartNo, encodedLotNo, qty, encodedLine);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "";
+    }
+}
     // โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
     document.addEventListener("DOMContentLoaded", () => {
         initMasterData();
