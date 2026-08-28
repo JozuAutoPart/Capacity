@@ -90,30 +90,82 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังดึงข้อมูลจาก Master Parts (Col C, H, I)...</span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        function initTagPage() {
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbXLVXRc08O-0v6x_qexiga5-H_35aod-6N0ZGQhg1q2cQmnB8ZIKpOMQS3IKz_rOfCw/exec";
+
+        async function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
-            
-            // ดึงค่าทั้งหมดที่ส่งตรงมาจากลิงก์ URL ทันที (รองรับทั้งภาษาไทยและค่าสำรอง)
-            const paramPartNo = urlParams.get('partNo') || '-';
+            const paramPartNo = urlParams.get('partNo') || '';
             const paramLotNo = urlParams.get('lotNo') || '-';
             const paramQty = Number(urlParams.get('qty')) || 0;
-            const paramPcsPerTag = Number(urlParams.get('pcsPerTag')) || Number(urlParams.get('qtyPerTag')) || 45;
-            const paramPartName = urlParams.get('partName') || '-';
-            const paramStemCode = urlParams.get('stemCode') || '-';
+
+            let masterPartName = "-";
+            let masterStemCode = "-";
+            let masterPcsPerTag = 45; // ค่าสำรองเผื่อหาไม่เจอ
+
+            try {
+                // ดึงข้อมูลผ่าน JSONP เพื่อแก้ปัญหา CORS ชัวร์ 100%
+                const data = await new Promise((resolve, reject) => {
+                    const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+                    window[callbackName] = function(response) {
+                        delete window[callbackName];
+                        if (script.parentNode) script.parentNode.removeChild(script);
+                        resolve(response);
+                    };
+                    const script = document.createElement('script');
+                    script.src = `${SCRIPT_URL}?action=getMasterParts&callback=${callbackName}`;
+                    script.onerror = () => {
+                        delete window[callbackName];
+                        if (script.parentNode) script.parentNode.removeChild(script);
+                        reject(new Error('Network error'));
+                    };
+                    document.body.appendChild(script);
+                });
+
+                if (data && data.data) {
+                    const masterList = data.data;
+                    const found = masterList.find(m => {
+                        // สมมติว่า Part No อยู่ในคอลัมน์ B (Index 1)
+                        let pNo = Array.isArray(m) ? m[1] : (m["partNo"] || m["Part No."]);
+                        return String(pNo).trim() === String(paramPartNo).trim();
+                    });
+
+                    if (found && Array.isArray(found)) {
+                        // คอลัมน์ C (Index 2) = จำนวนต่อใบ (Q'ty)
+                        if (found[2] !== undefined && !isNaN(found[2]) && Number(found[2]) > 0) {
+                            masterPcsPerTag = Number(found[2]);
+                        }
+                        // คอลัมน์ H (Index 7) = Part Name
+                        if (found[7] !== undefined && found[7] !== "") {
+                            masterPartName = found[7];
+                        }
+                        // คอลัมน์ I (Index 8) = STEM Code
+                        if (found[8] !== undefined && found[8] !== "") {
+                            masterStemCode = found[8];
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Fetch Master Parts Error:", e);
+            }
+
+            // ถ้า URL มีการส่งค่าทับมาเป็นกรณีพิเศษ ให้ใช้ค่านั้นเป็นหลัก ถ้าไม่มีให้ใช้จากที่ดึงมาตามเงื่อนไข
+            const finalPcsPerTag = Number(urlParams.get('pcsPerTag')) || masterPcsPerTag;
+            const finalPartName = urlParams.get('partName') || masterPartName;
+            const finalStemCode = urlParams.get('stemCode') || masterStemCode;
 
             generateTagsUI({
                 partNo: paramPartNo,
                 lotNo: paramLotNo,
                 totalQty: paramQty,
-                pcsPerTag: paramPcsPerTag,
-                partName: decodeURIComponent(paramPartName),
-                stemCode: decodeURIComponent(paramStemCode)
+                pcsPerTag: finalPcsPerTag,
+                partName: finalPartName,
+                stemCode: finalStemCode
             });
         }
 
