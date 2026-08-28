@@ -64,7 +64,7 @@
         .text-center { text-align: center; }
         .fw-bold { font-weight: bold; }
         
-        /* สไตล์ช่อง Barcode และ Logo */
+        /* สไตล์ช่อง Barcode และ Logo ให้ใหญ่ขึ้นเพื่อให้อ่านง่าย */
         .footer-section {
             display: flex;
             justify-content: space-between;
@@ -85,7 +85,7 @@
             margin-right: 10px;
         }
         .barcode-box svg {
-            max-height: 22px;
+            max-height: 35px; /* ขยายความสูงช่องใส่บาร์โค้ด */
             width: 100%;
         }
     </style>
@@ -107,8 +107,8 @@
         function generateTags() {
             // 1. ดึงค่าพารามิเตอร์จาก URL
             const urlParams = new URLSearchParams(window.location.search);
-            const paramPartNo = urlParams.get('partNo') || '76344-4JG1A';
-            const paramLotNo = urlParams.get('lotNo') || 'LOT-2026-0827';
+            const paramPartNo = urlParams.get('partNo') || '53219-0D020';
+            const paramLotNo = urlParams.get('lotNo') || '12';
             const paramQty = Number(urlParams.get('qty')) || 800;
             const paramLine = urlParams.get('line') || 'Line A';
 
@@ -223,10 +223,13 @@
 
             container.innerHTML = allTagsHTML;
 
+            // ตั้งค่าการเรนเดอร์บาร์โค้ดให้เส้นหนาและสูงขึ้น เพื่อให้เครื่องสแกนง่าย
             document.querySelectorAll('.barcode').forEach(svg => {
                 JsBarcode(svg, svg.getAttribute('data-barcode'), {
                     format: "CODE128",
                     displayValue: false,
+                    width: 1.8,   // เพิ่มความหนาของเส้นบาร์โค้ด
+                    height: 28,   // เพิ่มความสูงของบาร์โค้ด
                     margin: 1
                 });
             });
