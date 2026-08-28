@@ -114,7 +114,7 @@
 
                 // 2. ถ้าใน localStorage ไม่มี ให้ดึงตรงจาก Google Sheets (Apps Script) ทันที
                 if (masterList.length === 0 && SCRIPT_URL !== "ใส่_URL_Google_Apps_Script_ของพี่มิวตรงนี้") {
-                    const response = await fetch(`${SCRIPT_URL}?action=getMaster`);
+                    const response = await fetch(`${SCRIPT_URL}?action=getMasterParts`);
                     const result = await response.json();
                     if (result && result.data) {
                         masterList = result.data;
