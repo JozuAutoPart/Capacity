@@ -107,9 +107,9 @@
         function generateTags() {
             // 1. ดึงค่าพารามิเตอร์จาก URL
             const urlParams = new URLSearchParams(window.location.search);
-            const paramPartNo = urlParams.get('partNo') || '53219-0D020';
-            const paramLotNo = urlParams.get('lotNo') || '12';
-            const paramQty = Number(urlParams.get('qty')) || 800;
+            const paramPartNo = urlParams.get('partNo') || '61761-KK040';
+            const paramLotNo = urlParams.get('lotNo') || '124';
+            const paramQty = Number(urlParams.get('qty')) || 667;
             const paramLine = urlParams.get('line') || 'Line A';
 
             // 2. ค้นหาข้อมูลเสริมจาก Master Data ใน localStorage
@@ -121,12 +121,26 @@
                 const savedMaster = localStorage.getItem('masterParts');
                 if (savedMaster) {
                     const masterList = JSON.parse(savedMaster);
-                    const found = masterList.find(m => (m["Part No."] || m.partNo) === paramPartNo);
+                    const found = masterList.find(m => {
+                        // รองรับทั้งแบบ Object และแบบ Array (Row Index จาก Google Sheet)
+                        let pNo = "";
+                        if (Array.isArray(m)) {
+                            pNo = m[1] || m[0] || ""; // สมมติ Part No อยู่คอลัมน์ B หรือ A
+                        } else {
+                            pNo = m["Part No."] || m.partNo || "";
+                        }
+                        return String(pNo).trim() === String(paramPartNo).trim();
+                    });
+
                     if (found) {
-                        masterPartName = found["Part Name"] || found.partName || masterPartName;
-                        masterStemCode = found["STEM Code"] || found.stemCode || masterStemCode;
-                        if (found["Std Qty"] || found.stdQty) {
-                            masterPcsPerTag = Number(found["Std Qty"] || found.stdQty);
+                        if (Array.isArray(found)) {
+                            // ถ้าเก็บเป็น Array แถว Google Sheet (Index 7 = คอลัมน์ H, Index 8 = คอลัมน์ I)
+                            if (found[7]) masterPartName = found[7];
+                            if (found[8]) masterStemCode = found[8];
+                        } else {
+                            // ถ้าเก็บเป็น Object
+                            masterPartName = found["Part Name"] || found.partName || found["Column H"] || masterPartName;
+                            masterStemCode = found["STEM Code"] || found.stemCode || found["Column I"] || masterStemCode;
                         }
                     }
                 }
@@ -139,8 +153,8 @@
                 lotNo: paramLotNo,
                 totalQty: paramQty,       
                 pcsPerTag: masterPcsPerTag, 
-                partName: masterPartName, 
-                stemCode: masterStemCode   
+                partName: masterPartName, // ดึงจากคอลัมน์ H
+                stemCode: masterStemCode  // ดึงจากคอลัมน์ I
             };
 
             const container = document.getElementById('tagContainer');
@@ -206,7 +220,7 @@
                         <div class="footer-section">
                             <div class="logo-box">STEM</div>
                             <div class="barcode-box">
-                                <!-- ใช้เฉพาะ Part No. สำหรับสร้างบาร์โค้ดเพื่อให้สแกนง่ายและตรงกับช่องรับผลผลิต -->
+                                <!-- บาร์โค้ดเฉพาะ Part No. -->
                                 <svg class="barcode" data-barcode="${printData.partNo}"></svg>
                             </div>
                             <div style="font-size: 8px; text-align: right;"></div>
@@ -224,13 +238,13 @@
 
             container.innerHTML = allTagsHTML;
 
-            // ตั้งค่าการเรนเดอร์บาร์โค้ดให้เส้นหนาและสูงขึ้น เพื่อให้เครื่องสแกนง่าย
+            // ตั้งค่าการเรนเดอร์บาร์โค้ด
             document.querySelectorAll('.barcode').forEach(svg => {
                 JsBarcode(svg, svg.getAttribute('data-barcode'), {
                     format: "CODE128",
                     displayValue: false,
-                    width: 1.8,   // เพิ่มความหนาของเส้นบาร์โค้ด
-                    height: 28,   // เพิ่มความสูงของบาร์โค้ด
+                    width: 1.8,
+                    height: 28,
                     margin: 1
                 });
             });
