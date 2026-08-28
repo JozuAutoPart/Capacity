@@ -382,77 +382,156 @@
         </div>
     </div>
 </div>
-            <!-- TAB 3: PLANNING -->
-            <div class="tab-pane fade" id="tab-plan">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="card p-3">
-                            <h5 class="mb-3"><i class="fas fa-plus-circle me-2"></i>เพิ่มแผนการผลิต</h5>
-                            <form id="planForm" onsubmit="submitPlan(event)">
-                                <div class="mb-2">
-                                    <label class="form-label small">วันที่เริ่มผลิต (Start Date)</label>
-                                    <input type="date" id="planDate" class="form-control form-control-sm" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">วันที่สิ้นสุด (Finish Date)</label>
-                                    <input type="date" id="planFinishDate" class="form-control form-control-sm" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">Line ผลิต</label>
-                                    <select id="planLine" class="form-select form-select-sm" required>
-                                        <option value="Line A">Line A</option>
-                                        <option value="Line Q">Line Q</option>
-                                        <option value="Line C1">Line C1</option>
-                                        <option value="Line C2">Line C2</option>
-                                        <option value="Line C3">Line C3</option>
-                                    </select>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">Part No.</label>
-                                    <input type="text" id="planPartNo" class="form-control form-control-sm" placeholder="เช่น 17154-0T040" required>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">Lot No.</label>
-                                    <input type="text" id="planLotNo" class="form-control form-control-sm" placeholder="เช่น 1254" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small">จำนวนแผนผลิต (Plan Qty)</label>
-                                    <input type="number" id="planQty" class="form-control form-control-sm" placeholder="0" min="1" required>
-                                </div>
-                                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-save me-1"></i> บันทึกแผนการผลิต</button>
-                            </form>
+           <!-- TAB 3: PLANNING -->
+<div class="tab-pane fade show active" id="tab-plan">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card p-3 bg-dark text-white border-secondary">
+                <h5 class="mb-3 text-warning"><i class="fas fa-plus-circle me-2"></i>เพิ่มแผนการผลิต</h5>
+                <form id="planForm" onsubmit="submitPlan(event)">
+                    <div class="mb-2">
+                        <label class="form-label small">วันที่เริ่มผลิต (Start Date)</label>
+                        <input type="date" id="planDate" class="form-control form-control-sm bg-secondary text-white border-0" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">วันที่สิ้นสุด (Finish Date)</label>
+                        <input type="date" id="planFinishDate" class="form-control form-control-sm bg-secondary text-white border-0" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Line ผลิต</label>
+                        <select id="planLine" class="form-select form-select-sm bg-secondary text-white border-0" required>
+                            <option value="Line A">Line A</option>
+                            <option value="Line Q">Line Q</option>
+                            <option value="Line C1">Line C1</option>
+                            <option value="Line C2">Line C2</option>
+                            <option value="Line C3">Line C3</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Part No. (เลือกจาก Master)</label>
+                        <select id="planPartNo" class="form-select form-select-sm bg-secondary text-white border-0" required onchange="calculatePlanFromWeight()">
+                            <option value="">-- เลือก Part No. --</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Lot No.</label>
+                        <input type="text" id="planLotNo" class="form-control form-control-sm bg-secondary text-white border-0" placeholder="เช่น 1254" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-warning fw-bold">น้ำหนักรวม (KG) / จำนวนแผ่น</label>
+                        <input type="number" step="0.01" id="planWeightKg" class="form-control form-control-sm bg-secondary text-white border-0" placeholder="กรอกน้ำหนักหรือจำนวนแผ่นเพื่อคำนวณ" oninput="calculatePlanFromWeight()">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">จำนวนแผนผลิต (Plan Qty)</label>
+                        <input type="number" id="planQty" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="0" min="1" required>
+                        <div id="tagCountBadge" class="form-text text-info fw-bold mt-1" style="font-size: 12px;">
+                            📋 ต้องใช้ Tag: - ใบ
                         </div>
                     </div>
-                   <div class="col-md-8">
-    <div class="card p-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="m-0 text-white">รายการแผนการผลิตทั้งหมด</h5>
-            <div class="d-flex align-items-center gap-2">
-                <input type="text" id="planSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Lot No...." style="width: 200px;" oninput="renderPlans()">
-                <button class="btn btn-outline-success btn-sm text-nowrap" onclick="exportToExcelXLSX('plans')"><i class="fas fa-file-excel me-1"></i>Export</button>
-                <button class="btn btn-outline-danger btn-sm text-nowrap" onclick="clearAllPlans()"><i class="fas fa-trash me-1"></i>ล้างแผน</button>
+                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold"><i class="fas fa-save me-1"></i> บันทึกแผนการผลิต</button>
+                </form>
             </div>
         </div>
-        <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle m-0">
-                <thead>
-                    <tr>
-                        <th>Start</th>
-                        <th>Finish</th>
-                        <th>Line</th>
-                        <th>Part No.</th>
-                        <th>Lot No.</th>
-                        <th>Plan Qty</th>
-                        <th class="text-center">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="planTableBody"></tbody>
-                                </table>
-                            </div>
-                        </div>
+        <div class="col-md-8">
+            <div class="card p-3 bg-dark text-white border-secondary">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0 text-white">รายการแผนการผลิตทั้งหมด</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="text" id="planSearchInput" class="form-control form-control-sm bg-secondary text-white border-0" placeholder="🔍 ค้นหา Part No. หรือ Lot No...." style="width: 200px;" oninput="renderPlans()">
+                        <button class="btn btn-outline-success btn-sm text-nowrap" onclick="exportToExcelXLSX('plans')"><i class="fas fa-file-excel me-1"></i>Export</button>
+                        <button class="btn btn-outline-danger btn-sm text-nowrap" onclick="clearAllPlans()"><i class="fas fa-trash me-1"></i>ล้างแผน</button>
                     </div>
                 </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead>
+                            <tr class="text-secondary small">
+                                <th>Start</th>
+                                <th>Finish</th>
+                                <th>Line</th>
+                                <th>Part No.</th>
+                                <th>Lot No.</th>
+                                <th>Plan Qty</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="planTableBody">
+                            <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูลแผน...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown อัตโนมัติจาก LocalStorage
+    function populatePlanPartNoDropdown() {
+        const select = document.getElementById('planPartNo');
+        if (!select) return;
+
+        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+        if (masterData.length === 0) return;
+
+        let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
+        masterData.forEach(m => {
+            if (m.partNo) {
+                optionsHtml += `<option value="${m.partNo}">${m.partNo}</option>`;
+            }
+        });
+        select.innerHTML = optionsHtml;
+    }
+
+    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น
+    function calculatePlanFromWeight() {
+        const partNoSelect = document.getElementById('planPartNo');
+        const inputElement = document.getElementById('planWeightKg');
+        const planQtyInput = document.getElementById('planQty');
+        const tagBadge = document.getElementById('tagCountBadge');
+
+        if (!partNoSelect || !inputElement || !planQtyInput) return;
+
+        const partNoVal = String(partNoSelect.value).trim().toUpperCase();
+        const inputVal = parseFloat(inputElement.value) || 0;
+
+        if (!partNoVal) return;
+
+        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+        const matchedMaster = masterData.find(m => String(m.partNo || '').trim().toUpperCase() === partNoVal);
+
+        if (!matchedMaster) {
+            if (tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ทนี้ในระบบ Master</span>`;
+            planQtyInput.value = '';
+            return;
+        }
+
+        const weightPerPiece = Number(matchedMaster.weightPerPiece) || 0;
+        const piecePerSheet = Number(matchedMaster.piecePerSheet) || 0;
+        const pcsPerTag = Number(matchedMaster.tagQty) > 0 ? Number(matchedMaster.tagQty) : 50;
+
+        let calculatedPcs = 0;
+        let calculationText = '';
+
+        if (piecePerSheet > 0 && weightPerPiece === 0) {
+            calculatedPcs = Math.round(inputVal * piecePerSheet);
+            calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
+        } else {
+            calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
+            calculationText = `Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
+        }
+
+        let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
+
+        planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
+        if (tagBadge) {
+            tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
+        }
+    }
+
+    // สั่งรันเติมข้อมูล Dropdown ทันทีเมื่อโหลดส่วนนี้
+    setTimeout(populatePlanPartNoDropdown, 300);
+</script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
                 <div class="row g-3">
