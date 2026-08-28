@@ -88,14 +88,12 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังดึงข้อมูลจาก MasterParts...</span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังสร้างใบ Tag...</span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        // ใส่ลิงก์ CSV ของชีท MasterParts ตรงนี้ (โดยเลือกแผ่นงาน MasterParts ออกมาเป็น CSV)
-        // หรือดึงผ่าน Google Apps Script / Published CSV Link ของพี่มิว
         const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1rCouYPQOq3G-C8SM1UwHPP1MneohkVmlPrbGbWus/gviz/tq?tqx=out:csv&sheet=MasterParts';
 
         async function initTagPage() {
@@ -105,28 +103,25 @@
             const totalQty = Number(urlParams.get('qty')) || 0;
             const pcsPerTag = Number(urlParams.get('pcsPerTag')) || 50;
 
-            let partName = '-';
-            let stemCode = '-';
+            let partName = urlParams.get('partName') || '-';
+            let stemCode = urlParams.get('stemCode') || '-';
 
             try {
-                // ดึงข้อมูลจาก Google Sheets แบบอัตโนมัติ
                 const response = await fetch(SHEET_CSV_URL);
-                const csvText = await response.text();
-                const rows = parseCSV(csvText);
-
-                // วนลูปหา Part No. ที่ตรงกัน (สมมติ Part No. อยู่คอลัมน์ B Index 1, Part Name คอลัมน์ H Index 7, STEM Code คอลัมน์ I Index 8)
-                for (let row of rows) {
-                    const partNoCol = (row[1] || '').trim(); // คอลัมน์ B
-                    if (partNoCol === targetPartNo) {
-                        partName = row[7] || '-'; // คอลัมน์ H
-                        stemCode = row[8] || '-'; // คอลัมน์ I
-                        break;
+                if (response.ok) {
+                    const csvText = await response.text();
+                    const rows = parseCSV(csvText);
+                    for (let row of rows) {
+                        const partNoCol = (row[1] || '').trim(); // คอลัมน์ B
+                        if (partNoCol === targetPartNo) {
+                            if (row[7]) partName = row[7].trim(); // คอลัมน์ H
+                            if (row[8]) stemCode = row[8].trim(); // คอลัมน์ I
+                            break;
+                        }
                     }
                 }
             } catch (error) {
-                console.log('ไม่สามารถดึงข้อมูลจากชีทได้อัตโนมัติ ใช้ค่าสำรองแทน', error);
-                partName = urlParams.get('partName') || '-';
-                stemCode = urlParams.get('stemCode') || '-';
+                console.log('ใช้ค่าจาก URL พารามิเตอร์แทน', error);
             }
 
             generateTagsUI({
@@ -139,7 +134,6 @@
             });
         }
 
-        // ฟังก์ชันแปลง CSV เป็น Array
         function parseCSV(text) {
             let lines = text.split('\n');
             let result = [];
@@ -169,7 +163,9 @@
             container.innerHTML = '';
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
-            document.getElementById('tagInfoSummary.innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
+            
+            // แก้ไขจุดที่พิมพ์ตกหล่นให้แสดงผลตัวอักษรถูกต้อง
+            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
 
             let allTagsHTML = '';
             let currentA4PageHTML = '';
