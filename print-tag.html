@@ -48,7 +48,7 @@
             width: 100%;
             border-collapse: collapse;
             border: 1px solid #000;
-            table-layout: fixed; /* บังคับให้ช่องแบ่งสัดส่วนเป๊ะๆ ตามความกว้างที่กำหนด */
+            table-layout: fixed;
         }
         table.tag-table th, table.tag-table td {
             border: 1px solid #000;
@@ -90,29 +90,88 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังโหลดข้อมูลจาก Google Sheets...</span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        function initTagPage() {
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbXLVXRc08O-0v6x_qexiga5-H_35aod-6N0ZGQhg1q2cQmnB8ZIKpOMQS3IKz_rOfCw/exec";
+
+        async function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
-            
-            const paramPartNo = urlParams.get('partNo') || '61761-KK040';
-            const paramLotNo = urlParams.get('lotNo') || '124';
-            const paramQty = Number(urlParams.get('qty')) || 776;
-            const paramPcsPerTag = Number(urlParams.get('pcsPerTag')) || 45;
-            const paramPartName = urlParams.get('partName') || 'REINFROCE,SELT ANCHOR,NO.1 UPR LH';
-            const paramStemCode = urlParams.get('stemCode') || 'JA184';
+            const paramPartNo = urlParams.get('partNo') || '';
+            const paramLotNo = urlParams.get('lotNo') || '-';
+            const paramQty = Number(urlParams.get('qty')) || 0;
+
+            let masterPartName = "-";
+            let masterStemCode = "-";
+            let masterPcsPerTag = 50; // ค่ากลางเผื่อหาไม่เจอ
+
+            try {
+                // ดึงข้อมูล Master Parts จาก Google Apps Script โดยใช้ JSONP ผ่าน Script Tag เพื่อแก้ปัญหา CORS ชัวร์ 100%
+                const data = await new Promise((resolve, reject) => {
+                    const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+                    window[callbackName] = function(response) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        resolve(response);
+                    };
+                    const script = document.createElement('script');
+                    script.src = `${SCRIPT_URL}?action=getMasterParts&callback=${callbackName}`;
+                    script.onerror = () => {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        reject(new Error('Network error'));
+                    };
+                    document.body.appendChild(script);
+                });
+
+                if (data && data.data) {
+                    const masterList = data.data;
+                    const found = masterList.find(m => {
+                        let pNo = "";
+                        if (Array.isArray(m)) {
+                            pNo = m[1]; 
+                        } else if (typeof m === 'object' && m !== null) {
+                            pNo = m["partNo"] || m["Part No."] || m["PartNo"] || Object.values(m)[1];
+                        }
+                        return String(pNo).trim() === String(paramPartNo).trim();
+                    });
+
+                    if (found) {
+                        if (Array.isArray(found)) {
+                            if (found[2] !== undefined && !isNaN(found[2]) && Number(found[2]) > 0) {
+                                masterPcsPerTag = Number(found[2]);
+                            }
+                            if (found[7]) masterPartName = found[7];
+                            if (found[8]) masterStemCode = found[8];
+                        } else {
+                            let qtyCol = found["จำนวน"] || found["qty"] || found["Q'ty"];
+                            if (qtyCol !== undefined && !isNaN(qtyCol) && Number(qtyCol) > 0) {
+                                masterPcsPerTag = Number(qtyCol);
+                            }
+                            if (found["Part Name"]) masterPartName = found["Part Name"];
+                            if (found["STEM Code"]) masterStemCode = found["STEM Code"];
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Fetch Master Error:", e);
+            }
+
+            // ถ้าใน URL ส่งค่าพารามิเตอร์อื่นๆ มาทับด้วย ให้ใช้ค่านั้นเป็นหลัก
+            const finalPcsPerTag = Number(urlParams.get('pcsPerTag')) || masterPcsPerTag;
+            const finalPartName = urlParams.get('partName') || masterPartName;
+            const finalStemCode = urlParams.get('stemCode') || masterStemCode;
 
             generateTagsUI({
                 partNo: paramPartNo,
                 lotNo: paramLotNo,
                 totalQty: paramQty,
-                pcsPerTag: paramPcsPerTag,
-                partName: paramPartName,
-                stemCode: paramStemCode
+                pcsPerTag: finalPcsPerTag,
+                partName: finalPartName,
+                stemCode: finalStemCode
             });
         }
 
@@ -137,7 +196,6 @@
                 const tagHTML = `
                     <div class="tag-card">
                         <table class="tag-table">
-                            <!-- กำหนดความกว้าง 4 คอลัมน์ให้สมดุลเป๊ะ 25% เท่ากันทั้งหมด -->
                             <colgroup>
                                 <col style="width: 25%;">
                                 <col style="width: 25%;">
