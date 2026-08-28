@@ -466,7 +466,21 @@
 </div>
 
 <script>
-    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown อัตโนมัติจาก LocalStorage (รองรับทุกรูปแบบคีย์)
+    // ฟังก์ชันโหลดข้อมูล Master Parts จาก Google Sheets มาเก็บไว้ใน LocalStorage
+    function loadAllMasterData() {
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 'success' && res.data) {
+                    localStorage.setItem('masterPartsDatabase', JSON.stringify(res.data));
+                    console.log("โหลด Master Parts สำเร็จ:", res.data.length, "รายการ");
+                    populatePlanPartNoDropdown();
+                }
+            })
+            .catch(err => console.error("Error loading master parts:", err));
+    }
+
+    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown อัตโนมัติจาก LocalStorage
     function populatePlanPartNoDropdown() {
         const select = document.getElementById('planPartNo');
         if (!select) return;
@@ -484,7 +498,7 @@
         select.innerHTML = optionsHtml;
     }
 
-    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (รองรับการอ่านชื่อคอลัมน์หลายรูปแบบ)
+    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น
     function calculatePlanFromWeight() {
         const partNoSelect = document.getElementById('planPartNo');
         const inputElement = document.getElementById('planWeightKg');
@@ -500,7 +514,6 @@
 
         const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
         
-        // ค้นหาพาร์ทโดยเช็กทั้งคอลัมน์ partNo หรือ Part No.
         const matchedMaster = masterData.find(m => {
             const pNo = String(m.partNo || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
             return pNo === partNoVal;
@@ -512,7 +525,6 @@
             return;
         }
 
-        // ดึงค่าน้ำหนักและจำนวนชิ้นต่อแผ่นจากหลายๆ ชื่อคอลัมน์ที่เป็นไปได้
         const weightPerPiece = parseFloat(matchedMaster.weightPerPiece || matchedMaster['Weight per piece'] || matchedMaster['Weight'] || 0);
         const piecePerSheet = parseFloat(matchedMaster.piecePerSheet || matchedMaster['Piece per sheet'] || matchedMaster['Sheet'] || 0);
         const pcsPerTag = parseInt(matchedMaster.tagQty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.tagQty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
@@ -536,7 +548,7 @@
         }
     }
 
-    // เรียกใช้งานฟังก์ชันเติม Dropdown ทันทีเมื่อเปิดหน้าเว็บหรือโหลดข้อมูลเสร็จ
+    // สั่งให้ดึงข้อมูลใส่ Dropdown ทันทีเมื่อเปิดหน้าเว็บ
     document.addEventListener("DOMContentLoaded", () => {
         populatePlanPartNoDropdown();
     });
