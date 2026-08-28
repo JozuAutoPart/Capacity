@@ -90,7 +90,7 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังดึงข้อมูลจาก Master Parts (Col C, H, I)...</span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังดึงข้อมูลจาก MasterParts...</span>
     </div>
 
     <div id="tagContainer"></div>
@@ -106,16 +106,16 @@
 
             let masterPartName = "-";
             let masterStemCode = "-";
-            let masterPcsPerTag = 45; // ค่าสำรองเผื่อหาไม่เจอ
+            let masterPcsPerTag = 45; 
 
             try {
-                // ดึงข้อมูลผ่าน JSONP เพื่อแก้ปัญหา CORS ชัวร์ 100%
-                const data = await new Promise((resolve, reject) => {
+                // ดึงข้อมูลผ่าน JSONP เพื่อหลบปัญหา CORS
+                const responseData = await new Promise((resolve, reject) => {
                     const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
-                    window[callbackName] = function(response) {
+                    window[callbackName] = function(res) {
                         delete window[callbackName];
                         if (script.parentNode) script.parentNode.removeChild(script);
-                        resolve(response);
+                        resolve(res);
                     };
                     const script = document.createElement('script');
                     script.src = `${SCRIPT_URL}?action=getMasterParts&callback=${callbackName}`;
@@ -127,34 +127,41 @@
                     document.body.appendChild(script);
                 });
 
-                if (data && data.data) {
-                    const masterList = data.data;
+                if (responseData && responseData.data) {
+                    const masterList = responseData.data; // มาจาก getDataFromSheet จะเป็น Array ของ Object
+                    
                     const found = masterList.find(m => {
-                        // สมมติว่า Part No อยู่ในคอลัมน์ B (Index 1)
-                        let pNo = Array.isArray(m) ? m[1] : (m["partNo"] || m["Part No."]);
+                        // ดึงค่าจาก Object โดยเช็คค่าที่เป็น Part No. (ดูจากคอลัมน์ในชีทของพี่มิว เช่น "Part No." หรือ key ตัวที่ 2)
+                        const keys = Object.keys(m);
+                        let pNo = m["Part No."] || m["partNo"] || m[keys[1]] || "";
                         return String(pNo).trim() === String(paramPartNo).trim();
                     });
 
-                    if (found && Array.isArray(found)) {
-                        // คอลัมน์ C (Index 2) = จำนวนต่อใบ (Q'ty)
-                        if (found[2] !== undefined && !isNaN(found[2]) && Number(found[2]) > 0) {
-                            masterPcsPerTag = Number(found[2]);
+                    if (found) {
+                        const keys = Object.keys(found);
+                        // คอลัมน์ C คือ Index 2 (หรือระบุชื่อคอลัมน์ตรงๆ ถ้าทราบ)
+                        let colCQty = found["Q'ty"] !== undefined ? found["Q'ty"] : found[keys[2]];
+                        if (colCQty !== undefined && !isNaN(colCQty) && Number(colCQty) > 0) {
+                            masterPcsPerTag = Number(colCQty);
                         }
-                        // คอลัมน์ H (Index 7) = Part Name
-                        if (found[7] !== undefined && found[7] !== "") {
-                            masterPartName = found[7];
+
+                        // คอลัมน์ H คือ Index 7 = Part Name
+                        let colHName = found["Part Name"] !== undefined ? found["Part Name"] : found[keys[7]];
+                        if (colHName !== undefined && colHName !== "") {
+                            masterPartName = colHName;
                         }
-                        // คอลัมน์ I (Index 8) = STEM Code
-                        if (found[8] !== undefined && found[8] !== "") {
-                            masterStemCode = found[8];
+
+                        // คอลัมน์ I คือ Index 8 = STEM Code
+                        let colISub = found["STEM Code"] !== undefined ? found["STEM Code"] : found[keys[8]];
+                        if (colISub !== undefined && colISub !== "") {
+                            masterStemCode = colISub;
                         }
                     }
                 }
             } catch (e) {
-                console.error("Fetch Master Parts Error:", e);
+                console.error("Fetch MasterParts Error:", e);
             }
 
-            // ถ้า URL มีการส่งค่าทับมาเป็นกรณีพิเศษ ให้ใช้ค่านั้นเป็นหลัก ถ้าไม่มีให้ใช้จากที่ดึงมาตามเงื่อนไข
             const finalPcsPerTag = Number(urlParams.get('pcsPerTag')) || masterPcsPerTag;
             const finalPartName = urlParams.get('partName') || masterPartName;
             const finalStemCode = urlParams.get('stemCode') || masterStemCode;
