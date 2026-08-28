@@ -88,7 +88,7 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังสร้างใบ Tag...</span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังโหลดข้อมูลจาก MasterParts...</span>
     </div>
 
     <div id="tagContainer"></div>
@@ -103,25 +103,28 @@
             const totalQty = Number(urlParams.get('qty')) || 0;
             const pcsPerTag = Number(urlParams.get('pcsPerTag')) || 50;
 
-            let partName = urlParams.get('partName') || '-';
-            let stemCode = urlParams.get('stemCode') || '-';
+            let partName = '-';
+            let stemCode = '-';
 
             try {
                 const response = await fetch(SHEET_CSV_URL);
                 if (response.ok) {
                     const csvText = await response.text();
                     const rows = parseCSV(csvText);
-                    for (let row of rows) {
-                        const partNoCol = (row[1] || '').trim(); // คอลัมน์ B
+                    
+                    // วนลูปค้นหา Part No. ในคอลัมน์ B (index 1)
+                    for (let i = 1; i < rows.length; i++) {
+                        let row = rows[i];
+                        let partNoCol = (row[1] || '').trim();
                         if (partNoCol === targetPartNo) {
-                            if (row[7]) partName = row[7].trim(); // คอลัมน์ H
-                            if (row[8]) stemCode = row[8].trim(); // คอลัมน์ I
+                            partName = row[7] ? row[7].trim() : '-';  // คอลัมน์ H (Part Name)
+                            stemCode = row[8] ? row[8].trim() : '-';  // คอลัมน์ I (STEM Code)
                             break;
                         }
                     }
                 }
             } catch (error) {
-                console.log('ใช้ค่าจาก URL พารามิเตอร์แทน', error);
+                console.log('ไม่สามารถดึงข้อมูลชีทได้โดยตรง', error);
             }
 
             generateTagsUI({
@@ -164,8 +167,7 @@
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
             
-            // แก้ไขจุดที่พิมพ์ตกหล่นให้แสดงผลตัวอักษรถูกต้อง
-            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
+            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Part Name: ${printData.partName} | STEM: ${printData.stemCode} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
 
             let allTagsHTML = '';
             let currentA4PageHTML = '';
