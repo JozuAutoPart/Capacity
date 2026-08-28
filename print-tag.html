@@ -107,22 +107,34 @@
             let masterPcsPerTag = 100;
 
             try {
-                // ใช้ mode: 'no-cors' หรือเรียกผ่าน fetch ปกติเนื่องจาก Apps Script รองรับ GET แล้ว
                 const response = await fetch(`${SCRIPT_URL}?action=getMasterParts`);
                 const result = await response.json();
                 
                 if (result && result.data) {
                     const masterList = result.data;
                     
-                    // ค้นหา Part No. จากฟังก์ชัน getDataFromSheet ที่แปลงเป็น Object ตามหัวคอลัมน์แล้ว
+                    // ค้นหาแถวที่ Part No. หรือ partNo ตรงกันแบบยืดหยุ่น
                     const found = masterList.find(m => {
-                        let pNo = m["Part No."] || m["partNo"] || m["PartNo"] || "";
-                        return String(pNo).trim() === String(paramPartNo).trim();
+                        for (let key in m) {
+                            let val = m[key];
+                            if (val && String(val).trim() === String(paramPartNo).trim()) {
+                                return true;
+                            }
+                        }
+                        return false;
                     });
 
                     if (found) {
-                        masterPartName = found["Part Name"] || found["partName"] || masterPartName;
-                        masterStemCode = found["STEM Code"] || found["stemCode"] || masterStemCode;
+                        // ดึงค่า Part Name และ STEM Code จากคีย์ที่เกี่ยวข้อง
+                        for (let key in found) {
+                            let lKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+                            if (lKey.includes('partname') || (lKey.includes('name') && !lKey.includes('partno'))) {
+                                masterPartName = found[key];
+                            }
+                            if (lKey.includes('stemcode') || lKey.includes('stem')) {
+                                masterStemCode = found[key];
+                            }
+                        }
                     }
                 }
             } catch (e) {
