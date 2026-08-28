@@ -382,7 +382,7 @@
         </div>
     </div>
 </div>
-      <!-- TAB 3: PLANNING -->
+     <!-- TAB 3: PLANNING -->
 <div class="tab-pane fade show active" id="tab-plan">
     <div class="row g-3">
         <div class="col-md-4">
@@ -456,6 +456,25 @@
                             </tr>
                         </thead>
                         <tbody id="planTableBody">
+                            <!-- ตัวอย่างการแสดงผลใน Javascript ลูปตาราง ให้ใส่ปุ่ม Print ใน Action แบบนี้ -->
+                            <!-- 
+                            <tr>
+                                <td>${start}</td>
+                                <td>${finish}</td>
+                                <td>${line}</td>
+                                <td>${partNo}</td>
+                                <td>${lotNo}</td>
+                                <td>${planQty}</td>
+                                <td class="text-center">
+                                    <a href="print-tag.html?partNo=${encodeURIComponent(partNo)}&lotNo=${encodeURIComponent(lotNo)}&qty=${planQty}&line=${encodeURIComponent(line)}" target="_blank" class="btn btn-outline-warning btn-sm px-2 py-1 me-1" title="พิมพ์ Tag">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="deletePlan('${id}')" title="ลบ">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            -->
                             <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูลแผน...</td></tr>
                         </tbody>
                     </table>
@@ -464,7 +483,6 @@
         </div>
     </div>
 </div>
-
 
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
