@@ -466,21 +466,23 @@
 </div>
 
 <script>
-    // ฟังก์ชันโหลดข้อมูล Master Parts จาก Google Sheets มาเก็บไว้ใน LocalStorage
-    function loadAllMasterData() {
+    // โหลดข้อมูล Master Parts ทันทีที่เปิดหน้าเว็บ และเซฟลง LocalStorage อัตโนมัติ
+    function initMasterData() {
         fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`)
             .then(res => res.json())
             .then(res => {
                 if (res.status === 'success' && res.data) {
                     localStorage.setItem('masterPartsDatabase', JSON.stringify(res.data));
-                    console.log("โหลด Master Parts สำเร็จ:", res.data.length, "รายการ");
+                    console.log("ซิงค์ Master Parts สำเร็จ:", res.data.length, "รายการ");
                     populatePlanPartNoDropdown();
+                    // ถ้าช่องเลือกมีค่าอยู่แล้ว ให้คำนวณซ้ำอีกรอบทันที
+                    calculatePlanFromWeight();
                 }
             })
-            .catch(err => console.error("Error loading master parts:", err));
+            .catch(err => console.error("Error syncing master parts:", err));
     }
 
-    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown อัตโนมัติจาก LocalStorage
+    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown
     function populatePlanPartNoDropdown() {
         const select = document.getElementById('planPartNo');
         if (!select) return;
@@ -488,95 +490,91 @@
         const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
         if (masterData.length === 0) return;
 
+        const currentValue = select.value; // จำค่าเดิมไว้
         let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
         masterData.forEach(m => {
-            const pNo = m.partNo || m['Part No.'] || m['PARTNO'] || '';
+            const pNo = m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '';
             if (pNo) {
                 optionsHtml += `<option value="${pNo}">${pNo}</option>`;
             }
         });
         select.innerHTML = optionsHtml;
+        if (currentValue) select.value = currentValue;
     }
 
-    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น
-   // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (อัปเดตชื่อคีย์ตาม Google Sheets ล่าสุด)
-// ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (แบบครอบคลุมทุกรูปแบบคีย์)
-function calculatePlanFromWeight() {
-    const partNoSelect = document.getElementById('planPartNo');
-    const inputElement = document.getElementById('planWeightKg');
-    const planQtyInput = document.getElementById('planQty');
-    const tagBadge = document.getElementById('tagCountBadge');
+    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (ดึงค่าแม่นยำทุกสถานการณ์)
+    function calculatePlanFromWeight() {
+        const partNoSelect = document.getElementById('planPartNo');
+        const inputElement = document.getElementById('planWeightKg');
+        const planQtyInput = document.getElementById('planQty');
+        const tagBadge = document.getElementById('tagCountBadge');
 
-    if (!partNoSelect || !inputElement || !planQtyInput) return;
+        if (!partNoSelect || !inputElement || !planQtyInput) return;
 
-    const partNoVal = String(partNoSelect.value).trim().toUpperCase();
-    const inputVal = parseFloat(inputElement.value) || 0;
+        const partNoVal = String(partNoSelect.value).trim().toUpperCase();
+        const inputVal = parseFloat(inputElement.value) || 0;
 
-    if (!partNoVal) return;
+        if (!partNoVal) return;
 
-    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-    
-    // ค้นหาพาร์ทโดยแปลงเป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อตัดปัญหาตัวพิมพ์เล็กใหญ่ไม่ตรงกัน
-    const matchedMaster = masterData.find(m => {
-        const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
-        return pNo === partNoVal;
-    });
+        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+        
+        const matchedMaster = masterData.find(m => {
+            const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
+            return pNo === partNoVal;
+        });
 
-    if (!matchedMaster) {
-        if (tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ทนี้ในระบบ Master</span>`;
-        planQtyInput.value = '';
-        return;
-    }
+        if (!matchedMaster) {
+            if (tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ทนี้ในระบบ Master (กำลังซิงค์...)</span>`;
+            return;
+        }
 
-    // ปริ้นท์ข้อมูลพาร์ทนี้ออกมาดูใน Console เพื่อให้พี่มิวเช็กชื่อคีย์จริงได้ง่ายขึ้น
-    console.log("Matched Master Data:", matchedMaster);
-
-    // วนหาค่าน้ำหนักจากทุกคีย์ที่เป็นไปได้ทั้งหมด
-    let weightPerPiece = 0;
-    for (let key in matchedMaster) {
-        if (key.toLowerCase().includes('weight') || key.toLowerCase().includes('น้ำหนัก')) {
-            let val = parseFloat(matchedMaster[key]);
-            if (!isNaN(val) && val > 0) {
-                weightPerPiece = val;
-                break;
+        // ค้นหาน้ำหนักต่อชิ้นแบบยืดหยุ่นทุกชื่อคีย์
+        let weightPerPiece = 0;
+        for (let key in matchedMaster) {
+            if (key.toLowerCase().includes('weight') || key.toLowerCase().includes('น้ำหนัก')) {
+                let val = parseFloat(matchedMaster[key]);
+                if (!isNaN(val) && val > 0) {
+                    weightPerPiece = val;
+                    break;
+                }
             }
+        }
+
+        let piecePerSheet = 0;
+        for (let key in matchedMaster) {
+            if (key.toLowerCase().includes('sheet') || key.toLowerCase().includes('piece') || key.toLowerCase().includes('แผ่น')) {
+                let val = parseFloat(matchedMaster[key]);
+                if (!isNaN(val) && val > 0) {
+                    piecePerSheet = val;
+                    break;
+                }
+            }
+        }
+
+        const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
+
+        let calculatedPcs = 0;
+        let calculationText = '';
+
+        if (piecePerSheet > 0 && weightPerPiece === 0) {
+            calculatedPcs = Math.round(inputVal * piecePerSheet);
+            calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
+        } else {
+            calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
+            calculationText = `น้ำหนัก (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
+        }
+
+        let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
+
+        planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
+        if (tagBadge) {
+            tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
         }
     }
 
-    let piecePerSheet = 0;
-    for (let key in matchedMaster) {
-        if (key.toLowerCase().includes('sheet') || key.toLowerCase().includes('piece') || key.toLowerCase().includes('แผ่น')) {
-            let val = parseFloat(matchedMaster[key]);
-            if (!isNaN(val) && val > 0) {
-                piecePerSheet = val;
-                break;
-            }
-        }
-    }
-
-    const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
-
-    let calculatedPcs = 0;
-    let calculationText = '';
-
-    if (piecePerSheet > 0 && weightPerPiece === 0) {
-        calculatedPcs = Math.round(inputVal * piecePerSheet);
-        calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
-    } else {
-        calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
-        calculationText = `น้ำหนัก (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
-    }
-
-    let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
-
-    planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
-    if (tagBadge) {
-        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
-    }
-}
-    // สั่งให้ดึงข้อมูลใส่ Dropdown ทันทีเมื่อเปิดหน้าเว็บ
+    // รันการทำงานทันทีเมื่อโหลดหน้าเว็บเสร็จ
     document.addEventListener("DOMContentLoaded", () => {
-        populatePlanPartNoDropdown();
+        initMasterData();
     });
 </script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
