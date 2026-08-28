@@ -408,10 +408,12 @@
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">Part No. (เลือกจาก Master)</label>
-                        <select id="planPartNo" class="form-select form-select-sm bg-secondary text-white border-0" required onchange="initMasterData(); calculatePlanFromWeight();">
+                        <label class="form-label small">Part No. (พิมพ์ค้นหาจาก Master)</label>
+                        <!-- เปลี่ยนเป็น input list เพื่อให้พิมพ์ค้นหาและกรองตัวเลือกได้ทันที -->
+                        <input list="planPartNoList" id="planPartNo" class="form-control form-control-sm bg-secondary text-white border-0" placeholder="พิมพ์ค้นหา Part No..." required onchange="initMasterData(); calculatePlanFromWeight();">
+                        <datalist id="planPartNoList">
                             <option value="">-- เลือก Part No. --</option>
-                        </select>
+                        </datalist>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Lot No.</label>
@@ -464,7 +466,6 @@
         </div>
     </div>
 </div>
-
 
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
