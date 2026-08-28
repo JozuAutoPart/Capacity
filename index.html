@@ -382,7 +382,7 @@
         </div>
     </div>
 </div>
-         <!-- TAB 3: PLANNING -->
+      <!-- TAB 3: PLANNING -->
 <div class="tab-pane fade show active" id="tab-plan">
     <div class="row g-3">
         <div class="col-md-4">
@@ -409,7 +409,7 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Part No. (เลือกจาก Master)</label>
-                        <select id="planPartNo" class="form-select form-select-sm bg-secondary text-white border-0" required onchange="calculatePlanFromWeight()">
+                        <select id="planPartNo" class="form-select form-select-sm bg-secondary text-white border-0" required onchange="initMasterData(); calculatePlanFromWeight();">
                             <option value="">-- เลือก Part No. --</option>
                         </select>
                     </div>
@@ -466,16 +466,14 @@
 </div>
 
 <script>
-    // โหลดข้อมูล Master Parts ทันทีที่เปิดหน้าเว็บ และเซฟลง LocalStorage อัตโนมัติ
+    // โหลดข้อมูล Master Parts จาก Cloud
     function initMasterData() {
         fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`)
             .then(res => res.json())
             .then(res => {
                 if (res.status === 'success' && res.data) {
                     localStorage.setItem('masterPartsDatabase', JSON.stringify(res.data));
-                    console.log("ซิงค์ Master Parts สำเร็จ:", res.data.length, "รายการ");
                     populatePlanPartNoDropdown();
-                    // ถ้าช่องเลือกมีค่าอยู่แล้ว ให้คำนวณซ้ำอีกรอบทันที
                     calculatePlanFromWeight();
                 }
             })
@@ -490,7 +488,7 @@
         const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
         if (masterData.length === 0) return;
 
-        const currentValue = select.value; // จำค่าเดิมไว้
+        const currentValue = select.value;
         let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
         masterData.forEach(m => {
             const pNo = m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '';
@@ -502,7 +500,7 @@
         if (currentValue) select.value = currentValue;
     }
 
-    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (ดึงค่าแม่นยำทุกสถานการณ์)
+    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (ค้นหาคีย์ฉลาดขึ้นรองรับทุกรูปแบบ)
     function calculatePlanFromWeight() {
         const partNoSelect = document.getElementById('planPartNo');
         const inputElement = document.getElementById('planWeightKg');
@@ -524,11 +522,11 @@
         });
 
         if (!matchedMaster) {
-            if (tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ทนี้ในระบบ Master (กำลังซิงค์...)</span>`;
+            if (tagBadge) tagBadge.innerHTML = `<span class="text-warning">⏳ กำลังโหลดข้อมูลพาร์ทจากระบบ...</span>`;
             return;
         }
 
-        // ค้นหาน้ำหนักต่อชิ้นแบบยืดหยุ่นทุกชื่อคีย์
+        // ค้นหาน้ำหนักต่อชิ้น (รองรับทั้งภาษาอังกฤษและไทย)
         let weightPerPiece = 0;
         for (let key in matchedMaster) {
             if (key.toLowerCase().includes('weight') || key.toLowerCase().includes('น้ำหนัก')) {
@@ -572,7 +570,7 @@
         }
     }
 
-    // รันการทำงานทันทีเมื่อโหลดหน้าเว็บเสร็จ
+    // โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
     document.addEventListener("DOMContentLoaded", () => {
         initMasterData();
     });
