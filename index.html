@@ -2729,7 +2729,7 @@ window.addEventListener('error', function(e) {
      // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
-   const bm = {
+    const bm = {
         id: Date.now(),
         date: document.getElementById('bmDate').value,
         partNo: document.getElementById('bmPartNo').value.trim(),
@@ -2798,6 +2798,7 @@ function resetDiePm(partNo) {
         let dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
         
         let newRecord = {
+            id: Date.now(),
             date: todayStr,
             partNo: partNo,
             problem: `PM Completed (Line: ${lineName}, Strokes Reset: ${currentStrokes.toLocaleString()})`,
@@ -2827,6 +2828,12 @@ function resetDiePm(partNo) {
         alert("รีเซ็ต PM สำเร็จ และดาวน์โหลดไฟล์ Excel บันทึกประวัติเรียบร้อยแล้วครับ!");
     }
 }
+
+function printRepairForm(date, partNo, problem, reporter, id = '') {
+    let printUrl = `print-repair.html?id=${id || Date.now()}&date=${date || ''}&partNo=${encodeURIComponent(partNo || '')}&problem=${encodeURIComponent(problem || '')}&reporter=${encodeURIComponent(reporter || '')}`;
+    window.open(printUrl, '_blank');
+}
+
 function renderDiePM() {
     const tablePmEl = document.getElementById('diePmTableBody');
     if (!tablePmEl) return;
@@ -2924,7 +2931,7 @@ function renderDiePM() {
                 <td class="text-danger">${b.problem || ''}</td>
                 <td>${b.reporter || ''}</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}')"><i class="fas fa-print"></i></button>
+                    <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}', '${b.id || ''}')"><i class="fas fa-print"></i></button>
                     <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
                 </td>
             `;
