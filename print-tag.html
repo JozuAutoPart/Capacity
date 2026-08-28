@@ -129,25 +129,26 @@
                 if (responseData && responseData.data) {
                     const masterList = responseData.data;
                     
+                    // ค้นหาแถวที่ Part No (index 1 หรือค่าในคอลัมน์ B) ตรงกับที่ส่งมา
                     const found = masterList.find(m => {
-                        // เช็คเทียบ Part No จากคอลัมน์ partNo หรือ barcode
-                        let pNo = m["partNo"] || m["barcode"] || "";
-                        return String(pNo).trim() === String(paramPartNo).trim();
+                        const keys = Object.keys(m);
+                        // เช็คทุกคอลัมน์ในแถวเพื่อความชัวร์ว่าเจอ Part No นี้แน่ๆ
+                        return keys.some(k => String(m[k]).trim() === String(paramPartNo).trim());
                     });
 
                     if (found) {
-                        // ดึงค่าตามหัวตารางจริงในชีท MasterParts
-                        let colQty = found["จำนวน"] !== undefined ? found["จำนวน"] : found["Q'ty"];
-                        if (colQty !== undefined && !isNaN(colQty) && Number(colQty) > 0) {
-                            masterPcsPerTag = Number(colQty);
+                        const keys = Object.keys(found);
+                        
+                        // ดึงตามลำดับ Key (ตำแหน่งคอลัมน์ใน Object ที่แปลงมาจากแถวชีท)
+                        // keys[1] = Part No, keys[2] = จำนวน, keys[7] = Part Name, keys[8] = STEM Code
+                        if (keys.length > 2 && found[keys[2]] !== undefined && !isNaN(found[keys[2]]) && Number(found[keys[2]]) > 0) {
+                            masterPcsPerTag = Number(found[keys[2]]);
                         }
-
-                        if (found["Part Name"] !== undefined && found["Part Name"] !== "") {
-                            masterPartName = found["Part Name"];
+                        if (keys.length > 7 && found[keys[7]] !== undefined && found[keys[7]] !== "") {
+                            masterPartName = found[keys[7]];
                         }
-
-                        if (found["STEM Code"] !== undefined && found["STEM Code"] !== "") {
-                            masterStemCode = found["STEM Code"];
+                        if (keys.length > 8 && found[keys[8]] !== undefined && found[keys[8]] !== "") {
+                            masterStemCode = found[keys[8]];
                         }
                     }
                 }
