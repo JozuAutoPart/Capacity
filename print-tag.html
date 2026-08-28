@@ -90,66 +90,30 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังดึงข้อมูลชิ้นส่วนจากระบบ...</span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbXLVXRc08O-0v6x_qexiga5-H_35aod-6N0ZGQhg1q2cQmnB8ZIKpOMQS3IKz_rOfCw/exec";
-
-        async function initTagPage() {
+        function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
-            const paramPartNo = urlParams.get('partNo') || '';
+            
+            // ดึงค่าทั้งหมดที่ส่งตรงมาจากลิงก์ URL ทันที (รองรับทั้งภาษาไทยและค่าสำรอง)
+            const paramPartNo = urlParams.get('partNo') || '-';
             const paramLotNo = urlParams.get('lotNo') || '-';
             const paramQty = Number(urlParams.get('qty')) || 0;
-
-            let partName = "-";
-            let stemCode = "-";
-            let pcsPerTag = 45; // ค่าเริ่มต้นมาตรฐาน
-
-            try {
-                const response = await fetch(`${SCRIPT_URL}?action=getMasterParts`);
-                const result = await response.json();
-                
-                if (result && result.data) {
-                    const masterList = result.data;
-                    // ค้นหาแถวที่ตรงกับ Part No ที่ส่งมา
-                    const found = masterList.find(row => {
-                        // สมมติว่า Part No อยู่ในคอลัมน์ Index ที่ 1 หรือ property 'partNo'
-                        let pNo = Array.isArray(row) ? row[1] : (row['partNo'] || row['Part No.'] || '');
-                        return String(pNo).trim() === String(paramPartNo).trim();
-                    });
-
-                    if (found) {
-                        if (Array.isArray(found)) {
-                            // อิงตามโครงสร้างชีทเดิม: [id, partNo, qty, ..., partName, stemCode] ตามลำดับ
-                            if (found[2] && !isNaN(found[2])) pcsPerTag = Number(found[2]);
-                            if (found[7]) partName = found[7];
-                            if (found[8]) stemCode = found[8];
-                        } else {
-                            pcsPerTag = Number(found['จำนวน'] || found['qty'] || found['Q\'ty'] || 45);
-                            partName = found['Part Name'] || found['partName'] || '-';
-                            stemCode = found['STEM Code'] || found['stemCode'] || '-';
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching master parts:", error);
-            }
-
-            // ถ้าใน URL มีส่งค่าทับมาเป็นพิเศษ ให้ใช้ค่านั้นเป็นหลัก
-            const finalPcsPerTag = Number(urlParams.get('pcsPerTag')) || pcsPerTag;
-            const finalPartName = urlParams.get('partName') || partName;
-            const finalStemCode = urlParams.get('stemCode') || stemCode;
+            const paramPcsPerTag = Number(urlParams.get('pcsPerTag')) || Number(urlParams.get('qtyPerTag')) || 45;
+            const paramPartName = urlParams.get('partName') || '-';
+            const paramStemCode = urlParams.get('stemCode') || '-';
 
             generateTagsUI({
                 partNo: paramPartNo,
                 lotNo: paramLotNo,
                 totalQty: paramQty,
-                pcsPerTag: finalPcsPerTag,
-                partName: finalPartName,
-                stemCode: finalStemCode
+                pcsPerTag: paramPcsPerTag,
+                partName: decodeURIComponent(paramPartName),
+                stemCode: decodeURIComponent(paramStemCode)
             });
         }
 
@@ -159,7 +123,6 @@
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
             
-            document.getElementById('tagInfoSummary শক্তির').innerText = '';
             document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
 
             let allTagsHTML = '';
