@@ -1411,7 +1411,7 @@ function renderPlans() {
         let actualQty = Number(plan.actualQty) || 0;
         let diff = planQty - actualQty;
 
-        // เงื่อนไขตัดทิ้งเมื่อเหลือ <= 1%
+        // เงื่อนไขตัดทิ้งเมื่อเหลือ <= 2% (ตามตรรกะในฟังก์ชันเดิม)
         if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.02) {
             return false; 
         }
@@ -1434,25 +1434,34 @@ function renderPlans() {
     }
 
     activePlans.forEach(plan => {
-        // โค้ดสร้างแถวตารางแสดงผลเดิมของพี่มิว...
         const tr = document.createElement('tr');
+        
+        // ดึงค่าตัวแปรสำหรับส่งไปหน้าพิมพ์ Tag
+        const partNo = plan["Part No."] || '';
+        const lotNo = plan["Lot No."] || '';
+        const planQty = plan["Plan Qty"] || 0;
+        const line = plan.Line || '';
+        const planId = plan.id !== undefined ? plan.id : '';
+
         tr.innerHTML = `
             <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
             <td>${plan.Finish ? plan.Finish.split('T')[0] : ''}</td>
-            <td><span class="badge bg-secondary">${plan.Line || ''}</span></td>
-            <td class="fw-bold text-info">${plan["Part No."] || ''}</td>
-            <td>${plan["Lot No."] || ''}</td>
-            <td>${Number(plan["Plan Qty"] || 0).toLocaleString()}</td>
-            <td class="text-center">
-                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deletePlan(${plan.id})" title="ลบแผนผังนี้">
-                    <i class="fas fa-fa-trash"></i>
+            <td><span class="badge bg-secondary">${line}</span></td>
+            <td class="fw-bold text-info">${partNo}</td>
+            <td>${lotNo}</td>
+            <td>${Number(planQty).toLocaleString()}</td>
+            <td class="text-center text-nowrap">
+                <a href="print-tag.html?partNo=${encodeURIComponent(partNo)}&lotNo=${encodeURIComponent(lotNo)}&qty=${planQty}&line=${encodeURIComponent(line)}" target="_blank" class="btn btn-outline-warning btn-sm py-0 px-2 me-1" title="พิมพ์ Tag">
+                    <i class="fas fa-print"></i>
+                </a>
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deletePlan('${planId}')" title="ลบแผนผลิตนี้">
+                    <i class="fas fa-trash"></i>
                 </button>
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
-
 function deletePlan(id) {
     if(confirm('ต้องการลบแผนการผลิตรายการนี้ใช่หรือไม่?')) {
         plans = plans.filter(p => p.id !== id);
