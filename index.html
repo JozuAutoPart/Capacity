@@ -465,116 +465,7 @@
     </div>
 </div>
 
-<script>
-    // โหลดข้อมูล Master Parts จาก Cloud
-    function initMasterData() {
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`)
-            .then(res => res.json())
-            .then(res => {
-                if (res.status === 'success' && res.data) {
-                    localStorage.setItem('masterPartsDatabase', JSON.stringify(res.data));
-                    populatePlanPartNoDropdown();
-                    calculatePlanFromWeight();
-                }
-            })
-            .catch(err => console.error("Error syncing master parts:", err));
-    }
 
-    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown
-    function populatePlanPartNoDropdown() {
-        const select = document.getElementById('planPartNo');
-        if (!select) return;
-
-        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-        if (masterData.length === 0) return;
-
-        const currentValue = select.value;
-        let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
-        masterData.forEach(m => {
-            const pNo = m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '';
-            if (pNo) {
-                optionsHtml += `<option value="${pNo}">${pNo}</option>`;
-            }
-        });
-        select.innerHTML = optionsHtml;
-        if (currentValue) select.value = currentValue;
-    }
-
-    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (ค้นหาคีย์ฉลาดขึ้นรองรับทุกรูปแบบ)
-    function calculatePlanFromWeight() {
-        const partNoSelect = document.getElementById('planPartNo');
-        const inputElement = document.getElementById('planWeightKg');
-        const planQtyInput = document.getElementById('planQty');
-        const tagBadge = document.getElementById('tagCountBadge');
-
-        if (!partNoSelect || !inputElement || !planQtyInput) return;
-
-        const partNoVal = String(partNoSelect.value).trim().toUpperCase();
-        const inputVal = parseFloat(inputElement.value) || 0;
-
-        if (!partNoVal) return;
-
-        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-        
-        const matchedMaster = masterData.find(m => {
-            const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
-            return pNo === partNoVal;
-        });
-
-        if (!matchedMaster) {
-            if (tagBadge) tagBadge.innerHTML = `<span class="text-warning">⏳ กำลังโหลดข้อมูลพาร์ทจากระบบ...</span>`;
-            return;
-        }
-
-        // ค้นหาน้ำหนักต่อชิ้น (รองรับทั้งภาษาอังกฤษและไทย)
-        let weightPerPiece = 0;
-        for (let key in matchedMaster) {
-            if (key.toLowerCase().includes('weight') || key.toLowerCase().includes('น้ำหนัก')) {
-                let val = parseFloat(matchedMaster[key]);
-                if (!isNaN(val) && val > 0) {
-                    weightPerPiece = val;
-                    break;
-                }
-            }
-        }
-
-        let piecePerSheet = 0;
-        for (let key in matchedMaster) {
-            if (key.toLowerCase().includes('sheet') || key.toLowerCase().includes('piece') || key.toLowerCase().includes('แผ่น')) {
-                let val = parseFloat(matchedMaster[key]);
-                if (!isNaN(val) && val > 0) {
-                    piecePerSheet = val;
-                    break;
-                }
-            }
-        }
-
-        const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
-
-        let calculatedPcs = 0;
-        let calculationText = '';
-
-        if (piecePerSheet > 0 && weightPerPiece === 0) {
-            calculatedPcs = Math.round(inputVal * piecePerSheet);
-            calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
-        } else {
-            calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
-            calculationText = `น้ำหนัก (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
-        }
-
-        let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
-
-        planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
-        if (tagBadge) {
-            tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
-        }
-    }
-
-    // โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
-    document.addEventListener("DOMContentLoaded", () => {
-        initMasterData();
-    });
-</script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
                 <div class="row g-3">
@@ -1570,6 +1461,115 @@ function deletePlan(id) {
         alert("ลบแผนสำเร็จ");
     }
 }
+    // โหลดข้อมูล Master Parts จาก Cloud
+    function initMasterData() {
+        fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 'success' && res.data) {
+                    localStorage.setItem('masterPartsDatabase', JSON.stringify(res.data));
+                    populatePlanPartNoDropdown();
+                    calculatePlanFromWeight();
+                }
+            })
+            .catch(err => console.error("Error syncing master parts:", err));
+    }
+
+    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown
+    function populatePlanPartNoDropdown() {
+        const select = document.getElementById('planPartNo');
+        if (!select) return;
+
+        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+        if (masterData.length === 0) return;
+
+        const currentValue = select.value;
+        let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
+        masterData.forEach(m => {
+            const pNo = m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '';
+            if (pNo) {
+                optionsHtml += `<option value="${pNo}">${pNo}</option>`;
+            }
+        });
+        select.innerHTML = optionsHtml;
+        if (currentValue) select.value = currentValue;
+    }
+
+    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (ค้นหาคีย์ฉลาดขึ้นรองรับทุกรูปแบบ)
+    function calculatePlanFromWeight() {
+        const partNoSelect = document.getElementById('planPartNo');
+        const inputElement = document.getElementById('planWeightKg');
+        const planQtyInput = document.getElementById('planQty');
+        const tagBadge = document.getElementById('tagCountBadge');
+
+        if (!partNoSelect || !inputElement || !planQtyInput) return;
+
+        const partNoVal = String(partNoSelect.value).trim().toUpperCase();
+        const inputVal = parseFloat(inputElement.value) || 0;
+
+        if (!partNoVal) return;
+
+        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+        
+        const matchedMaster = masterData.find(m => {
+            const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
+            return pNo === partNoVal;
+        });
+
+        if (!matchedMaster) {
+            if (tagBadge) tagBadge.innerHTML = `<span class="text-warning">⏳ กำลังโหลดข้อมูลพาร์ทจากระบบ...</span>`;
+            return;
+        }
+
+        // ค้นหาน้ำหนักต่อชิ้น (รองรับทั้งภาษาอังกฤษและไทย)
+        let weightPerPiece = 0;
+        for (let key in matchedMaster) {
+            if (key.toLowerCase().includes('weight') || key.toLowerCase().includes('น้ำหนัก')) {
+                let val = parseFloat(matchedMaster[key]);
+                if (!isNaN(val) && val > 0) {
+                    weightPerPiece = val;
+                    break;
+                }
+            }
+        }
+
+        let piecePerSheet = 0;
+        for (let key in matchedMaster) {
+            if (key.toLowerCase().includes('sheet') || key.toLowerCase().includes('piece') || key.toLowerCase().includes('แผ่น')) {
+                let val = parseFloat(matchedMaster[key]);
+                if (!isNaN(val) && val > 0) {
+                    piecePerSheet = val;
+                    break;
+                }
+            }
+        }
+
+        const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
+
+        let calculatedPcs = 0;
+        let calculationText = '';
+
+        if (piecePerSheet > 0 && weightPerPiece === 0) {
+            calculatedPcs = Math.round(inputVal * piecePerSheet);
+            calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
+        } else {
+            calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
+            calculationText = `น้ำหนัก (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
+        }
+
+        let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
+
+        planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
+        if (tagBadge) {
+            tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
+        }
+    }
+
+    // โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
+    document.addEventListener("DOMContentLoaded", () => {
+        initMasterData();
+    });
+
 // --- TAB 4: ACTUAL PRODUCTION ---
 // ฟังก์ชันดักจับการยิง Barcode เพื่อแปลงเป็น Part No. จาก Master และเลือกจากแผนอัตโนมัติ
 document.getElementById('actualBarcodeScanner').addEventListener('keypress', function(e) {
