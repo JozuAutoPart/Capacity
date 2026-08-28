@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Print STEM Tags (6 Tags / A4 Landscape)</title>
-    <!-- โหลดไลบรารี JsBarcode สำหรับสร้างบาร์โค้ดอัตโนมัติ -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         @page {
@@ -95,50 +94,33 @@
     <div id="tagContainer"></div>
 
     <script>
-        // กำหนด URL ของ Apps Script Web App ของพี่มิวตรงนี้ (อันเดียวกับที่ใช้ในหน้า Index หลัก)
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLVXRo080-Ov6x_qexlga5-H_35aod-6N0ZGQhg1q2cQMnb8ZZikP0MQS3iKE_zRoFCw/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbXLVXRc08O-0v6x_qexiga5-H_35aod-6N0ZGQhg1q2cQmnB8ZIKpOMQS3IKz_rOfCw/exec"; 
 
         async function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
-            const paramPartNo = urlParams.get('partNo') || '61761-KK040';
+            const paramPartNo = urlParams.get('partNo') || '53219-0D020';
             const paramLotNo = urlParams.get('lotNo') || '124';
-            const paramQty = Number(urlParams.get('qty')) || 667;
+            const paramQty = Number(urlParams.get('qty')) || 809;
 
             let masterPartName = "STEERING ASSY";
             let masterStemCode = "-";
             let masterPcsPerTag = 100;
 
             try {
-                // 1. ลองดึงจาก localStorage ก่อน (เผื่อมีอยู่แล้ว)
-                let masterList = JSON.parse(localStorage.getItem('masterParts') || '[]');
-
-                // 2. ถ้าใน localStorage ไม่มี ให้ดึงตรงจาก Google Sheets (Apps Script) ทันที
-                if (masterList.length === 0 && SCRIPT_URL !== "ใส่_URL_Google_Apps_Script_ของพี่มิวตรงนี้") {
-                    const response = await fetch(`${SCRIPT_URL}?action=getMasterParts`);
-                    const result = await response.json();
-                    if (result && result.data) {
-                        masterList = result.data;
-                        localStorage.setItem('masterParts', JSON.stringify(masterList));
-                    }
-                }
-
-                // ค้นหา Part No. ตรงกับ คอลัมน์ B (Index 1)
-                const found = masterList.find(m => {
-                    if (!m) return false;
-                    if (Array.isArray(m)) {
-                        return String(m[1]).trim() === String(paramPartNo).trim();
-                    } else {
-                        let pNo = m["partNo"] || m["Part No."] || "";
+                // ใช้ mode: 'no-cors' หรือเรียกผ่าน fetch ปกติเนื่องจาก Apps Script รองรับ GET แล้ว
+                const response = await fetch(`${SCRIPT_URL}?action=getMasterParts`);
+                const result = await response.json();
+                
+                if (result && result.data) {
+                    const masterList = result.data;
+                    
+                    // ค้นหา Part No. จากฟังก์ชัน getDataFromSheet ที่แปลงเป็น Object ตามหัวคอลัมน์แล้ว
+                    const found = masterList.find(m => {
+                        let pNo = m["Part No."] || m["partNo"] || m["PartNo"] || "";
                         return String(pNo).trim() === String(paramPartNo).trim();
-                    }
-                });
+                    });
 
-                if (found) {
-                    if (Array.isArray(found)) {
-                        // คอลัมน์ H = Index 7 (Part Name), คอลัมน์ I = Index 8 (STEM Code)
-                        if (found[7]) masterPartName = found[7];
-                        if (found[8]) masterStemCode = found[8];
-                    } else {
+                    if (found) {
                         masterPartName = found["Part Name"] || found["partName"] || masterPartName;
                         masterStemCode = found["STEM Code"] || found["stemCode"] || masterStemCode;
                     }
@@ -147,7 +129,6 @@
                 console.error("Error fetching master data:", e);
             }
 
-            // สั่งสร้าง Tag แสดงผล
             generateTagsUI({
                 partNo: paramPartNo,
                 lotNo: paramLotNo,
@@ -164,7 +145,7 @@
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
             
-            document.getElementById('tagInfoSummary'].innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
+            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
 
             let allTagsHTML = '';
             let currentA4PageHTML = '';
