@@ -104,7 +104,7 @@
 
             let masterPartName = "STEERING ASSY";
             let masterStemCode = "-";
-            let masterPcsPerTag = 100;
+            let masterPcsPerTag = 50; // ค่าสำรองถ้าหาไม่เจอ
 
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getMasterParts`);
@@ -113,27 +113,20 @@
                 if (result && result.data) {
                     const masterList = result.data;
                     
-                    // ค้นหาแถวที่ Part No. หรือ partNo ตรงกันแบบยืดหยุ่น
+                    // ค้นหาแถวที่ Part No ตรงกัน (เช็คทั้งคอลัมน์ partNo หรือ Part No.)
                     const found = masterList.find(m => {
-                        for (let key in m) {
-                            let val = m[key];
-                            if (val && String(val).trim() === String(paramPartNo).trim()) {
-                                return true;
-                            }
-                        }
-                        return false;
+                        let pNo = m["partNo"] || m["Part No."] || m["PartNo"] || "";
+                        return String(pNo).trim() === String(paramPartNo).trim();
                     });
 
                     if (found) {
-                        // ดึงค่า Part Name และ STEM Code จากคีย์ที่เกี่ยวข้อง
-                        for (let key in found) {
-                            let lKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-                            if (lKey.includes('partname') || (lKey.includes('name') && !lKey.includes('partno'))) {
-                                masterPartName = found[key];
-                            }
-                            if (lKey.includes('stemcode') || lKey.includes('stem')) {
-                                masterStemCode = found[key];
-                            }
+                        masterPartName = found["Part Name"] || found["partName"] || masterPartName;
+                        masterStemCode = found["STEM Code"] || found["stemCode"] || masterStemCode;
+                        
+                        // ดึงค่าจำนวนจากคอลัมน์ 'จำนวน' โดยตรง
+                        let qtyCol = found["จำนวน"];
+                        if (qtyCol !== undefined && qtyCol !== null && !isNaN(qtyCol) && Number(qtyCol) > 0) {
+                            masterPcsPerTag = Number(qtyCol);
                         }
                     }
                 }
@@ -157,7 +150,7 @@
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
             
-            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
+            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
 
             let allTagsHTML = '';
             let currentA4PageHTML = '';
