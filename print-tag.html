@@ -145,7 +145,6 @@
             } else {
                 partName = urlParams.get('partName') || '-';
                 stemCode = urlParams.get('stemCode') || '-';
-                // ถ้าส่ง qty มาแต่ไม่มีในฐานข้อมูล ให้เช็คว่ามีค่าระบุชิ้นต่อใบมาไหม
                 pcsPerTag = Number(urlParams.get('pcs')) || 50;
             }
 
@@ -188,11 +187,11 @@
                             </colgroup>
                             <tr>
                                 <td class="label-title">Part No.</td>
-                                <td colspan="3" class="fw-bold" style="font-size: 12px;">${printData.partNo}</td>
+                                <td colspan="3" class="fw-bold" style="font-size: 15px; letter-spacing: 0.5px;">${printData.partNo}</td>
                             </tr>
                             <tr>
                                 <td class="label-title">Part Name</td>
-                                <td colspan="3">${printData.partName}</td>
+                                <td colspan="3" class="fw-bold" style="font-size: 12px;">${printData.partName}</td>
                             </tr>
                             <tr>
                                 <td class="label-title">Q'ty</td>
@@ -204,7 +203,7 @@
                                 <td class="label-title" style="font-size: 8.5px;">Production / Lot No.:</td>
                                 <td>${printData.lotNo}</td>
                                 <td class="label-title text-center">STEM Code</td>
-                                <td>${printData.stemCode}</td>
+                                <td class="fw-bold" style="font-size: 11px;">${printData.stemCode}</td>
                             </tr>
                             <tr>
                                 <td class="text-center fw-bold" style="font-size: 8px;">Production Date</td>
