@@ -90,74 +90,25 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังดึงข้อมูลจาก MasterParts...</span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังสร้างใบ Tag...</span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        // แก้ไขลิงก์ SCRIPT_URL ให้ถูกต้องตรงกับ Apps Script ของพี่มิว
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLVXRo080-Ov6x_qexlga5-H_35aod-6N0ZGQhg1q2cQMnb8ZZikP0MQS3iKE_zRoFCw/exec";
-
-        async function initTagPage() {
+        function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
-            const paramPartNo = urlParams.get('partNo') || '';
-            const paramLotNo = urlParams.get('lotNo') || '-';
-            const paramQty = Number(urlParams.get('qty')) || 0;
+            
+            const printData = {
+                partNo: urlParams.get('partNo') || '-',
+                lotNo: urlParams.get('lotNo') || '-',
+                totalQty: Number(urlParams.get('qty')) || 0,
+                pcsPerTag: Number(urlParams.get('pcsPerTag')) || 50,
+                partName: urlParams.get('partName') || '-',
+                stemCode: urlParams.get('stemCode') || '-'
+            };
 
-            let masterPartName = "-";
-            let masterStemCode = "-";
-            let masterPcsPerTag = 45; 
-
-            try {
-                const responseData = await new Promise((resolve, reject) => {
-                    const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
-                    window[callbackName] = function(res) {
-                        delete window[callbackName];
-                        if (script.parentNode) script.parentNode.removeChild(script);
-                        resolve(res);
-                    };
-                    const script = document.createElement('script');
-                    script.src = `${SCRIPT_URL}?action=getMasterParts&callback=${callbackName}`;
-                    script.onerror = () => {
-                        delete window[callbackName];
-                        if (script.parentNode) script.parentNode.removeChild(script);
-                        reject(new Error('Network error'));
-                    };
-                    document.body.appendChild(script);
-                });
-
-                if (responseData && responseData.data) {
-                    const masterList = responseData.data;
-                    
-                    // ค้นหาข้อมูลตาม Part No ที่ส่งมา
-                    const found = masterList.find(m => String(m.partNo).trim() === String(paramPartNo).trim());
-
-                    if (found) {
-                        if (found["Part Name"] !== undefined && found["Part Name"] !== "") {
-                            masterPartName = found["Part Name"];
-                        }
-                        if (found["STEM Code"] !== undefined && found["STEM Code"] !== "") {
-                            masterStemCode = found["STEM Code"];
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error("Fetch MasterParts Error:", e);
-            }
-
-            const finalPcsPerTag = Number(urlParams.get('pcsPerTag')) || masterPcsPerTag;
-            const finalPartName = urlParams.get('partName') || masterPartName;
-            const finalStemCode = urlParams.get('stemCode') || masterStemCode;
-
-            generateTagsUI({
-                partNo: paramPartNo,
-                lotNo: paramLotNo,
-                totalQty: paramQty,
-                pcsPerTag: finalPcsPerTag,
-                partName: finalPartName,
-                stemCode: finalStemCode
-            });
+            generateTagsUI(printData);
         }
 
         function generateTagsUI(printData) {
@@ -166,6 +117,7 @@
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
             
+            document.getElementById('tagInfoSummaryisComposite') = true;
             document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
 
             let allTagsHTML = '';
@@ -216,7 +168,7 @@
                             <tr>
                                 <td style="height: 10mm;"></td>
                                 <td></td>
-                               <td></td>
+                                <td></td>
                                 <td></td>
                             </tr>
                             <tr>
