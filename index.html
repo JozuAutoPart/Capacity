@@ -499,55 +499,56 @@
     }
 
     // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น
-    function calculatePlanFromWeight() {
-        const partNoSelect = document.getElementById('planPartNo');
-        const inputElement = document.getElementById('planWeightKg');
-        const planQtyInput = document.getElementById('planQty');
-        const tagBadge = document.getElementById('tagCountBadge');
+   // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (อัปเดตชื่อคีย์ตาม Google Sheets ล่าสุด)
+function calculatePlanFromWeight() {
+    const partNoSelect = document.getElementById('planPartNo');
+    const inputElement = document.getElementById('planWeightKg');
+    const planQtyInput = document.getElementById('planQty');
+    const tagBadge = document.getElementById('tagCountBadge');
 
-        if (!partNoSelect || !inputElement || !planQtyInput) return;
+    if (!partNoSelect || !inputElement || !planQtyInput) return;
 
-        const partNoVal = String(partNoSelect.value).trim().toUpperCase();
-        const inputVal = parseFloat(inputElement.value) || 0;
+    const partNoVal = String(partNoSelect.value).trim().toUpperCase();
+    const inputVal = parseFloat(inputElement.value) || 0;
 
-        if (!partNoVal) return;
+    if (!partNoVal) return;
 
-        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-        
-        const matchedMaster = masterData.find(m => {
-            const pNo = String(m.partNo || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
-            return pNo === partNoVal;
-        });
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    
+    const matchedMaster = masterData.find(m => {
+        const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || '').trim().toUpperCase();
+        return pNo === partNoVal;
+    });
 
-        if (!matchedMaster) {
-            if (tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ทนี้ในระบบ Master</span>`;
-            planQtyInput.value = '';
-            return;
-        }
-
-        const weightPerPiece = parseFloat(matchedMaster.weightPerPiece || matchedMaster['Weight per piece'] || matchedMaster['Weight'] || 0);
-        const piecePerSheet = parseFloat(matchedMaster.piecePerSheet || matchedMaster['Piece per sheet'] || matchedMaster['Sheet'] || 0);
-        const pcsPerTag = parseInt(matchedMaster.tagQty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.tagQty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
-
-        let calculatedPcs = 0;
-        let calculationText = '';
-
-        if (piecePerSheet > 0 && weightPerPiece === 0) {
-            calculatedPcs = Math.round(inputVal * piecePerSheet);
-            calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
-        } else {
-            calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
-            calculationText = `Coil (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
-        }
-
-        let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
-
-        planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
-        if (tagBadge) {
-            tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
-        }
+    if (!matchedMaster) {
+        if (tagBadge) tagBadge.innerHTML = `<span class="text-danger">❌ ไม่พบพาร์ทนี้ในระบบ Master</span>`;
+        planQtyInput.value = '';
+        return;
     }
 
+    // ดึงค่าตามชื่อหัวตารางใน Google Sheets จริง
+    const weightPerPiece = parseFloat(matchedMaster.weightPerPiece || matchedMaster['Weight per piece'] || matchedMaster['weightperpiece'] || 0);
+    const piecePerSheet = parseFloat(matchedMaster.piecePerSheet || matchedMaster['Piece per sheet'] || matchedMaster['piecepersheet'] || 0);
+    const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || 50) : 50;
+
+    let calculatedPcs = 0;
+    let calculationText = '';
+
+    if (piecePerSheet > 0 && weightPerPiece === 0) {
+        calculatedPcs = Math.round(inputVal * piecePerSheet);
+        calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
+    } else {
+        calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
+        calculationText = `น้ำหนัก (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
+    }
+
+    let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
+
+    planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
+    if (tagBadge) {
+        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
+    }
+}
     // สั่งให้ดึงข้อมูลใส่ Dropdown ทันทีเมื่อเปิดหน้าเว็บ
     document.addEventListener("DOMContentLoaded", () => {
         populatePlanPartNoDropdown();
