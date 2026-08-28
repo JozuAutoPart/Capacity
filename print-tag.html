@@ -88,31 +88,80 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังดึงข้อมูลจาก MasterParts...</span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        function initTagPage() {
+        // ใส่ลิงก์ CSV ของชีท MasterParts ตรงนี้ (โดยเลือกแผ่นงาน MasterParts ออกมาเป็น CSV)
+        // หรือดึงผ่าน Google Apps Script / Published CSV Link ของพี่มิว
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1rCouYPQOq3G-C8SM1UwHPP1MneohkVmlPrbGbWus/gviz/tq?tqx=out:csv&sheet=MasterParts';
+
+        async function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
-            
-            // ดึงค่าที่ส่งตรงมาจากลิงก์ของหน้า Planning
-            const paramPartNo = urlParams.get('partNo') || '61761-KK040';
-            const paramLotNo = urlParams.get('lotNo') || '124';
-            const paramQty = Number(urlParams.get('qty')) || 776;
-            const paramPcsPerTag = Number(urlParams.get('pcsPerTag')) || 45;
-            const paramPartName = urlParams.get('partName') || 'REINFROCE,SELT ANCHOR,NO.1 UPR LH';
-            const paramStemCode = urlParams.get('stemCode') || 'JA184';
+            const targetPartNo = (urlParams.get('partNo') || '').trim();
+            const lotNo = urlParams.get('lotNo') || '-';
+            const totalQty = Number(urlParams.get('qty')) || 0;
+            const pcsPerTag = Number(urlParams.get('pcsPerTag')) || 50;
+
+            let partName = '-';
+            let stemCode = '-';
+
+            try {
+                // ดึงข้อมูลจาก Google Sheets แบบอัตโนมัติ
+                const response = await fetch(SHEET_CSV_URL);
+                const csvText = await response.text();
+                const rows = parseCSV(csvText);
+
+                // วนลูปหา Part No. ที่ตรงกัน (สมมติ Part No. อยู่คอลัมน์ B Index 1, Part Name คอลัมน์ H Index 7, STEM Code คอลัมน์ I Index 8)
+                for (let row of rows) {
+                    const partNoCol = (row[1] || '').trim(); // คอลัมน์ B
+                    if (partNoCol === targetPartNo) {
+                        partName = row[7] || '-'; // คอลัมน์ H
+                        stemCode = row[8] || '-'; // คอลัมน์ I
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.log('ไม่สามารถดึงข้อมูลจากชีทได้อัตโนมัติ ใช้ค่าสำรองแทน', error);
+                partName = urlParams.get('partName') || '-';
+                stemCode = urlParams.get('stemCode') || '-';
+            }
 
             generateTagsUI({
-                partNo: paramPartNo,
-                lotNo: paramLotNo,
-                totalQty: paramQty,
-                pcsPerTag: paramPcsPerTag,
-                partName: paramPartName,
-                stemCode: paramStemCode
+                partNo: targetPartNo || '-',
+                lotNo: lotNo,
+                totalQty: totalQty,
+                pcsPerTag: pcsPerTag,
+                partName: partName,
+                stemCode: stemCode
             });
+        }
+
+        // ฟังก์ชันแปลง CSV เป็น Array
+        function parseCSV(text) {
+            let lines = text.split('\n');
+            let result = [];
+            for (let i = 0; i < lines.length; i++) {
+                let row = [];
+                let current = '';
+                let inQuote = false;
+                for (let j = 0; j < lines[i].length; j++) {
+                    let char = lines[i][j];
+                    if (char === '"') {
+                        inQuote = !inQuote;
+                    } else if (char === ',' && !inQuote) {
+                        row.push(current.replace(/^"|"$/g, '').trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                row.push(current.replace(/^"|"$/g, '').trim());
+                result.push(row);
+            }
+            return result;
         }
 
         function generateTagsUI(printData) {
@@ -120,8 +169,7 @@
             container.innerHTML = '';
 
             const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
-            
-            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
+            document.getElementById('tagInfoSummary.innerText = `Part No: ${printData.partNo} | Lot: ${printData.lotNo} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ | ใบละ ${printData.pcsPerTag} Pcs)`;
 
             let allTagsHTML = '';
             let currentA4PageHTML = '';
