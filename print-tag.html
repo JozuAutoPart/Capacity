@@ -48,11 +48,13 @@
             width: 100%;
             border-collapse: collapse;
             border: 1px solid #000;
+            table-layout: fixed;
         }
         table.tag-table th, table.tag-table td {
             border: 1px solid #000;
             padding: 2px 4px;
             vertical-align: middle;
+            overflow: hidden;
         }
         .label-title { font-weight: bold; }
         .text-center { text-align: center; }
@@ -94,7 +96,6 @@
     <div id="tagContainer"></div>
 
     <script>
-        // ฐานข้อมูล Part No. ทั้งหมด พร้อมชื่อ, STEM Code และจำนวนต่อใบ (pcs)
         const partDatabase = {
             "53219-0D020": { name: "SUPPORT,RADIATOR,LWR,RR", stem: "JA114", pcs: 50 },
             "55330-0D480-10": { name: "REINFORCEMENT ASSY INSTRUMENT PA", stem: "JA118", pcs: 25 },
@@ -137,15 +138,15 @@
             let stemCode = '-';
             let pcsPerTag = 50;
 
-            // ดึงข้อมูลจากฐานข้อมูลในโค้ดตาม Part No. ที่ส่งมา
             if (partDatabase[partNo]) {
                 partName = partDatabase[partNo].name;
                 stemCode = partDatabase[partNo].stem;
                 pcsPerTag = partDatabase[partNo].pcs;
             } else {
-                // เผื่อมีส่งพารามิเตอร์เสริมมาทาง URL
                 partName = urlParams.get('partName') || '-';
                 stemCode = urlParams.get('stemCode') || '-';
+                // ถ้าส่ง qty มาแต่ไม่มีในฐานข้อมูล ให้เช็คว่ามีค่าระบุชิ้นต่อใบมาไหม
+                pcsPerTag = Number(urlParams.get('pcs')) || 50;
             }
 
             generateTagsUI({
@@ -179,9 +180,15 @@
                 const tagHTML = `
                     <div class="tag-card">
                         <table class="tag-table">
+                            <colgroup>
+                                <col style="width: 25%;">
+                                <col style="width: 25%;">
+                                <col style="width: 25%;">
+                                <col style="width: 25%;">
+                            </colgroup>
                             <tr>
-                                <td class="label-title" style="width: 18%;">Part No.</td>
-                                <td colspan="3" class="fw-bold" style="font-size: 12px; width: 82%;">${printData.partNo}</td>
+                                <td class="label-title">Part No.</td>
+                                <td colspan="3" class="fw-bold" style="font-size: 12px;">${printData.partNo}</td>
                             </tr>
                             <tr>
                                 <td class="label-title">Part Name</td>
@@ -189,33 +196,33 @@
                             </tr>
                             <tr>
                                 <td class="label-title">Q'ty</td>
-                                <td style="width: 40%;"><span class="fw-bold" style="font-size: 13px;">${currentQty}</span> Pcs.</td>
-                                <td class="label-title text-center" style="width: 18%;">Stamp Mark</td>
-                                <td style="width: 24%;"></td>
+                                <td><span class="fw-bold" style="font-size: 13px;">${currentQty}</span> Pcs.</td>
+                                <td class="label-title text-center">Stamp Mark</td>
+                                <td></td>
                             </tr>
                             <tr>
-                                <td class="label-title" style="font-size: 9px;">Production Data / Lot No.:</td>
-                                <td style="width: 20%;">${printData.lotNo}</td>
-                                <td class="label-title text-center" style="width: 18%;">STEM Code</td>
-                                <td style="width: 24%;">${printData.stemCode}</td>
+                                <td class="label-title" style="font-size: 8.5px;">Production / Lot No.:</td>
+                                <td>${printData.lotNo}</td>
+                                <td class="label-title text-center">STEM Code</td>
+                                <td>${printData.stemCode}</td>
                             </tr>
                             <tr>
-                                <td class="text-center fw-bold" style="font-size: 8.5px;">Production Date</td>
-                                <td class="text-center fw-bold" style="font-size: 8.5px;">Supplier Check</td>
-                                <td class="text-center fw-bold" style="font-size: 8.5px;">Delivery Date</td>
-                                <td class="text-center fw-bold" style="font-size: 8.5px;">STEM QC Receiving</td>
+                                <td class="text-center fw-bold" style="font-size: 8px;">Production Date</td>
+                                <td class="text-center fw-bold" style="font-size: 8px;">Supplier Check</td>
+                                <td class="text-center fw-bold" style="font-size: 8px;">Delivery Date</td>
+                                <td class="text-center fw-bold" style="font-size: 8px;">STEM QC Receiving</td>
                             </tr>
                             <tr>
-                                <td style="height: 10mm;"></td>
+                                <td style="height: 9mm;"></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
                             </tr>
                             <tr>
-                                <td class="text-center" style="font-size: 8.5px;">Time</td>
-                                <td class="text-center" style="font-size: 8.5px;">Time</td>
-                                <td class="text-center" style="font-size: 8.5px;">Time</td>
-                                <td class="text-center" style="font-size: 8.5px;">by.</td>
+                                <td class="text-center" style="font-size: 8px;">Time</td>
+                                <td class="text-center" style="font-size: 8px;">Time</td>
+                                <td class="text-center" style="font-size: 8px;">Time</td>
+                                <td class="text-center" style="font-size: 8px;">by.</td>
                             </tr>
                         </table>
                         <div class="footer-section">
