@@ -382,7 +382,7 @@
         </div>
     </div>
 </div>
-           <!-- TAB 3: PLANNING -->
+         <!-- TAB 3: PLANNING -->
 <div class="tab-pane fade show active" id="tab-plan">
     <div class="row g-3">
         <div class="col-md-4">
@@ -466,7 +466,7 @@
 </div>
 
 <script>
-    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown อัตโนมัติจาก LocalStorage
+    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown อัตโนมัติจาก LocalStorage (รองรับทุกรูปแบบคีย์)
     function populatePlanPartNoDropdown() {
         const select = document.getElementById('planPartNo');
         if (!select) return;
@@ -476,14 +476,14 @@
 
         let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
         masterData.forEach(m => {
-            if (m.partNo) {
-                optionsHtml += `<option value="${m.partNo}">${m.partNo}</option>`;
+            const pNo = m.partNo || m['Part No.'] || m['PARTNO'] || '';
+            if (pNo) {
+                optionsHtml += `<option value="${pNo}">${pNo}</option>`;
             }
         });
         select.innerHTML = optionsHtml;
     }
 
-    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น
     // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (รองรับการอ่านชื่อคอลัมน์หลายรูปแบบ)
     function calculatePlanFromWeight() {
         const partNoSelect = document.getElementById('planPartNo');
@@ -535,6 +535,11 @@
             tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
         }
     }
+
+    // เรียกใช้งานฟังก์ชันเติม Dropdown ทันทีเมื่อเปิดหน้าเว็บหรือโหลดข้อมูลเสร็จ
+    document.addEventListener("DOMContentLoaded", () => {
+        populatePlanPartNoDropdown();
+    });
 </script>
            <!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
