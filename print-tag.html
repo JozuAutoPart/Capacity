@@ -88,48 +88,25 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังโหลดข้อมูลจาก MasterParts...</span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        async function initTagPage() {
+        function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
-            const targetPartNo = (urlParams.get('partNo') || '').trim();
+            const partNo = urlParams.get('partNo') || '-';
             const lotNo = urlParams.get('lotNo') || '-';
             const totalQty = Number(urlParams.get('qty')) || 0;
             const pcsPerTag = Number(urlParams.get('pcsPerTag')) || 50;
 
-            let partName = urlParams.get('partName') || '-';
-            let stemCode = urlParams.get('stemCode') || '-';
-
-            // ถ้าไม่ได้ส่งชื่อมาทาง URL ให้ดึงผ่าน Google Apps Service (JSONP / Public API) หรือดึงจากตารางโดยตรง
-            try {
-                const sheetId = '1rCouYPQOq3G-C8SM1UwHPP1MneohkVmlPrbGbWus';
-                const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=MasterParts`;
-                
-                const res = await fetch(url);
-                const text = await res.text();
-                // ตัด Text ข้อมูล gviz ของ Google ให้กลายเป็น JSON แท้ๆ
-                const json = JSON.parse(text.substring(47, text.length - 2));
-                const rows = json.table.rows;
-
-                for (let r of rows) {
-                    const c = r.c;
-                    // c[1] คือคอลัมน์ B (partNo), c[7] คือคอลัมน์ H (Part Name), c[8] คือคอลัมน์ I (STEM Code)
-                    if (c[1] && c[1].v && c[1].v.toString().trim() === targetPartNo) {
-                        if (c[7] && c[7].v) partName = c[7].v.toString();
-                        if (c[8] && c[8].v) stemCode = c[8].v.toString();
-                        break;
-                    }
-                }
-            } catch (e) {
-                console.log('ดึงข้อมูลผ่าน JSON ไม่สำเร็จ ใช้ค่าสำรอง', e);
-            }
+            // ดึงค่า Part Name และ STEM Code จากหน่วยความจำเบราว์เซอร์ (ถ้ามี) หรือจาก URL
+            let partName = urlParams.get('partName') || localStorage.getItem('cache_partName') || '-';
+            let stemCode = urlParams.get('stemCode') || localStorage.getItem('cache_stemCode') || '-';
 
             generateTagsUI({
-                partNo: targetPartNo || '-',
+                partNo: partNo,
                 lotNo: lotNo,
                 totalQty: totalQty,
                 pcsPerTag: pcsPerTag,
