@@ -88,77 +88,31 @@
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
             🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
         </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังโหลดข้อมูลจาก MasterParts...</span>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
     </div>
 
     <div id="tagContainer"></div>
 
     <script>
-        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1rCouYPQOq3G-C8SM1UwHPP1MneohkVmlPrbGbWus/gviz/tq?tqx=out:csv&sheet=MasterParts';
-
-        async function initTagPage() {
+        function initTagPage() {
             const urlParams = new URLSearchParams(window.location.search);
-            const targetPartNo = (urlParams.get('partNo') || '').trim();
+            
+            // ดึงค่าทั้งหมดที่ส่งตรงมาจากลิงก์พารามิเตอร์ URL
+            const partNo = urlParams.get('partNo') || '-';
             const lotNo = urlParams.get('lotNo') || '-';
             const totalQty = Number(urlParams.get('qty')) || 0;
             const pcsPerTag = Number(urlParams.get('pcsPerTag')) || 50;
-
-            let partName = '-';
-            let stemCode = '-';
-
-            try {
-                const response = await fetch(SHEET_CSV_URL);
-                if (response.ok) {
-                    const csvText = await response.text();
-                    const rows = parseCSV(csvText);
-                    
-                    // วนลูปค้นหา Part No. ในคอลัมน์ B (index 1)
-                    for (let i = 1; i < rows.length; i++) {
-                        let row = rows[i];
-                        let partNoCol = (row[1] || '').trim();
-                        if (partNoCol === targetPartNo) {
-                            partName = row[7] ? row[7].trim() : '-';  // คอลัมน์ H (Part Name)
-                            stemCode = row[8] ? row[8].trim() : '-';  // คอลัมน์ I (STEM Code)
-                            break;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.log('ไม่สามารถดึงข้อมูลชีทได้โดยตรง', error);
-            }
+            const partName = urlParams.get('partName') || '-';
+            const stemCode = urlParams.get('stemCode') || '-';
 
             generateTagsUI({
-                partNo: targetPartNo || '-',
+                partNo: partNo,
                 lotNo: lotNo,
                 totalQty: totalQty,
                 pcsPerTag: pcsPerTag,
                 partName: partName,
                 stemCode: stemCode
             });
-        }
-
-        function parseCSV(text) {
-            let lines = text.split('\n');
-            let result = [];
-            for (let i = 0; i < lines.length; i++) {
-                let row = [];
-                let current = '';
-                let inQuote = false;
-                for (let j = 0; j < lines[i].length; j++) {
-                    let char = lines[i][j];
-                    if (char === '"') {
-                        inQuote = !inQuote;
-                    } else if (char === ',' && !inQuote) {
-                        row.push(current.replace(/^"|"$/g, '').trim());
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                row.push(current.replace(/^"|"$/g, '').trim());
-                result.push(row);
-            }
-            return result;
         }
 
         function generateTagsUI(printData) {
