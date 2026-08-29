@@ -3000,30 +3000,30 @@ function loadCloudDieMaintenance() {
     fetch(scriptUrl + '?action=getDieMaintenance')
     .then(res => res.json())
     .then(res => {
-        // รองรับทั้งกรณีที่คืนค่ามาเป็น Array ตรงๆ หรืออยู่ในรูปแบบ Object { status: "success", data: [...] }
         const rawData = Array.isArray(res) ? res : (res.data || []);
         
         if (rawData.length > 0) {
-            // แปลงโครงสร้างข้อมูลให้ตรงกับที่หน้าเว็บใช้งาน
             const formattedData = rawData.map(item => ({
                 id: item.id || Date.parse(item.date || new Date()),
-                date: item.date || item["date"] || "",
-                partNo: item.partNo || item["partNo"] || "",
-                problem: item.problem || item["problem"] || "",
-                reporter: item.reporter || item["reporter"] || "",
+                // ดึงค่าตามหัวคอลัมน์ใน Google Sheets แบบตรงตัว
+                date: item.date || item["Date"] || "",
+                partNo: item.partNo || item["Part No."] || item["partNo"] || "",
+                problem: item.problem || item["Problem"] || item["problem"] || "",
+                reporter: item.reporter || item["Reporter"] || item["reporter"] || "",
                 image: item.image || item["image"] || ""
             }));
             
-            // บันทึกลง LocalStorage ของเครื่องคอมพิวเตอร์
-            localStorage.setItem('sys_die_maintenance', JSON.stringify(formattedData));
+            // กรองเอาแถวที่เป็นค่าว่างออก ป้องกันแถวเปล่าๆ โผล่ขึ้นมา
+            const validData = formattedData.filter(item => item.date || item.partNo || item.problem);
             
-            // สั่งเรนเดอร์หน้าจอใหม่ทันที
+            localStorage.setItem('sys_die_maintenance', JSON.stringify(validData));
+            
             if (typeof renderDiePM === 'function') {
                 renderDiePM();
             }
         }
     })
-    .catch(err => console.error("Load Cloud Die Maintenance Error:", err));
+    .catch(err => console.error("Load Cloud Error:", err));
 }
 
 // สั่งให้ดึงข้อมูลจาก Cloud ทันทีเมื่อเปิดหน้าเว็บ หรือสลับมาหน้าใช้งาน
