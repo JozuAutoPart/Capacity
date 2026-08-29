@@ -33,7 +33,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed; /* ล็อกขนาดคอลัมน์ไม่ให้ตารางยืดขยายเอง */
+            table-layout: fixed;
         }
         table, th, td {
             border: 1px solid #000;
@@ -299,8 +299,8 @@
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
 
-    // ดึงรูปภาพจาก localStorage (แนะนำวิธีนี้สำหรับรูปภาพ Base64 ที่ยาวเกิน URL) หรือพารามิเตอร์เดิม
-    const imgSrc = urlParams.get('img') || urlParams.get('image') || localStorage.getItem('print_repair_image');
+    // ดึงรูปภาพจาก localStorage (รองรับทั้ง key: print_repair_image และ repair_image)
+    const imgSrc = urlParams.get('img') || urlParams.get('image') || localStorage.getItem('print_repair_image') || localStorage.getItem('repair_image');
     
     const imgElement = document.getElementById('lblImage');
     const noImgElement = document.getElementById('lblNoImg');
