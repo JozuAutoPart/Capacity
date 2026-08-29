@@ -277,13 +277,13 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     
-    // ดึงข้อมูลข้อความทั่วไปจาก URL
+    // ดึงข้อมูลข้อความทั่วไปจาก URL พร้อมรองรับสลับตำแหน่งตัวแปรป้องกันค่าสลับกัน
     document.getElementById('lblId').innerText = urlParams.get('id') || '-';
-    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || '-';
+    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || urlParams.get('partNo') || '-';
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
-    document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || '-';
+    document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || urlParams.get('dieNo') || '-';
     document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
-    document.getElementById('lblLine').innerText = urlParams.get('line') || '-';
+    document.getElementById('lblLine').innerText = urlParams.get('line') || urlParams.get('reporter') || '-';
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
 
@@ -293,10 +293,13 @@
     const imgElement = document.getElementById('lblImage');
     const noImgElement = document.getElementById('lblNoImg');
     
-    if (imgSrc && imgSrc.trim() !== '') {
+    if (imgSrc && imgSrc.trim() !== '' && imgSrc !== 'null' && imgSrc !== 'undefined') {
         imgElement.src = imgSrc;
         imgElement.style.display = 'block';
         noImgElement.style.display = 'none';
+    } else {
+        imgElement.style.display = 'none';
+        noImgElement.style.display = 'block';
     }
 </script>
 
