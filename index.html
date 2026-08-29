@@ -2742,7 +2742,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-    // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
+   // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
     const bm = {
@@ -2851,13 +2851,13 @@ function resetDiePm(partNo) {
     }
 }
 
-// ตัวอย่างฟังก์ชันตอนกดปุ่ม "พิมพ์" ในหน้าหลัก
-function printRepairForm(id, dieNo, model, partNo, partName, line, date, problem, imgBase64) {
-    // 1. เก็บรูปภาพและข้อมูลที่ความยาวเยอะๆ ลง localStorage ของเบราว์เซอร์
+// ปรับปรุงฟังก์ชันพิมพ์ให้รับอ็อบเจกต์หรือพารามิเตอร์ให้ตรงกับข้อมูลจริงในรายการ
+function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
+    // 1. เก็บรูปภาพลง localStorage ของเบราว์เซอร์
     localStorage.setItem('print_repair_image', imgBase64 || '');
     
-    // 2. ข้อมูลสั้นๆ ส่งผ่าน URL ตามปกติ
-    const url = `print-repair.html?id=${id}&dieNo=${dieNo}&model=${model}&partNo=${partNo}&partName=${partName}&line=${line}&date=${date}&problem=${problem}`;
+    // 2. ส่งค่าผ่าน URL โดยจับคู่ตัวแปรให้ตรงกับที่หน้า print-repair.html ใช้งาน
+    const url = `print-repair.html?id=${encodeURIComponent(id || '')}&dieNo=${encodeURIComponent(partNo || '')}&model=${encodeURIComponent('-')}&partNo=${encodeURIComponent(partNo || '')}&partName=${encodeURIComponent('-')}&line=${encodeURIComponent(reporter || '')}&date=${encodeURIComponent(date || '')}&problem=${encodeURIComponent(problem || '')}`;
     
     // 3. เปิดหน้าต่างพิมพ์
     window.open(url, '_blank');
