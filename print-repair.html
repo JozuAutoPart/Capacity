@@ -161,13 +161,17 @@
     <!-- Problem Details & Analysis Box (Auto Flex Height to Fill Page) -->
     <table style="flex-grow: 1; margin: 3px 0; height: 100%;">
         <tr style="height: 24px;">
-            <td style="width: 50%; font-size: 9.5pt;" class="section-title">Preventive Maintenance</td>
+            <td style="width: 50%; font-size: 9.5pt;" class="section-title">Preventive Maintenance / รูปถ่ายปัญหา</td>
             <td style="width: 50%; font-size: 9.5pt;" class="section-title">วิเคราะห์ปัญหาเบื้องต้น</td>
         </tr>
         <tr>
-            <td style="vertical-align: top; font-size: 9.5pt; padding: 8px; height: 100%;">
+            <td style="vertical-align: top; font-size: 9.5pt; padding: 8px; height: 100%; display: flex; flex-direction: column;">
                 <div class="fw-bold">อาการเสีย / รายละเอียดปัญหา:</div>
-                <div id="lblProblem" style="white-space: pre-line; margin-top: 6px;"></div>
+                <div id="lblProblem" style="white-space: pre-line; margin-top: 4px; margin-bottom: 8px;"></div>
+                <div style="flex-grow: 1; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; min-height: 120px; background: #fafafa; border-radius: 4px; overflow: hidden; padding: 4px;">
+                    <span id="lblNoImg" style="color: #888; font-size: 8.5pt;">(ไม่มีรูปภาพถ่ายปัญหา)</span>
+                    <img id="lblImage" src="" style="max-width: 100%; max-height: 160px; object-fit: contain; display: none;" />
+                </div>
             </td>
             <td style="vertical-align: top; font-size: 9.5pt; padding: 0; height: 100%;">
                 <table style="width: 100%; height: 100%; border: none;">
@@ -280,6 +284,16 @@
     document.getElementById('lblLine').innerText = urlParams.get('line') || '-';
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
+
+    // จัดการรูปภาพถ้ามีการแนบลิงก์รูปมาทาง URL เช่น ?img=...
+    const imgSrc = urlParams.get('img');
+    const imgElement = document.getElementById('lblImage');
+    const noImgElement = document.getElementById('lblNoImg');
+    if (imgSrc) {
+        imgElement.src = imgSrc;
+        imgElement.style.display = 'block';
+        noImgElement.style.display = 'none';
+    }
 </script>
 
 </body>
