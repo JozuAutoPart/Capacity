@@ -291,14 +291,13 @@
     const recordId = urlParams.get('id') || 'default';
     
     document.getElementById('lblId').innerText = recordId;
-    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || '-';
-    document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
-    document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || urlParams.get('dieNo') || '-';
-    document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
-    document.getElementById('lblLine').innerText = urlParams.get('line') || urlParams.get('reporter') || '-';
-    document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
-    document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
-
+document.getElementById('lblDieNo').innerText = '-';
+document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
+document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || '-';
+document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
+document.getElementById('lblLine').innerText = urlParams.get('line') || urlParams.get('reporter') || '-';
+document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
+document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
     const imgElement = document.getElementById('lblImage');
     const noImgElement = document.getElementById('lblNoImg');
 
