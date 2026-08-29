@@ -2829,8 +2829,8 @@ function resetDiePm(partNo) {
     }
 }
 
-function printRepairForm(date, partNo, problem, reporter, id = '') {
-    let printUrl = `print-repair.html?id=${id || Date.now()}&date=${date || ''}&partNo=${encodeURIComponent(partNo || '')}&problem=${encodeURIComponent(problem || '')}&reporter=${encodeURIComponent(reporter || '')}`;
+function printRepairForm(date, partNo, problem, reporter, id = '', imgUrl = '') {
+    let printUrl = `print-repair.html?id=${id || Date.now()}&date=${date || ''}&partNo=${encodeURIComponent(partNo || '')}&problem=${encodeURIComponent(problem || '')}&reporter=${encodeURIComponent(reporter || '')}&img=${encodeURIComponent(imgUrl || '')}`;
     window.open(printUrl, '_blank');
 }
 
