@@ -314,14 +314,21 @@
         }
     }
 
-    // ดึงรูปภาพจาก LocalStorage ผ่าน Key ตาม ID ประวัติรายการนั้นๆ อย่างแม่นยำ
+    // ดึงรูปภาพจาก LocalStorage ตาม ID ของรายการแจ้งซ่อมนั้นๆ
     let imgSrc = localStorage.getItem('print_repair_img_' + recordId) || localStorage.getItem('print_repair_image');
     
-    if (imgSrc) {
-        displayImage(imgSrc);
-    } else {
-        displayImage(null);
+    // หากไม่พบในระบบ ลองค้นหาจากข้อมูลจำลองภายในเครื่อง
+    if (!imgSrc) {
+        try {
+            const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+            const found = dieBms.find(item => String(item.id) === String(recordId));
+            if (found && found.image) {
+                imgSrc = found.image;
+            }
+        } catch (e) {}
     }
+
+    displayImage(imgSrc);
 </script>
 
 </body>
