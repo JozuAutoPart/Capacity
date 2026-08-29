@@ -2760,18 +2760,22 @@ function submitDieBm(e) {
         partNo: document.getElementById('bmPartNo').value.trim(),
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim(),
-        printer: document.getElementById('bmPrinter') ? document.getElementById('bmPrinter').value.trim() : '-', // รองรับช่องพิมพ์ใบแจ้งซ่อม (Printer)
-        image: imgData // บันทึกรูป Base64 ลงใน Object ข้อมูล
+        image: imgData // ส่งข้อมูลรูปไปเก็บบันทึกบน Google Sheet ทางเดียว
     };
     
-    // บันทึกลง LocalStorage ทันทีแยกตาม ID เพื่อความชัวร์
-    localStorage.setItem('print_repair_img_' + recordId, imgData);
+    // ❌ ตัดบรรทัดนี้ทิ้งเพื่อป้องกัน LocalStorage เต็ม
+    // localStorage.setItem('print_repair_img_' + recordId, imgData);
 
-    if (typeof dieBms === 'undefined') {
-        window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-    }
+    let dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
     dieBms.push(bm);
-    localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+    
+    try {
+        localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+    } catch (err) {
+        console.warn("พื้นที่ LocalStorage เต็ม ทำการเคลียร์พื้นที่แคช");
+        localStorage.removeItem('masterPartsDatabase');
+        localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+    }
 
     // ส่งข้อมูลไปบันทึกลง Google Sheets (Cloud)
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
@@ -2791,12 +2795,9 @@ function submitDieBm(e) {
 
     renderDiePM();
     
-    // รีเซ็ตฟอร์ม
     const formEl = document.getElementById('dieForm');
     if (formEl) formEl.reset();
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
-    
-    // เคลียร์รูปภาพชั่วคราว
     window.currentBmImage = '';
     
     alert("บันทึกการแจ้งซ่อมเรียบร้อยแล้วครับ!");
