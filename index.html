@@ -2726,7 +2726,7 @@ window.addEventListener('error', function(e) {
         return true;
     }
 });
-     // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
+   // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
     const bm = {
@@ -2830,15 +2830,14 @@ function resetDiePm(partNo) {
     }
 }
 
-// ปรับปรุงฟังก์ชันพิมพ์ให้บันทึกภาพลง localStorage และส่งผ่าน URL ให้ถูกต้อง
+// ปรับปรุงฟังก์ชันพิมพ์: บันทึกรูปลง LocalStorage แยกตาม ID เพื่อป้องกันข้อมูลรูปชนกันหรือยาวเกิน URL
 function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
-    // 1. บันทึกรูปภาพลง localStorage เพื่อให้หน้าพิมพ์ดึงไปแสดงได้อย่างแม่นยำ
-    localStorage.setItem('print_repair_image', imgBase64 || '');
+    const storageKey = 'print_repair_img_' + (id || 'default');
+    localStorage.setItem(storageKey, imgBase64 || '');
+    localStorage.setItem('print_repair_image', imgBase64 || ''); // สำรองไว้
     
-    // 2. เข้ารหัสและส่งค่าพารามิเตอร์ไปหน้า print-repair.html
     const url = `print-repair.html?id=${encodeURIComponent(id || '')}&dieNo=${encodeURIComponent(partNo || '')}&model=${encodeURIComponent('-')}&partNo=${encodeURIComponent(partNo || '')}&partName=${encodeURIComponent('-')}&line=${encodeURIComponent(reporter || '')}&date=${encodeURIComponent(date || '')}&problem=${encodeURIComponent(problem || '')}`;
     
-    // 3. เปิดหน้าต่างพิมพ์
     window.open(url, '_blank');
 }
 
@@ -2923,7 +2922,6 @@ function renderDiePM() {
     if (badgeDueTarget) badgeDueTarget.innerText = tallyDue;
     if (badgeNearTarget) badgeNearTarget.innerText = tallyNear;
 
-    // จัดการตารางประวัติ Breakdown (BM) พร้อมแนบตัวแปรรูปภาพเข้าปุ่มพิมพ์
     const tableBmEl = document.getElementById('dieBmTableBody') || document.getElementById('bmTableBody');
     if (tableBmEl) {
         tableBmEl.innerHTML = '';
@@ -2931,8 +2929,7 @@ function renderDiePM() {
         window.dieBms.slice().reverse().forEach((b, index) => {
             const tr = document.createElement('tr');
             
-            // ป้องกันปัญหาเครื่องหมายคำพูดในข้อความปัญหา
-            const safeProblem = (b.problem || '').replace(/'/g, "\\'");
+            const safeProblem = (b.problem || '').replace(/'/g, "\\'").replace(/\n/g, " ");
             const safeReporter = (b.reporter || '').replace(/'/g, "\\'");
             const safeImg = b.image || '';
 
