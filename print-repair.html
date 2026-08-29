@@ -38,8 +38,8 @@
             border: 1px solid #000;
         }
         th, td {
-            padding: 4px 6px;
-            font-size: 9.5pt;
+            padding: 3px 5px;
+            font-size: 9pt;
             vertical-align: middle;
         }
         .text-center { text-align: center; }
@@ -189,15 +189,15 @@
             </tr>
         </table>
 
-        <!-- Repair Action Plan (1-31 Days) -->
+        <!-- Repair Action Plan (1-31 Days) - Fixed Width to Match Border -->
         <table>
             <tr>
                 <td colspan="35" class="section-title" style="font-size: 9pt; height: 24px;">แผนการซ่อม / ปรับปรุง / แก้ไข</td>
             </tr>
             <tr>
-                <td colspan="4" class="fw-bold text-center" style="font-size: 9pt; height: 22px;">รายละเอียด</td>
+                <td colspan="4" class="fw-bold text-center" style="width: 28%; font-size: 9pt; height: 22px;">รายละเอียด</td>
                 <script>
-                    for(let i=1; i<=31; i++) document.write(`<td class="text-center" style="width: 2.5%; font-size: 8pt;">${i}</td>`);
+                    for(let i=1; i<=31; i++) document.write(`<td class="text-center" style="width: 2.32%; font-size: 7.5pt;">${i}</td>`);
                 </script>
             </tr>
             <tr>
