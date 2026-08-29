@@ -168,9 +168,9 @@
             <td style="vertical-align: top; font-size: 9.5pt; padding: 8px; height: 100%; display: flex; flex-direction: column;">
                 <div class="fw-bold">อาการเสีย / รายละเอียดปัญหา:</div>
                 <div id="lblProblem" style="white-space: pre-line; margin-top: 4px; margin-bottom: 8px;"></div>
-                <div style="flex-grow: 1; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; min-height: 120px; background: #fafafa; border-radius: 4px; overflow: hidden; padding: 4px;">
+                <div style="flex-grow: 1; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; min-height: 140px; background: #fafafa; border-radius: 4px; overflow: hidden; padding: 4px;">
                     <span id="lblNoImg" style="color: #888; font-size: 8.5pt;">(ไม่มีรูปภาพถ่ายปัญหา)</span>
-                    <img id="lblImage" src="" style="max-width: 100%; max-height: 160px; object-fit: contain; display: none;" />
+                    <img id="lblImage" src="" style="max-width: 100%; max-height: 180px; object-fit: contain; display: none;" />
                 </div>
             </td>
             <td style="vertical-align: top; font-size: 9.5pt; padding: 0; height: 100%;">
@@ -285,8 +285,8 @@
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
 
-    // จัดการรูปภาพถ้ามีการแนบลิงก์รูปมาทาง URL เช่น ?img=...
-    const imgSrc = urlParams.get('img');
+    // รองรับการดึงรูปภาพจากลิงก์พารามิเตอร์ img หรือ image
+    const imgSrc = urlParams.get('img') || urlParams.get('image');
     const imgElement = document.getElementById('lblImage');
     const noImgElement = document.getElementById('lblNoImg');
     if (imgSrc) {
