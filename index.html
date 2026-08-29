@@ -2726,6 +2726,22 @@ window.addEventListener('error', function(e) {
         return true;
     }
 });
+        // เพิ่ม Event Listener สำหรับแปลงไฟล์รูปที่อัปโหลดเป็น Base64 เก็บไว้
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.querySelector('input[type="file"]'); // ปรับ Selector ตามไอดีช่องเลือกไฟล์ของพี่มิวถ้ามี
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(uploadEvent) {
+                    window.currentBmImage = uploadEvent.target.result; // เก็บข้อมูลรูปภาพในรูปแบบ Base64
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
     // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
