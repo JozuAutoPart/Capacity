@@ -2726,7 +2726,7 @@ window.addEventListener('error', function(e) {
         return true;
     }
 });
-     // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
+    // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
 function submitDieBm(e) {
     e.preventDefault();
     const bm = {
@@ -2765,6 +2765,11 @@ function submitDieBm(e) {
     renderDiePM();
     document.getElementById('dieForm').reset();
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
+    
+    // เคลียร์พรีวิวรูปภาพหน้าจอหลัก (ถ้ามีฟังก์ชันเคลียร์)
+    window.currentBmImage = '';
+    const imgPreview = document.getElementById('bmImagePreview'); // ปรับตามไอดีพรีวิวรูปหน้าหลักของพี่มิว
+    if (imgPreview) imgPreview.style.display = 'none';
 }
 
 function resetDiePm(partNo) {
@@ -2802,7 +2807,8 @@ function resetDiePm(partNo) {
             date: todayStr,
             partNo: partNo,
             problem: `PM Completed (Line: ${lineName}, Strokes Reset: ${currentStrokes.toLocaleString()})`,
-            reporter: "System PM"
+            reporter: "System PM",
+            image: ""
         };
         dieBms.push(newRecord);
         localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
@@ -2931,7 +2937,7 @@ function renderDiePM() {
                 <td class="text-danger">${b.problem || ''}</td>
                 <td>${b.reporter || ''}</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}', '${b.id || ''}')"><i class="fas fa-print"></i></button>
+                    <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${b.problem}', '${b.reporter}', '${b.id || ''}', '${b.image || ''}')"><i class="fas fa-print"></i></button>
                     <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
                 </td>
             `;
