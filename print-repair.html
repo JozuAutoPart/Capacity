@@ -33,9 +33,12 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed; /* ล็อกขนาดคอลัมน์ไม่ให้ตารางยืดขยายเอง */
         }
         table, th, td {
             border: 1px solid #000;
+            overflow: hidden;
+            word-wrap: break-word;
         }
         th, td {
             padding: 3px 5px;
@@ -106,15 +109,25 @@
 
         <!-- Die Info & Stroke Table -->
         <table>
+            <colgroup>
+                <col style="width: 9%;">
+                <col style="width: 17%;">
+                <col style="width: 8%;">
+                <col style="width: 14%;">
+                <col style="width: 11%;">
+                <col style="width: 17%;">
+                <col style="width: 10%;">
+                <col style="width: 14%;">
+            </colgroup>
             <tr>
-                <td style="width: 10%; height: 26px;">Die No.</td>
-                <td style="width: 18%;" id="lblDieNo" class="fw-bold">-</td>
-                <td style="width: 8%;">Model</td>
-                <td style="width: 14%;" id="lblModel">-</td>
-                <td style="width: 10%;">Part No.</td>
-                <td style="width: 20%;" id="lblPartNo" class="fw-bold"></td>
-                <td style="width: 10%;">Part Name</td>
-                <td style="width: 10%;" id="lblPartName" class="fw-bold">-</td>
+                <td style="height: 26px;">Die No.</td>
+                <td id="lblDieNo" class="fw-bold">-</td>
+                <td>Model</td>
+                <td id="lblModel">-</td>
+                <td>Part No.</td>
+                <td id="lblPartNo" class="fw-bold"></td>
+                <td>Part Name</td>
+                <td id="lblPartName" class="fw-bold">-</td>
             </tr>
             <tr>
                 <td style="height: 26px;">Mgr.</td>
@@ -158,17 +171,17 @@
         </table>
     </div>
 
-    <!-- Problem Details & Analysis Box (Auto Flex Height to Fill Page) -->
+    <!-- Problem Details & Analysis Box -->
     <table style="flex-grow: 1; margin: 3px 0; height: 100%;">
         <tr style="height: 24px;">
             <td style="width: 50%; font-size: 9.5pt;" class="section-title">Preventive Maintenance / รูปถ่ายปัญหา</td>
             <td style="width: 50%; font-size: 9.5pt;" class="section-title">วิเคราะห์ปัญหาเบื้องต้น</td>
         </tr>
         <tr>
-            <td style="vertical-align: top; font-size: 9.5pt; padding: 8px; height: 100%; display: flex; flex-direction: column;">
+            <td style="vertical-align: top; font-size: 9.5pt; padding: 8px; height: 100%;">
                 <div class="fw-bold">อาการเสีย / รายละเอียดปัญหา:</div>
                 <div id="lblProblem" style="white-space: pre-line; margin-top: 4px; margin-bottom: 8px;"></div>
-                <div style="flex-grow: 1; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; min-height: 140px; background: #fafafa; border-radius: 4px; overflow: hidden; padding: 4px;">
+                <div style="border: 1px dashed #999; display: flex; align-items: center; justify-content: center; min-height: 140px; background: #fafafa; border-radius: 4px; overflow: hidden; padding: 4px;">
                     <span id="lblNoImg" style="color: #888; font-size: 8.5pt;">(ไม่มีรูปภาพถ่ายปัญหา)</span>
                     <img id="lblImage" src="" style="max-width: 100%; max-height: 180px; object-fit: contain; display: none;" />
                 </div>
@@ -200,7 +213,7 @@
             </tr>
         </table>
 
-        <!-- Repair Action Plan (1-31 Days) - Fixed Width to Match Border -->
+        <!-- Repair Action Plan (1-31 Days) -->
         <table>
             <tr>
                 <td colspan="35" class="section-title" style="font-size: 9pt; height: 24px;">แผนการซ่อม / ปรับปรุง / แก้ไข</td>
@@ -277,7 +290,6 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     
-    // ดึงข้อมูลข้อความทั่วไปจาก URL พร้อมรองรับสลับตำแหน่งตัวแปรป้องกันค่าสลับกัน
     document.getElementById('lblId').innerText = urlParams.get('id') || '-';
     document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || urlParams.get('partNo') || '-';
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
@@ -287,7 +299,7 @@
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
 
-    // ดึงรูปภาพจาก localStorage (ที่หน้าเว็บหลักส่งมาให้) รองรับทั้ง img, image หรือพิมพ์ผ่าน localStorage โดยตรง
+    // ดึงรูปภาพจาก localStorage (แนะนำวิธีนี้สำหรับรูปภาพ Base64 ที่ยาวเกิน URL) หรือพารามิเตอร์เดิม
     const imgSrc = urlParams.get('img') || urlParams.get('image') || localStorage.getItem('print_repair_image');
     
     const imgElement = document.getElementById('lblImage');
