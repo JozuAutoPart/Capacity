@@ -131,8 +131,8 @@
             </tr>
             <tr>
                 <td style="height: 26px;">Mgr.</td>
-                <td>Nirun</td>
-                <td>Sup.</td>
+                <td>    </td>
+                <td>    </td>
                 <td>K.Weeraphat</td>
                 <td>Leader Line</td>
                 <td id="lblLine">-</td>
@@ -221,7 +221,7 @@
             <tr>
                 <td colspan="4" class="fw-bold text-center" style="width: 28%; font-size: 9pt; height: 22px;">รายละเอียด</td>
                 <script>
-                    for(let i=1; i<=31; i++) document.write(`<td class="text-center" style="width: 2.32%; font-size: 7.5pt;">${i}</td>`);
+                    for(let i=1; i<=31; i++) document.write(`<td class="text-center" style="width: 2.32%; font-size: 6pt;">${i}</td>`);
                 </script>
             </tr>
             <tr>
@@ -292,7 +292,7 @@
     const recordId = urlParams.get('id') || 'default';
     
     document.getElementById('lblId').innerText = recordId;
-    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || urlParams.get('partNo') || '-';
+    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || '-';
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
     document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || urlParams.get('dieNo') || '-';
     document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
