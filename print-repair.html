@@ -14,7 +14,7 @@
         }
         body {
             font-family: 'Sarabun', 'Tahoma', Arial, sans-serif;
-            font-size: 8.5pt;
+            font-size: 8pt;
             color: #000;
             margin: 0;
             padding: 0;
@@ -36,7 +36,7 @@
         }
         th, td {
             padding: 2px 4px;
-            font-size: 8.5pt;
+            font-size: 8pt;
             vertical-align: middle;
         }
         .text-center { text-align: center; }
@@ -91,12 +91,12 @@
                 <div style="font-size: 12pt; font-weight: bold;">ใบแจ้งซ่อมแม่พิมพ์</div>
                 <div style="font-size: 9.5pt; font-weight: bold;">Die Repair Report</div>
             </td>
-            <td style="width: 20%; font-size: 8pt;">
+            <td style="width: 20%; font-size: 7.5pt;">
                 No. <span id="lblId" class="fw-bold"></span>
             </td>
         </tr>
         <tr>
-            <td style="font-size: 8pt;">Rev.01</td>
+            <td style="font-size: 7.5pt;">Rev.01</td>
         </tr>
     </table>
 
@@ -120,52 +120,52 @@
             <td>Leader Line</td>
             <td id="lblLine">-</td>
             <td>Date</td>
-            <td id="lblDate" class="fw-bold" style="font-size: 8pt;"></td>
+            <td id="lblDate" class="fw-bold" style="font-size: 7.5pt;"></td>
         </tr>
     </table>
 
-    <!-- Side Stroke Info Box -->
+    <!-- Type, History & Stroke Side Info -->
     <table>
         <tr>
             <td style="width: 70%; border: none; padding: 0;">
                 <table style="margin-bottom: 0; height: 100%;">
                     <tr>
-                        <td style="width: 25%;" class="section-title">ประเภทการซ่อม</td>
-                        <td style="width: 25%; font-size: 8pt;"><input type="checkbox" checked> ซ่อมตามแผน(BM)</td>
-                        <td style="width: 25%; font-size: 8pt;"><input type="checkbox"> ซ่อมระหว่างใช้(BM)</td>
-                        <td style="width: 25%; font-size: 8pt;"><input type="checkbox"> ซ่อมหลังปฏิบัติงาน</td>
+                        <td style="width: 25%; font-size: 7.5pt;" class="section-title">ประเภทการซ่อม</td>
+                        <td style="width: 25%; font-size: 7.5pt;"><input type="checkbox" checked> ซ่อมตามแผน(BM)</td>
+                        <td style="width: 25%; font-size: 7.5pt;"><input type="checkbox"> ซ่อมระหว่างใช้(BM)</td>
+                        <td style="width: 25%; font-size: 7.5pt;"><input type="checkbox"> ซ่อมหลังปฏิบัติงาน</td>
                     </tr>
                     <tr>
-                        <td>ประวัติแม่พิมพ์</td>
-                        <td colspan="3">จำนวน Stroke ที่ใช้ครั้งหลังสุด: ....................................................</td>
+                        <td style="font-size: 7.5pt;">ประวัติแม่พิมพ์</td>
+                        <td colspan="3" style="font-size: 7.5pt;">จำนวน Stroke ที่ใช้ครั้งหลังสุด: ............................................</td>
                     </tr>
                     <tr>
-                        <td class="section-title">รายละเอียดปัญหา</td>
-                        <td colspan="3">Stroke สะสม: ............................................................................</td>
+                        <td style="font-size: 7.5pt;" class="section-title">รายละเอียดปัญหา</td>
+                        <td colspan="3" style="font-size: 7.5pt;">Stroke สะสม: ........................................................................</td>
                     </tr>
                 </table>
             </td>
-            <td style="width: 30%; border: 1px solid #000; padding: 2px; vertical-align: top;">
-                <div style="font-size: 7.5pt;">Die Life .................................... Stroke</div>
-                <div style="font-size: 7.5pt;">Die Regrider ............................ Stroke</div>
-                <div style="font-size: 7.5pt;">Die PM .................................... Stroke</div>
+            <td style="width: 30%; border: 1px solid #000; padding: 3px; vertical-align: top; font-size: 7.5pt;">
+                <div>Die Life .................................... Stroke</div>
+                <div>Die Regrider ............................ Stroke</div>
+                <div>Die PM .................................... Stroke</div>
             </td>
         </tr>
     </table>
 
-    <!-- Problem Details & Analysis -->
+    <!-- Problem Details & Analysis Box (Split like Excel) -->
     <table>
         <tr>
-            <td style="width: 50%;" class="section-title">Preventive Maintenance / อาการเสีย</td>
-            <td style="width: 50%;" class="section-title">วิเคราะห์ปัญหาเบื้องต้น / รูปถ่าย</td>
+            <td style="width: 50%; font-size: 7.5pt;" class="section-title">Preventive Maintenance</td>
+            <td style="width: 50%; font-size: 7.5pt;" class="section-title">วิเคราะห์ปัญหาเบื้องต้น</td>
         </tr>
         <tr>
-            <td style="height: 70px; vertical-align: top; font-size: 8.5pt;">
+            <td style="height: 90px; vertical-align: top; font-size: 8pt; padding: 4px;">
                 <div class="fw-bold">อาการเสีย / รายละเอียดปัญหา:</div>
-                <div id="lblProblem" style="white-space: pre-line; margin-top: 2px;"></div>
+                <div id="lblProblem" style="white-space: pre-line; margin-top: 3px;"></div>
             </td>
-            <td style="height: 70px; text-align: center; vertical-align: middle; color: #666;">
-                [ รูปถ่ายปัญหา / Die เสีย ]
+            <td style="height: 90px; vertical-align: top; font-size: 8pt; color: #888;">
+                <!-- ช่องว่างสำหรับบันทึกการวิเคราะห์ปัญหาเบื้องต้น -->
             </td>
         </tr>
     </table>
@@ -173,69 +173,41 @@
     <!-- Stock Part Table -->
     <table>
         <tr>
-            <td style="width: 15%;" rowspan="2" class="text-center fw-bold">Stock Part</td>
-            <td style="width: 35%;">P/No. ................................................... Pcs. .......</td>
-            <td style="width: 50%;">ส่งลูกค้าได้ ........................................................................ วัน</td>
+            <td style="width: 15%; font-size: 7.5pt;" rowspan="2" class="text-center fw-bold">Stock Part</td>
+            <td style="width: 35%; font-size: 7.5pt;">P/No. .......................................... Pcs. .......</td>
+            <td style="width: 50%; font-size: 7.5pt;">ส่งลูกค้าได้ ................................................................ วัน</td>
         </tr>
         <tr>
-            <td>P/No. ................................................... Pcs. .......</td>
-            <td>ส่งลูกค้าได้ ........................................................................ วัน</td>
+            <td style="font-size: 7.5pt;">P/No. .......................................... Pcs. .......</td>
+            <td style="font-size: 7.5pt;">ส่งลูกค้าได้ ................................................................ วัน</td>
         </tr>
     </table>
 
     <!-- Repair Action Plan (1-31 Days) -->
     <table>
         <tr>
-            <td colspan="32" class="section-title">แผนการซ่อม / ปรับปรุง / แก้ไข</td>
+            <td colspan="35" class="section-title" style="font-size: 7.5pt;">แผนการซ่อม / ปรับปรุง / แก้ไข</td>
         </tr>
         <tr>
-            <td colspan="4" class="fw-bold" style="font-size: 8pt;">รายละเอียด</td>
-            <td class="text-center" style="width: 2%;">1</td>
-            <td class="text-center" style="width: 2%;">2</td>
-            <td class="text-center" style="width: 2%;">3</td>
-            <td class="text-center" style="width: 2%;">4</td>
-            <td class="text-center" style="width: 2%;">5</td>
-            <td class="text-center" style="width: 2%;">6</td>
-            <td class="text-center" style="width: 2%;">7</td>
-            <td class="text-center" style="width: 2%;">8</td>
-            <td class="text-center" style="width: 2%;">9</td>
-            <td class="text-center" style="width: 2%;">10</td>
-            <td class="text-center" style="width: 2%;">11</td>
-            <td class="text-center" style="width: 2%;">12</td>
-            <td class="text-center" style="width: 2%;">13</td>
-            <td class="text-center" style="width: 2%;">14</td>
-            <td class="text-center" style="width: 2%;">15</td>
-            <td class="text-center" style="width: 2%;">16</td>
-            <td class="text-center" style="width: 2%;">17</td>
-            <td class="text-center" style="width: 2%;">18</td>
-            <td class="text-center" style="width: 2%;">19</td>
-            <td class="text-center" style="width: 2%;">20</td>
-            <td class="text-center" style="width: 2%;">21</td>
-            <td class="text-center" style="width: 2%;">22</td>
-            <td class="text-center" style="width: 2%;">23</td>
-            <td class="text-center" style="width: 2%;">24</td>
-            <td class="text-center" style="width: 2%;">25</td>
-            <td class="text-center" style="width: 2%;">26</td>
-            <td class="text-center" style="width: 2%;">27</td>
-            <td class="text-center" style="width: 2%;">28</td>
-            <td class="text-center" style="width: 2%;">29</td>
-            <td class="text-center" style="width: 2%;">30</td>
-            <td class="text-center" style="width: 2%;">31</td>
+            <td colspan="4" class="fw-bold text-center" style="font-size: 7.5pt;">รายละเอียด</td>
+            <script>
+                for(let i=1; i<=31; i++) document.write(`<td class="text-center" style="width: 2.5%; font-size: 6.5pt;">${i}</td>`);
+            </script>
         </tr>
         <tr>
-            <td colspan="4">ครั้งที่ 1</td>
+            <td colspan="4" style="font-size: 7.5pt;">ครั้งที่ 1</td>
             <script>
                 for(let i=1; i<=31; i++) document.write('<td></td>');
             </script>
         </tr>
         <tr>
-            <td colspan="4">ครั้งที่ 2</td>
+            <td colspan="4" style="font-size: 7.5pt;">ครั้งที่ 2</td>
             <script>
                 for(let i=1; i<=31; i++) document.write('<td></td>');
             </script>
         </tr>
         <tr>
-            <td colspan="4">ครั้งที่ 3</td>
+            <td colspan="4" style="font-size: 7.5pt;">ครั้งที่ 3</td>
             <script>
                 for(let i=1; i<=31; i++) document.write('<td></td>');
             </script>
@@ -245,19 +217,19 @@
     <!-- Testing & Approvals -->
     <table>
         <tr>
-            <td style="width: 30%;" rowspan="4">
-                <div class="fw-bold" style="font-size: 7.5pt;">Comment:</div>
-                <div style="height: 35px;"></div>
-                <div style="font-size: 7pt; border-top: 1px dotted #000; margin-top: 2px;">กรณี Special Accept, Not Accept ต้องระบุเหตุผลในช่อง Comment ด้วย</div>
+            <td style="width: 30%; font-size: 7.5pt;" rowspan="4">
+                <div class="fw-bold">Comment:</div>
+                <div style="height: 30px;"></div>
+                <div style="font-size: 6.5pt; border-top: 1px dotted #000; margin-top: 2px;">กรณี Special Accept, Not Accept ต้องระบุเหตุผลในช่อง Comment ด้วย</div>
             </td>
-            <td style="width: 23%;" class="section-title">ผลการตรวจสอบ ทดสอบ</td>
-            <td style="width: 23%;" class="section-title">QA</td>
-            <td style="width: 24%;" class="section-title">Production</td>
+            <td style="width: 23%; font-size: 7.5pt;" class="section-title">ผลการตรวจสอบ ทดสอบ</td>
+            <td style="width: 23%; font-size: 7.5pt;" class="section-title">QA</td>
+            <td style="width: 24%; font-size: 7.5pt;" class="section-title">Production</td>
         </tr>
         <tr>
-            <td style="font-size: 7.5pt;"><input type="checkbox"> Accept <br><input type="checkbox"> Special Accept <br><input type="checkbox"> Not Accept</td>
-            <td style="font-size: 7.5pt;"><input type="checkbox"> Accept <br><input type="checkbox"> Special Accept <br><input type="checkbox"> Not Accept</td>
-            <td style="font-size: 7.5pt;"><input type="checkbox"> Accept <br><input type="checkbox"> Special Accept <br><input type="checkbox"> Not Accept</td>
+            <td style="font-size: 7pt;"><input type="checkbox"> Accept <br><input type="checkbox"> Special Accept <br><input type="checkbox"> Not Accept</td>
+            <td style="font-size: 7pt;"><input type="checkbox"> Accept <br><input type="checkbox"> Special Accept <br><input type="checkbox"> Not Accept</td>
+            <td style="font-size: 7pt;"><input type="checkbox"> Accept <br><input type="checkbox"> Special Accept <br><input type="checkbox"> Not Accept</td>
         </tr>
         <tr>
             <td class="text-center fw-bold" style="font-size: 7.5pt;">Tooling</td>
@@ -265,9 +237,9 @@
             <td class="text-center fw-bold" style="font-size: 7.5pt;">Production</td>
         </tr>
         <tr>
-            <td style="font-size: 7.5pt; height: 35px; vertical-align: bottom;">By: .......................<br>Ck: .......................<br>Apr: ......................</td>
-            <td style="font-size: 7.5pt; height: 35px; vertical-align: bottom;">By: .......................<br>Ck: .......................<br>Apr: ......................</td>
-            <td style="font-size: 7.5pt; height: 35px; vertical-align: bottom;">By: .......................<br>Ck: .......................<br>Apr: ......................</td>
+            <td style="font-size: 7pt; height: 32px; vertical-align: bottom;">By: ...................<br>Ck: ...................<br>Apr: ..................</td>
+            <td style="font-size: 7pt; height: 32px; vertical-align: bottom;">By: ...................<br>Ck: ...................<br>Apr: ..................</td>
+            <td style="font-size: 7pt; height: 32px; vertical-align: bottom;">By: ...................<br>Ck: ...................<br>Apr: ..................</td>
         </tr>
     </table>
 
