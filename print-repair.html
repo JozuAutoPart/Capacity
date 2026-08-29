@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 8mm;
         }
         * {
             box-sizing: border-box;
@@ -14,29 +14,29 @@
         }
         body {
             font-family: 'Sarabun', 'Tahoma', Arial, sans-serif;
-            font-size: 11pt;
+            font-size: 10pt;
             color: #000;
             margin: 0;
             padding: 0;
             background: #fff;
         }
         .sheet {
-            width: 190mm;
+            width: 194mm;
             margin: 0 auto;
             background: white;
-            padding: 5mm;
+            padding: 2mm;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         table, th, td {
             border: 1px solid #000;
         }
         th, td {
-            padding: 4px 6px;
-            font-size: 10pt;
+            padding: 3px 5px;
+            font-size: 9.5pt;
             vertical-align: middle;
         }
         .text-center { text-align: center; }
@@ -44,27 +44,23 @@
         .fw-bold { font-weight: bold; }
         .header-table td {
             border: 1px solid #000;
-            padding: 5px;
-        }
-        .no-border td {
-            border: none;
+            padding: 4px;
         }
         .section-title {
             background-color: #f2f2f2;
             font-weight: bold;
-            text-align: center;
-            padding: 4px;
+            padding: 3px 5px;
         }
         .print-btn-container {
             text-align: center;
-            margin: 20px 0;
+            margin: 15px 0;
         }
         .print-btn {
             background-color: #007bff;
             color: white;
             border: none;
-            padding: 10px 20px;
-            font-size: 14pt;
+            padding: 8px 18px;
+            font-size: 13pt;
             cursor: pointer;
             border-radius: 5px;
         }
@@ -74,6 +70,9 @@
         @media print {
             .print-btn-container {
                 display: none;
+            }
+            body {
+                padding: 0;
             }
         }
     </style>
@@ -88,21 +87,21 @@
     <!-- Header Table -->
     <table class="header-table">
         <tr>
-            <td style="width: 20%; text-align: center;" rowspan="2">
-                <div style="font-weight: bold; font-size: 14pt; color: #003366;">JOZU</div>
-                <div style="font-size: 8pt;">Jozu Auto Part Co., Ltd.</div>
+            <td style="width: 18%; text-align: center;" rowspan="2">
+                <div style="font-weight: bold; font-size: 13pt; color: #003366;">JOZU</div>
+                <div style="font-size: 7.5pt;">Jozu Auto Part Co., Ltd.</div>
             </td>
-            <td style="width: 60%; text-align: center;" rowspan="2">
-                <div style="font-size: 14pt; font-weight: bold;">ใบแจ้งซ่อมแม่พิมพ์</div>
-                <div style="font-size: 11pt; font-weight: bold;">Die Repair Report</div>
+            <td style="width: 64%; text-align: center;" rowspan="2">
+                <div style="font-size: 13pt; font-weight: bold;">ใบแจ้งซ่อมแม่พิมพ์</div>
+                <div style="font-size: 10pt; font-weight: bold;">Die Repair Report</div>
             </td>
-            <td style="width: 20%;">
-                <span style="font-size: 9pt;">No.</span> <span id="lblId" class="fw-bold"></span>
+            <td style="width: 18%;">
+                <span style="font-size: 8.5pt;">No.</span> <span id="lblId" class="fw-bold"></span>
             </td>
         </tr>
         <tr>
             <td>
-                <span style="font-size: 9pt;">Rev.01</span>
+                <span style="font-size: 8.5pt;">Rev.01</span>
             </td>
         </tr>
     </table>
@@ -110,24 +109,24 @@
     <!-- Die Info Table -->
     <table>
         <tr>
-            <td style="width: 15%;">Die No.</td>
-            <td style="width: 25%;" id="lblDieNo" class="fw-bold"></td>
-            <td style="width: 15%;">Model</td>
-            <td style="width: 15%;" id="lblModel"></td>
-            <td style="width: 15%;">Part No.</td>
-            <td style="width: 15%;" id="lblPartNo" class="fw-bold"></td>
+            <td style="width: 14%;">Die No.</td>
+            <td style="width: 22%;" id="lblDieNo" class="fw-bold">-</td>
+            <td style="width: 12%;">Model</td>
+            <td style="width: 18%;" id="lblModel">-</td>
+            <td style="width: 14%;">Part No.</td>
+            <td style="width: 20%;" id="lblPartNo" class="fw-bold"></td>
         </tr>
         <tr>
             <td>Part Name</td>
-            <td colspan="5" id="lblPartName" class="fw-bold"></td>
+            <td colspan="5" id="lblPartName" class="fw-bold">-</td>
         </tr>
         <tr>
             <td>Mgr.</td>
-            <td></td>
+            <td>Nirun</td>
             <td>Sup.</td>
-            <td></td>
+            <td>K.Weeraphat</td>
             <td>Leader Line</td>
-            <td id="lblLine"></td>
+            <td id="lblLine">-</td>
         </tr>
         <tr>
             <td>Date</td>
@@ -138,10 +137,10 @@
     <!-- Breakdown Type -->
     <table>
         <tr>
-            <td style="width: 25%;">ประเภทการซ่อม</td>
-            <td style="width: 25%;"><input type="checkbox" checked> ซ่อมตามแผนการซ่อม(BM)</td>
-            <td style="width: 25%;"><input type="checkbox"> ซ่อมระหว่างใช้งาน(BM)</td>
-            <td style="width: 25%;"><input type="checkbox"> ซ่อมหลังปฏิบัติงาน</td>
+            <td style="width: 25%; font-size: 9pt;">ประเภทการซ่อม</td>
+            <td style="width: 25%; font-size: 9pt;"><input type="checkbox" checked> ซ่อมตามแผนการซ่อม(BM)</td>
+            <td style="width: 25%; font-size: 9pt;"><input type="checkbox"> ซ่อมระหว่างใช้งาน(BM)</td>
+            <td style="width: 25%; font-size: 9pt;"><input type="checkbox"> ซ่อมหลังปฏิบัติงาน</td>
         </tr>
     </table>
 
@@ -151,9 +150,9 @@
             <td class="section-title">รายละเอียดปัญหา (Problem Description)</td>
         </tr>
         <tr>
-            <td style="height: 120px; vertical-align: top;">
-                <div style="font-weight: bold; margin-bottom: 5px;">อาการเสีย / รายละเอียดปัญหา:</div>
-                <div id="lblProblem" style="font-size: 11pt; white-space: pre-line;"></div>
+            <td style="height: 100px; vertical-align: top;">
+                <div style="font-weight: bold; font-size: 9pt; margin-bottom: 3px;">อาการเสีย / รายละเอียดปัญหา:</div>
+                <div id="lblProblem" style="font-size: 10pt; white-space: pre-line;"></div>
             </td>
         </tr>
     </table>
@@ -161,28 +160,27 @@
     <!-- Signatures & Approvals -->
     <table>
         <tr>
-            <td style="width: 33%; text-align: center; height: 60px; vertical-align: bottom;">
+            <td style="width: 33%; text-align: center; height: 50px; vertical-align: bottom; font-size: 9pt;">
                 ......................................................<br>
                 ผู้แจ้งซ่อม (<span id="lblReporter"></span>)
             </td>
-            <td style="width: 33%; text-align: center; vertical-align: bottom;">
+            <td style="width: 33%; text-align: center; vertical-align: bottom; font-size: 9pt;">
                 ......................................................<br>
                 หัวหน้างาน / ผู้ตรวจสอบ
             </td>
-            <td style="width: 34%; text-align: center; vertical-align: bottom;">
+            <td style="width: 34%; text-align: center; vertical-align: bottom; font-size: 9pt;">
                 ......................................................<br>
                 แผนกซ่อมบำรุง (Maintenance)
             </td>
         </tr>
     </table>
     
-    <div style="font-size: 8pt; text-align: right; margin-top: 5px;">
+    <div style="font-size: 7.5pt; text-align: right; margin-top: 3px;">
         J-F-PR-011 Rev.01 Ref. 14 Jan 11
     </div>
 </div>
 
 <script>
-    // ดึงค่าจาก URL Parameters มาแสดงผล
     const urlParams = new URLSearchParams(window.location.search);
     document.getElementById('lblId').innerText = urlParams.get('id') || '-';
     document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || '-';
