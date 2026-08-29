@@ -2851,9 +2851,16 @@ function resetDiePm(partNo) {
     }
 }
 
-function printRepairForm(date, partNo, problem, reporter, id = '', imgUrl = '') {
-    let printUrl = `print-repair.html?id=${id || Date.now()}&date=${date || ''}&partNo=${encodeURIComponent(partNo || '')}&problem=${encodeURIComponent(problem || '')}&reporter=${encodeURIComponent(reporter || '')}&img=${encodeURIComponent(imgUrl || '')}`;
-    window.open(printUrl, '_blank');
+// ตัวอย่างฟังก์ชันตอนกดปุ่ม "พิมพ์" ในหน้าหลัก
+function printRepairForm(id, dieNo, model, partNo, partName, line, date, problem, imgBase64) {
+    // 1. เก็บรูปภาพและข้อมูลที่ความยาวเยอะๆ ลง localStorage ของเบราว์เซอร์
+    localStorage.setItem('print_repair_image', imgBase64 || '');
+    
+    // 2. ข้อมูลสั้นๆ ส่งผ่าน URL ตามปกติ
+    const url = `print-repair.html?id=${id}&dieNo=${dieNo}&model=${model}&partNo=${partNo}&partName=${partName}&line=${line}&date=${date}&problem=${problem}`;
+    
+    // 3. เปิดหน้าต่างพิมพ์
+    window.open(url, '_blank');
 }
 
 function renderDiePM() {
