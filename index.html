@@ -2760,6 +2760,7 @@ function submitDieBm(e) {
         partNo: document.getElementById('bmPartNo').value.trim(),
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim(),
+        printer: document.getElementById('bmPrinter') ? document.getElementById('bmPrinter').value.trim() : '-', // รองรับช่องพิมพ์ใบแจ้งซ่อม (Printer)
         image: imgData // บันทึกรูป Base64 ลงใน Object ข้อมูล
     };
     
@@ -2834,6 +2835,7 @@ function resetDiePm(partNo) {
             partNo: partNo,
             problem: `PM Completed (Line: ${lineName}, Strokes Reset: ${currentStrokes.toLocaleString()})`,
             reporter: "System PM",
+            printer: "-",
             image: ""
         };
         dieBms.push(newRecord);
@@ -2845,7 +2847,8 @@ function resetDiePm(partNo) {
                 "วันที่": item.date || "",
                 "Part No.": item.partNo || "",
                 "รายละเอียด / ปัญหา": item.problem || "",
-                "ผู้แจ้งซ่อม / บันทึก": item.reporter || ""
+                "ผู้แจ้งซ่อม / บันทึก": item.reporter || "",
+                "ผู้พิมพ์": item.printer || ""
             }));
 
             let worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -2975,7 +2978,7 @@ function renderDiePM() {
             const tr = document.createElement('tr');
             
             const safeProblem = (b.problem || '').replace(/'/g, "\\'").replace(/\n/g, " ");
-            const safeReporter = (b.reporter || '').replace(/'/g, "\\'");
+            const safeReporter = (b.reporter || '').replace(/'/g, "\\'").replace(/'/g, "\\'");
             const safeImg = (b.image || '').replace(/'/g, "\\'");
 
             tr.innerHTML = `
@@ -2983,6 +2986,7 @@ function renderDiePM() {
                 <td class="fw-bold text-info">${b.partNo || ''}</td>
                 <td class="text-danger">${b.problem || ''}</td>
                 <td>${b.reporter || ''}</td>
+                <td>${b.printer || '-'}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${safeProblem}', '${safeReporter}', '${b.id || ''}', '${safeImg}')"><i class="fas fa-print"></i></button>
                     <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
@@ -3022,6 +3026,7 @@ function loadCloudDieMaintenance() {
                 partNo: item.partNo || item["Part No."] || item["partNo"] || "",
                 problem: item.problem || item["Problem"] || item["problem"] || "",
                 reporter: item.reporter || item["Reporter"] || item["reporter"] || "",
+                printer: item.printer || item["Printer"] || item["printer"] || "-",
                 image: item.image || item["image"] || ""
             }));
             
