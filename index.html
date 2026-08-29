@@ -2726,26 +2726,53 @@ window.addEventListener('error', function(e) {
         return true;
     }
 });
-   // --- TAB 8: DIE MAINTENANCE & PM (แยกตัวแปรและชีทเฉพาะของ Die Maintenance) ---
+   // --- ส่วนจัดการแปลงไฟล์รูปภาพเป็น Base64 ทันทีที่เลือกไฟล์ ---
+window.currentBmImage = '';
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ดึง input type="file" ทุกตัว หรือตัวที่อยู่ในฟอร์มแจ้งซ่อม
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(uploadEvent) {
+                    window.currentBmImage = uploadEvent.target.result;
+                    console.log("Image loaded and converted to Base64 successfully.");
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+});
+
+// --- TAB 8: DIE MAINTENANCE & PM ---
 function submitDieBm(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    
+    const recordId = Date.now();
+    const imgData = window.currentBmImage || '';
+
     const bm = {
-        id: Date.now(),
+        id: recordId,
         date: document.getElementById('bmDate').value,
         partNo: document.getElementById('bmPartNo').value.trim(),
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim(),
-        image: window.currentBmImage || '' // เก็บรูปภาพ Base64
+        image: imgData // บันทึกรูป Base64 ลงใน Object ข้อมูล
     };
     
-    // บันทึกลงตัวแปรและ localStorage เดิมไว้สำรอง
+    // บันทึกลง LocalStorage ทันทีแยกตาม ID เพื่อความชัวร์
+    localStorage.setItem('print_repair_img_' + recordId, imgData);
+
     if (typeof dieBms === 'undefined') {
         window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
     }
     dieBms.push(bm);
     localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
 
-    // ส่งข้อมูลไปบันทึกลง Google Sheets ทันที (Cloud)
+    // ส่งข้อมูลไปบันทึกลง Google Sheets (Cloud)
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (scriptUrl) {
         fetch(scriptUrl, {
@@ -2756,20 +2783,22 @@ function submitDieBm(e) {
         .then(result => {
             if (result.status === "success") {
                 console.log("Saved Die Maintenance to Cloud successfully");
-            } else {
-                console.error("Cloud save error:", result.message);
             }
         })
         .catch(err => console.error("Connection error:", err));
     }
+
     renderDiePM();
-    document.getElementById('dieForm').reset();
+    
+    // รีเซ็ตฟอร์ม
+    const formEl = document.getElementById('dieForm');
+    if (formEl) formEl.reset();
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
     
-    // เคลียร์พรีวิวรูปภาพหน้าจอหลัก
+    // เคลียร์รูปภาพชั่วคราว
     window.currentBmImage = '';
-    const imgPreview = document.getElementById('bmImagePreview');
-    if (imgPreview) imgPreview.style.display = 'none';
+    
+    alert("บันทึกการแจ้งซ่อมเรียบร้อยแล้วครับ!");
 }
 
 function resetDiePm(partNo) {
@@ -2830,13 +2859,17 @@ function resetDiePm(partNo) {
     }
 }
 
-// ปรับปรุงฟังก์ชันพิมพ์: บันทึกรูปลง LocalStorage แยกตาม ID เพื่อป้องกันข้อมูลรูปชนกันหรือยาวเกิน URL
+// ฟังก์ชันสั่งพิมพ์: บันทึกรูปลง LocalStorage ตาม ID รายการ และส่งค่าพารามิเตอร์
 function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
-    const storageKey = 'print_repair_img_' + (id || 'default');
-    localStorage.setItem(storageKey, imgBase64 || '');
-    localStorage.setItem('print_repair_image', imgBase64 || ''); // สำรองไว้
+    const targetId = id || 'default';
+    const storageKey = 'print_repair_img_' + targetId;
     
-    const url = `print-repair.html?id=${encodeURIComponent(id || '')}&dieNo=${encodeURIComponent(partNo || '')}&model=${encodeURIComponent('-')}&partNo=${encodeURIComponent(partNo || '')}&partName=${encodeURIComponent('-')}&line=${encodeURIComponent(reporter || '')}&date=${encodeURIComponent(date || '')}&problem=${encodeURIComponent(problem || '')}`;
+    // หากมีภาพส่งมาด้วยให้นำไปบันทึกทับใน LocalStorage
+    if (imgBase64 && imgBase64.trim() !== '') {
+        localStorage.setItem(storageKey, imgBase64);
+    }
+    
+    const url = `print-repair.html?id=${encodeURIComponent(targetId)}&dieNo=${encodeURIComponent(partNo || '')}&model=${encodeURIComponent('-')}&partNo=${encodeURIComponent(partNo || '')}&partName=${encodeURIComponent('-')}&line=${encodeURIComponent(reporter || '')}&date=${encodeURIComponent(date || '')}&problem=${encodeURIComponent(problem || '')}`;
     
     window.open(url, '_blank');
 }
@@ -2931,7 +2964,7 @@ function renderDiePM() {
             
             const safeProblem = (b.problem || '').replace(/'/g, "\\'").replace(/\n/g, " ");
             const safeReporter = (b.reporter || '').replace(/'/g, "\\'");
-            const safeImg = b.image || '';
+            const safeImg = (b.image || '').replace(/'/g, "\\'");
 
             tr.innerHTML = `
                 <td>${b.date || ''}</td>
