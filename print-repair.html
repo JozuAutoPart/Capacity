@@ -299,19 +299,45 @@
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
 
-    // ดึงรูปภาพจาก localStorage (รองรับทั้ง key: print_repair_image และ repair_image)
-    const imgSrc = urlParams.get('img') || urlParams.get('image') || localStorage.getItem('print_repair_image') || localStorage.getItem('repair_image');
-    
+    // ระบบดึงรูปภาพรองรับทุกช่องทาง (URL, LocalStorage, หรือดึงไฟล์ภาพที่ถูกเลือกไว้ล่าสุดในเบราว์เซอร์อัตโนมัติ)
+    let imgSrc = urlParams.get('img') || urlParams.get('image') || localStorage.getItem('print_repair_image') || localStorage.getItem('repair_image');
+
     const imgElement = document.getElementById('lblImage');
     const noImgElement = document.getElementById('lblNoImg');
-    
-    if (imgSrc && imgSrc.trim() !== '' && imgSrc !== 'null' && imgSrc !== 'undefined') {
-        imgElement.src = imgSrc;
-        imgElement.style.display = 'block';
-        noImgElement.style.display = 'none';
+
+    function displayImage(src) {
+        if (src && src.trim() !== '' && src !== 'null' && src !== 'undefined') {
+            imgElement.src = src;
+            imgElement.style.display = 'block';
+            noImgElement.style.display = 'none';
+        } else {
+            imgElement.style.display = 'none';
+            noImgElement.style.display = 'block';
+        }
+    }
+
+    if (imgSrc) {
+        displayImage(imgSrc);
     } else {
-        imgElement.style.display = 'none';
-        noImgElement.style.display = 'block';
+        // หากไม่มีการส่งรูปมาเลย ให้พยายามดึงไฟล์จาก input file ในหน้าหลักผ่าน opener (ถ้าเปิดจากหน้าต่างเดียวกัน)
+        try {
+            if (window.opener && window.opener.document) {
+                const mainFileInput = window.opener.document.querySelector('input[type="file"]');
+                if (mainFileInput && mainFileInput.files && mainFileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        displayImage(e.target.result);
+                    };
+                    reader.readAsDataURL(mainFileInput.files[0]);
+                } else {
+                    displayImage(null);
+                }
+            } else {
+                displayImage(null);
+            }
+        } catch (e) {
+            displayImage(null);
+        }
     }
 </script>
 
