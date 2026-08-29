@@ -92,7 +92,7 @@
             <tr>
                 <td style="width: 15%; text-align: center; height: 35px;" rowspan="2">
                     <div style="font-weight: bold; font-size: 15pt; color: #003366;">JOZU</div>
-                    <div style="font-size: 6pt;">Jozu Auto Part Co., Ltd.</div>
+                    <div style="font-size: 8pt;">Jozu Auto Part Co., Ltd.</div>
                 </td>
                 <td style="width: 65%; text-align: center;" rowspan="2">
                     <div style="font-size: 15pt; font-weight: bold;">ใบแจ้งซ่อมแม่พิมพ์</div>
@@ -131,9 +131,9 @@
             </tr>
             <tr>
                 <td style="height: 26px;">Mgr.</td>
-                <td>      </td>
-                <td>Sup.</td>
-                <td>      </td>
+                <td></td>
+                <td></td>
+                <td>K.Weeraphat</td>
                 <td>Leader Line</td>
                 <td id="lblLine">-</td>
                 <td>Date</td>
@@ -277,7 +277,7 @@
         <table>
             <tr>
                 <td style="width: 60%; font-size: 8.5pt; border: none; padding-top: 6px;">
-                    ผู้รับเอกสาร : .............................. Date : ......................
+                    ผู้รับเอกสาร : .................................... Date : .......................
                 </td>
                 <td style="width: 40%; font-size: 8.5pt; text-align: right; border: none; padding-top: 6px; white-space: nowrap;">
                     J-F-PR-011 Rev.01 Ref. 14 Jan 11
@@ -292,7 +292,7 @@
     const recordId = urlParams.get('id') || 'default';
     
     document.getElementById('lblId').innerText = recordId;
-    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || '-';
+    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || urlParams.get('partNo') || '-';
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
     document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || urlParams.get('dieNo') || '-';
     document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
