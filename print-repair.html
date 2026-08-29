@@ -276,6 +276,8 @@
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
+    
+    // ดึงข้อมูลข้อความทั่วไปจาก URL
     document.getElementById('lblId').innerText = urlParams.get('id') || '-';
     document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || '-';
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
@@ -285,11 +287,13 @@
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
 
-    // รองรับการดึงรูปภาพจากลิงก์พารามิเตอร์ img หรือ image
-    const imgSrc = urlParams.get('img') || urlParams.get('image');
+    // ดึงรูปภาพจาก localStorage (ที่หน้าเว็บหลักส่งมาให้) รองรับทั้ง img, image หรือพิมพ์ผ่าน localStorage โดยตรง
+    const imgSrc = urlParams.get('img') || urlParams.get('image') || localStorage.getItem('print_repair_image');
+    
     const imgElement = document.getElementById('lblImage');
     const noImgElement = document.getElementById('lblNoImg');
-    if (imgSrc) {
+    
+    if (imgSrc && imgSrc.trim() !== '') {
         imgElement.src = imgSrc;
         imgElement.style.display = 'block';
         noImgElement.style.display = 'none';
