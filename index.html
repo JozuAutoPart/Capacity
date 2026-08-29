@@ -2726,10 +2726,13 @@ window.addEventListener('error', function(e) {
         return true;
     }
 });
-   // --- ส่วนจัดการแปลงไฟล์รูปภาพเป็น Base64 ทันทีที่เลือกไฟล์ ---
+// --- ส่วนจัดการแปลงไฟล์รูปภาพเป็น Base64 ทันทีที่เลือกไฟล์ ---
 window.currentBmImage = '';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // โหลดข้อมูลประวัติจาก Google Sheet (Cloud) มาซิงค์เข้าเครื่องอัตโนมัติ
+    loadDieMaintenanceFromCloud();
+
     // ดึง input type="file" ทุกตัว หรือตัวที่อยู่ในฟอร์มแจ้งซ่อม
     const fileInputs = document.querySelectorAll('input[type="file"]');
     fileInputs.forEach(input => {
@@ -2746,6 +2749,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// --- ฟังก์ชันดึงข้อมูลจาก Cloud มาแสดงผล ---
+function loadDieMaintenanceFromCloud() {
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    if (!scriptUrl) return;
+
+    fetch(scriptUrl + '?action=getDieMaintenance')
+        .then(response => response.json())
+        .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+                localStorage.setItem('sys_die_maintenance', JSON.stringify(data));
+                renderDiePM();
+                console.log("โหลดข้อมูลประวัติจาก Cloud สำเร็จ");
+            }
+        })
+        .catch(err => console.error("ไม่สามารถโหลดข้อมูลจาก Cloud ได้:", err));
+}
 
 // --- TAB 8: DIE MAINTENANCE & PM ---
 function submitDieBm(e) {
@@ -2869,7 +2889,7 @@ function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
         localStorage.setItem(storageKey, imgBase64);
     }
     
-    const url = `print-repair.html?id=${encodeURIComponent(targetId)}&dieNo=${encodeURIComponent(partNo || '')}&model=${encodeURIComponent('-')}&partNo=${encodeURIComponent(partNo || '')}&partName=${encodeURIComponent('-')}&line=${encodeURIComponent(reporter || '')}&date=${encodeURIComponent(date || '')}&problem=${encodeURIComponent(problem || '')}`;
+    const url = `print-repair.html?id=${encodeURIComponent(targetId)}&dieNo=${encodeURIComponent('-')}&model=${encodeURIComponent('-')}&partNo=${encodeURIComponent(partNo || '')}&partName=${encodeURIComponent('-')}&line=${encodeURIComponent(reporter || '')}&date=${encodeURIComponent(date || '')}&problem=${encodeURIComponent(problem || '')}`;
     
     window.open(url, '_blank');
 }
