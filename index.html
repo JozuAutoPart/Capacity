@@ -825,7 +825,7 @@
                             </div>
                             <small class="text-muted mb-3 d-block">กำหนดรอบบำรุงรักษาแม่พิมพ์ (PM Limit) ทุกๆ 40,000 Strokes</small>
                             <div class="mb-3">
-                                <input type="text" id="dieSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Line..." onkeyup="renderDiePM()">
+                               <input type="text" id="dieSearchInput" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="🔍 ค้นหา Part No. หรือ Line..." onkeyup="renderDiePM()">
                             </div>
                             <div class="table-responsive">
                                 <table class="table table-dark table-hover align-middle m-0">
@@ -862,20 +862,16 @@
                                     <label class="form-label small">อาการเสีย / รายละเอียดปัญหา</label>
                                     <textarea id="bmProblem" class="form-control form-control-sm" rows="2" placeholder="เช่น แม่พิมพ์แตก, ชิ้นงานเป็นรอย" required></textarea>
                                 </div>
-                                <div class="mb-2">
+                                <div class="mb-3">
                                     <label class="form-label small">ผู้แจ้งซ่อม</label>
                                     <input type="text" id="bmReporter" class="form-control form-control-sm" placeholder="เช่น ช่างอ๊อด" required>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label small">ผู้พิมพ์ / Printer</label>
-                                    <input type="text" id="bmPrinter" class="form-control form-control-sm" placeholder="ระบุชื่อผู้พิมพ์">
+                                <label class="form-label small">แนบรูปถ่ายปัญหา / Die เสีย</label>
+                                <input type="file" class="form-control form-control-sm" id="bmImageInput" accept="image/*">
+                                <div id="bmImagePreviewContainer" class="mt-2 text-center" style="display:none;">
+                                    <img id="bmImagePreview" src="" alt="Preview" style="max-height: 100px; border-radius: 4px; border: 1px solid #444;">
                                 </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">แนบรูปถ่ายปัญหา / Die เสีย</label>
-                                    <input type="file" class="form-control form-control-sm" id="bmImageInput" accept="image/*">
-                                    <div id="bmImagePreviewContainer" class="mt-2 text-center" style="display:none;">
-                                        <img id="bmImagePreview" src="" alt="Preview" style="max-height: 100px; border-radius: 4px; border: 1px solid #444;">
-                                    </div>
                                 </div>
                                 <button type="submit" class="btn btn-danger btn-sm w-100 mt-2"><i class="fas fa-exclamation-triangle me-1"></i> บันทึกแจ้งซ่อม (Breakdown)</button>
                             </form>
@@ -2764,7 +2760,6 @@ function submitDieBm(e) {
         partNo: document.getElementById('bmPartNo').value.trim(),
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim(),
-        printer: document.getElementById('bmPrinter') ? document.getElementById('bmPrinter').value.trim() : '-', // รองรับช่องพิมพ์ใบแจ้งซ่อม (Printer)
         image: imgData // บันทึกรูป Base64 ลงใน Object ข้อมูล
     };
     
@@ -2839,7 +2834,6 @@ function resetDiePm(partNo) {
             partNo: partNo,
             problem: `PM Completed (Line: ${lineName}, Strokes Reset: ${currentStrokes.toLocaleString()})`,
             reporter: "System PM",
-            printer: "-",
             image: ""
         };
         dieBms.push(newRecord);
@@ -2851,8 +2845,7 @@ function resetDiePm(partNo) {
                 "วันที่": item.date || "",
                 "Part No.": item.partNo || "",
                 "รายละเอียด / ปัญหา": item.problem || "",
-                "ผู้แจ้งซ่อม / บันทึก": item.reporter || "",
-                "ผู้พิมพ์": item.printer || ""
+                "ผู้แจ้งซ่อม / บันทึก": item.reporter || ""
             }));
 
             let worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -2866,26 +2859,14 @@ function resetDiePm(partNo) {
     }
 }
 
-// ฟังก์ชันสั่งพิมพ์: ดึงรูปลง LocalStorage ตาม ID รายการ และส่งค่าพารามิเตอร์
+// ฟังก์ชันสั่งพิมพ์: บันทึกรูปลง LocalStorage ตาม ID รายการ และส่งค่าพารามิเตอร์
 function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
     const targetId = id || 'default';
     const storageKey = 'print_repair_img_' + targetId;
     
-    // ค้นหารูปภาพจากพารามิเตอร์ หรืออาเรย์ dieBms, หรือ LocalStorage
-    let finalImg = imgBase64 || '';
-    if (!finalImg && typeof dieBms !== 'undefined') {
-        const found = dieBms.find(item => String(item.id) === String(targetId));
-        if (found && found.image) {
-            finalImg = found.image;
-        }
-    }
-    if (!finalImg) {
-        finalImg = localStorage.getItem(storageKey) || '';
-    }
-    
-    // บันทึกลง LocalStorage เสมอ เพื่อให้หน้า print-repair.html ดึงไปแสดงผลได้แน่นอน (รองรับทั้ง URL Google Drive และ Base64)
-    if (finalImg && finalImg.trim() !== '') {
-        localStorage.setItem(storageKey, finalImg);
+    // หากมีภาพส่งมาด้วยให้นำไปบันทึกทับใน LocalStorage
+    if (imgBase64 && imgBase64.trim() !== '') {
+        localStorage.setItem(storageKey, imgBase64);
     }
     
     const url = `print-repair.html?id=${encodeURIComponent(targetId)}&dieNo=${encodeURIComponent(partNo || '')}&model=${encodeURIComponent('-')}&partNo=${encodeURIComponent(partNo || '')}&partName=${encodeURIComponent('-')}&line=${encodeURIComponent(reporter || '')}&date=${encodeURIComponent(date || '')}&problem=${encodeURIComponent(problem || '')}`;
@@ -2982,7 +2963,7 @@ function renderDiePM() {
             const tr = document.createElement('tr');
             
             const safeProblem = (b.problem || '').replace(/'/g, "\\'").replace(/\n/g, " ");
-            const safeReporter = (b.reporter || '').replace(/'/g, "\\'").replace(/'/g, "\\'");
+            const safeReporter = (b.reporter || '').replace(/'/g, "\\'");
             const safeImg = (b.image || '').replace(/'/g, "\\'");
 
             tr.innerHTML = `
@@ -2990,7 +2971,6 @@ function renderDiePM() {
                 <td class="fw-bold text-info">${b.partNo || ''}</td>
                 <td class="text-danger">${b.problem || ''}</td>
                 <td>${b.reporter || ''}</td>
-                <td>${b.printer || '-'}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-info py-0 px-2 me-1" onclick="printRepairForm('${b.date}', '${b.partNo}', '${safeProblem}', '${safeReporter}', '${b.id || ''}', '${safeImg}')"><i class="fas fa-print"></i></button>
                     <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteDieBmRecord(${index})"><i class="fas fa-trash"></i></button>
@@ -3012,48 +2992,6 @@ function deleteDieBmRecord(index) {
         }
     }
 }
-
-// --- ฟังก์ชันดึงประวัติการซ่อมจาก Google Sheets (Cloud) มาอัปเดตลงตารางอัตโนมัติ ---
-function loadCloudDieMaintenance() {
-    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
-    if (!scriptUrl) return;
-
-    fetch(scriptUrl + '?action=getDieMaintenance')
-    .then(res => res.json())
-    .then(res => {
-        const rawData = Array.isArray(res) ? res : (res.data || []);
-        
-        if (rawData.length > 0) {
-            const formattedData = rawData.map(item => ({
-                id: item.id || Date.parse(item.date || new Date()),
-                date: item.date || item["Date"] || "",
-                partNo: item.partNo || item["Part No."] || item["partNo"] || "",
-                problem: item.problem || item["Problem"] || item["problem"] || "",
-                reporter: item.reporter || item["Reporter"] || item["reporter"] || "",
-                printer: item.printer || item["Printer"] || item["printer"] || "-",
-                image: item.image || item["image"] || ""
-            }));
-            
-            // กรองเอาแถวที่เป็นค่าว่างออก ป้องกันแถวเปล่าๆ โผล่ขึ้นมา
-            const validData = formattedData.filter(item => item.date || item.partNo || item.problem);
-            
-            localStorage.setItem('sys_die_maintenance', JSON.stringify(validData));
-            
-            if (typeof renderDiePM === 'function') {
-                renderDiePM();
-            }
-        }
-    })
-    .catch(err => console.error("Load Cloud Error:", err));
-}
-
-// สั่งให้ดึงข้อมูลจาก Cloud ทันทีเมื่อเปิดหน้าเว็บ หรือสลับมาหน้าใช้งาน
-document.addEventListener('DOMContentLoaded', () => {
-    loadCloudDieMaintenance();
-    
-    // ตั้งเวลาให้ดึงข้อมูลซิงค์อัตโนมัติทุกๆ 30 วินาที
-    setInterval(loadCloudDieMaintenance, 30000);
-});
        // --- EXPORT TO EXCEL (SheetJS) ---
 function exportToExcelXLSX(type) {
     let data = [];
