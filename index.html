@@ -2992,6 +2992,47 @@ function deleteDieBmRecord(index) {
         }
     }
 }
+        // --- ฟังก์ชันดึงประวัติการซ่อมจาก Google Sheets (Cloud) มาอัปเดตลงตารางอัตโนมัติ ---
+function loadCloudDieMaintenance() {
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    if (!scriptUrl) return;
+
+    fetch(scriptUrl + '?action=getDieMaintenance')
+    .then(res => res.json())
+    .then(res => {
+        // รองรับทั้งกรณีที่คืนค่ามาเป็น Array ตรงๆ หรืออยู่ในรูปแบบ Object { status: "success", data: [...] }
+        const rawData = Array.isArray(res) ? res : (res.data || []);
+        
+        if (rawData.length > 0) {
+            // แปลงโครงสร้างข้อมูลให้ตรงกับที่หน้าเว็บใช้งาน
+            const formattedData = rawData.map(item => ({
+                id: item.id || Date.parse(item.date || new Date()),
+                date: item.date || item["date"] || "",
+                partNo: item.partNo || item["partNo"] || "",
+                problem: item.problem || item["problem"] || "",
+                reporter: item.reporter || item["reporter"] || "",
+                image: item.image || item["image"] || ""
+            }));
+            
+            // บันทึกลง LocalStorage ของเครื่องคอมพิวเตอร์
+            localStorage.setItem('sys_die_maintenance', JSON.stringify(formattedData));
+            
+            // สั่งเรนเดอร์หน้าจอใหม่ทันที
+            if (typeof renderDiePM === 'function') {
+                renderDiePM();
+            }
+        }
+    })
+    .catch(err => console.error("Load Cloud Die Maintenance Error:", err));
+}
+
+// สั่งให้ดึงข้อมูลจาก Cloud ทันทีเมื่อเปิดหน้าเว็บ หรือสลับมาหน้าใช้งาน
+document.addEventListener('DOMContentLoaded', () => {
+    loadCloudDieMaintenance();
+    
+    // ตั้งเวลาให้ดึงข้อมูลซิงค์อัตโนมัติทุกๆ 30 วินาที (ป้องกันเวลามือถือบันทึกแล้วคอมไม่เห็น)
+    setInterval(loadCloudDieMaintenance, 30000);
+});
        // --- EXPORT TO EXCEL (SheetJS) ---
 function exportToExcelXLSX(type) {
     let data = [];
