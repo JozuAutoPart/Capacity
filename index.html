@@ -2730,7 +2730,7 @@ window.addEventListener('error', function(e) {
 window.currentBmImage = '';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // โหลดข้อมูลประวัติจาก Google Sheet (Cloud) มาซิงค์เข้าเครื่องอัตโนมัติ
+    // โหลดข้อมูลประวัติจาก Google Sheet (Cloud) ก่อนเป็นอันดับแรก
     loadDieMaintenanceFromCloud();
 
     // ดึง input type="file" ทุกตัว หรือตัวที่อยู่ในฟอร์มแจ้งซ่อม
@@ -2750,21 +2750,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- ฟังก์ชันดึงข้อมูลจาก Cloud มาแสดงผล ---
+// --- ฟังก์ชันดึงข้อมูลจาก Cloud มาแสดงผล (แก้ไขให้เซฟทับและเรนเดอร์ทันทีหลังดึงเสร็จ) ---
 function loadDieMaintenanceFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
-    if (!scriptUrl) return;
+    if (!scriptUrl) {
+        renderDiePM(); // ถ้าไม่มี URL ให้เรนเดอร์จาก local ปกติ
+        return;
+    }
 
     fetch(scriptUrl + '?action=getDieMaintenance')
         .then(response => response.json())
         .then(data => {
             if (Array.isArray(data) && data.length > 0) {
+                // บันทึกข้อมูลล่าสุดจาก Google Sheet ลง localStorage
                 localStorage.setItem('sys_die_maintenance', JSON.stringify(data));
-                renderDiePM();
-                console.log("โหลดข้อมูลประวัติจาก Cloud สำเร็จ");
+                console.log("ซิงค์ข้อมูลประวัติจาก Google Sheet สำเร็จ:", data.length, "รายการ");
             }
+            // สั่งเรนเดอร์หน้าจอหลังจากดึงข้อมูลเสร็จสิ้นแน่นอนแล้ว
+            renderDiePM();
         })
-        .catch(err => console.error("ไม่สามารถโหลดข้อมูลจาก Cloud ได้:", err));
+        .catch(err => {
+            console.error("ไม่สามารถโหลดข้อมูลจาก Cloud ได้:", err);
+            renderDiePM(); // หากโหลดไม่สำเร็จ ให้แสดงข้อมูลเดิมในเครื่องแทน
+        });
 }
 
 // --- TAB 8: DIE MAINTENANCE & PM ---
@@ -2780,19 +2788,15 @@ function submitDieBm(e) {
         partNo: document.getElementById('bmPartNo').value.trim(),
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim(),
-        image: imgData // บันทึกรูป Base64 ลงใน Object ข้อมูล
+        image: imgData 
     };
     
-    // บันทึกลง LocalStorage ทันทีแยกตาม ID เพื่อความชัวร์
     localStorage.setItem('print_repair_img_' + recordId, imgData);
 
-    if (typeof dieBms === 'undefined') {
-        window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-    }
+    let dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
     dieBms.push(bm);
     localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
 
-    // ส่งข้อมูลไปบันทึกลง Google Sheets (Cloud)
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (scriptUrl) {
         fetch(scriptUrl, {
@@ -2810,12 +2814,9 @@ function submitDieBm(e) {
 
     renderDiePM();
     
-    // รีเซ็ตฟอร์ม
     const formEl = document.getElementById('dieForm');
     if (formEl) formEl.reset();
     document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
-    
-    // เคลียร์รูปภาพชั่วคราว
     window.currentBmImage = '';
     
     alert("บันทึกการแจ้งซ่อมเรียบร้อยแล้วครับ!");
@@ -2879,12 +2880,10 @@ function resetDiePm(partNo) {
     }
 }
 
-// ฟังก์ชันสั่งพิมพ์: บันทึกรูปลง LocalStorage ตาม ID รายการ และส่งค่าพารามิเตอร์
 function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
     const targetId = id || 'default';
     const storageKey = 'print_repair_img_' + targetId;
     
-    // หากมีภาพส่งมาด้วยให้นำไปบันทึกทับใน LocalStorage
     if (imgBase64 && imgBase64.trim() !== '') {
         localStorage.setItem(storageKey, imgBase64);
     }
@@ -2896,90 +2895,91 @@ function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
 
 function renderDiePM() {
     const tablePmEl = document.getElementById('diePmTableBody');
-    if (!tablePmEl) return;
-    tablePmEl.innerHTML = '';
+    if (tablePmEl) {
+        tablePmEl.innerHTML = '';
 
-    const savedOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
-    const inputSearchEl = document.getElementById('dieSearchInput');
-    const queryFilter = inputSearchEl ? inputSearchEl.value.toLowerCase() : '';
-    
-    const limitVal = typeof PM_LIMIT !== 'undefined' ? PM_LIMIT : 40000;
+        const savedOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
+        const inputSearchEl = document.getElementById('dieSearchInput');
+        const queryFilter = inputSearchEl ? inputSearchEl.value.toLowerCase() : '';
+        
+        const limitVal = typeof PM_LIMIT !== 'undefined' ? PM_LIMIT : 40000;
 
-    const strokeMap = {};
-    if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
-        actuals.forEach(itemRecord => {
-            if (itemRecord.pmReset) return;
-            let pNo = itemRecord.partNo || itemRecord.part || itemRecord['Part No.'];
-            if (!pNo) return;
+        const strokeMap = {};
+        if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+            actuals.forEach(itemRecord => {
+                if (itemRecord.pmReset) return;
+                let pNo = itemRecord.partNo || itemRecord.part || itemRecord['Part No.'];
+                if (!pNo) return;
 
-            let lineName = itemRecord.line || itemRecord.Line || '-';
-            if (!strokeMap[pNo]) {
-                strokeMap[pNo] = { line: lineName, strokes: 0 };
+                let lineName = itemRecord.line || itemRecord.Line || '-';
+                if (!strokeMap[pNo]) {
+                    strokeMap[pNo] = { line: lineName, strokes: 0 };
+                }
+                let qtyVal = Number(itemRecord.qty || itemRecord.actualQty || 0);
+                let ngVal = Number(itemRecord.ngQty || 0);
+                strokeMap[pNo].strokes += (qtyVal + ngVal);
+            });
+        }
+
+        let tallyDue = 0;
+        let tallyNear = 0;
+
+        Object.keys(strokeMap).forEach(partKey => {
+            const currentItem = strokeMap[partKey];
+            let currentStrokes = currentItem.strokes;
+
+            if (savedOffsets[partKey]) {
+                currentStrokes -= savedOffsets[partKey];
+                if (currentStrokes < 0) currentStrokes = 0;
             }
-            let qtyVal = Number(itemRecord.qty || itemRecord.actualQty || 0);
-            let ngVal = Number(itemRecord.ngQty || 0);
-            strokeMap[pNo].strokes += (qtyVal + ngVal);
+
+            if (queryFilter && !partKey.toLowerCase().includes(queryFilter) && !currentItem.line.toLowerCase().includes(queryFilter)) {
+                return;
+            }
+
+            if (currentStrokes < limitVal * 0.85) {
+                return;
+            }
+
+            const ratioProgress = Math.min(100, Math.round((currentStrokes / limitVal) * 100));
+
+            let badgeHtml = '';
+            if (currentStrokes >= limitVal) {
+                badgeHtml = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
+                tallyDue++;
+            } else if (currentStrokes >= limitVal * 0.85) {
+                badgeHtml = '<span class="badge bg-warning text-dark">NEAR PM</span>';
+                tallyNear++;
+            }
+
+            const rowElem = document.createElement('tr');
+            rowElem.innerHTML = `
+                <td class="fw-bold text-info">${partKey}</td>
+                <td>${currentItem.line}</td>
+                <td>${currentStrokes.toLocaleString()}</td>
+                <td>${limitVal.toLocaleString()}</td>
+                <td style="width: 150px;">
+                    <div class="progress" style="height: 12px;">
+                        <div class="progress-bar ${currentStrokes >= limitVal ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${ratioProgress}%;"></div>
+                    </div>
+                </td>
+                <td>${badgeHtml}</td>
+                <td><button class="btn btn-sm btn-outline-secondary" onclick="resetDiePm('${partKey}')"><i class="fas fa-undo"></i> Reset PM</button></td>
+            `;
+            tablePmEl.appendChild(rowElem);
         });
+
+        const badgeDueTarget = document.getElementById('diePmDueCount');
+        const badgeNearTarget = document.getElementById('diePmNearCount');
+        if (badgeDueTarget) badgeDueTarget.innerText = tallyDue;
+        if (badgeNearTarget) badgeNearTarget.innerText = tallyNear;
     }
-
-    let tallyDue = 0;
-    let tallyNear = 0;
-
-    Object.keys(strokeMap).forEach(partKey => {
-        const currentItem = strokeMap[partKey];
-        let currentStrokes = currentItem.strokes;
-
-        if (savedOffsets[partKey]) {
-            currentStrokes -= savedOffsets[partKey];
-            if (currentStrokes < 0) currentStrokes = 0;
-        }
-
-        if (queryFilter && !partKey.toLowerCase().includes(queryFilter) && !currentItem.line.toLowerCase().includes(queryFilter)) {
-            return;
-        }
-
-        if (currentStrokes < limitVal * 0.85) {
-            return;
-        }
-
-        const ratioProgress = Math.min(100, Math.round((currentStrokes / limitVal) * 100));
-
-        let badgeHtml = '';
-        if (currentStrokes >= limitVal) {
-            badgeHtml = '<span class="badge bg-danger animate-pulse">PM DUE</span>';
-            tallyDue++;
-        } else if (currentStrokes >= limitVal * 0.85) {
-            badgeHtml = '<span class="badge bg-warning text-dark">NEAR PM</span>';
-            tallyNear++;
-        }
-
-        const rowElem = document.createElement('tr');
-        rowElem.innerHTML = `
-            <td class="fw-bold text-info">${partKey}</td>
-            <td>${currentItem.line}</td>
-            <td>${currentStrokes.toLocaleString()}</td>
-            <td>${limitVal.toLocaleString()}</td>
-            <td style="width: 150px;">
-                <div class="progress" style="height: 12px;">
-                    <div class="progress-bar ${currentStrokes >= limitVal ? 'bg-danger' : 'bg-warning'}" role="progressbar" style="width: ${ratioProgress}%;"></div>
-                </div>
-            </td>
-            <td>${badgeHtml}</td>
-            <td><button class="btn btn-sm btn-outline-secondary" onclick="resetDiePm('${partKey}')"><i class="fas fa-undo"></i> Reset PM</button></td>
-        `;
-        tablePmEl.appendChild(rowElem);
-    });
-
-    const badgeDueTarget = document.getElementById('diePmDueCount');
-    const badgeNearTarget = document.getElementById('diePmNearCount');
-    if (badgeDueTarget) badgeDueTarget.innerText = tallyDue;
-    if (badgeNearTarget) badgeNearTarget.innerText = tallyNear;
 
     const tableBmEl = document.getElementById('dieBmTableBody') || document.getElementById('bmTableBody');
     if (tableBmEl) {
         tableBmEl.innerHTML = '';
-        window.dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-        window.dieBms.slice().reverse().forEach((b, index) => {
+        const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+        dieBms.slice().reverse().forEach((b, index) => {
             const tr = document.createElement('tr');
             
             const safeProblem = (b.problem || '').replace(/'/g, "\\'").replace(/\n/g, " ");
