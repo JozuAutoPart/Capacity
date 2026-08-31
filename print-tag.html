@@ -5,98 +5,171 @@
     <title>Print STEM Tags (6 Tags / A4 Landscape)</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
-      @page {
-        size: A4 landscape;
-        margin: 8mm;
-    }
-    body {
-        font-family: 'Tahoma', sans-serif;
-        background: #eee;
-        margin: 0;
-        padding: 20px;
-    }
-    .page {
-        width: 297mm;
-        height: 210mm; /* ปรับจาก min-height เป็น height ตายตัว */
-        padding: 8mm;
-        margin: 0 auto; /* เอา margin-bottom ออกเพื่อไม่ให้เกิดช่องว่างระหว่างหน้า */
-        background: white;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        box-sizing: border-box;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        gap: 6mm;
-        page-break-after: always; /* บังคับขึ้นหน้าใหม่หลังจบแต่ละหน้า */
-        page-break-inside: avoid;
-    }
-    @media print {
-        body { 
-            background: none; 
-            padding: 0; 
-            margin: 0;
+        @page {
+            size: A4 landscape;
+            margin: 8mm;
         }
-        .page { 
-            box-shadow: none; 
-            margin: 0; 
+        body {
+            font-family: 'Tahoma', sans-serif;
+            background: #eee;
+            margin: 0;
+            padding: 20px;
+        }
+        .page {
             width: 297mm;
             height: 210mm;
+            padding: 8mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 6mm;
             page-break-after: always;
             page-break-inside: avoid;
         }
-        .no-print { display: none; }
-    }
-    .tag-card {
-        border: 2px solid #000;
-        padding: 5px;
-        box-sizing: border-box;
-        font-size: 10px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        background: #fff;
-        height: 60mm;
-    }
-    table.tag-table {
-        width: 100%;
-        border-collapse: collapse;
-        border: 1px solid #000;
-        table-layout: fixed;
-    }
-    table.tag-table th, table.tag-table td {
-        border: 1px solid #000;
-        padding: 2px 4px;
-        vertical-align: middle;
-        overflow: hidden;
-    }
-    .label-title { font-weight: bold; }
-    .text-center { text-align: center; }
-    .fw-bold { font-weight: bold; }
-    .footer-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 2px;
-    }
-    .logo-box {
-        font-weight: bold;
-        font-style: italic;
-        font-size: 14px;
-        color: #003366;
-        font-family: 'Arial Black', sans-serif;
-    }
-    .barcode-box {
-        text-align: center;
-        flex-grow: 1;
-        margin-left: 10px;
-        margin-right: 10px;
-    }
-    .barcode-box svg {
-        max-height: 35px;
-        width: 100%;
-    }
+        @media print {
+            body { 
+                background: none; 
+                padding: 0; 
+                margin: 0;
+            }
+            .page { 
+                box-shadow: none; 
+                margin: 0; 
+                width: 297mm;
+                height: 210mm;
+                page-break-after: always;
+                page-break-inside: avoid;
+            }
+            .no-print { display: none; }
+        }
+        .tag-card {
+            border: 2px solid #000;
+            padding: 5px;
+            box-sizing: border-box;
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #fff;
+            height: 60mm;
+        }
+        table.tag-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+            table-layout: fixed;
+        }
+        table.tag-table th, table.tag-table td {
+            border: 1px solid #000;
+            padding: 2px 4px;
+            vertical-align: middle;
+            overflow: hidden;
+        }
+        .label-title { font-weight: bold; }
+        .text-center { text-align: center; }
+        .fw-bold { font-weight: bold; }
+        .footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2px;
+        }
+        .logo-box {
+            font-weight: bold;
+            font-style: italic;
+            font-size: 14px;
+            color: #003366;
+            font-family: 'Arial Black', sans-serif;
+        }
+        .barcode-box {
+            text-align: center;
+            flex-grow: 1;
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+        .barcode-box svg {
+            max-height: 35px;
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
+
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ พิมพ์ Tag ทั้งหมด</button>
+    </div>
+
+    <div id="container"></div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const partNo = urlParams.get('partNo') || '-';
+        const partName = urlParams.get('partName') || '-';
+        const lotNo = urlParams.get('lotNo') || '-';
+        const qtyPerTag = parseInt(urlParams.get('qty')) || 2000;
+        const line = urlParams.get('line') || '-';
+
+        // สมมติสร้าง 6 ใบต่อหน้า (1 หน้า A4 มี 6 ช่อง)
+        // ท่านสามารถปรับจำนวนตามระบบลูปเดิมของท่านได้เลยครับ
+        const totalTags = 6; 
+        const container = document.getElementById('container');
+
+        let pageDiv = document.createElement('div');
+        pageDiv.className = 'page';
+
+        for (let i = 0; i < totalTags; i++) {
+            const card = document.createElement('div');
+            card.className = 'tag-card';
+            card.innerHTML = `
+                <table class="tag-table">
+                    <tr>
+                        <td style="width: 25%;" class="label-title">Part No.</td>
+                        <td style="width: 75%;" class="fw-bold">${partNo}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Part Name</td>
+                        <td class="fw-bold">${partName}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Q'ty</td>
+                        <td><span class="fw-bold">${qtyPerTag}</span> Pcs.</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Production / Lot No.</td>
+                        <td>${lotNo}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Production Date</td>
+                        <td></td>
+                    </tr>
+                </table>
+                <div class="footer-section">
+                    <div class="logo-box">STEM</div>
+                    <div class="barcode-box">
+                        <svg class="barcode"></svg>
+                    </div>
+                </div>
+            `;
+            pageDiv.appendChild(card);
+        }
+        container.appendChild(pageDiv);
+
+        // Render Barcode
+        document.querySelectorAll('.barcode').forEach((el, index) => {
+            JsBarcode(el, lotNo !== '-' ? lotNo : '123456', {
+                format: "CODE128",
+                displayValue: false,
+                height: 30,
+                margin: 0
+            });
+        });
+    </script>
+</body>
+</html>
 
     <div class="no-print" style="text-align: center; margin-bottom: 20px;">
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
