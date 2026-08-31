@@ -113,8 +113,7 @@
         const qtyPerTag = parseInt(urlParams.get('qty')) || 2000;
         const line = urlParams.get('line') || '-';
 
-        // สมมติสร้าง 6 ใบต่อหน้า (1 หน้า A4 มี 6 ช่อง)
-        // ท่านสามารถปรับจำนวนตามระบบลูปเดิมของท่านได้เลยครับ
+        // สร้าง 6 ใบต่อหน้าสำหรับข้อมูลจริงที่ส่งผ่าน URL มา
         const totalTags = 6; 
         const container = document.getElementById('container');
 
