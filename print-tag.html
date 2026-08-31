@@ -371,29 +371,42 @@
             const totalQty = Number(urlParams.get('qty')) || 0;
 
             let partName = '-';
-            let stemCode = '-';
-            let pcsPerTag = 50;
+    let stemCode = '-';
+    let customerBrand = 'STEM';
+    let pcsPerTag = 50;
 
-            if (partDatabase[partNo]) {
-                partName = partDatabase[partNo].name;
-                stemCode = partDatabase[partNo].stem;
-                pcsPerTag = partDatabase[partNo].pcs;
-            } else {
-                partName = urlParams.get('partName') || '-';
-                stemCode = urlParams.get('stemCode') || '-';
-                pcsPerTag = Number(urlParams.get('pcs')) || 50;
-            }
-
-            generateTagsUI({
-                partNo: partNo || '-',
-                lotNo: lotNo,
-                totalQty: totalQty,
-                pcsPerTag: pcsPerTag,
-                partName: partName,
-                stemCode: stemCode
-            });
+    if (partDatabase[partNo]) {
+        partName = partDatabase[partNo].name;
+        pcsPerTag = partDatabase[partNo].pcs;
+        
+        if (partDatabase[partNo].TMC) {
+            stemCode = partDatabase[partNo].TMC;
+            customerBrand = 'TMC';
+        } else if (partDatabase[partNo].FTS) {
+            stemCode = partDatabase[partNo].FTS;
+            customerBrand = 'FTS';
+        } else if (partDatabase[partNo].MSFT) {
+            stemCode = partDatabase[partNo].MSFT;
+            customerBrand = 'MSFT';
+        } else if (partDatabase[partNo].stem) {
+            stemCode = partDatabase[partNo].stem;
+            customerBrand = 'STEM';
         }
+    } else {
+        partName = urlParams.get('partName') || '-';
+        stemCode = urlParams.get('stemCode') || '-';
+        pcsPerTag = Number(urlParams.get('pcs')) || 50;
+    }
 
+    generateTagsUI({
+        partNo: partNo || '-',
+        lotNo: lotNo,
+        totalQty: totalQty,
+        pcsPerTag: pcsPerTag,
+        partName: partName,
+        stemCode: stemCode,
+        customer: customerBrand
+    });
         function generateTagsUI(printData) {
             const container = document.getElementById('tagContainer');
             container.innerHTML = '';
@@ -461,7 +474,7 @@
                             </tr>
                         </table>
                         <div class="footer-section">
-                           <div class="logo-box">${printData.stem && printData.stem.startsWith('TMC') ? 'TMC' : (printData.stem && printData.stem.startsWith('FT') ? 'FTS' : 'STEM')}</div>
+                           <div class="logo-box">${printData.customer || 'STEM'}</div>
                             <div class="barcode-box">
                                 <svg class="barcode" data-barcode="${printData.partNo}"></svg>
                             </div>
