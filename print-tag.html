@@ -7,7 +7,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 8mm;
+            margin: 0;
         }
         body {
             font-family: 'Tahoma', sans-serif;
@@ -98,6 +98,75 @@
     </style>
 </head>
 <body>
+
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ พิมพ์ Tag ทั้งหมด</button>
+    </div>
+
+    <div id="container"></div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const partNo = urlParams.get('partNo') || '-';
+        const partName = urlParams.get('partName') || '-';
+        const lotNo = urlParams.get('lotNo') || '-';
+        const qtyPerTag = parseInt(urlParams.get('qty')) || 2000;
+        const line = urlParams.get('line') || '-';
+
+        const totalTags = 6; 
+        const container = document.getElementById('container');
+
+        let pageDiv = document.createElement('div');
+        pageDiv.className = 'page';
+
+        for (let i = 0; i < totalTags; i++) {
+            const card = document.createElement('div');
+            card.className = 'tag-card';
+            card.innerHTML = `
+                <table class="tag-table">
+                    <tr>
+                        <td style="width: 25%;" class="label-title">Part No.</td>
+                        <td style="width: 75%;" class="fw-bold">${partNo}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Part Name</td>
+                        <td class="fw-bold">${partName}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Q'ty</td>
+                        <td><span class="fw-bold">${qtyPerTag}</span> Pcs.</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Production / Lot No.</td>
+                        <td>${lotNo}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Production Date</td>
+                        <td></td>
+                    </tr>
+                </table>
+                <div class="footer-section">
+                    <div class="logo-box">STEM</div>
+                    <div class="barcode-box">
+                        <svg class="barcode"></svg>
+                    </div>
+                </div>
+            `;
+            pageDiv.appendChild(card);
+        }
+        container.appendChild(pageDiv);
+
+        document.querySelectorAll('.barcode').forEach((el, index) => {
+            JsBarcode(el, lotNo !== '-' ? lotNo : '123456', {
+                format: "CODE128",
+                displayValue: false,
+                height: 30,
+                margin: 0
+            });
+        });
+    </script>
+</body>
+</html>
 
     <div class="no-print" style="text-align: center; margin-bottom: 20px;">
         <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ พิมพ์ Tag ทั้งหมด</button>
