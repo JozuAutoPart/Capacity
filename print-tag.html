@@ -13,12 +13,12 @@
             font-family: 'Tahoma', sans-serif;
             background: #eee;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
         }
         .page {
             width: 297mm;
             height: 210mm;
-            padding: 4mm 6mm;
+            padding: 6mm 8mm;
             margin: 0 auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -26,7 +26,7 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(3, 1fr);
-            gap: 2mm;
+            gap: 4mm;
             page-break-after: always;
             page-break-inside: avoid;
         }
@@ -48,7 +48,7 @@
         }
         .tag-card {
             border: 2px solid #000;
-            padding: 4px 6px;
+            padding: 6px 8px;
             box-sizing: border-box;
             font-size: 10px;
             display: flex;
@@ -65,17 +65,18 @@
         }
         table.tag-table th, table.tag-table td {
             border: 1px solid #000;
-            padding: 3px 5px;
+            padding: 4px 6px;
             vertical-align: middle;
             overflow: hidden;
         }
-        .label-title { font-weight: bold; width: 30%; }
+        .label-title { font-weight: bold; }
+        .text-center { text-align: center; }
         .fw-bold { font-weight: bold; }
         .footer-section {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 2px;
+            margin-top: 4px;
         }
         .logo-box {
             font-weight: bold;
@@ -87,23 +88,33 @@
         .barcode-box {
             text-align: center;
             flex-grow: 1;
-            margin-left: 10px;
-            margin-right: 10px;
+            margin-left: 15px;
+            margin-right: 15px;
         }
         .barcode-box svg {
-            max-height: 28px;
+            max-height: 32px;
             width: 100%;
         }
     </style>
 </head>
 <body>
 
-      <script>
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
+            🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
+        </button>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
+    </div>
+
+    <div id="container"></div>
+
+    <script>
         const urlParams = new URLSearchParams(window.location.search);
         const partNo = urlParams.get('partNo') || '-';
         const partName = urlParams.get('partName') || '-';
         const lotNo = urlParams.get('lotNo') || '-';
         const qtyPerTag = parseInt(urlParams.get('qty')) || 100;
+        const line = urlParams.get('line') || '-';
 
         document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Qty: ${qtyPerTag} | Lot: ${lotNo}`;
 
@@ -119,24 +130,40 @@
             card.innerHTML = `
                 <table class="tag-table">
                     <tr>
-                        <td class="label-title">Part No.</td>
-                        <td class="fw-bold">${partNo}</td>
+                        <td style="width: 22%;" class="label-title">Part No.</td>
+                        <td style="width: 40%;" class="fw-bold">${partNo}</td>
+                        <td style="width: 18%;" class="label-title text-center">Stamp Mark</td>
+                        <td style="width: 20%;"></td>
                     </tr>
                     <tr>
                         <td class="label-title">Part Name</td>
-                        <td class="fw-bold">${partName}</td>
+                        <td class="fw-bold" colspan="3">${partName}</td>
                     </tr>
                     <tr>
                         <td class="label-title">Q'ty</td>
                         <td><span class="fw-bold">${qtyPerTag}</span> Pcs.</td>
+                        <td class="label-title text-center">Code</td>
+                        <td class="text-center fw-bold">JA193</td>
                     </tr>
                     <tr>
-                        <td class="label-title">Production / Lot No.</td>
+                        <td class="label-title">Production / Lot No.:</td>
                         <td>${lotNo}</td>
+                        <td class="label-title text-center">Supplier Check</td>
+                        <td class="label-title text-center">Delivery Date</td>
+                    </tr>
+                </table>
+                <table class="tag-table" style="margin-top: 2px;">
+                    <tr>
+                        <td class="text-center" style="font-size: 8.5px; width: 25%;">Production Date</td>
+                        <td class="text-center" style="font-size: 8.5px; width: 25%;">Supplier Check</td>
+                        <td class="text-center" style="font-size: 8.5px; width: 25%;">Delivery Date</td>
+                        <td class="text-center" style="font-size: 8.5px; width: 25%;">QC Receiving</td>
                     </tr>
                     <tr>
-                        <td class="label-title">Production Date</td>
-                        <td></td>
+                        <td style="height: 18px; width: 25%;"></td>
+                        <td style="width: 25%;"></td>
+                        <td style="width: 25%;"></td>
+                        <td style="width: 25%;"></td>
                     </tr>
                 </table>
                 <div class="footer-section">
