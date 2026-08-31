@@ -2798,9 +2798,22 @@ function submitDieBm(e) {
     try {
         localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
     } catch (err) {
-        console.warn("พื้นที่ LocalStorage เต็ม ทำการเคลียร์พื้นที่แคช");
+        console.warn("พื้นที่ LocalStorage เต็ม ทำการเคลียร์พื้นที่แคชและข้อมูลเก่า");
+        
+        // เคลียร์ฐานข้อมูลขนาดใหญ่ที่ไม่จำเป็นออกเพื่อเคลียร์พื้นที่
         localStorage.removeItem('masterPartsDatabase');
-        localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+        
+        // หากยังเต็ม ให้ตัดประวัติการซ่อมที่เก่าที่สุดออกครึ่งหนึ่ง เพื่อให้บันทึกรายการใหม่ได้
+        if (dieBms.length > 10) {
+            dieBms = dieBms.slice(dieBms.length - 10);
+        }
+
+        try {
+            localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
+        } catch (innerErr) {
+            console.error("พื้นที่จัดเก็บเต็มอย่างถาวร:", innerErr);
+            alert("พื้นที่จัดเก็บในเบราว์เซอร์เต็ม ไม่สามารถบันทึกรูปภาพเพิ่มได้ กรุณาล้างข้อมูลเก่าในเบราว์เซอร์");
+        }
     }
 
     // ส่งข้อมูลไปบันทึกลง Google Sheets (Cloud)
@@ -2823,12 +2836,18 @@ function submitDieBm(e) {
     
     const formEl = document.getElementById('dieForm');
     if (formEl) formEl.reset();
-    document.getElementById('bmDate').value = new Date().toISOString().split('T')[0];
+    
+    const bmDateEl = document.getElementById('bmDate');
+    if (bmDateEl) bmDateEl.value = new Date().toISOString().split('T')[0];
+    
     window.currentBmImage = '';
+    
+    // รีเซ็ตค่าช่องอัปโหลดไฟล์รูปภาพหน้าจอให้ว่างเปล่า
+    const fileInputEl = document.getElementById('bmImageInput') || document.querySelector('input[type="file"]');
+    if (fileInputEl) fileInputEl.value = '';
     
     alert("บันทึกการแจ้งซ่อมเรียบร้อยแล้วครับ!");
 }
-
 function resetDiePm(partNo) {
     let password = prompt("กรุณากรอกรหัสผ่านเพื่อยืนยันการรีเซ็ต PM (Reset PM):");
     if (password !== "1234") { 
