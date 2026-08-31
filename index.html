@@ -2909,23 +2909,40 @@ function resetDiePm(partNo) {
 }
 
 // ฟังก์ชันสั่งพิมพ์: ดึงรูปลง LocalStorage ตาม ID รายการ และส่งค่าพารามิเตอร์
+// --- ฟังก์ชันสั่งพิมพ์: จัดการเคลียร์พื้นที่และบันทึกรูปลง LocalStorage แบบปลอดภัย ---
 function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
     const targetId = id || 'default';
     const storageKey = 'print_repair_img_' + targetId;
     
     let finalImg = imgBase64 || '';
-    if (!finalImg && typeof dieBms !== 'undefined') {
+    
+    if (!finalImg && typeof dieBms !== 'undefined' && Array.isArray(dieBms)) {
         const found = dieBms.find(item => String(item.id) === String(targetId));
         if (found && found.image) {
             finalImg = found.image;
         }
     }
-    if (!finalImg) {
-        finalImg = localStorage.getItem(storageKey) || '';
-    }
     
+    // เคลียร์พื้นที่ LocalStorage สำหรับรูปเก่าทั้งหมดก่อนเซฟ เพื่อป้องกันปัญหาหน่วยความจำเต็ม
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('print_repair_img_') && key !== storageKey) {
+                localStorage.removeItem(key);
+            }
+        }
+    } catch (e) {}
+
+    // บันทึกรูปของรายการปัจจุบัน
     if (finalImg && finalImg.trim() !== '') {
-        localStorage.setItem(storageKey, finalImg);
+        try {
+            localStorage.setItem(storageKey, finalImg);
+        } catch (err) {
+            console.warn("LocalStorage เต็ม ข้ามการบันทึกรูปลงเครื่องชั่วคราว");
+            localStorage.removeItem(storageKey);
+        }
+    } else {
+        localStorage.removeItem(storageKey);
     }
     
     const url = `print-repair.html?id=${encodeURIComponent(targetId)}&dieNo=${encodeURIComponent(partNo || '')}&model=${encodeURIComponent('-')}&partNo=${encodeURIComponent(partNo || '')}&partName=${encodeURIComponent('-')}&line=${encodeURIComponent(reporter || '')}&date=${encodeURIComponent(date || '')}&problem=${encodeURIComponent(problem || '')}`;
