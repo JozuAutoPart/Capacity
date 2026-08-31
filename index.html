@@ -2726,11 +2726,10 @@ window.addEventListener('error', function(e) {
         return true;
     }
 });
-   // --- ส่วนจัดการแปลงไฟล์รูปภาพเป็น Base64 ทันทีที่เลือกไฟล์ ---
+  // --- ส่วนจัดการแปลงและบีบอัดไฟล์รูปภาพเป็น Base64 ขนาดเล็กทันทีที่เลือกไฟล์ ---
 window.currentBmImage = '';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ดึง input type="file" ทุกตัว หรือตัวที่อยู่ในฟอร์มแจ้งซ่อม
     const fileInputs = document.querySelectorAll('input[type="file"]');
     fileInputs.forEach(input => {
         input.addEventListener('change', function(e) {
@@ -2738,8 +2737,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(uploadEvent) {
-                    window.currentBmImage = uploadEvent.target.result;
-                    console.log("Image loaded and converted to Base64 successfully.");
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 500; // กำหนดความกว้างสูงสุดเพื่อป้องกันไฟล์ใหญ่เกินไป
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+                        canvas.height = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        // บีบอัดคุณภาพภาพเหลือ 70% (image/jpeg) เพื่อลดขนาดข้อมูลลงอย่างมาก
+                        window.currentBmImage = canvas.toDataURL('image/jpeg', 0.7);
+                        console.log("Image compressed, loaded and converted to Base64 successfully.");
+                    };
+                    img.src = uploadEvent.target.result;
                 };
                 reader.readAsDataURL(file);
             }
@@ -2760,11 +2773,8 @@ function submitDieBm(e) {
         partNo: document.getElementById('bmPartNo').value.trim(),
         problem: document.getElementById('bmProblem').value.trim(),
         reporter: document.getElementById('bmReporter').value.trim(),
-        image: imgData // ส่งข้อมูลรูปไปเก็บบันทึกบน Google Sheet ทางเดียว
+        image: imgData // ส่งข้อมูลรูปที่บีบอัดแล้วไปเก็บบันทึก
     };
-    
-    // ❌ ตัดบรรทัดนี้ทิ้งเพื่อป้องกัน LocalStorage เต็ม
-    // localStorage.setItem('print_repair_img_' + recordId, imgData);
 
     let dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
     dieBms.push(bm);
@@ -2868,7 +2878,6 @@ function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
     const targetId = id || 'default';
     const storageKey = 'print_repair_img_' + targetId;
     
-    // ค้นหารูปภาพจากพารามิเตอร์ หรืออาเรย์ dieBms, หรือ LocalStorage
     let finalImg = imgBase64 || '';
     if (!finalImg && typeof dieBms !== 'undefined') {
         const found = dieBms.find(item => String(item.id) === String(targetId));
@@ -2880,7 +2889,6 @@ function printRepairForm(date, partNo, problem, reporter, id, imgBase64) {
         finalImg = localStorage.getItem(storageKey) || '';
     }
     
-    // บันทึกลง LocalStorage เสมอ เพื่อให้หน้า print-repair.html ดึงไปแสดงผลได้แน่นอน (รองรับทั้ง URL Google Drive และ Base64)
     if (finalImg && finalImg.trim() !== '') {
         localStorage.setItem(storageKey, finalImg);
     }
@@ -3031,7 +3039,6 @@ function loadCloudDieMaintenance() {
                 image: item.image || item["image"] || ""
             }));
             
-            // กรองเอาแถวที่เป็นค่าว่างออก ป้องกันแถวเปล่าๆ โผล่ขึ้นมา
             const validData = formattedData.filter(item => item.date || item.partNo || item.problem);
             
             localStorage.setItem('sys_die_maintenance', JSON.stringify(validData));
@@ -3044,11 +3051,8 @@ function loadCloudDieMaintenance() {
     .catch(err => console.error("Load Cloud Error:", err));
 }
 
-// สั่งให้ดึงข้อมูลจาก Cloud ทันทีเมื่อเปิดหน้าเว็บ หรือสลับมาหน้าใช้งาน
 document.addEventListener('DOMContentLoaded', () => {
     loadCloudDieMaintenance();
-    
-    // ตั้งเวลาให้ดึงข้อมูลซิงค์อัตโนมัติทุกๆ 30 วินาที
     setInterval(loadCloudDieMaintenance, 30000);
 });
        // --- EXPORT TO EXCEL (SheetJS) ---
