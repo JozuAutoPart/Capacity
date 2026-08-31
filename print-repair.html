@@ -91,8 +91,8 @@
         <table>
             <tr>
                <td style="width: 15%; text-align: center; vertical-align: middle; height: 35px; padding: 2px;" rowspan="2">
-    <img src="Jozu.png" alt="JOZU Logo" style="width: 100%; max-width: 75px; height: auto; display: block; margin: 0 auto;">
-</td>
+                   <img src="Jozu.png" alt="JOZU Logo" style="width: 100%; max-width: 75px; height: auto; display: block; margin: 0 auto;">
+               </td>
                 <td style="width: 65%; text-align: center;" rowspan="2">
                     <div style="font-size: 15pt; font-weight: bold;">ใบแจ้งซ่อมแม่พิมพ์</div>
                     <div style="font-size: 11.5pt; font-weight: bold;">Die Repair Report</div>
@@ -144,9 +144,9 @@
                     <table style="margin-bottom: 0; height: 100%;">
                         <tr>
                             <td style="width: 24%; font-size: 8.5pt; height: 27px; white-space: nowrap;" class="section-title">ประเภทการซ่อม</td>
-                            <td style="width: 26%; font-size: 8pt; white-space: nowrap;"><input type="checkbox" checked> ซ่อมตามแผน(PM)</td>
-                            <td style="width: 25%; font-size: 8pt; white-space: nowrap;"><input type="checkbox"> ซ่อมระหว่างใช้(BM)</td>
-                            <td style="width: 25%; font-size: 8pt; white-space: nowrap;"><input type="checkbox"> ซ่อมหลังปฏิบัติงาน</td>
+                            <td style="width: 26%; font-size: 8pt; white-space: nowrap;"><input type="checkbox" id="chkPm"> ซ่อมตามแผน(PM)</td>
+                            <td style="width: 25%; font-size: 8pt; white-space: nowrap;"><input type="checkbox" id="chkBm"> ซ่อมระหว่างใช้(BM)</td>
+                            <td style="width: 25%; font-size: 8pt; white-space: nowrap;"><input type="checkbox" id="chkPost"> ซ่อมหลังปฏิบัติงาน</td>
                         </tr>
                         <tr>
                             <td style="font-size: 9pt; height: 27px;">ประวัติแม่พิมพ์</td>
@@ -177,9 +177,9 @@
             <td style="vertical-align: top; font-size: 9.5pt; padding: 8px; height: 100%;">
                 <div class="fw-bold">อาการเสีย / รายละเอียดปัญหา:</div>
                 <div id="lblProblem" style="white-space: pre-line; margin-top: 4px; margin-bottom: 8px;"></div>
-                <div style="border: 1px dashed #999; display: flex; align-items: center; justify-content: center; min-height: 140px; background: #fafafa; border-radius: 4px; overflow: hidden; padding: 4px;">
-                    <span id="lblNoImg" style="color: #888; font-size: 8.5pt;">(ไม่มีรูปภาพถ่ายปัญหา)</span>
-                    <img id="lblImage" src="" style="max-width: 100%; max-height: 180px; object-fit: contain; display: none;" />
+                <div style="border: 1px dashed #999; display: flex; align-items: center; justify-content: center; height: 160px; background: #fafafa; border-radius: 4px; overflow: hidden; padding: 4px; position: relative;">
+                    <span id="lblNoImg" style="color: #888; font-size: 8.5pt; position: absolute;">(ไม่มีรูปภาพถ่ายปัญหา)</span>
+                    <img id="lblImage" src="" style="max-width: 100%; max-height: 155px; width: auto; height: auto; object-fit: contain; display: none; position: relative; z-index: 2;" />
                 </div>
             </td>
             <td style="vertical-align: top; font-size: 9.5pt; padding: 0; height: 100%;">
@@ -286,15 +286,28 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     const recordId = urlParams.get('id') || 'default';
+    const problemText = urlParams.get('problem') || '';
     
     document.getElementById('lblId').innerText = recordId;
-document.getElementById('lblDieNo').innerText = '-';
-document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
-document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || '-';
-document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
-document.getElementById('lblLine').innerText = urlParams.get('line') || urlParams.get('reporter') || '-';
-document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
-document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-';
+    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || '-';
+    document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
+    document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || '-';
+    document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
+    document.getElementById('lblLine').innerText = urlParams.get('line') || '-';
+    document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
+    document.getElementById('lblProblem').innerText = problemText;
+
+    // ตรวจสอบประเภทการซ่อม (PM หรือ BM)
+    const chkPm = document.getElementById('chkPm');
+    const chkBm = document.getElementById('chkBm');
+    if (problemText.includes('PM Completed') || problemText.includes('PM')) {
+        if (chkPm) chkPm.checked = true;
+        if (chkBm) chkBm.checked = false;
+    } else {
+        if (chkPm) chkPm.checked = false;
+        if (chkBm) chkBm.checked = true;
+    }
+
     const imgElement = document.getElementById('lblImage');
     const noImgElement = document.getElementById('lblNoImg');
 
@@ -309,10 +322,9 @@ document.getElementById('lblProblem').innerText = urlParams.get('problem') || '-
         }
     }
 
-    // ดึงรูปภาพจาก LocalStorage ตาม ID ของรายการแจ้งซ่อมนั้นๆ
+    // ดึงรูปภาพจาก LocalStorage ตาม ID ของรายการ
     let imgSrc = localStorage.getItem('print_repair_img_' + recordId) || localStorage.getItem('print_repair_image');
     
-    // หากไม่พบในระบบ ลองค้นหาจากข้อมูลจำลองภายในเครื่อง
     if (!imgSrc) {
         try {
             const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
