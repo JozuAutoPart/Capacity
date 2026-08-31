@@ -474,7 +474,7 @@
                             </tr>
                         </table>
                         <div class="footer-section">
-                           <div class="logo-box">${printData.stem && printData.stem.startsWith('TMC') ? 'TMC' : (printData.stem && printData.stem.startsWith('FT') ? 'FTS' : 'STEM')}</div>
+                           <div class="logo-box">${printData.customer || 'STEM'}</div>
                             <div class="barcode-box">
                                 <svg class="barcode" data-barcode="${printData.partNo}"></svg>
                             </div>
