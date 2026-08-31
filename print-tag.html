@@ -100,7 +100,10 @@
 <body>
 
     <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ พิมพ์ Tag ทั้งหมด (แนวนอน)</button>
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
+            🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
+        </button>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
     </div>
 
     <div id="container"></div>
@@ -111,6 +114,10 @@
         const partName = urlParams.get('partName') || '-';
         const lotNo = urlParams.get('lotNo') || '-';
         const qtyPerTag = parseInt(urlParams.get('qty')) || 100;
+        const line = urlParams.get('line') || '-';
+
+        // แสดงสรุปข้อมูลที่ส่วนหัว
+        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Qty: ${qtyPerTag} | Lot: ${lotNo}`;
 
         const totalTags = 6; 
         const container = document.getElementById('container');
