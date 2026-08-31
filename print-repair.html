@@ -289,13 +289,39 @@
     const problemText = urlParams.get('problem') || '';
     
     document.getElementById('lblId').innerText = recordId;
-    document.getElementById('lblDieNo').innerText = urlParams.get('dieNo') || '-';
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
     document.getElementById('lblPartNo').innerText = urlParams.get('partNo') || '-';
     document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
     document.getElementById('lblLine').innerText = urlParams.get('line') || '-';
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = problemText;
+
+    // ค้นหาข้อมูลเพิ่มเติมจาก LocalStorage (sys_die_maintenance) ตาม ID เพื่อดึง Die No. ที่ถูกต้อง
+    let dieNoValue = '-';
+    let imgSrc = '';
+
+    try {
+        const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
+        const found = dieBms.find(item => String(item.id) === String(recordId));
+        if (found) {
+            // ถ้าในเรคคอร์ดมีค่า Die No. หรือ Part No. ให้ดึงมาใช้
+            if (found.partNo) dieNoValue = found.partNo; // หรือเปลี่ยนเป็นฟิลด์ dieNo ของคุณถ้ามี
+            if (found.image && found.image.trim() !== '') {
+                imgSrc = found.image;
+            }
+        }
+    } catch (e) {
+        console.error("Error reading sys_die_maintenance:", e);
+    }
+
+    // ถ้าไม่เจอจากฐานข้อมูล ให้ใช้ค่าจาก URL (แต่ถ้าไม่มีให้แสดงเป็น '-')
+    if (dieNoValue === '-' || !dieNoValue) {
+        dieNoValue = urlParams.get('dieNo') || '-';
+    }
+
+    // กำหนดค่า Die No. เป็น '-' ตามต้องการ (หรือถ้าต้องการดึงค่าอื่นมาแสดงแทน ให้ปรับตรงนี้ได้ครับ)
+    // หากต้องการให้แสดงเครื่องหมาย dash (-) ถาวร ให้กำหนดเป็น '-' ได้เลยครับ
+    document.getElementById('lblDieNo').innerText = '-';
 
     // ตรวจสอบประเภทการซ่อม (PM หรือ BM)
     const chkPm = document.getElementById('chkPm');
@@ -322,21 +348,7 @@
         }
     }
 
-    // ระบบค้นหารูปภาพแบบปลอดภัยและครอบคลุมทุกช่องทาง
-    let imgSrc = '';
-
-    // 1. ค้นหาจาก sys_die_maintenance ใน LocalStorage โดยตรงตาม ID
-    try {
-        const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
-        const found = dieBms.find(item => String(item.id) === String(recordId));
-        if (found && found.image && found.image.trim() !== '') {
-            imgSrc = found.image;
-        }
-    } catch (e) {
-        console.error("Error reading sys_die_maintenance:", e);
-    }
-
-    // 2. ถ้ายังไม่เจอ ให้ดึงจาก Key เฉพาะกิจ
+    // ถ้ายังไม่เจอรูปจากฐานข้อมูล ให้ดึงจาก Key เฉพาะกิจ
     if (!imgSrc) {
         imgSrc = localStorage.getItem('print_repair_img_' + recordId) || localStorage.getItem('print_repair_image') || '';
     }
