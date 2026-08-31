@@ -98,16 +98,7 @@
 </head>
 <body>
 
-    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
-            🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
-        </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
-    </div>
-
-    <div id="container"></div>
-
-    <script>
+      <script>
         const urlParams = new URLSearchParams(window.location.search);
         const partNo = urlParams.get('partNo') || '-';
         const partName = urlParams.get('partName') || '-';
