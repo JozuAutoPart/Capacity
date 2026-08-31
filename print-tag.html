@@ -18,7 +18,7 @@
         .page {
             width: 297mm;
             height: 210mm;
-            padding: 8mm;
+            padding: 5mm 8mm;
             margin: 0 auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -26,7 +26,7 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(3, 1fr);
-            gap: 6mm;
+            gap: 4mm;
             page-break-after: always;
             page-break-inside: avoid;
         }
@@ -48,14 +48,14 @@
         }
         .tag-card {
             border: 2px solid #000;
-            padding: 4px;
+            padding: 3px 4px;
             box-sizing: border-box;
             font-size: 9px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             background: #fff;
-            height: 60mm;
+            height: 100%;
         }
         table.tag-table {
             width: 100%;
@@ -92,7 +92,7 @@
             margin-right: 10px;
         }
         .barcode-box svg {
-            max-height: 30px;
+            max-height: 28px;
             width: 100%;
         }
     </style>
@@ -144,7 +144,6 @@
                         <td>${lotNo}</td>
                         <td class="label-title text-center">Supplier Check</td>
                         <td class="label-title text-center">Delivery Date</td>
-                        <td class="label-title text-center" style="display:none;">QC Receiving</td>
                     </tr>
                 </table>
                 <table class="tag-table" style="margin-top: 1px;">
@@ -155,7 +154,7 @@
                         <td class="text-center" style="font-size: 8px; width: 25%;">QC Receiving</td>
                     </tr>
                     <tr>
-                        <td style="height: 14px;"></td>
+                        <td style="height: 12px;"></td>
                         <td></td>
                         <td></td>
                         <td></td>
@@ -172,7 +171,6 @@
         }
         container.appendChild(pageDiv);
 
-        // Render Barcode
         document.querySelectorAll('.barcode').forEach((el) => {
             JsBarcode(el, lotNo !== '-' ? lotNo : '123456', {
                 format: "CODE128",
