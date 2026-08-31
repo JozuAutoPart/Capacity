@@ -2,12 +2,14 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Print STEM Tags (6 Tags / A4 Landscape)</title>
+    <title>Print STEM Tags (6 Tags / A4)</title>
+    <!-- โหลดไลบรารี JsBarcode สำหรับสร้างบาร์โค้ดอัตโนมัติ -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
+        /* ตั้งค่าหน้ากระดาษ A4 สำหรับพิมพ์ */
         @page {
-            size: A4 landscape;
-            margin: 0;
+            size: A4;
+            margin: 10mm;
         }
         body {
             font-family: 'Tahoma', sans-serif;
@@ -16,72 +18,65 @@
             padding: 20px;
         }
         .page {
-            width: 297mm;
-            height: 210mm;
-            padding: 4mm 6mm;
-            margin: 0 auto;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            margin: 0 auto 20px auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             box-sizing: border-box;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 2mm;
-            page-break-after: always;
-            page-break-inside: avoid;
+            grid-template-columns: repeat(2, 1fr); /* 2 คอลัมน์ */
+            grid-template-rows: repeat(3, 1fr);    /* 3 แถว (รวมเป็น 6 ช่องต่อแผ่น) */
+            gap: 8mm;
         }
         @media print {
-            body { 
-                background: none; 
-                padding: 0; 
-                margin: 0;
-            }
-            .page { 
-                box-shadow: none; 
-                margin: 0; 
-                width: 297mm;
-                height: 210mm;
-                page-break-after: always;
-                page-break-inside: avoid;
-            }
+            body { background: none; padding: 0; }
+            .page { box-shadow: none; margin: 0; page-break-after: always; }
             .no-print { display: none; }
         }
+
+        /* ดีไซน์กรอบ Tag แต่ละใบให้เหมือนต้นฉบับ Excel */
         .tag-card {
             border: 2px solid #000;
-            padding: 2px 4px;
+            padding: 6px;
             box-sizing: border-box;
-            font-size: 9px;
+            font-size: 11px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             background: #fff;
-            height: 100%;
+            height: 88mm; /* ความสูงพอดีสำหรับ 3 แถวใน A4 */
         }
         table.tag-table {
             width: 100%;
             border-collapse: collapse;
             border: 1px solid #000;
-            table-layout: fixed;
         }
         table.tag-table th, table.tag-table td {
             border: 1px solid #000;
-            padding: 1px 3px;
+            padding: 3px 5px;
             vertical-align: middle;
-            overflow: hidden;
         }
-        .label-title { font-weight: bold; }
+        .label-title {
+            font-weight: bold;
+            width: 25%;
+        }
         .text-center { text-align: center; }
+        .text-right { text-align: right; }
         .fw-bold { font-weight: bold; }
+        
+        /* สไตล์ช่อง Barcode และ Logo */
         .footer-section {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 1px;
+            margin-top: 4px;
         }
         .logo-box {
             font-weight: bold;
             font-style: italic;
-            font-size: 12px;
+            font-size: 16px;
             color: #003366;
             font-family: 'Arial Black', sans-serif;
         }
@@ -89,10 +84,9 @@
             text-align: center;
             flex-grow: 1;
             margin-left: 10px;
-            margin-right: 10px;
         }
         .barcode-box svg {
-            max-height: 24px;
+            max-height: 30px;
             width: 100%;
         }
     </style>
