@@ -434,7 +434,21 @@
                 pageDiv.className = 'page';
             }
 
-           const card = document.createElement('div');
+          // กำหนดเงื่อนไขเปลี่ยนชื่อบริษัทตาม Code (STEM, FTS, TMC, MSFT, TH)
+            let companyName = "STEM"; 
+            if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
+                companyName = "FTS";
+            } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
+                companyName = "TMC";
+            } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
+                companyName = "MSFT";
+            } else if (tagCode.includes("TH") || tagCode.startsWith("H")) {
+                companyName = "TH";
+            } else {
+                companyName = "STEM";
+            }
+
+            const card = document.createElement('div');
             card.className = 'tag-card';
             card.innerHTML = `
                 <table class="tag-table">
@@ -474,7 +488,7 @@
                     </tr>
                 </table>
                 <div class="footer-section">
-                    <div class="logo-box">STEM</div>
+                    <div class="logo-box">${companyName}</div>
                     <div class="barcode-box">
                         <svg class="barcode"></svg>
                     </div>
