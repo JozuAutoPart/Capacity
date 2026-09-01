@@ -110,13 +110,16 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
+        
+        // ดึงค่าตามฟิลด์ข้อมูลใน Google Sheets (MasterParts)
         const partNo = urlParams.get('partNo') || '-';
         const partName = urlParams.get('partName') || '-';
         const lotNo = urlParams.get('lotNo') || '-';
         const qtyPerTag = parseInt(urlParams.get('qty')) || 100;
         const line = urlParams.get('line') || '-';
+        const tagCode = urlParams.get('code') || 'JA193';
 
-        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Qty: ${qtyPerTag} | Lot: ${lotNo}`;
+        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty: ${qtyPerTag} | Lot: ${lotNo}`;
 
         const totalTags = 6; 
         const container = document.getElementById('container');
@@ -143,7 +146,7 @@
                         <td class="label-title">Q'ty</td>
                         <td><span class="fw-bold">${qtyPerTag}</span> Pcs.</td>
                         <td class="label-title text-center">Code</td>
-                        <td class="text-center fw-bold">JA193</td>
+                        <td class="text-center fw-bold">${tagCode}</td>
                     </tr>
                     <tr>
                         <td class="label-title">Production / Lot No.:</td>
