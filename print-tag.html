@@ -483,3 +483,18 @@
                 </div>
             `;
             pageDiv.appendChild(card);
+            }
+        container.appendChild(pageDiv);
+
+        document.querySelectorAll('.barcode').forEach((el) => {
+            JsBarcode(el, lotNo !== '-' ? lotNo : '123456', {
+                format: "CODE128",
+                displayValue: false,
+                height: 30,
+                margin: 0
+            });
+        });
+    </script>
+</body>
+</html>
+
