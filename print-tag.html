@@ -434,21 +434,7 @@
                 pageDiv.className = 'page';
             }
 
-          // กำหนดเงื่อนไขเปลี่ยนชื่อบริษัทตาม Code (STEM, FTS, TMC, MSFT, TH)
-            let companyName = "STEM"; 
-            if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
-                companyName = "FTS";
-            } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
-                companyName = "TMC";
-            } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
-                companyName = "MSFT";
-            } else if (tagCode.includes("TH") || tagCode.startsWith("H")) {
-                companyName = "TH";
-            } else {
-                companyName = "STEM";
-            }
-
-           // กำหนดเงื่อนไขเปลี่ยนชื่อบริษัทตาม Code (STEM, FTS, TMC, MSFT, TH)
+             // กำหนดเงื่อนไขเปลี่ยนชื่อบริษัทตาม Code (STEM, FTS, TMC, MSFT, TH)
             let companyName = "STEM"; 
             if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
                 companyName = "FTS";
