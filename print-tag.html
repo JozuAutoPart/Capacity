@@ -33,17 +33,14 @@
         table.report-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 7.5px;
-            table-layout: fixed;
+            font-size: 10px;
         }
 
         table.report-table th, table.report-table td {
             border: 1px solid #000;
-            padding: 1px 1px;
+            padding: 3px 2px;
             text-align: center;
             vertical-align: middle;
-            overflow: hidden;
-            word-wrap: break-word;
         }
 
         table.report-table th {
@@ -53,9 +50,8 @@
 
         .logo-area {
             font-weight: bold;
-            font-size: 11px;
+            font-size: 15px;
             color: #008000;
-            line-height: 1.1;
         }
 
         @media print {
@@ -98,57 +94,52 @@
 
     <div class="sheet-container">
         <table class="report-table">
-            <colgroup>
-                <!-- กำหนดความกว้าง 23 คอลัมน์ (A ถึง W) ให้พอดีเป๊ะ -->
-                <col style="width: 35px;"><col style="width: 35px;"><col style="width: 45px;"><col style="width: 55px;"><col style="width: 50px;"><col style="width: 45px;"><col style="width: 45px;"><col style="width: 45px;"><col style="width: 30px;"><col style="width: 30px;"><col style="width: 28px;"><col style="width: 28px;"><col style="width: 30px;"><col style="width: 30px;"><col style="width: 30px;"><col style="width: 30px;"><col style="width: 30px;"><col style="width: 30px;"><col style="width: 25px;"><col style="width: 25px;"><col style="width: 40px;"><col style="width: 40px;"><col style="width: auto;">
-            </colgroup>
             <thead>
                 <tr>
-                    <td rowspan="2" colspan="2">
+                    <td rowspan="2" colspan="2" style="width: 110px;">
                         <div class="logo-area"><i class="fas fa-industry"></i> JOZU</div>
-                        <div style="font-size: 4px; color: #333;">Jozu Auto Part Co., Ltd.</div>
+                        <small style="font-size: 8px;">Jozu Auto Part Co., Ltd.</small>
                     </td>
-                    <td rowspan="2" colspan="6" style="font-size: 10px; font-weight: bold; line-height: 1.1;">
-                        Production Daily Report<br><span style="font-size: 7px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
+                    <td rowspan="2" colspan="6" style="font-size: 15px; font-weight: bold;">
+                        Production Daily Report<br>
+                        <span style="font-size: 11px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
                     </td>
-                    <td colspan="3" style="font-size: 6px;">ผู้จัดการ</td>
-                    <td colspan="4" style="font-size: 6px;">หัวหน้างาน</td>
-                    <td colspan="5" style="font-size: 6px;">ผู้ปฏิบัติงาน</td>
-                    <td colspan="3" style="font-size: 6px;">วันที่</td>
+                    <td colspan="3" style="width: 130px;">ผู้จัดการ</td>
+                    <td colspan="3" style="width: 130px;">หัวหน้างาน</td>
+                    <td colspan="3" style="width: 130px;">ผู้ปฏิบัติงาน</td>
+                    <td colspan="4" style="width: 120px;">วันที่</td>
                 </tr>
                 <tr>
-                    <td colspan="3" style="height: 13px;"></td>
-                    <td colspan="4"></td>
-                    <td colspan="5" id="lblOperator" style="font-weight: bold; font-size: 5.5px;">รวมทุกพนักงาน</td>
-                    <td colspan="3" id="lblDate" style="font-size: 5.5px;">-</td>
+                    <td colspan="3" style="height: 22px;"></td>
+                    <td colspan="3"></td>
+                    <td colspan="3" id="lblOperator" style="font-weight: bold; font-size: 9px;">รวมทุกพนักงาน</td>
+                    <td colspan="4" id="lblDate" style="font-size: 9px;">-</td>
                 </tr>
                 <tr>
-                    <td colspan="2" style="font-size: 5px;">Time เวลา</td>
-                    <td rowspan="2" style="font-size: 5px;">Lot No.<br><span style="font-size: 3.5px;">หมายเลขการผลิต</span></td>
-                    <td rowspan="2" style="font-size: 5px;">Part No.<br><span style="font-size: 3.5px;">หมายเลขชิ้นงาน</span></td>
-                    <td rowspan="2" style="font-size: 5px;">Process<br><span style="font-size: 3.5px;">ขั้นตอนการผลิต</span></td>
-                    <td rowspan="2" style="font-size: 4.5px;">Material IC. No.<br><span style="font-size: 3.5px;">หมายเลขวัตถุดิบ</span></td>
-                    <td rowspan="2" style="font-size: 5px;">น้ำหนักวัตถุดิบ</td>
-                    <td rowspan="2" style="font-size: 5px;">Machine No.<br><span style="font-size: 3.5px;">หมายเลขเครื่องจักร</span></td>
-                    <td colspan="5" style="font-size: 5px; font-weight: bold;">จำนวนผลิต</td>
-                    <td rowspan="2" style="font-size: 5px;">สาเหตุ NG</td>
-                    <td colspan="5" style="font-size: 5px; font-weight: bold;">เวลาที่เสียไปในการผลิต (นาที)</td>
-                    <td rowspan="2" colspan="2" style="font-size: 4.5px;">QC Line Appearance Check</td>
-                    <td rowspan="2" colspan="3" style="font-size: 5px;">ปัญหาการผลิตประจำวัน<br><span style="font-size: 3.5px;">(Remark)</span></td>
+                    <td style="width: 40px; font-size: 8px;">เวลาเริ่มต้น<br>(Start Time)</td>
+                    <td style="width: 40px; font-size: 8px;">เวลาสิ้นสุด<br>(End Time)</td>
+                    <td style="width: 55px;" rowspan="2">Lot No.<br><span style="font-size: 8px;">หมายเลขการผลิต</span></td>
+                    <td style="width: 75px;" rowspan="2">Part No.<br><span style="font-size: 8px;">หมายเลขชิ้นงาน</span></td>
+                    <td style="width: 45px;" rowspan="2">Process<br><span style="font-size: 8px;">ขั้นตอน</span></td>
+                    <td style="width: 60px;" rowspan="2">Material IC.<br><span style="font-size: 8px;">No. หมายเลขวัตถุดิบ</span></td>
+                    <td style="width: 45px;" rowspan="2">น้ำหนักวัตถุดิบ</td>
+                    <td style="width: 60px;" rowspan="2">Machine No.<br><span style="font-size: 8px;">หมายเลขเครื่องจักร</span></td>
+                    <td style="width: 40px;" rowspan="2">แผนผลิต</td>
+                    <td style="width: 40px;" rowspan="2">ผลิตจริง</td>
+                    <td style="width: 35px;" rowspan="2">OK</td>
+                    <td style="width: 35px;" rowspan="2">NG</td>
+                    <td style="width: 30px;" rowspan="2">A-H</td>
+                    <td style="width: 35px;" rowspan="2">จำนวน</td>
+                    <td style="width: 30px;" rowspan="2">เปลี่ยนแม่พิมพ์</td>
+                    <td style="width: 30px;" rowspan="2">รอตรวจสเปคชิ้นงาน</td>
+                    <td style="width: 30px;" rowspan="2">รอวัตถุดิบ</td>
+                    <td style="width: 30px;" rowspan="2">เปลี่ยนวัตถุดิบ</td>
+                    <td style="width: 30px;" rowspan="2">รอเครนจากสายอื่น</td>
+                    <td style="width: 45px;" rowspan="2" style="font-size: 8px;">QC Line Appearance Check</td>
+                    <td rowspan="2">ปัญหาการผลิตประจำวัน<br><span style="font-size: 8px;">(Remark)</span></td>
                 </tr>
                 <tr>
-                    <td style="font-size: 4.5px;">เวลาเริ่มต้น<br>(Start Time)</td>
-                    <td style="font-size: 4.5px;">เวลาสิ้นสุด<br>(End Time)</td>
-                    <td style="font-size: 4.5px;">แผนผลิต</td>
-                    <td style="font-size: 4.5px;">ผลิตจริง</td>
-                    <td style="font-size: 4.5px;">OK</td>
-                    <td style="font-size: 4.5px;">NG</td>
-                    <td style="font-size: 4px;">A-H</td>
-                    <td style="font-size: 4px;">เปลี่ยนแม่พิมพ์</td>
-                    <td style="font-size: 4px;">รอตรวจสอบ</td>
-                    <td style="font-size: 4px;">เปลี่ยนวัตถุดิบ</td>
-                    <td style="font-size: 4px;">รองานอื่น</td>
-                    <td style="font-size: 4px;">จำนวน</td>
+                    <td colspan="2" style="font-size: 8px; background-color: #f0f0f0;">Time เวลา</td>
                 </tr>
             </thead>
             <tbody id="reportTableBody">
@@ -156,14 +147,14 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="13" style="text-align: left; padding: 4px; vertical-align: top;">
+                    <td colspan="15" style="text-align: left; padding: 5px; vertical-align: top;">
                         <strong>หมายเหตุ</strong><br>
-                        <span style="font-size: 6px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span><br>
-                        <span style="font-size: 6px;">รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 0.5px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)</span>
+                        <span style="font-size: 9px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span><br><br>
+                        รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 2px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)
                     </td>
-                    <td colspan="10" style="text-align: center; padding: 4px; vertical-align: middle;">
-                        <div style="font-weight: bold; font-size: 6px; margin-bottom: 2px;">ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้นให้ดำเนินการ</div>
-                        <div style="font-size: 5.5px; display: flex; justify-content: space-around; text-align: center; margin-top: 2px;">
+                    <td colspan="6" style="text-align: center; padding: 5px; vertical-align: middle;">
+                        <div style="font-weight: bold; font-size: 10px; margin-bottom: 2px;">ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้นให้ดำเนินการ</div>
+                        <div style="font-size: 9px; display: flex; justify-content: space-around; text-align: center; margin-top: 5px;">
                             <div>🛑<br>หยุด</div>
                             <div>🏃‍♂️<br>เรียก</div>
                             <div>🚶‍♂️<br>รอ</div>
@@ -171,7 +162,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="23" style="text-align: right; padding: 2px; font-size: 5.5px; color: #555; border-top: 1px solid #000;">
+                    <td colspan="21" style="text-align: right; padding: 3px; font-size: 8px; color: #555; border-top: 1px solid #000;">
                         J-F-PR-005 Rev.07 Ref. 04 Jan. 16
                     </td>
                 </tr>
@@ -220,7 +211,7 @@
             for (let i = 0; i < totalRows; i++) {
                 let item = actuals[i];
                 let tr = document.createElement('tr');
-                tr.style.height = '22px';
+                tr.style.height = '23px';
 
                 if (item) {
                     tr.innerHTML = `
@@ -232,9 +223,11 @@
                         <td>-</td>
                         <td>-</td>
                         <td>${item.mcNo || '-'}</td>
-                        <td>${item.planQty || 0}</td>
+                        <td>-</td>
                         <td>${item.qty || 0}</td>
                         <td>${item.qty || 0}</td>
+                        <td>${item.ngQty || 0}</td>
+                        <td>-</td>
                         <td>${item.ngQty || 0}</td>
                         <td>-</td>
                         <td>-</td>
@@ -242,16 +235,13 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td colspan="2">-</td>
-                        <td colspan="1">${item.remark || '-'}</td>
+                        <td>${item.remark || '-'}</td>
                     `;
                 } else {
                     tr.innerHTML = `
                         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                        <td></td><td></td><td></td><td></td><td colspan="2"></td><td colspan="1"></td>
+                        <td></td><td></td><td></td><td></td><td></td>
                     `;
                 }
                 tbody.appendChild(tr);
