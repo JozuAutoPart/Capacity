@@ -4257,7 +4257,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
-    // กรองตามไลน์ที่เลือก (รองรับทั้งตัวพิมพ์เล็ก/ใหญ่ และชื่อฟิลด์ที่อาจต่างกัน)
     const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
         ? masters 
         : masters.filter(m => {
@@ -4265,10 +4264,9 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine.toUpperCase() === String(selectedLine).trim().toUpperCase();
           });
 
-    // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลาง
+    // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลางชุดเดียวกันกับกราฟ
     let activePartsSet = getActivePartsMap();
 
-    // กรองหาพาร์ทที่ไม่มีอยู่ใน activePartsSet (แปลว่า Stock เป็น 0 จริงๆ)
     const zeroStockParts = targetMasters.filter(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
