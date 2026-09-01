@@ -28,12 +28,13 @@
             padding: 8mm 10mm;
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
             box-sizing: border-box;
+            overflow: hidden;
         }
 
         table.report-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8px;
+            font-size: 7.5px;
             table-layout: fixed;
         }
 
@@ -99,29 +100,28 @@
     <div class="sheet-container">
         <table class="report-table">
             <colgroup>
-                <col style="width: 30px;"> <!-- 1. เวลาเริ่มต้น -->
-                <col style="width: 30px;"> <!-- 2. เวลาสิ้นสุด -->
-                <col style="width: 45px;"> <!-- 3. Lot No -->
-                <col style="width: 50px;"> <!-- 4. Part No -->
-                <col style="width: 42px;"> <!-- 5. Process -->
-                <col style="width: 45px;"> <!-- 6. Material IC -->
-                <col style="width: 35px;"> <!-- 7. น้ำหนักวัตถุดิบ -->
-                <col style="width: 42px;"> <!-- 8. Machine No -->
-                <col style="width: 26px;"> <!-- 9. แผนผลิต -->
-                <col style="width: 26px;"> <!-- 10. ผลิตจริง -->
-                <col style="width: 24px;"> <!-- 11. OK -->
-                <col style="width: 24px;"> <!-- 12. NG -->
-                <col style="width: 26px;"> <!-- 13. สาเหตุ NG (A-H) -->
-                <col style="width: 26px;"> <!-- 14. เสียเวลา: จำนวน -->
-                <col style="width: 26px;"> <!-- 15. เสียเวลา: เปลี่ยนแม่พิมพ์ -->
-                <col style="width: 26px;"> <!-- 16. เสียเวลา: รอตรวจสเปค -->
-                <col style="width: 26px;"> <!-- 17. เสียเวลา: เปลี่ยนวัตถุดิบ -->
-                <col style="width: 26px;"> <!-- 18. เสียเวลา: รองานอื่น -->
-                <col style="width: 36px;"> <!-- 19. QC Line Check -->
-                <col style="width: auto;"> <!-- 20. Remark -->
+                <col style="width: 3.5%;"> <!-- 1. เวลาเริ่มต้น -->
+                <col style="width: 3.5%;"> <!-- 2. เวลาสิ้นสุด -->
+                <col style="width: 5.5%;"> <!-- 3. Lot No -->
+                <col style="width: 6.0%;"> <!-- 4. Part No -->
+                <col style="width: 5.5%;"> <!-- 5. Process -->
+                <col style="width: 5.5%;"> <!-- 6. Material IC -->
+                <col style="width: 4.5%;"> <!-- 7. น้ำหนักวัตถุดิบ -->
+                <col style="width: 5.5%;"> <!-- 8. Machine No -->
+                <col style="width: 4.0%;"> <!-- 9. แผนผลิต -->
+                <col style="width: 4.0%;"> <!-- 10. ผลิตจริง -->
+                <col style="width: 3.5%;"> <!-- 11. OK -->
+                <col style="width: 3.5%;"> <!-- 12. NG -->
+                <col style="width: 4.0%;"> <!-- 13. สาเหตุ NG (A-H) -->
+                <col style="width: 4.0%;"> <!-- 14. เสียเวลา: จำนวน -->
+                <col style="width: 4.5%;"> <!-- 15. เสียเวลา: เปลี่ยนแม่พิมพ์ -->
+                <col style="width: 5.0%;"> <!-- 16. เสียเวลา: รอตรวจสเปค -->
+                <col style="width: 4.5%;"> <!-- 17. เสียเวลา: เปลี่ยนวัตถุดิบ -->
+                <col style="width: 5.0%;"> <!-- 18. เสียเวลา: รองานอื่น -->
+                <col style="width: 5.5%;"> <!-- 19. QC Line Check -->
+                <col style="width: 9.0%;"> <!-- 20. Remark -->
             </colgroup>
             <thead>
-                <!-- แถวที่ 1: โลโก้, หัวข้อรายงาน และข้อมูลเซ็นชื่อด้านบน (รวมกันให้ได้ 20 คอลัมน์พอดี) -->
                 <tr>
                     <td rowspan="2" colspan="2">
                         <div class="logo-area">
@@ -138,14 +138,12 @@
                     <td colspan="3" style="font-size: 7px;">ผู้ปฏิบัติงาน</td>
                     <td colspan="2" style="font-size: 7px;">วันที่</td>
                 </tr>
-                <!-- แถวที่ 2: ช่องว่างสำหรับเซ็นชื่อ / ชื่อพนักงาน / วันที่ -->
                 <tr>
                     <td colspan="3" style="height: 14px;"></td>
                     <td colspan="4"></td>
                     <td colspan="3" id="lblOperator" style="font-weight: bold; font-size: 6.5px;">รวมทุกพนักงาน</td>
                     <td colspan="2" id="lblDate" style="font-size: 6.5px;">-</td>
                 </tr>
-                <!-- แถวที่ 3: หัวข้อกลุ่มหลัก -->
                 <tr>
                     <td colspan="2" style="font-size: 6px;">Time เวลา</td>
                     <td rowspan="2" style="font-size: 6px;">Lot No.<br><span style="font-size: 4.5px;">หมายเลขการผลิต</span></td>
@@ -160,7 +158,6 @@
                     <td rowspan="2" style="font-size: 5.5px;">QC Line Appearance Check</td>
                     <td rowspan="2" style="font-size: 6px;">ปัญหาการผลิตประจำวัน<br><span style="font-size: 4.5px;">(Remark)</span></td>
                 </tr>
-                <!-- แถวที่ 4: หัวข้อย่อย -->
                 <tr>
                     <td style="font-size: 5.5px;">เวลาเริ่มต้น<br>(Start Time)</td>
                     <td style="font-size: 5.5px;">เวลาสิ้นสุด<br>(End Time)</td>
@@ -216,10 +213,12 @@
             let operators = [...new Set(actuals.map(item => item.operator))];
             
             operators.forEach(op => {
-                let opt = document.createElement('option');
-                opt.value = op;
-                opt.textContent = op;
-                select.appendChild(opt);
+                if (op) {
+                    let opt = document.createElement('option');
+                    opt.value = op;
+                    opt.textContent = op;
+                    select.appendChild(opt);
+                }
             });
         }
 
