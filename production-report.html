@@ -100,7 +100,7 @@
                         <div class="logo-area"><i class="fas fa-industry"></i> JOZU</div>
                         <small style="font-size: 8px;">Jozu Auto Part Co., Ltd.</small>
                     </td>
-                    <td rowspan="2" colspan="4" style="font-size: 15px; font-weight: bold;">
+                    <td rowspan="2" colspan="7" style="font-size: 16px; font-weight: bold;">
                         Production Daily Report<br>
                         <span style="font-size: 12px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
                     </td>
@@ -124,7 +124,7 @@
                     <td rowspan="2" style="width: 45px;">น้ำหนักวัตถุดิบ</td>
                     <td rowspan="2" style="width: 60px;">Machine No.<br><span style="font-size: 8px;">หมายเลขเครื่องจักร</span></td>
                     <td colspan="4">จำนวนผลิต</td>
-                    <td colspan="3">สาเหตุ NG</td>
+                    <td colspan="2">สาเหตุ NG</td>
                     <td colspan="5">เวลาที่เสียไปในการผลิต (นาที)</td>
                     <td rowspan="2" style="width: 45px; font-size: 8px;">QC Line Appearance Check</td>
                     <td rowspan="2">ปัญหาการผลิตประจำวัน<br><span style="font-size: 8px;">(Remark)</span></td>
@@ -150,13 +150,14 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="10" style="text-align: left; padding: 5px; vertical-align: top;">
+                    <td colspan="15" style="text-align: left; padding: 5px; vertical-align: top;">
                         <strong>หมายเหตุ</strong><br>
-                        <span style="font-size: 9px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span>
+                        <span style="font-size: 9px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span><br><br>
+                        รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 2px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)
                     </td>
-                    <td colspan="11" style="text-align: left; padding: 5px; vertical-align: middle;">
+                    <td colspan="6" style="text-align: center; padding: 5px; vertical-align: middle;">
                         <div style="font-weight: bold; font-size: 10px; margin-bottom: 2px;">ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้นให้ดำเนินการ</div>
-                        <div style="font-size: 9px; display: flex; justify-content: space-around; text-align: center;">
+                        <div style="font-size: 9px; display: flex; justify-content: space-around; text-align: center; margin-top: 5px;">
                             <div>🛑<br>หยุด</div>
                             <div>🏃‍♂️<br>เรียก</div>
                             <div>🚶‍♂️<br>รอ</div>
@@ -164,10 +165,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="10" style="text-align: left; padding: 3px; font-size: 9px;">
-                        รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 2px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)
-                    </td>
-                    <td colspan="11" style="text-align: right; padding: 3px; font-size: 8px; color: #555;">
+                    <td colspan="21" style="text-align: right; padding: 3px; font-size: 8px; color: #555; border-top: 1px solid #000;">
                         J-F-PR-005 Rev.07 Ref. 04 Jan. 16
                     </td>
                 </tr>
@@ -210,7 +208,7 @@
 
             tbody.innerHTML = '';
 
-            let minRows = 13; // กำหนดจำนวนแถวให้เต็มหน้าพอดี
+            let minRows = 12; 
             let totalRows = Math.max(actuals.length, minRows);
 
             for (let i = 0; i < totalRows; i++) {
