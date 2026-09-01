@@ -54,9 +54,13 @@
 
         .logo-area {
             font-weight: bold;
-            font-size: 13px;
-            color: #008000;
+            font-size: 14px;
+            color: #00A651;
             line-height: 1.1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
         }
 
         @media print {
@@ -102,30 +106,29 @@
             <colgroup>
                 <col style="width: 3.5%;"> <!-- 1. เวลาเริ่มต้น -->
                 <col style="width: 3.5%;"> <!-- 2. เวลาสิ้นสุด -->
-                <col style="width: 5.5%;"> <!-- 3. Lot No -->
-                <col style="width: 6.0%;"> <!-- 4. Part No -->
-                <col style="width: 5.5%;"> <!-- 5. Process -->
-                <col style="width: 5.5%;"> <!-- 6. Material IC -->
-                <col style="width: 4.5%;"> <!-- 7. น้ำหนักวัตถุดิบ -->
-                <col style="width: 5.5%;"> <!-- 8. Machine No -->
-                <col style="width: 4.0%;"> <!-- 9. แผนผลิต -->
-                <col style="width: 4.0%;"> <!-- 10. ผลิตจริง -->
-                <col style="width: 3.5%;"> <!-- 11. OK -->
-                <col style="width: 3.5%;"> <!-- 12. NG -->
-                <col style="width: 4.0%;"> <!-- 13. สาเหตุ NG (A-H) -->
-                <col style="width: 4.0%;"> <!-- 14. เสียเวลา: จำนวน -->
-                <col style="width: 4.5%;"> <!-- 15. เสียเวลา: เปลี่ยนแม่พิมพ์ -->
-                <col style="width: 5.0%;"> <!-- 16. เสียเวลา: รอตรวจสเปค -->
-                <col style="width: 4.5%;"> <!-- 17. เสียเวลา: เปลี่ยนวัตถุดิบ -->
-                <col style="width: 5.0%;"> <!-- 18. เสียเวลา: รองานอื่น -->
-                <col style="width: 5.5%;"> <!-- 19. QC Line Check -->
-                <col style="width: 9.0%;"> <!-- 20. Remark -->
+                <col style="width: 6.0%;"> <!-- 3. Lot No -->
+                <col style="width: 7.0%;"> <!-- 4. Part No -->
+                <col style="width: 6.0%;"> <!-- 5. Process -->
+                <col style="width: 6.0%;"> <!-- 6. Material IC -->
+                <col style="width: 5.0%;"> <!-- 7. น้ำหนักวัตถุดิบ -->
+                <col style="width: 6.0%;"> <!-- 8. Machine No -->
+                <col style="width: 4.5%;"> <!-- 9. แผนผลิต -->
+                <col style="width: 4.5%;"> <!-- 10. ผลิตจริง -->
+                <col style="width: 4.0%;"> <!-- 11. OK -->
+                <col style="width: 4.0%;"> <!-- 12. NG -->
+                <col style="width: 4.5%;"> <!-- 13. สาเหตุ NG (A-H) -->
+                <col style="width: 4.5%;"> <!-- 14. เสียเวลา: จำนวน -->
+                <col style="width: 5.0%;"> <!-- 15. เสียเวลา: เปลี่ยนแม่พิมพ์ -->
+                <col style="width: 5.5%;"> <!-- 16. เสียเวลา: รอตรวจสเปค -->
+                <col style="width: 5.0%;"> <!-- 17. เสียเวลา: เปลี่ยนวัตถุดิบ -->
+                <col style="width: 5.5%;"> <!-- 18. เสียเวลา: รองานอื่น -->
+                <col style="width: 14.0%;"> <!-- 19. Remark (รวมพื้นที่ส่วนที่ตัดออก) -->
             </colgroup>
             <thead>
                 <tr>
                     <td rowspan="2" colspan="2">
                         <div class="logo-area">
-                            <span style="color: #00A651; font-size: 15px;"><i class="fas fa-industry"></i> JOZU</span>
+                            <i class="fas fa-industry" style="font-size: 16px;"></i> JOZU
                         </div>
                         <div style="font-size: 5px; color: #333;">Jozu Auto Part Co., Ltd.</div>
                     </td>
@@ -155,7 +158,6 @@
                     <td colspan="4" style="font-size: 6px; font-weight: bold;">จำนวนผลิต</td>
                     <td rowspan="2" style="font-size: 6px;">สาเหตุ NG</td>
                     <td colspan="5" style="font-size: 6px; font-weight: bold;">เวลาที่เสียไปในการผลิต (นาที)</td>
-                    <td rowspan="2" style="font-size: 5.5px;">QC Line Appearance Check</td>
                     <td rowspan="2" style="font-size: 6px;">ปัญหาการผลิตประจำวัน<br><span style="font-size: 4.5px;">(Remark)</span></td>
                 </tr>
                 <tr>
@@ -178,7 +180,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="14" style="text-align: left; padding: 4px; vertical-align: top;">
+                    <td colspan="13" style="text-align: left; padding: 4px; vertical-align: top;">
                         <strong>หมายเหตุ</strong><br>
                         <span style="font-size: 7px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span><br>
                         <span style="font-size: 7px;">รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 1px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)</span>
@@ -193,7 +195,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="20" style="text-align: right; padding: 2px; font-size: 6px; color: #555; border-top: 1px solid #000;">
+                    <td colspan="19" style="text-align: right; padding: 2px; font-size: 6px; color: #555; border-top: 1px solid #000;">
                         J-F-PR-005 Rev.07 Ref. 04 Jan. 16
                     </td>
                 </tr>
@@ -266,14 +268,13 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>-</td>
                         <td>${item.remark || '-'}</td>
                     `;
                 } else {
                     tr.innerHTML = `
                         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                        <td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td></td>
                     `;
                 }
                 tbody.appendChild(tr);
