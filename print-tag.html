@@ -439,24 +439,24 @@
             card.innerHTML = `
                 <table class="tag-table">
                     <tr>
-                        <td style="width: 20%;" class="label-title">Part No.</td>
-                        <!-- รวมช่อง Part No. ให้อยู่ใน box เดียวกัน และเพิ่มคลาสสำหรับขยายตัวหนังสือ -->
-                        <td colspan="3" class="fw-bold" style="font-size: 16px; font-weight: bold;">${partNo}</td>
+                        <td style="width: 22%;" class="label-title">Part No.</td>
+                        <!-- ขยายขนาดตัวหนังสือและใช้ colspan รวมพื้นที่ยาวไปจนถึงก่อน Stamp Mark -->
+                        <td colspan="2" class="fw-bold" style="font-size: 20px; font-weight: bold; letter-spacing: 0.5px;">${partNo}</td>
                         <td style="width: 22%;" class="label-title text-center">Stamp Mark</td>
                     </tr>
                     <tr>
                         <td class="label-title">Part Name</td>
-                        <td class="fw-bold" colspan="4">${partName}</td>
+                        <td class="fw-bold" colspan="3">${partName}</td>
                     </tr>
                     <tr>
                         <td class="label-title">Q'ty</td>
                         <td><span class="fw-bold">${qtyPerTag}</span> Pcs.</td>
                         <td class="label-title text-center" style="width: 15%;">Code</td>
-                        <td colspan="2" class="text-center fw-bold">${tagCode}</td>
+                        <td class="text-center fw-bold">${tagCode}</td>
                     </tr>
                     <tr>
                         <td class="label-title">Production / Lot No.:</td>
-                        <td colspan="2">${lotNo}</td>
+                        <td>${lotNo}</td>
                         <td class="label-title text-center">Supplier Check</td>
                         <td class="label-title text-center">Delivery Date</td>
                     </tr>
@@ -483,6 +483,3 @@
                 </div>
             `;
             pageDiv.appendChild(card);
-             </script>
-</body>
-</html> แก้มาจาก โค้ดนนี้ 
