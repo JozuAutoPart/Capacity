@@ -110,48 +110,33 @@
 
     <script>
         // ==========================================
-        // 📌 1. รับค่า Part No. และ Lot No. จาก URL อัตโนมัติ
+        // 📌 ฐานข้อมูล Masterparts (เพิ่ม Part No. ละ 1 บรรทัดยาวๆ ได้เลยครับ)
+        // รูปแบบ: "PartNo": { partName: "ชื่อ(Col.H)", qty: จำนวน(Col.C), code: "รหัส(Col.I)" }
         // ==========================================
+        const Masterparts = {
+            "17443-BZ190": { partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", qty: 1533, code: "JA119" },
+            "17442-BZ430": { partName: "BRACKET SUB-ASSY, RADIATOR", qty: 50, code: "JA193" },
+            "53219-0D020": { partName: "SUPPORT, RADIATOR, LWR RR", qty: 50, code: "JA114" }
+            // สามารถเพิ่มพาร์ทที่ 4, 5, 6... ต่อลงไปได้เรื่อยๆ แบบบรรทัดละพาร์ทตรงนี้ครับ
+        };
+
+        // รับค่า PartNo และ LotNo ที่ส่งมาจากลิงก์ Google Sheets
         const urlParams = new URLSearchParams(window.location.search);
         const partNo = urlParams.get('partNo') || '17443-BZ190'; 
         const lotNo = urlParams.get('lotNo') || '-';
 
-        // ==========================================
-        // 📌 2. ฐานข้อมูล Masterparts (เงื่อนไขการค้นหา)
-        // partName = คอลัมน์ H
-        // qty      = คอลัมน์ C
-        // code     = คอลัมน์ I
-        // ==========================================
-        const Masterparts = {
-            "17443-BZ190": {
-                partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", // คอลัมน์ H
-                qty: 1533,                                      // คอลัมน์ C
-                code: "JA119"                                   // คอลัมน์ I
-            },
-            "17442-BZ430": {
-                partName: "BRACKET SUB-ASSY, RADIATOR",         // คอลัมน์ H
-                qty: 50,                                        // คอลัมน์ C
-                code: "JA193"                                   // คอลัมน์ I
-            },
-            "53219-0D020": {
-                partName: "SUPPORT, RADIATOR, LWR RR",          // คอลัมน์ H
-                qty: 50,                                        // คอลัมน์ C
-                code: "JA114"                                   // คอลัมน์ I
-            }
-        };
-
-        // ค้นหาข้อมูลจาก Masterparts โดยใช้ Part No. ที่ส่งมาจาก URL
+        // ค้นหาข้อมูลอัตโนมัติจาก Masterparts ด้านบน
         const currentPart = Masterparts[partNo] || {
-            partName: "ไม่พบข้อมูลพาร์ทใน Masterparts",
+            partName: "ไม่พบข้อมูลพาร์ทนี้ใน Masterparts",
             qty: 0,
             code: "-"
         };
 
-        const partName = currentPart.partName; // ดึงจาก คอลัมน์ H
-        const qtyPerTag = currentPart.qty;     // ดึงจาก คอลัมน์ C
-        const tagCode = currentPart.code;      // ดึงจาก คอลัมน์ I
+        const partName = currentPart.partName; // ดึงชื่อจาก Col.H
+        const qtyPerTag = currentPart.qty;     // ดึงจำนวนจาก Col.C
+        const tagCode = currentPart.code;      // ดึง Code จาก Col.I
 
-        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name (Col.H): ${partName} | Qty (Col.C): ${qtyPerTag} | Code (Col.I): ${tagCode} | Lot: ${lotNo}`;
+        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty: ${qtyPerTag} | Code: ${tagCode} | Lot: ${lotNo}`;
 
         const totalTags = 6; 
         const container = document.getElementById('container');
