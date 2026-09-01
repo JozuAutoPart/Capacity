@@ -25,21 +25,20 @@
             min-height: 210mm;
             background: #fff;
             margin: 0 auto;
-            padding: 10mm 15mm;
+            padding: 8mm 10mm;
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
             box-sizing: border-box;
-            position: relative;
         }
 
         table.report-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11px;
+            font-size: 10px;
         }
 
         table.report-table th, table.report-table td {
             border: 1px solid #000;
-            padding: 4px 2px;
+            padding: 3px 2px;
             text-align: center;
             vertical-align: middle;
         }
@@ -51,7 +50,7 @@
 
         .logo-area {
             font-weight: bold;
-            font-size: 16px;
+            font-size: 15px;
             color: #008000;
         }
 
@@ -67,7 +66,7 @@
                 box-shadow: none;
                 margin: 0;
                 width: 100%;
-                padding: 5mm;
+                padding: 2mm;
             }
             @page {
                 size: A4 landscape;
@@ -95,16 +94,15 @@
 
     <div class="sheet-container">
         <table class="report-table">
-            <!-- ส่วนหัวตาราง -->
             <thead>
                 <tr>
-                    <td rowspan="2" style="width: 120px;">
+                    <td rowspan="2" style="width: 110px;">
                         <div class="logo-area"><i class="fas fa-industry"></i> JOZU</div>
-                        <small style="font-size: 9px;">Jozu Auto Part Co., Ltd.</small>
+                        <small style="font-size: 8px;">Jozu Auto Part Co., Ltd.</small>
                     </td>
-                    <td rowspan="2" colspan="3" style="font-size: 16px; font-weight: bold;">
+                    <td rowspan="2" colspan="4" style="font-size: 15px; font-weight: bold;">
                         Production Daily Report<br>
-                        <span style="font-size: 13px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
+                        <span style="font-size: 12px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
                     </td>
                     <td>ผู้จัดการ</td>
                     <td>หัวหน้างาน</td>
@@ -112,55 +110,53 @@
                     <td>วันที่</td>
                 </tr>
                 <tr>
-                    <td style="height: 25px;"></td>
+                    <td style="height: 22px;"></td>
                     <td></td>
-                    <td id="lblOperator" style="font-weight: bold; font-size: 10px;">รวมทุกพนักงาน</td>
-                    <td id="lblDate" style="font-size: 10px;">-</td>
+                    <td id="lblOperator" style="font-weight: bold; font-size: 9px;">รวมทุกพนักงาน</td>
+                    <td id="lblDate" style="font-size: 9px;">-</td>
                 </tr>
                 <tr>
                     <td colspan="2">Time เวลา</td>
-                    <td rowspan="2" style="width: 60px;">Lot No.<br><span style="font-size: 9px;">หมายเลขการผลิต</span></td>
-                    <td rowspan="2" style="width: 80px;">Part No.<br><span style="font-size: 9px;">หมายเลขชิ้นงาน</span></td>
-                    <td rowspan="2" style="width: 50px;">Process<br><span style="font-size: 9px;">ขั้นตอน</span></td>
-                    <td rowspan="2" style="width: 65px;">Material IC.<br><span style="font-size: 9px;">No. หมายเลขวัตถุดิบ</span></td>
-                    <td rowspan="2" style="width: 50px;">น้ำหนักวัตถุดิบ</td>
-                    <td rowspan="2" style="width: 65px;">Machine No.<br><span style="font-size: 9px;">หมายเลขเครื่องจักร</span></td>
-                    <td colspan="5">จำนวนผลิต</td>
-                    <td colspan="5">สาเหตุ NG</td>
-                    <td rowspan="2" style="width: 50px; font-size: 9px;">เวลาที่เสียไปในการผลิต (นาที)</td>
-                    <td rowspan="2" style="width: 55px; font-size: 9px;">QC Line Appearance Check</td>
-                    <td rowspan="2">ปัญหาการผลิตประจำวัน<br><span style="font-size: 9px;">(Remark)</span></td>
+                    <td rowspan="2" style="width: 55px;">Lot No.<br><span style="font-size: 8px;">หมายเลขการผลิต</span></td>
+                    <td rowspan="2" style="width: 75px;">Part No.<br><span style="font-size: 8px;">หมายเลขชิ้นงาน</span></td>
+                    <td rowspan="2" style="width: 45px;">Process<br><span style="font-size: 8px;">ขั้นตอน</span></td>
+                    <td rowspan="2" style="width: 60px;">Material IC.<br><span style="font-size: 8px;">No. หมายเลขวัตถุดิบ</span></td>
+                    <td rowspan="2" style="width: 45px;">น้ำหนักวัตถุดิบ</td>
+                    <td rowspan="2" style="width: 60px;">Machine No.<br><span style="font-size: 8px;">หมายเลขเครื่องจักร</span></td>
+                    <td colspan="4">จำนวนผลิต</td>
+                    <td colspan="3">สาเหตุ NG</td>
+                    <td colspan="5">เวลาที่เสียไปในการผลิต (นาที)</td>
+                    <td rowspan="2" style="width: 45px; font-size: 8px;">QC Line Appearance Check</td>
+                    <td rowspan="2">ปัญหาการผลิตประจำวัน<br><span style="font-size: 8px;">(Remark)</span></td>
                 </tr>
                 <tr>
-                    <td style="width: 45px; font-size: 9px;">เวลาเริ่มต้น<br>(Start Time)</td>
-                    <td style="width: 45px; font-size: 9px;">เวลาสิ้นสุด<br>(End Time)</td>
-                    <td style="width: 45px; font-size: 9px;">แผนผลิต</td>
-                    <td style="width: 45px; font-size: 9px;">ผลิตจริง</td>
-                    <td style="width: 35px; font-size: 9px;">OK</td>
-                    <td style="width: 35px; font-size: 9px;">NG</td>
-                    <td style="width: 30px; font-size: 9px;">A-H</td>
-                    <td style="width: 35px; font-size: 9px;">จำนวน</td>
-                    <td style="width: 30px; font-size: 9px;">เปลี่ยนแม่พิมพ์</td>
-                    <td style="width: 30px; font-size: 9px;">รอตรวจสเปคชิ้นงาน</td>
-                    <td style="width: 30px; font-size: 9px;">รอวัตถุดิบ</td>
-                    <td style="width: 30px; font-size: 9px;">เปลี่ยนวัตถุดิบ</td>
-                    <td style="width: 30px; font-size: 9px;">รอเครนจากสายอื่น</td>
+                    <td style="width: 40px; font-size: 8px;">เวลาเริ่มต้น<br>(Start Time)</td>
+                    <td style="width: 40px; font-size: 8px;">เวลาสิ้นสุด<br>(End Time)</td>
+                    <td style="width: 40px; font-size: 8px;">แผนผลิต</td>
+                    <td style="width: 40px; font-size: 8px;">ผลิตจริง</td>
+                    <td style="width: 35px; font-size: 8px;">OK</td>
+                    <td style="width: 35px; font-size: 8px;">NG</td>
+                    <td style="width: 30px; font-size: 8px;">A-H</td>
+                    <td style="width: 35px; font-size: 8px;">จำนวน</td>
+                    <td style="width: 30px; font-size: 8px;">เปลี่ยนแม่พิมพ์</td>
+                    <td style="width: 30px; font-size: 8px;">รอตรวจสเปคชิ้นงาน</td>
+                    <td style="width: 30px; font-size: 8px;">รอวัตถุดิบ</td>
+                    <td style="width: 30px; font-size: 8px;">เปลี่ยนวัตถุดิบ</td>
+                    <td style="width: 30px; font-size: 8px;">รอเครนจากสายอื่น</td>
                 </tr>
             </thead>
-            <!-- เนื้อหาตารางข้อมูลจริง -->
             <tbody id="reportTableBody">
-                <!-- ข้อมูลจะถูกดึงมาแสดงที่นี่อัตโนมัติ -->
+                <!-- ข้อมูลแสดงที่นี่ -->
             </tbody>
-            <!-- ส่วนท้ายตาราง / หมายเหตุ -->
             <tfoot>
                 <tr>
-                    <td colspan="10" style="text-align: left; padding: 6px; vertical-align: top;">
+                    <td colspan="10" style="text-align: left; padding: 5px; vertical-align: top;">
                         <strong>หมายเหตุ</strong><br>
-                        <span style="font-size: 10px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span>
+                        <span style="font-size: 9px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span>
                     </td>
-                    <td colspan="10" style="text-align: left; padding: 6px; vertical-align: middle;">
-                        <div style="font-weight: bold; font-size: 11px; margin-bottom: 3px;">ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้นให้ดำเนินการ</div>
-                        <div style="font-size: 10px; display: flex; justify-content: space-around; text-align: center;">
+                    <td colspan="11" style="text-align: left; padding: 5px; vertical-align: middle;">
+                        <div style="font-weight: bold; font-size: 10px; margin-bottom: 2px;">ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้นให้ดำเนินการ</div>
+                        <div style="font-size: 9px; display: flex; justify-content: space-around; text-align: center;">
                             <div>🛑<br>หยุด</div>
                             <div>🏃‍♂️<br>เรียก</div>
                             <div>🚶‍♂️<br>รอ</div>
@@ -168,10 +164,10 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="10" style="text-align: left; padding: 4px; font-size: 10px;">
+                    <td colspan="10" style="text-align: left; padding: 3px; font-size: 9px;">
                         รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 2px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)
                     </td>
-                    <td colspan="10" style="text-align: right; padding: 4px; font-size: 9px; color: #555;">
+                    <td colspan="11" style="text-align: right; padding: 3px; font-size: 8px; color: #555;">
                         J-F-PR-005 Rev.07 Ref. 04 Jan. 16
                     </td>
                 </tr>
@@ -180,7 +176,6 @@
     </div>
 
     <script>
-        // โหลดข้อมูลจาก localStorage ของหน้าหลักมาแสดง
         window.addEventListener('DOMContentLoaded', () => {
             loadOperatorFilter();
             renderReport();
@@ -206,7 +201,6 @@
             
             document.getElementById('lblOperator').textContent = selectedOp ? selectedOp : "รวมทุกพนักงาน";
             
-            // กำหนดวันที่ปัจจุบันแสดงที่หัวกระดาษ
             let today = new Date().toISOString().split('T')[0];
             document.getElementById('lblDate').textContent = today;
 
@@ -216,14 +210,13 @@
 
             tbody.innerHTML = '';
 
-            // สร้างแถวข้อมูลว่างให้ครบฟอร์ม (อย่างน้อย 12 แถว เพื่อให้ฟอร์มสวยเต็มหน้ากระดาษ A4)
-            let minRows = 12;
+            let minRows = 13; // กำหนดจำนวนแถวให้เต็มหน้าพอดี
             let totalRows = Math.max(actuals.length, minRows);
 
             for (let i = 0; i < totalRows; i++) {
                 let item = actuals[i];
                 let tr = document.createElement('tr');
-                tr.style.height = '24px';
+                tr.style.height = '23px';
 
                 if (item) {
                     tr.innerHTML = `
@@ -250,7 +243,6 @@
                         <td>${item.remark || '-'}</td>
                     `;
                 } else {
-                    // ช่องว่างกรณีข้อมูลไม่ถึง 12 แถว
                     tr.innerHTML = `
                         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
