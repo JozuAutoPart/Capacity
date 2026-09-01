@@ -448,12 +448,27 @@
                 companyName = "STEM";
             }
 
+           // กำหนดเงื่อนไขเปลี่ยนชื่อบริษัทตาม Code (STEM, FTS, TMC, MSFT, TH)
+            let companyName = "STEM"; 
+            if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
+                companyName = "FTS";
+            } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
+                companyName = "TMC";
+            } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
+                companyName = "MSFT";
+            } else if (tagCode.includes("TH") || tagCode.startsWith("H")) {
+                companyName = "TH";
+            } else {
+                companyName = "STEM";
+            }
+
             const card = document.createElement('div');
             card.className = 'tag-card';
             card.innerHTML = `
                 <table class="tag-table">
                     <tr>
-                        <td style="width: 22%;" class="label-title">Part No.</td>
+                        <!-- ขยายขนาดตัวอักษรของคำว่า Part No. ตรงนี้ครับ -->
+                        <td style="width: 22%; font-size: 14px; font-weight: bold;" class="label-title">Part No.</td>
                         <td colspan="2" class="fw-bold" style="font-size: 28px; font-weight: bold; padding: 14px 6px; letter-spacing: 0.5px;">${partNo}</td>
                         <td style="width: 22%;" class="label-title text-center">Stamp Mark</td>
                     </tr>
@@ -480,7 +495,6 @@
                         <td class="text-center" style="font-size: 8.5px;">QC Receiving</td>
                     </tr>
                     <tr>
-                        <!-- ขยายความสูงช่องเซ็นชื่อตรงนี้ให้ใหญ่ขึ้น (ปรับจาก 22px เป็น 35px) -->
                         <td style="height: 35px;"></td>
                         <td></td>
                         <td></td>
