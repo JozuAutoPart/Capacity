@@ -109,15 +109,36 @@
     <div id="container"></div>
 
     <script>
+        // 📌 ฐานข้อมูลชิ้นส่วน (สามารถเพิ่ม Part No. อื่นๆ ลงในนี้ได้เลย)
+        const partDatabase = {
+            "17442-BZ430": {
+                partName: "BRACKET SUB-ASSY, RADIATOR",
+                code: "JA193"
+            },
+            "17443-BZ190": {
+                partName: "BRACKET SUB-ASSY, EXHAUST PIPE", // เปลี่ยนชื่อให้ตรงตามจริงได้ครับ
+                code: "JA193"
+            },
+            "53219-0D020": {
+                partName: "SUPPORT, RADIATOR, LWR RR",
+                code: "JA114"
+            }
+        };
+
         const urlParams = new URLSearchParams(window.location.search);
-        
-        // ดึงค่าตามฟิลด์ข้อมูลใน Google Sheets (MasterParts)
-        const partNo = urlParams.get('partNo') || '-';
-        const partName = urlParams.get('partName') || '-';
+        const partNo = urlParams.get('partNo') || '17442-BZ430';
         const lotNo = urlParams.get('lotNo') || '-';
         const qtyPerTag = parseInt(urlParams.get('qty')) || 100;
         const line = urlParams.get('line') || '-';
-        const tagCode = urlParams.get('code') || 'JA193';
+
+        // ค้นหาข้อมูลจาก Database อัตโนมัติ (หากไม่พบจะแสดงค่าเริ่มต้น)
+        const dbInfo = partDatabase[partNo] || {
+            partName: "ไม่ระบุชื่อชิ้นส่วน",
+            code: "JA193"
+        };
+
+        const partName = urlParams.get('partName') || dbInfo.partName;
+        const tagCode = urlParams.get('code') || dbInfo.code;
 
         document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty: ${qtyPerTag} | Lot: ${lotNo}`;
 
