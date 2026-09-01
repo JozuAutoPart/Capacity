@@ -4064,18 +4064,9 @@ document.addEventListener('change', function(e) {
 // ==========================================================
 // ==========================================================
 // ฟังก์ชันคำนวณยอด Stock รวมทั้งฝั่ง WIP และ FG จากหน้าเว็บ
-// ประกาศตัวแปรเก็บค่าล่าสุดไว้ในระดับ Global (ป้องกันการรีเฟรชแล้วหลุด)
-function renderStockZeroPieChart() {
-    let canvasElement = document.getElementById('stockZeroPieChart');
-    if (!canvasElement) return;
-
-    let masterDb = window.masterPartsDatabase || [];
-    let totalParts = masterDb.length;
-    if (totalParts === 0) totalParts = 219;
-
-    let activePartsSet = new Set(); // ใช้เก็บพาร์ทที่มี Stock มากกว่า 0
-
-    // วิ่งเช็กหาพาร์ทที่มี Stock มากกว่า 0 จริงๆ จากตาราง WIP และ FG
+// --- ฟังก์ชันกลางสำหรับตรวจสอบและดึงพาร์ทที่มี Stock มากกว่า 0 จริงๆ จากหน้าตาราง ---
+function getActivePartsMap() {
+    let activePartsSet = new Set();
     let targetTables = document.querySelectorAll('#wipTableBody tr, #fgTableBody tr'); 
     let rowsToProcess = targetTables.length > 0 ? targetTables : document.querySelectorAll('table tbody tr');
 
@@ -4089,17 +4080,30 @@ function renderStockZeroPieChart() {
                 let cellText = cols[i].innerText.replace(/,/g, '').trim();
                 let val = parseFloat(cellText) || 0;
                 
-                // เช็กตัวที่มีค่ามากกว่า 0 (ซึ่งจะมีแค่ 1 พาร์ทตามหน้าจริง)
+                // เช็กตัวที่มีค่ามากกว่า 0
                 if (val > 0 && !cellText.includes('In Stock') && !cellText.includes('Out') && !cellText.includes(':')) {
-                    activePartsSet.add(pNo.toLowerCase());
+                    activePartsSet.add(pNo.toUpperCase());
                     break; 
                 }
             }
         }
     });
+    return activePartsSet;
+}
 
-    let availableCount = activePartsSet.size; // "มี Stock" จะได้เท่ากับ 1 พอดีเป๊ะ
-    let zeroCount = Math.max(0, totalParts - availableCount); // "Stock หมด" จะได้ 219 - 1 = 218 รายการ
+// ประกาศตัวแปรเก็บค่าล่าสุดไว้ในระดับ Global (ป้องกันการรีเฟรชแล้วหลุด)
+function renderStockZeroPieChart() {
+    let canvasElement = document.getElementById('stockZeroPieChart');
+    if (!canvasElement) return;
+
+    let masterDb = window.masterPartsDatabase || [];
+    let totalParts = masterDb.length;
+    if (totalParts === 0) totalParts = 219;
+
+    let activePartsSet = getActivePartsMap(); // ใช้ฟังก์ชันกลางเช็กพาร์ทที่มี Stock
+
+    let availableCount = activePartsSet.size; 
+    let zeroCount = Math.max(0, totalParts - availableCount); 
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
     // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard ตามจริง
@@ -4142,7 +4146,8 @@ setTimeout(renderStockZeroPieChart, 2500);
 document.addEventListener('click', function(e) {
     setTimeout(renderStockZeroPieChart, 300);
 });
-        // ==========================================================
+        
+// ==========================================================
 // ฟังก์ชันบังคับเปิด-ปิดกล่องกราฟเฉพาะหน้า Dashboard
 // ==========================================================
 function updateDashboardVisibility() {
@@ -4152,8 +4157,6 @@ function updateDashboardVisibility() {
     // เช็คจากแท็บหลักหน้า Dashboard ว่ามีคลาส active หรือกำลังแสดงผลอยู่ไหม
     let dashTab = document.getElementById('tab-dash');
     
-    // ตรวจสอบทั้งสถานะ class active และการแสดงผลจริงของแท็บ
-   // ตรวจสอบทั้งสถานะ class active และการแสดงผลจริงของแท็บ
     if (dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'))) {
         box.style.display = 'flex'; // แสดงเฉพาะหน้า Dashboard
         if (typeof renderStockZeroPieChart === 'function') {
@@ -4178,7 +4181,8 @@ document.addEventListener('click', function(e) {
 
 // ตรวจสอบสถานะทุกๆ 0.5 วินาที เพื่อความชัวร์ไม่ให้หลุดไปโผล่หน้าอื่น
 setInterval(updateDashboardVisibility, 500);
-        // ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
+
+// ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'bmImageInput') {
         let file = e.target.files[0];
@@ -4221,9 +4225,8 @@ document.addEventListener('keypress', function(e) {
         }
     }
 });
-   
 
-  // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และแยกตาม Line)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4261,60 +4264,16 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine === String(selectedLine).trim();
           });
 
-    // 🔍 ดึงข้อมูลยอดคงเหลือจากตาราง Stock WIP และ Stock FG บนหน้าเว็บโดยตรง
-    const wipTableRows = document.querySelectorAll('#stockWipTableBody tr, table tr'); // หรือเลือกจากตาราง Stock WIP บนหน้าเว็บ
-    const stockMap = {};
+    // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลาง
+    let activePartsSet = getActivePartsMap();
 
-    // วนลูปอ่านค่าจากตาราง Stock WIP / FG ที่เรนเดอร์อยู่บนหน้าจอ
-    targetMasters.forEach(m => {
-        const rawPNo = String(m['Part No.'] || m.partNo || '').trim();
-        const cleanPNo = rawPNo.toUpperCase();
-        if (!cleanPNo) return;
-
-        let totalStock = 0;
-
-        // ค้นหาแถวในตารางที่มี Part No. นี้ แล้วดึงยอดคงเหลือ WIP / FG มาบวกกัน
-        document.querySelectorAll('tr').forEach(tr => {
-            const text = tr.innerText || '';
-            if (text.includes(rawPNo)) {
-                // พยายามแกะตัวเลขสต็อกคงเหลือจากแถวนั้นๆ
-                const cols = tr.querySelectorAll('td');
-                cols.forEach((td, idx) => {
-                    let val = parseFloat(td.innerText.replace(/,/g, ''));
-                    // ถ้าไม่ใช่คอลัมน์ที่เป็น Part No. และตัวเลขมากกว่า 0 ให้ถือว่าเป็นสต็อก
-                    if (!isNaN(val) && val > 0 && !td.innerText.includes(rawPNo)) {
-                        totalStock += val;
-                    }
-                });
-            }
-        });
-
-        stockMap[cleanPNo] = totalStock;
-    });
-
-    // อีกวิธี: ถ้ามีฟังก์ชันคำนวณในระบบ ให้เช็กจาก window.actuals หรือ fallback เช็กจากหน้าตาราง
-    // กรองหาพาร์ทที่ยอดคงเหลือเป็น 0 จริงๆ (ทั้งไม่มีใน stockMap หรือยอดรวมเป็น 0)
+    // กรองหาพาร์ทที่ไม่มีอยู่ใน activePartsSet (แปลว่า Stock เป็น 0 จริงๆ)
     const zeroStockParts = targetMasters.filter(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
-        
-        // เช็กจากยอดรวมActuals หรือข้อมูลดิบถ้ามี
-        const actualsData = window.actuals || [];
-        let hasWipOrFg = (stockMap[cleanPNo] && stockMap[cleanPNo] > 0);
-        
-        if (!hasWipOrFg) {
-            // เช็กเผื่อจาก actuals ตรงๆ
-            let wipSum = 0;
-            actualsData.forEach(a => {
-                let p = String(a['Part No.'] || a.partNo || '').trim().toUpperCase();
-                if (p === cleanPNo) {
-                    wipSum += Number(a['OK Qty'] || a.qty || 0);
-                }
-            });
-            if (wipSum > 0) hasWipOrFg = true;
-        }
+        if (!cleanPNo) return false;
 
-        return !hasWipOrFg;
+        return !activePartsSet.has(cleanPNo);
     });
 
     let badgesHtml = zeroStockParts.map(m => {
