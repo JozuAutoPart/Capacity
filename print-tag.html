@@ -362,7 +362,6 @@
             "17141-0C080-12": { partName: "BRACKET,HEAT INSULATOR,NO.4", qty: 400, code: "JA082" },
             "512E6-KK010": { partName: "BRACKET, ELECTRIC UNIT WIRE HRNS, NO.6", qty: 100, code: "JA205" },
             "512F1-KK010": { partName: "BRACKET, ELECTRIC UNIT WATER PIPE, NO.1", qty: 100, code: "JA206" },
-            // พาร์ทเพิ่มเติมจากภาพล่าสุด (แถว 253-283)
             "53238-BZ040": { partName: "BRACKET,HOOD DUMPER MOUNTING,NO.2 RH", qty: 60, code: "JA276" },
             "17154-0T040": { partName: "FLANGE,EXHAUST MANIFOLD,NO.2", qty: 18, code: "JA109" },
             "67325-06050": { partName: "EXTENSION,RR DOOR BEAM,FR RH", qty: 70, code: "JA151" },
@@ -395,15 +394,15 @@
             "K1041-011-7110": { partName: "Valve Disc", qty: 10000, code: "MS013" }
         };
 
-        // รับค่า Part No. และ Lot No. จาก URL ที่ส่งมาจาก Google Sheets
+        // รับค่าพารามิเตอร์จาก URL (PartNo, LotNo และ Total Qty จากการสั่งผลิต)
         const urlParams = new URLSearchParams(window.location.search);
         const partNo = urlParams.get('partNo') || '53219-0D020'; 
         const lotNo = urlParams.get('lotNo') || '-';
+        const totalOrderQty = parseInt(urlParams.get('qty')) || 0;
 
-        // ค้นหาข้อมูลจาก Masterparts ตาม Part No.
         const currentPart = Masterparts[partNo] || {
             partName: "ไม่พบข้อมูลพาร์ทนี้ใน Masterparts",
-            qty: 0,
+            qty: 60,
             code: "-"
         };
 
@@ -411,15 +410,23 @@
         const qtyPerTag = currentPart.qty;     
         const tagCode = currentPart.code;      
 
-        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty: ${qtyPerTag} | Code: ${tagCode} | Lot: ${lotNo}`;
+        // คำนวณจำนวนใบ Tag ที่ต้องพิมพ์ทั้งหมด (ยอดสั่งผลิต ÷ จำนวนต่อใบ)
+        let totalTags = totalOrderQty > 0 ? Math.ceil(totalOrderQty / qtyPerTag) : 6;
 
-        const totalTags = 6; 
+        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Qty/Tag: ${qtyPerTag} | Total Order: ${totalOrderQty} | Total Tags: ${totalTags} ใบ`;
+
         const container = document.getElementById('container');
-
         let pageDiv = document.createElement('div');
         pageDiv.className = 'page';
 
         for (let i = 0; i < totalTags; i++) {
+            // ขึ้นหน้าใหม่ทุกๆ 6 ใบ Tag
+            if (i > 0 && i % 6 === 0) {
+                container.appendChild(pageDiv);
+                pageDiv = document.createElement('div');
+                pageDiv.className = 'page';
+            }
+
             const card = document.createElement('div');
             card.className = 'tag-card';
             card.innerHTML = `
