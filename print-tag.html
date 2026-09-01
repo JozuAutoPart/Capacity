@@ -110,13 +110,14 @@
 
     <script>
         // ==========================================
-        // 📌 1. กำหนด Part No. และ Lot No. ที่ต้องการค้นหา
+        // 📌 1. รับค่า Part No. และ Lot No. จาก URL อัตโนมัติ
         // ==========================================
-        const targetPartNo = "17443-BZ190"; 
-        const targetLotNo = "934101";
+        const urlParams = new URLSearchParams(window.location.search);
+        const partNo = urlParams.get('partNo') || '17443-BZ190'; 
+        const lotNo = urlParams.get('lotNo') || '-';
 
         // ==========================================
-        // 📌 2. ฐานข้อมูล Masterparts (จับคู่ตามเงื่อนไข)
+        // 📌 2. ฐานข้อมูล Masterparts (เงื่อนไขการค้นหา)
         // partName = คอลัมน์ H
         // qty      = คอลัมน์ C
         // code     = คอลัมน์ I
@@ -139,18 +140,16 @@
             }
         };
 
-        // ดึงข้อมูลอัตโนมัติจาก Masterparts ตาม Part No.
-        const currentPart = Masterparts[targetPartNo] || {
+        // ค้นหาข้อมูลจาก Masterparts โดยใช้ Part No. ที่ส่งมาจาก URL
+        const currentPart = Masterparts[partNo] || {
             partName: "ไม่พบข้อมูลพาร์ทใน Masterparts",
             qty: 0,
             code: "-"
         };
 
-        const partNo = targetPartNo;
-        const partName = currentPart.partName; // คอลัมน์ H
-        const qtyPerTag = currentPart.qty;     // คอลัมน์ C
-        const tagCode = currentPart.code;      // คอลัมน์ I
-        const lotNo = targetLotNo;
+        const partName = currentPart.partName; // ดึงจาก คอลัมน์ H
+        const qtyPerTag = currentPart.qty;     // ดึงจาก คอลัมน์ C
+        const tagCode = currentPart.code;      // ดึงจาก คอลัมน์ I
 
         document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name (Col.H): ${partName} | Qty (Col.C): ${qtyPerTag} | Code (Col.I): ${tagCode} | Lot: ${lotNo}`;
 
