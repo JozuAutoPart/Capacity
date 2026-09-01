@@ -465,125 +465,126 @@
             </div>
         </div>
     </div>
-</div><!-- TAB 4: ACTUAL PRODUCTION -->
-            <div class="tab-pane fade" id="tab-actual">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="card p-3 border-start border-4 border-success">
-                            <h5 class="mb-3 text-success"><i class="fas fa-edit me-2"></i>ฟอร์มบันทึกการผลิต (พนักงาน)</h5>
-                            
-                            <div id="actualAlert" class="alert alert-warning d-none" role="alert">
-                                <i class="fas fa-exclamation-triangle me-1"></i> <span id="actualAlertText"></span>
-                            </div>
+</div>
+            <!-- TAB 4: ACTUAL PRODUCTION -->
+<div class="tab-pane fade" id="tab-actual">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card p-3 border-start border-4 border-success">
+                <h5 class="mb-3 text-success"><i class="fas fa-edit me-2"></i>ฟอร์มบันทึกการผลิต (พนักงาน)</h5>
+                
+                <div id="actualAlert" class="alert alert-warning d-none" role="alert">
+                    <i class="fas fa-exclamation-triangle me-1"></i> <span id="actualAlertText"></span>
+                </div>
 
-                            <form id="actualForm" onsubmit="submitActual(event)">
-                                <div class="mb-2">
-                                    <label class="form-label small">วันที่ผลิต</label>
-                                    <input type="date" id="actualDate" class="form-control form-control-sm" required>
-                                </div>
-                                <div class="row" style="display: flex; gap: 10px; margin-bottom: 15px;">
-                                    <div style="flex: 1;">
-                                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาเริ่มต้น (Start Time)</label>
-                                        <input type="time" id="workStartTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
-                                    </div>
-                                    <div style="flex: 1;">
-                                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาสิ้นสุด (End Time)</label>
-                                        <input type="time" id="workEndTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
-                                    <input type="text" id="actualOperator" class="form-control form-control-sm" placeholder="เช่น นายสมชาย (OP-01)" required>
-                                </div>
-                                <div class="row g-2 mb-2">
-                                    <div class="col-6">
-                                        <label class="form-label small">Line เครื่องจักร</label>
-                                        <select id="actualLine" class="form-select form-select-sm" onchange="checkAndLoadPlans()" required>
-                                            <option value="Line A">Line A</option>
-                                            <option value="Line Q">Line Q</option>
-                                            <option value="Line C1">Line C1</option>
-                                            <option value="Line C2">Line C2</option>
-                                            <option value="Line C3">Line C3</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label small">Machine No.</label>
-                                        <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
-                                    <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
-                                    <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
-                                        <option value="">-- เลือก Part No. จากแผน --</option>
-                                    </select>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
-                                    <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small">Lot No.</label>
-                                    <input type="text" id="actualLotNo" class="form-control form-control-sm" readonly placeholder="ดึงอัตโนมัติ">
-                                </div>
-                                <div class="row g-2 mb-2">
-                                    <div class="col-6">
-                                        <label class="form-label small text-success">ยอดผลิตดี (OK Qty -> เพิ่มเข้า WIP)</label>
-                                        <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
-                                        <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small">หมายเหตุ / เครื่องหยุด (Remark)</label>
-                                    <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น เปลี่ยนแม่พิมพ์ 15 นาที">
-                                </div>
-                                <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
-                            </form>
+                <form id="actualForm" onsubmit="submitActual(event)">
+                    <div class="mb-2">
+                        <label class="form-label small">วันที่ผลิต</label>
+                        <input type="date" id="actualDate" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="row" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาเริ่มต้น (Start Time)</label>
+                            <input type="time" id="workStartTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาสิ้นสุด (End Time)</label>
+                            <input type="time" id="workEndTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
                         </div>
                     </div>
-                    <div class="col-md-8">
-                        <div class="card p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                <h5 class="m-0">ประวัติการบันทึกการผลิตของพนักงาน</h5>
-                                <div class="d-flex align-items-center gap-2">
-                                    <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 180px;">
-                                        <option value="">-- ทุกพนักงาน (ทั้งหมด) --</option>
-                                    </select>
-                                    <button class="btn btn-success btn-sm" onclick="exportFilteredProductionReport()">
-                                        <i class="fas fa-file-excel me-1"></i> Export ใบรายงานผลิต (.xlsx)
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-                                <table class="table table-dark table-hover align-middle m-0">
-                                    <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>เวลาทำงาน</th>
-                                            <th>OP Name</th>
-                                            <th>Line/MC</th>
-                                            <th>Part No.</th>
-                                            <th>Lot No.</th>
-                                            <th>OK Qty</th>
-                                            <th>NG Qty</th>
-                                            <th>Remark</th>
-                                            <th class="text-center">จัดการ</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="actualTableBody">
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div class="mb-2">
+                        <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
+                        <input type="text" id="actualOperator" class="form-control form-control-sm" placeholder="เช่น นายสมชาย (OP-01)" required>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small">Line เครื่องจักร</label>
+                            <select id="actualLine" class="form-select form-select-sm" onchange="checkAndLoadPlans()" required>
+                                <option value="Line A">Line A</option>
+                                <option value="Line Q">Line Q</option>
+                                <option value="Line C1">Line C1</option>
+                                <option value="Line C2">Line C2</option>
+                                <option value="Line C3">Line C3</option>
+                            </select>
                         </div>
+                        <div class="col-6">
+                            <label class="form-label small">Machine No.</label>
+                            <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
+                        <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
+                        <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
+                            <option value="">-- เลือก Part No. จากแผน --</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
+                        <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Lot No.</label>
+                        <input type="text" id="actualLotNo" class="form-control form-control-sm" readonly placeholder="ดึงอัตโนมัติ">
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small text-success">ยอดผลิตดี (OK Qty -> เพิ่มเข้า WIP)</label>
+                            <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
+                            <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">หมายเหตุ / เครื่องหยุด (Remark)</label>
+                        <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น เปลี่ยนแม่พิมพ์ 15 นาที">
+                    </div>
+                    <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="m-0">ประวัติการบันทึกการผลิตของพนักงาน</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 180px;">
+                            <option value="">-- ทุกพนักงาน (ทั้งหมด) --</option>
+                        </select>
+                        <a href="production-report.html" target="_blank" class="btn btn-success btn-sm">
+                            <i class="fas fa-print me-1"></i> พิมพ์ใบรายงานการผลิต
+                        </a>
                     </div>
                 </div>
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-dark table-hover align-middle m-0">
+                        <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
+                            <tr>
+                                <th>Date</th>
+                                <th>เวลาทำงาน</th>
+                                <th>OP Name</th>
+                                <th>Line/MC</th>
+                                <th>Part No.</th>
+                                <th>Lot No.</th>
+                                <th>OK Qty</th>
+                                <th>NG Qty</th>
+                                <th>Remark</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="actualTableBody">
+                        </tbody>
+                    </table>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
 <!-- TAB: Q-GATE INSPECTION -->
 <div class="tab-pane fade" id="tab-qgate">
     <div class="row g-3">
