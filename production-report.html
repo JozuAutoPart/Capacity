@@ -52,15 +52,11 @@
             font-weight: bold;
         }
 
-        .logo-area {
-            font-weight: bold;
-            font-size: 14px;
-            color: #00A651;
-            line-height: 1.1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
+        .logo-img {
+            max-width: 100%;
+            height: auto;
+            max-height: 32px;
+            object-fit: contain;
         }
 
         @media print {
@@ -122,15 +118,12 @@
                 <col style="width: 5.5%;"> <!-- 16. เสียเวลา: รอตรวจสเปค -->
                 <col style="width: 5.0%;"> <!-- 17. เสียเวลา: เปลี่ยนวัตถุดิบ -->
                 <col style="width: 5.5%;"> <!-- 18. เสียเวลา: รองานอื่น -->
-                <col style="width: 14.0%;"> <!-- 19. Remark (รวมพื้นที่ส่วนที่ตัดออก) -->
+                <col style="width: 14.0%;"> <!-- 19. Remark -->
             </colgroup>
             <thead>
                 <tr>
-                    <td rowspan="2" colspan="2">
-                        <div class="logo-area">
-                            <i class="fas fa-industry" style="font-size: 16px;"></i> JOZU
-                        </div>
-                        <div style="font-size: 5px; color: #333;">Jozu Auto Part Co., Ltd.</div>
+                    <td rowspan="2" colspan="2" style="padding: 2px;">
+                        <img src="Jozu.png" alt="Jozu Logo" class="logo-img">
                     </td>
                     <td rowspan="2" colspan="6" style="font-size: 11px; font-weight: bold; line-height: 1.2;">
                         Production Daily Report<br>
