@@ -2,675 +2,285 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Print STEM Tags (6 Tags / A4 Landscape)</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <title>Production Daily Report - Jozu Auto Part</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 0;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap');
+        
         body {
-            font-family: 'Tahoma', sans-serif;
-            background: #eee;
+            font-family: 'Sarabun', sans-serif;
+            background-color: #525659;
+            color: #000;
             margin: 0;
-            padding: 10px;
+            padding: 20px;
         }
-        .page {
+
+        .no-print {
+            margin-bottom: 20px;
+        }
+
+        .sheet-container {
             width: 297mm;
-            height: 210mm;
-            padding: 6mm 8mm;
-            margin: 0 auto;
-            background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            box-sizing: border-box;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 4mm;
-            page-break-after: always;
-            page-break-inside: avoid;
-        }
-        @media print {
-            body { 
-                background: none; 
-                padding: 0; 
-                margin: 0;
-            }
-            .page { 
-                box-shadow: none; 
-                margin: 0; 
-                width: 297mm;
-                height: 210mm;
-                page-break-after: always;
-                page-break-inside: avoid;
-            }
-            .no-print { display: none; }
-        }
-        .tag-card {
-            border: 2px solid #000;
-            padding: 6px 8px;
-            box-sizing: border-box;
-            font-size: 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            min-height: 210mm;
             background: #fff;
-            height: 100%;
+            margin: 0 auto;
+            padding: 8mm 10mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            box-sizing: border-box;
         }
-        table.tag-table {
+
+        table.report-table {
             width: 100%;
             border-collapse: collapse;
-            border: 1px solid #000;
+            font-size: 8px;
             table-layout: fixed;
         }
-        table.tag-table th, table.tag-table td {
+
+        table.report-table th, table.report-table td {
             border: 1px solid #000;
-            padding: 4px 6px;
+            padding: 2px 1px;
+            text-align: center;
             vertical-align: middle;
             overflow: hidden;
+            word-wrap: break-word;
         }
-        .label-title { font-weight: bold; }
-        .text-center { text-align: center; }
-        .fw-bold { font-weight: bold; }
-        .footer-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 4px;
-        }
-        .logo-box {
+
+        table.report-table th {
+            background-color: #f0f0f0;
             font-weight: bold;
-            font-style: italic;
-            font-size: 14px;
-            color: #003366;
-            font-family: 'Arial Black', sans-serif;
         }
-        .barcode-box {
-            text-align: center;
-            flex-grow: 1;
-            margin-left: 15px;
-            margin-right: 15px;
+
+        .logo-area {
+            font-weight: bold;
+            font-size: 13px;
+            color: #008000;
+            line-height: 1.1;
         }
-        .barcode-box svg {
-            max-height: 32px;
-            width: 100%;
+
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .sheet-container {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                padding: 2mm;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 5mm;
+            }
         }
     </style>
 </head>
 <body>
 
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const partNo = urlParams.get('partNo') || '-';
-        const partName = urlParams.get('partName') || '-';
-        const lotNo = urlParams.get('lotNo') || '-';
-        const qtyPerTag = parseInt(urlParams.get('qty')) || 100;
-        const line = urlParams.get('line') || '-';
-
-        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Qty: ${qtyPerTag} | Lot: ${lotNo}`;
-
-        const totalTags = 6; 
-        const container = document.getElementById('container');
-
-        let pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-
-        for (let i = 0; i < totalTags; i++) {
-            const card = document.createElement('div');
-            card.className = 'tag-card';
-            card.innerHTML = `
-                <table class="tag-table">
-                    <tr>
-                        <td style="width: 22%;" class="label-title">Part No.</td>
-                        <td style="width: 40%;" class="fw-bold">${partNo}</td>
-                        <td style="width: 18%;" class="label-title text-center">Stamp Mark</td>
-                        <td style="width: 20%;"></td>
-                    </tr>
-                    <tr>
-                        <td class="label-title">Part Name</td>
-                        <td class="fw-bold" colspan="3">${partName}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-title">Q'ty</td>
-                        <td><span class="fw-bold">${qtyPerTag}</span> Pcs.</td>
-                        <td class="label-title text-center">Code</td>
-                        <td class="text-center fw-bold">JA193</td>
-                    </tr>
-                    <tr>
-                        <td class="label-title">Production / Lot No.:</td>
-                        <td>${lotNo}</td>
-                        <td class="label-title text-center">Supplier Check</td>
-                        <td class="label-title text-center">Delivery Date</td>
-                    </tr>
-                </table>
-                <table class="tag-table" style="margin-top: 2px;">
-                    <tr>
-                        <td class="text-center" style="font-size: 8.5px; width: 25%;">Production Date</td>
-                        <td class="text-center" style="font-size: 8.5px; width: 25%;">Supplier Check</td>
-                        <td class="text-center" style="font-size: 8.5px; width: 25%;">Delivery Date</td>
-                        <td class="text-center" style="font-size: 8.5px; width: 25%;">QC Receiving</td>
-                    </tr>
-                    <tr>
-                        <td style="height: 18px; width: 25%;"></td>
-                        <td style="width: 25%;"></td>
-                        <td style="width: 25%;"></td>
-                        <td style="width: 25%;"></td>
-                    </tr>
-                </table>
-                <div class="footer-section">
-                    <div class="logo-box">STEM</div>
-                    <div class="barcode-box">
-                        <svg class="barcode"></svg>
-                    </div>
-                </div>
-            `;
-            pageDiv.appendChild(card);
-        }
-        container.appendChild(pageDiv);
-
-        document.querySelectorAll('.barcode').forEach((el) => {
-            JsBarcode(el, lotNo !== '-' ? lotNo : '123456', {
-                format: "CODE128",
-                displayValue: false,
-                height: 30,
-                margin: 0
-            });
-        });
-    </script>
-</body>
-</html>
-  <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ พิมพ์ Tag ทั้งหมด</button>
+    <div class="container text-center no-print">
+        <div class="card p-3 bg-dark text-white d-flex flex-row justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <label class="form-label m-0">กรองตามชื่อพนักงาน:</label>
+                <select id="filterOperator" class="form-select form-select-sm" style="width: 200px;" onchange="renderReport()">
+                    <option value="">-- พนักงานทั้งหมด --</option>
+                </select>
+            </div>
+            <div>
+                <a href="index.html" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</a>
+                <button onclick="window.print()" class="btn btn-primary btn-sm ms-2"><i class="fas fa-print me-1"></i> พิมพ์เอกสาร / บันทึก PDF</button>
+            </div>
+        </div>
     </div>
 
-    <div id="container"></div>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const partNo = urlParams.get('partNo') || '-';
-        const partName = urlParams.get('partName') || '-';
-        const lotNo = urlParams.get('lotNo') || '-';
-        const qtyPerTag = parseInt(urlParams.get('qty')) || 2000;
-        const line = urlParams.get('line') || '-';
-
-        // สร้าง 6 ใบต่อหน้าสำหรับข้อมูลจริงที่ส่งผ่าน URL มา
-        const totalTags = 6; 
-        const container = document.getElementById('container');
-
-        let pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-
-        for (let i = 0; i < totalTags; i++) {
-            const card = document.createElement('div');
-            card.className = 'tag-card';
-            card.innerHTML = `
-                <table class="tag-table">
-                    <tr>
-                        <td style="width: 25%;" class="label-title">Part No.</td>
-                        <td style="width: 75%;" class="fw-bold">${partNo}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-title">Part Name</td>
-                        <td class="fw-bold">${partName}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-title">Q'ty</td>
-                        <td><span class="fw-bold">${qtyPerTag}</span> Pcs.</td>
-                    </tr>
-                    <tr>
-                        <td class="label-title">Production / Lot No.</td>
-                        <td>${lotNo}</td>
-                    </tr>
-                    <tr>
-                        <td class="label-title">Production Date</td>
-                        <td></td>
-                    </tr>
-                </table>
-                <div class="footer-section">
-                    <div class="logo-box">STEM</div>
-                    <div class="barcode-box">
-                        <svg class="barcode"></svg>
-                    </div>
-                </div>
-            `;
-            pageDiv.appendChild(card);
-        }
-        container.appendChild(pageDiv);
-
-        // Render Barcode
-        document.querySelectorAll('.barcode').forEach((el, index) => {
-            JsBarcode(el, lotNo !== '-' ? lotNo : '123456', {
-                format: "CODE128",
-                displayValue: false,
-                height: 30,
-                margin: 0
-            });
-        });
-    </script>
-</body>
-</html>
-
-    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
-            🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
-        </button>
-        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;">กำลังโหลดข้อมูล...</span>
-    </div>
-
-    <div id="tagContainer"></div>
-
-    <script>
-        const partDatabase = {
-    "53219-0D020": { name: "SUPPORT,RADIATOR,LWR,RR", stem: "JA114", pcs: 50 },
-    "55330-0D480-10": { name: "REINFORCEMENT ASSY INSTRUMENT PA", stem: "JA118", pcs: 25 },
-    "55330-0D490-10": { name: "REINFORCEMENT ASSY INSTRUMENT PA", stem: "JA119", pcs: 25 },
-    "61761-KK040": { name: "REINFROCE,SEAT BELT ANCHOR,NO.1 U", stem: "JA183", pcs: 45 },
-    "61762-KK050": { name: "REINFROCE,SELT ANCHOR,NO.1 UPR LH", stem: "JA184", pcs: 45 },
-    "55428-0D010": { name: "BRACKET,AIR BAG PASSENGER MT,NO.2", stem: "JA197", pcs: 50 },
-    "55428-0D020": { name: "BRACKET,AIR BAG PASSENGER MT,NO.2", stem: "JA199", pcs: 50 },
-    "55309-06190": { name: "RETAINER SUB ASSY LUG DOOR LOCK", stem: "JA217", pcs: 90 },
-    "57248-0D010": { name: "BRK,T FLEXIBLE HOSE NO.1 OR", stem: "JA112", pcs: 100 },
-    "57249-0D040": { name: "BRK,T FLEXIBLE HOSE NO.1 OL", stem: "JA113", pcs: 100 },
-    "67323-0D090": { name: "EXTENSION,FR DOOR BEAM RR RH", stem: "JA121", pcs: 80 },
-    "67324-0D080": { name: "EXTENSION,FR DOOR BEAM RR LH", stem: "JA122", pcs: 80 },
-    "62590-47A50": { name: "RIF-RAD CORE LWR", stem: "JA160", pcs: 80 },
-    "62590-47A5A": { name: "RIF-RAD CORE LWR", stem: "JA161", pcs: 80 },
-    "62590-4JA0A": { name: "RIF-RAD CORE LWR", stem: "JA160", pcs: 80 },
-    "62590-4JA5A": { name: "RIF-RAD CORE LWR", stem: "JA161", pcs: 80 },
-    "76294-47A0A": { name: "BULKHEAD ASSY-FR PLR LWR RH", stem: "JA168", pcs: 60 },
-    "76295-47A0A": { name: "BULKHEAD ASSY-FR PLR LWR LH", stem: "JA167", pcs: 60 },
-    "76294-4JA0A": { name: "BULKHEAD ASSY-FR PLR LWR RH", stem: "JA168", pcs: 60 },
-    "76295-4JA0A": { name: "BULKHEAD ASSY-FR PLR LWR LH", stem: "JA167", pcs: 60 },
-    "76344-47GLA": { name: "ANCH ASSY-SEAT BELT", stem: "JA168", pcs: 60 },
-    "76344-4JG1A": { name: "ANCH ASSY-SEAT BELT", stem: "JA168", pcs: 60 },
-    "55328-KK030": { name: "STAY INSTRUMENT PANEL NO.3", stem: "JA176", pcs: 50 },
-    "55328-KK040": { name: "STAY INSTRUMENT PANEL NO.3", stem: "JA177", pcs: 70 },
-    "55329-KK030": { name: "STAY INSTRUMENT PANEL NO.4", stem: "JA178", pcs: 70 },
-    "55329-KK040": { name: "STAY INSTRUMENT PANEL NO.4", stem: "JA179", pcs: 50 },
-    "58221-KK010": { name: "REINFORCEMENT,FLOOR PANEL,FR RH", stem: "JA186", pcs: 100 },
-    "58221-KK020": { name: "REINFORCEMENT,FLOOR PANEL,FR LH", stem: "JA187", pcs: 100 },
-    "58222-KK010": { name: "REINFORCEMENT,FLOOR PANEL,FR RH", stem: "JA192", pcs: 100 },
-   "58222-KK020": { name: "REINFORCEMENT,FLOOR PANEL,FR RH", stem: "JA193", pcs: 100 },
-    "51638-0K010": { name: "REINFORCEMENT,SHOCK ABSORBER BRKT,LH", stem: "JA189", pcs: 100 },
-    "67323-0D150": { name: "EXTENSION,FR DOOR BEAM RR RH", stem: "JA194", pcs: 80 },
-    "67324-0D120": { name: "EXTENSION,FR DOOR BEAM RR LH", stem: "JA195", pcs: 80 },
-    "55308-0D070": { name: "BRACE SUB-ASSY,INSTRUMENT PANEL,NO.2", stem: "JA202", pcs: 30 },
-    "55308-0D080": { name: "BRACE SUB-ASSY,INSTRUMENT PANEL,NO.2", stem: "JA203", pcs: 30 },
-    "55125-0D130": { name: "BRACKET,STEERING SUPPORT", stem: "JA206", pcs: 50 },
-    "55323-06210": { name: "BRACKET,FLOOR BRACE MOUNTING,NO.2", stem: "JA212", pcs: 150 },
-    "67327-06190": { name: "EXTENSION,FR DOOR BEAM RR RH", stem: "JA222", pcs: 50 },
-    "67328-06190": { name: "EXTENSION,FR DOOR BEAM RR LH", stem: "JA223", pcs: 50 },
-    "55341-02110": { name: "BRACKET,AIR CONDITIONING MOUNTING", stem: "JA226", pcs: 200 },
-    "55345-02110": { name: "BRACKET,AIR CONDITIONING MOUNTING", stem: "JA227", pcs: 200 },
-    "55371-02080": { name: "BRACKET,INSTRUMENT PANEL GUIDE NO.2", stem: "JA228", pcs: 80 },
-    "55372-02080": { name: "BRACKET,INSTRUMENT PANEL GUIDE NO.2", stem: "JA229", pcs: 80 },
-    "55347-KK080": { name: "BRACKET,INSTRUMENT PANEL,BRACEMENT", stem: "JA247", pcs: 50 },
-    "55348-KK070": { name: "BRACKET,INSTRUMENT PANEL,NO.2", stem: "JA249", pcs: 40 },
-    "55329-KK130": { name: "STAY INSTRUMENT PANEL NO.3", stem: "JA252", pcs: 50 },
-    "55329-KK150": { name: "STAY INSTRUMENT PANEL NO.4", stem: "JA253", pcs: 50 },
-    "55398-BZ140": { name: "BRACKET GLOVE COMPT DOOR HINGE", stem: "JA271", pcs: 100 },
-    "55329-0K020": { name: "STAY INSTRUMENT PANEL NO.4", stem: "JA289", pcs: 50 },
-    "55342-0K030": { name: "BRACE INSTRUMENT PANEL TO COWL", stem: "JA290", pcs: 50 },
-    "55342-0K020": { name: "BRACE INSTRUMENT PANEL TO COWL", stem: "JA296", pcs: 50 },
-    "55347-KK090": { name: "BRACKET, INSTRUMENT PANEL BRACE", stem: "JA300", pcs: 50 },
-    "55348-KK040": { name: "BRACKET, INSTRUMENT PANEL BRACE", stem: "JA301", pcs: 50 },
-    "53279-0G020": { name: "BRACKET, HOOD LOCK SUPPORT BRACE", stem: "JA303", pcs: 60 },
-    "61755-0G010": { name: "RETAINER, DECK SIDE TRIM, UPR RH", stem: "JA304", pcs: 100 },
-    "61756-0G010": { name: "RETAINER, DECK SIDE TRIM, UPR LH", stem: "JA305", pcs: 100 },
-    "67327-0G020": { name: "EXTENSION, RR DOOR BEAM, RR RH", stem: "JA306", pcs: 80 },
-    "67328-0G020": { name: "EXTENSION, RR DOOR BEAM, RR LH", stem: "JA307", pcs: 80 },
-    "5535A-KK010": { name: "BRACKET, ELECTRICAL PARTS MOUNTING", stem: "JA319", pcs: 40 },
-    "17141-0C150-10": { name: "BRACKET,HEAT INSULATOR NO.3", stem: "JA173", pcs: 50 },
-    "17529-0C030": { name: "SEPARATOR,EXHAUST PIPE", stem: "JA190", pcs: 12 },
-    "17531-0C030": { name: "SEPARATOR MUFFLER INNER", stem: "JA191", pcs: 12 },
-    "17155-0C030": { name: "SEPARATOR,MUFFLER", stem: "JA192", pcs: 12 },
-    "17137-0C030": { name: "PLATE EXHAUST PIPE", stem: "JA193", pcs: 18 },
-    "17137-0C030": { name: "PLATE EXHAUST PIPE", stem: "JA194", pcs: 18 },
-    "17442-0M010": { name: "FLANGE, EXHAUST PIPE, NO.2", stem: "JA198", pcs: 50 },
-    "17443-0M040": { name: "FLANGE, EXHAUST PIPE, NO.3", stem: "JA199", pcs: 40 },
-    "55338-0D240": { name: "BRACKET,ELECTRICAL PARTS MOUNTING", stem: "JA275", pcs: 50 },
-    "61766-BZ170": { name: "REINFORCEMENT BELT ANC TO RF SI, IN", stem: "JA284", pcs: 150 },
-    "67329-0D200": { name: "BRACKET,RR DOOR BEAM", stem: "JA285", pcs: 200 },
-    "51961-0D010": { name: "HOOK TRANSPORT FR", stem: "JA111", pcs: 80 },
-    "61460-4JA0A": { name: "REINF ASSY HOOD HINGE", stem: "JA163", pcs: 100 },
-    "55342-0A030": { name: "BRACE,INSTRUMENT PANEL TO DASH,LWR", stem: "JA242", pcs: 40 },
-    "55391-0A010": { name: "BRACKET,INSTRUMENT PANEL TO PEDAL", stem: "JA245", pcs: 30 },
-    "55321-0B290": { name: "BRACKET,FLOOR BRACE MOUNTING NO.2", stem: "JA256", pcs: 150 },
-    "55387-B1010": { name: "CLAMP,CONTROL SHAFT TUBE NO.1", stem: "JA258", pcs: 100 },
-    "55315-BZ200": { name: "PATCH,INSTRUMENT PANEL REINFORCE", stem: "JA260", pcs: 180 },
-    "55328-BZ220": { name: "STAY, INSTRUMENT PANEL, NO.3", stem: "JA262", pcs: 100 },
-    "55347-BZ200": { name: "BRACKET INSTRUMENT PANEL BRACE M", stem: "JA264", pcs: 80 },
-    "55377-BZ310": { name: "BRACKET , INSTRUMENT PANEL MOUNT", stem: "JA266", pcs: 180 },
-    "55378-BZ080": { name: "BRACKET , GLOVE COMPT DOOR LOCK", stem: "JA267", pcs: 60 },
-    "5538A-BZ010": { name: "BRACKET, ELECTRICAL PARTS MOUNTING", stem: "JA270", pcs: 180 },
-    "67344-BZ050": { name: "BRACKET FR DOOR BEAM FR", stem: "JA273", pcs: 160 },
-    "55375-BZ280": { name: "BRACKET, INSTRUMENT PANEL LWR MT", stem: "JA280", pcs: 100 },
-    "55378-BZ090": { name: "BRACKET, GLOVE COMPT DOOR LOCK M", stem: "JA281", pcs: 60 },
-    "55378-BZ110": { name: "BRACKET, GLOVE COMPT DOOR LOCK M", stem: "JA287", pcs: 60 },
-    "55347-0K050": { name: "BRACKET INSTRUMENT PANFL BRACE", stem: "JA291", pcs: 100 },
-    "5538D-06020": { name: "BRACKET ELECTRICAL PARTS MOUNTIN", stem: "JA294", pcs: 50 },
-    "5538D-06150": { name: "BRACKET ELECTRICAL PARTS MOUNTIN", stem: "JA295", pcs: 50 },
-    "53218-0G040": { name: "EXTENSION, HOOD LOCK BRACE", stem: "JA302", pcs: 100 },
-    "55365-0G030": { name: "BRACKET, RADIO TUNER MOUNTING, NO", stem: "JA310", pcs: 50 },
-    "55366-0G020": { name: "BRACKET, RADIO TUNER MOUNTING, NO", stem: "JA309", pcs: 50 },
-    "55366-0G030": { name: "BRACKET, RADIO TUNER MOUNTING, NO", stem: "JA311", pcs: 50 },
-    "55387-0G030": { name: "BRACKET, COMPUTER MOUNTING, NO.2", stem: "JA313", pcs: 100 },
-    "55365-KK020": { name: "BRACKET, RADIO TUNER MOUNTING, NO", stem: "JA317", pcs: 50 },
-    "55366-KK020": { name: "BRACKET, RADIO TUNER MOUNTING, NO", stem: "JA318", pcs: 50 },
-    "17537-0L010": { name: "PLATE EXHAUST PIPE", stem: "JA090", pcs: 16 },
-    "17537-0L020": { name: "PLATE EXHAUST PIPE", stem: "JA091", pcs: 16 },
-    "17441-0Y050": { name: "FLANGE,EXHAUST PIPE,NO.1", stem: "JA125", pcs: 40 },
-    "17535-0L060": { name: "SEPARATOR,MUFFLER", stem: "JA159", pcs: 12 },
-    "17529-0P020": { name: "SEPARATOR,EXHAUST PIPE", stem: "JA160", pcs: 9 },
-    "17531-0P040": { name: "SEPARATOR,MUFFLER INNER", stem: "JA161", pcs: 9 },
-    "17535-0P040": { name: "SEPARATOR,MUFFLER", stem: "JA162", pcs: 9 },
-    "17537-0L060": { name: "PLATE EXHAUST PIPE", stem: "JA163", pcs: 9 },
-    "17537-0L050": { name: "PLATE EXHAUST PIPE", stem: "JA164", pcs: 9 },
-    "17510-0Y100-02": { name: "OUTER PLATE", stem: "JA166", pcs: 30 },
-    "17537-0C060": { name: "PLATE EXHAUST PIPE", stem: "JA167", pcs: 9 },
-    "17537-0C070": { name: "PLATE EXHAUST PIPE", stem: "JA168", pcs: 9 },
-    "17141-0C120-12": { name: "BRACKET HEAT INSULATOR NO.4", stem: "JA171", pcs: 250 },
-    "5G551-W0050": { name: "INSULATOR HEAT", stem: "JA178", pcs: 50 },
-    "17535-0EU10": { name: "SEPARATOR,MUFFLER", stem: "JA179", pcs: 12 },
-    "17551-0T200": { name: "INSULATOR HEAT", stem: "JA180", pcs: 50 },
-    "17441-BZ220": { name: "FLANGE EXHAUST PIPE NO.1", stem: "JA183", pcs: 60 },
-    "17442-BZ260": { name: "FLANGE EXHAUST PIPE NO.2", stem: "JA184", pcs: 50 },
-    "17442-BZ430": { name: "FLANGE EXHAUST PIPE NO.2", stem: "JA185", pcs: 50 },
-    "17443-BZ190": { name: "FLANGE EXHAUST PIPE NO.3", stem: "JA188", pcs: 50 },
-    "17443-22020": { name: "FLANGE EXHAUST PIPE NO.3", stem: "JA189", pcs: 40 },
-    "51284-KK010": { name: "BRACKET, ELECTRIC UNIT WIRE HRNS", stem: "JA204", pcs: 100 },
-    "512C7-KK010": { name: "REINFORCE, ELECTRIC UNIT MEMBER", stem: "JA203", pcs: 40 },
-    "55323-0D130": { name: "BRACKET,INSTRUMENT PANEL,NO.3", stem: "JA116", pcs: 400 },
-    "55326-0D050": { name: "BRACKET,INSTRUMENT PANEL,NO.3", stem: "JA120", pcs: 100 },
-    "55375-0D030": { name: "BRACKET,INSTRUMENT PANEL LWR MTN", stem: "JA196", pcs: 200 },
-    "5533G-0D010": { name: "BRACKET,ELECTRICAL PARTS MOUNTING", stem: "JA198", pcs: 100 },
-    "55375-0D050": { name: "BRACKET,INSTRUMENT PANEL LWR MTN", stem: "JA200", pcs: 200 },
-    "5538F-0D020": { name: "BRACKET,ELECTRICAL PARTS MOUNTING", stem: "JA201", pcs: 200 },
-    "53823-06180": { name: "GUSSET,FR FENDER,RH", stem: "JA207", pcs: 100 },
-    "53824-06180": { name: "GUSSET,FR FENDER,LH", stem: "JA208", pcs: 100 },
-    "61341-02060": { name: "PILLAR,CTR BODY INNER UPR RH", stem: "JA235", pcs: 80 },
-    "61342-02060": { name: "PILLAR,CTR BODY INNER UPR LH", stem: "JA236", pcs: 80 },
-    "53253-0A040": { name: "BRACKET,RADIATOR MOUNTING,UPR", stem: "JA240", pcs: 80 },
-    "53633-0A040": { name: "BRACKET,HOOD LOCK MOUNTING", stem: "JA241", pcs: 40 },
-    "61347-BZ190": { name: "REINFORCEMENT,BELT ANC TO CTR PLR", stem: "JA272", pcs: 90 },
-    "53273-0K050": { name: "REINFORCEMENT,RADIATOR SUPPORT", stem: "JA288", pcs: 100 },
-    "53221-0K010": { name: "BRACE,RADIATOR SUPPORT APRON,RH", stem: "JA004", pcs: 300 },
-    "61181-0D030": { name: "REINFORCEMENT,RR SEAT BELT ANCHOR", stem: "JA061", pcs: 100 },
-    "67327-0D060": { name: "EXTENSION,RR DOOR BEAM,RR RH", stem: "JA123", pcs: 100 },
-    "67328-0D060": { name: "EXTENSION,RR DOOR BEAM,RR LH", stem: "JA124", pcs: 100 },
-    "64181-02160": { name: "REINFORCEMENT,RR SEAT BELT ANCHOR", stem: "JA142", pcs: 80 },
-    "64850-4JA0A": { name: "BRKT ASSY-RESONATOR MTG", stem: "JA162", pcs: 100 },
-    "75696-47A0C": { name: "PLATE ASSY-NUT LH", stem: "JA171", pcs: 250 },
-    "55321-KK090": { name: "STAY,INSTRUMENT PANEL,NO.6", stem: "JA175", pcs: 300 },
-    "55371-KK010": { name: "BRACKET ANTENNA CABLE CLAMP", stem: "JA180", pcs: 250 },
-    "55461-KK010": { name: "INSERT,INSTRUMENT PNL SAFETY PAD,RH", stem: "JA181", pcs: 200 },
-    "55464-KK010": { name: "INSERT,INSTRUMENT PNL SAFETY PAD,LH", stem: "JA182", pcs: 200 },
-    "17167-0E010-04": { name: "WASHER", stem: "JA185", pcs: 2000 },
-    "53741-KK020": { name: "PLATE FENDER APRON REINFORCE RH", stem: "JA188", pcs: 180 },
-    "53742-KK020": { name: "PLATE FENDER APRON REINFORCE LH", stem: "JA191", pcs: 180 },
-    "52609-0K010": { name: "PLATE SUB-ASSY,ANKSORBER MOUNTING", stem: "JA190", pcs: 100 },
-    "55124-0D030": { name: "SHIELD STEERING SUPPORT", stem: "JA205", pcs: 50 },
-    "55321-0B230": { name: "BRACKET FLOOR BRACE MOUNTING,NO.2", stem: "JA209", pcs: 200 },
-    "55321-06190": { name: "BRACKET FLOOR BRACE MOUNTING,NO.2", stem: "JA211", pcs: 150 },
-    "55324-0B220": { name: "BRACKET INSTRUMENT PANNRL INSTALL", stem: "JA213", pcs: 80 },
-    "55325-06180": { name: "BRACKET INSTRUMENT PANEL, INSTALL N", stem: "JA214", pcs: 100 },
-    "58331-06160": { name: "BRACKET,LUGGAGE COMPARTMENT TRIM", stem: "JA218", pcs: 300 },
-    "58332-06150": { name: "BRACKET FLOOR BRACE MOUNTING,NO.2", stem: "JA219", pcs: 300 },
-    "55315-02680": { name: "SPACER,INSTRUMENT PANEL,NO.1", stem: "JA224", pcs: 100 },
-    "55315-02690": { name: "SPACER,INSTRUMENT PANEL,NO.1", stem: "JA225", pcs: 100 },
-    "5538C-02110": { name: "BRACKET,ELECTRICAL PARTS MOUNTING", stem: "JA231", pcs: 300 },
-    "55397-02100": { name: "SEAL,HOOD SIDE TO COWL SIDE,RH", stem: "JA232", pcs: 120 },
-    "55397-02110": { name: "SEAL,HOOD SIDE TO COWL SIDE,RH", stem: "JA233", pcs: 120 },
-    "55463-02130": { name: "BRACKET,KNEE PROTECTOR,NO.3", stem: "JA234", pcs: 80 },
-    "67318-02090": { name: "REINFORCEMENT,RR DOOR SIDE BEAM", stem: "JA237", pcs: 30 },
-    "67318-02140": { name: "REINFORCEMENT,RR DOOR SIDE BEAM", stem: "JA238", pcs: 30 },
-    "762L1-KKGOC": { name: "GUSS ASSY FR PLR LH", stem: "JA239", pcs: 150 },
-    "55387-0A010": { name: "BRACKET,COMPUTER MOUNTING,NO.2", stem: "JA243", pcs: 100 },
-    "5533C-0A010": { name: "BRACKET,ELECTRICAL PARTS MOUNTING", stem: "JA244", pcs: 150 },
-    "55397-0A040": { name: "SEAL,HOOD SIDE TO COWL SIDE,RH", stem: "JA246", pcs: 250 },
-    "55124-0D040": { name: "SHIELD STEERING SUPPRT", stem: "JA116", pcs: 50 },
-    "55342-BZ060": { name: "BRACE,INSTRUMENT PANEL TO COWL", stem: "JA263", pcs: 18 },
-    "55375-BZ250": { name: "BRACKET, INSTRUMENT PANEL LWR NMT", stem: "JA265", pcs: 140 },
-    "55381-BZ150": { name: "BRACKET, FINISH PANEL MOUNTING, NO", stem: "JA268", pcs: 50 },
-    "55381-BZ160": { name: "BRACKET, FINISH PANEL MOUNTING, NO", stem: "JA269", pcs: 50 },
-    "55347-BZ140": { name: "BRACKET, INSTRUMENT PANEL BRACE", stem: "JA279", pcs: 80 },
-    "55381-BZ170": { name: "BRACKET, FINISH PANEL MOUNTING, NO", stem: "JA282", pcs: 40 },
-    "55387-0K020": { name: "BRACKET, COMPUTER MOUNTING, NO.2", stem: "JA292", pcs: 80 },
-    "55387-0K030": { name: "BRACKET,COMPUTER MOUNTING,NO.2", stem: "JA293", pcs: 100 },
-    "55427-KK020": { name: "BRACKET,AIR BAG PASSENGER MT,NO.1", stem: "JA297", pcs: 200 },
-    "55427-KK030": { name: "BRACKET,AIR BAG PASSENGER MT,NO.1", stem: "JA298", pcs: 200 },
-    "55371-KK020": { name: "BRACKET, ANTENNA CAB LE CALAMP", stem: "JA299", pcs: 200 },
-    "55386-0G030": { name: "BRACKET,COMPUTER MOUNTING, NO.1", stem: "JA312", pcs: 120 },
-    "55427-0G020": { name: "BRACKET, AIR BAG PASSENGER MT, NO.", stem: "JA314", pcs: 150 },
-    "5538A-0G020": { name: "BRACKET ELECTRICAL PARTS MOUNTIN", stem: "JA315", pcs: 120 },
-    "5538B-0G010": { name: "BRACKET ELECTRICAL PARTS MOUNTIN", stem: "JA316", pcs: 240 },
-    "55461-KK040": { name: "BRACKET, KNEE PROTECTOR, NO.1", stem: "JA320", pcs: 200 },
-    "55464-KK020": { name: "BRACKET, KNEE PROTECTOR, NO.4", stem: "JA321", pcs: 200 },
-    "17510-0Y090-03": { name: "INNER PLATE", stem: "JA129", pcs: 60 },
-    "17510-0Y090-04": { name: "INNER PLATE", stem: "JA130", pcs: 60 },
-    "17141-0C120-10": { name: "BRACKET HEAT INSULATOR NO.2", stem: "JA172", pcs: 150 },
-    "5G552-W0090": { name: "INSULATOR HEAT NO 2", stem: "JA186", pcs: 50 },
-    "5G553-W0050": { name: "INSULATOR HEAT NO.3", stem: "JA187", pcs: 50 },
-    "53238-BZ040": { name: "BRACKET HOOD BUMPER MOUNTING, NO", stem: "JA276", pcs: 60 },
-    "17154-0T040": { name: "FLANGE,EXHAUST MANIFOLD,NO.2", stem: "JA108", pcs: 18 },
-    "67325-06050": { name: "EXTENSION,RR DOOR BEAM,FR RH", stem: "JA151", pcs: 70 },
-    "67326-06050": { name: "EXTENSION,RR DOOR BEAM,RR LH", stem: "JA152", pcs: 70 },
-    "76224-4JA0A": { name: "REINF ASSY-FR PLR LWR RH", stem: "JA164", pcs: 60 },
-    "76225-4JA0A": { name: "REINF ASSY-FR PLR LWR LH", stem: "JA165", pcs: 60 },
-    "55343-06040": { name: "BRACKET,INSTRUMENT PANEL,TO DASH", stem: "JA215", pcs: 40 },
-    "55378-06150": { name: "BRACKET GLOVE COMPT DOOR LOOK M", stem: "JA216", pcs: 40 },
-    "67323-06200": { name: "EXTENSION,FR DOOR BEAM,RR RH", stem: "JA220", pcs: 45 },
-    "67324-06190": { name: "EXTENSION,FR DOOR BEAM,RR LH", stem: "JA221", pcs: 45 },
-    "55347-KK100": { name: "BRACKET,INSTRUMENT PANEL,BRACEM", stem: "JA248", pcs: 50 },
-    "55348-KK090": { name: "BRACKET AIR BAG PASSENGER MT NO 1", stem: "JA250", pcs: 50 },
-    "55365-06040": { name: "BRACKET,RADIO TUNER MOUNTION,NO1", stem: "JA254", pcs: 80 },
-    "55125-BZ080": { name: "BRACKET STEERING SUPPORT", stem: "JA254", pcs: 25 },
-    "55321-BZ180": { name: "BRACKET, FLOOR BRACE MOUNTING, NO", stem: "JA277", pcs: 30 },
-    "55342-BZ070": { name: "BRACE, INSTRUMENT PANEL TO DASH, I", stem: "JA278", pcs: 15 },
-    "55598-BZ160": { name: "BRACKET, GLOVE COMPT DOOR HINGE", stem: "JA283", pcs: 80 },
-    "55321-BZ350": { name: "BRACKET, INSTRUMENT PANEL, NO 1", stem: "JA286", pcs: 20 },
-    "17141-0C040-15": { name: "PLATE PIPE", stem: "JA002", pcs: 1000 },
-    "17531-0L060": { name: "CONE,CATALATIC CONVERTER OPR NO", stem: "JA165", pcs: 12 },
-    "25051-BZ200-08": { name: "COVE NO.1", stem: "JA101", pcs: 40 },
-    "25051-BZ200-10": { name: "COVE NO.2", stem: "JA182", pcs: 30 },
-    "17443-0V110": { name: "FLANGE EXHAUST PIPE NO.3", stem: "JA195", pcs: 30 },
-    "17531-0E040": { name: "CONE,CATALYTIC CONVERTER, UPR N", stem: "JA200", pcs: 12 },
-    "38374-06080": { name: "REINFORCE LUG DOOR STRIKER", stem: "JA097", pcs: 400 },
-    "17141-0C080-12": { name: "BRACKET,HEAT INSULATOR,NO.4", stem: "JA082", pcs: 400 },
-    "512E6-KK010": { name: "BRACKET ELECTRIC UNIT WIRE HRNS", stem: "JA205", pcs: 100 },
-    "512F1-KK010": { name: "BRACKET ELECTRIC UNIT WATER PIPE", stem: "JA206", pcs: 100 },
-    "53481-02120": { name: "BRACKET,HOOD SUPPORT,RH", stem: "JA137", pcs: 200 },
-    "525JD029": { name: "PLATE,R/FLRC/MBR RR", TMC: "TMC001", pcs: 100 },
-    "5253M571": { name: "PLATE,NUT", TMC: "TMC002", pcs: 100 },
-    "5230F244": { name: "BRKT,DECK C/MBR (RHD)", TMC: "TMC003", pcs: 100 },
-    "5230F181": { name: "BRKT,DECK C/MBR (LHD)", TMC: "TMC004", pcs: 100 },
-    "5251C588": { name: "REINF,BODY MTG NO 2,IWR", TMC: "TMC005", pcs: 60 },
-    "525JD147": { name: "BRKT,HARN ESS", TMC: "TMC006", pcs: 2000 },
-    "5220H766": { name: "BRKT AIR CLEANER RH", TMC: "TMC007", pcs: 250 },
-    "5220H938": { name: "BRKT RELAY, BOX,FR", TMC: "TMC008", pcs: 150 },
-    "5220J202": { name: "BRKT CONDENSER TANK", TMC: "TMC009", pcs: 500 },
-    "5230D781": { name: "BRKT,WIPER,SIDE (LHD)", TMC: "TMC010", customer: "TMC", pcs: 400 },
-    "5230D784": { name: "BRKT,WIPER,SIDE (RHD)", TMC: "TMC011", pcs: 400 },
-    "5230D783": { name: "BRKT,BRAKE PEDAL (LHD)", TMC: "TMC012", pcs: 40 },
-    "5251F024": { name: "REINF,BODY MTG NO 2,LWR", TMC: "TMC013", pcs: 60 },
-    "743F4 5RY0A": { name: "REINF-RR FLOOR, RH/LH", TMC: "TMC014", pcs: 50 },
-    "5230F499": { name: "BRKT HARNESS", TMC: "TMC015", pcs: 800 },
-    "5253M572V": { name: "PLATE", TMC: "TMC021", pcs: 150 },
-    "743L4 5EK0A": { name: "BRKT-FR SEAT MTG, RH", TMC: "TMC022", pcs: 50 },
-    "743L5 5EK0A": { name: "BRKT-FR SEAT MTG, LH", TMC: "TMC023", pcs: 50 },
-    "74363 5RJ0A": { name: "BRKT-FR SEAT MTG,OTR LH", TMC: "TMC024", pcs: 120 },
-    "74353 5RJ1A": { name: "BRKT-FR SEAT MTG,OTR LI", TMC: "TMC025", pcs: 120 },
-    "74362 5RY0A": { name: "BRKT-BODY MTG 2ND RH", TMC: "TMC026", pcs: 100 },
-    "74363 5RY0A": { name: "BRKT-BODY MTG 2ND LH", TMC: "TMC027", pcs: 100 },
-    "76482 2LS0B": { name: "REINF-SILL INR,RH", TMC: "TMC028", pcs: 60 },
-    "76483 2LS0B": { name: "REINF-SILL INR,LH", TMC: "TMC029", pcs: 60 },
-    "76482 5R71A": { name: "REINF-SILL INR,RH", TMC: "TMC030", pcs: 60 },
-    "76483 5R71A": { name: "REINF-SILL INR,LH", TMC: "TMC031", pcs: 60 },
-    "76482 2LS2B": { name: "REINF-SILL INR,RH", TMC: "TMC032", pcs: 60 },
-    "76483 2IS2B": { name: "REINF-SILL INR, LH", TMC: "TMC033", pcs: 60 },
-    "24138A010P": { name: "BRKT-HARN", TMC: "TMC034", pcs: 700 },
-    "63165-KK010": { name: "PLATE,ROOF PANEL,R/FRH", FTS: "FT5009", pcs: 500 },
-    "63179-KK010": { name: "PLATE,ROOF PANEL,R/FRH", FTS: "FT5010", pcs: 500 },
-    "17260-EE500": { name: "SHUTTER ASSY FILLER TUBE", FTS: "FTS016", pcs: 300 },
-    "17261-1HJ0A": { name: "GUIDE FILLER TUBE SHUTTER", FTS: "FTS017", pcs: 200 },
-    "17261-CJ40A": { name: "SHUTTER ASSY-FILLER TUBE", FTS: "FTS018", pcs: 200 },
-    "Y2222-011-1122": { name: "COVER", MSFT: "MS001", pcs: 300 },
-    "92334-011-7142": { name: "VALVE CHAMBER", MSFT: "MS002", pcs: 3000 },
-    "K1155-011-7131": { name: "VALVE CHAMBER", MSFT: "MS004", pcs: 5000 },
-    "H1116-011-5710": { name: "BRAZING SHEET", MSFT: "MS005", pcs: 1000 },
-    "K1155-011-2251": { name: "INNER TUBE", MSFT: "MS007", pcs: 250 },
-    "K1041-011-7110": { name: "Valve Disc", MSFT: "MS008", pcs: 10000 },
-    "53283-30010": { name: "REINFORCEMENT", MSFT: "JA006", pcs: 1000 },
-	"55598-BZ140": { name: "BRACKET,GLOVE COMPT DOOR HINGE,RH", stem: "JA271", pcs: 100 },
-    "898137-1430": { name: "COLLAR", FTS: "FT5005", pcs: 1000 },
-    "17535-0E010": { name: "SEPARATOR,MUFFLER", stem: "JA179", pcs: 12 },
-	"17537-0C030": { name: "PLATE EXHAUST PIPE", stem: "JA193", pcs: 18 },
-	"55321-KK030": { name: "STAY,INSTRUMENT PANEL,NO.5", stem: "JA175", pcs: 300 },	
-	"55328-KK130": { name: "STAY,INSTRUMENT PANEL,NO.3", stem: "JA252", pcs: 50 },
-	"64142A000P": { name: "HOODLEDGE-LWR, RR RH", TMC: "TMC039", pcs: 100 },
-	"64143A000P": { name: "HOODLEDGE-LWR, RR LH", TMC: "TMC040", pcs: 100 }		
-};
-        async function initTagPage() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const partNo = (urlParams.get('partNo') || '').trim();
-            const lotNo = urlParams.get('lotNo') || '-';
-            const totalQty = Number(urlParams.get('qty')) || 0;
-
-            let partName = '-';
-    let stemCode = '-';
-    let customerBrand = 'STEM';
-    let pcsPerTag = 50;
-
-    if (partDatabase[partNo]) {
-        partName = partDatabase[partNo].name;
-        pcsPerTag = partDatabase[partNo].pcs;
-        
-        if (partDatabase[partNo].TMC) {
-            stemCode = partDatabase[partNo].TMC;
-            customerBrand = 'TMC';
-        } else if (partDatabase[partNo].FTS) {
-            stemCode = partDatabase[partNo].FTS;
-            customerBrand = 'FTS';
-        } else if (partDatabase[partNo].MSFT) {
-            stemCode = partDatabase[partNo].MSFT;
-            customerBrand = 'MSFT';
-        } else if (partDatabase[partNo].stem) {
-            stemCode = partDatabase[partNo].stem;
-            customerBrand = 'STEM';
-        }
-    } else {
-        partName = urlParams.get('partName') || '-';
-        stemCode = urlParams.get('stemCode') || '-';
-        pcsPerTag = Number(urlParams.get('pcs')) || 50;
-    }
-
-    generateTagsUI({
-        partNo: partNo || '-',
-        lotNo: lotNo,
-        totalQty: totalQty,
-        pcsPerTag: pcsPerTag,
-        partName: partName,
-        stemCode: stemCode,
-        customer: customerBrand
-    });
-		}
-        function generateTagsUI(printData) {
-            const container = document.getElementById('tagContainer');
-            container.innerHTML = '';
-
-            const totalTags = Math.ceil(printData.totalQty / printData.pcsPerTag);
-            
-            document.getElementById('tagInfoSummary').innerText = `Part No: ${printData.partNo} | Part Name: ${printData.partName} | STEM: ${printData.stemCode} | จำนวน/ใบ: ${printData.pcsPerTag} | ยอดรวม: ${printData.totalQty.toLocaleString()} Pcs (${totalTags} ใบ)`;
-
-            let allTagsHTML = '';
-            let currentA4PageHTML = '';
-
-            for (let i = 1; i <= totalTags; i++) {
-                let currentQty = printData.pcsPerTag;
-                if (i === totalTags) {
-                    let remainder = printData.totalQty % printData.pcsPerTag;
-                    if (remainder > 0) currentQty = remainder;
-                }
-
-                const tagHTML = `
-                    <div class="tag-card">
-                        <table class="tag-table">
-                            <colgroup>
-                                <col style="width: 25%;">
-                                <col style="width: 25%;">
-                                <col style="width: 25%;">
-                                <col style="width: 25%;">
-                            </colgroup>
-                            <tr>
-                                <td class="label-title">Part No.</td>
-                                <td colspan="3" class="fw-bold" style="font-size: 15px; letter-spacing: 0.5px;">${printData.partNo}</td>
-                            </tr>
-                            <tr>
-                                <td class="label-title">Part Name</td>
-                                <td colspan="3" class="fw-bold" style="font-size: 12px;">${printData.partName}</td>
-                            </tr>
-                            <tr>
-                                <td class="label-title">Q'ty</td>
-                                <td><span class="fw-bold" style="font-size: 13px;">${currentQty}</span> Pcs.</td>
-                                <td class="label-title text-center">Stamp Mark</td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td class="label-title" style="font-size: 8.5px;">Production / Lot No.:</td>
-                                <td>${printData.lotNo}</td>
-                                <td class="label-title text-center">Code</td>
-                                <td class="fw-bold" style="font-size: 11px;">${printData.stemCode}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-center fw-bold" style="font-size: 8px;">Production Date</td>
-                                <td class="text-center fw-bold" style="font-size: 8px;">Supplier Check</td>
-                                <td class="text-center fw-bold" style="font-size: 8px;">Delivery Date</td>
-                                <td class="text-center fw-bold" style="font-size: 8px;">QC Receiving</td>
-                            </tr>
-                            <tr>
-                                <td style="height: 9mm;"></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td class="text-center" style="font-size: 8px;">Time</td>
-                                <td class="text-center" style="font-size: 8px;">Time</td>
-                                <td class="text-center" style="font-size: 8px;">Time</td>
-                                <td class="text-center" style="font-size: 8px;">by.</td>
-                            </tr>
-                        </table>
-                        <div class="footer-section">
-                           <div class="logo-box">${printData.customer || 'STEM'}</div>
-                            <div class="barcode-box">
-                                <svg class="barcode" data-barcode="${printData.partNo}"></svg>
-                            </div>
-                            <div style="font-size: 8px; text-align: right;"></div>
+    <div class="sheet-container">
+        <table class="report-table">
+            <colgroup>
+                <col style="width: 30px;"> <!-- 1. เวลาเริ่มต้น -->
+                <col style="width: 30px;"> <!-- 2. เวลาสิ้นสุด -->
+                <col style="width: 42px;"> <!-- 3. Lot No -->
+                <col style="width: 45px;"> <!-- 4. Part No -->
+                <col style="width: 38px;"> <!-- 5. Process -->
+                <col style="width: 40px;"> <!-- 6. Material IC -->
+                <col style="width: 32px;"> <!-- 7. น้ำหนักวัตถุดิบ -->
+                <col style="width: 38px;"> <!-- 8. Machine No -->
+                <col style="width: 24px;"> <!-- 9. แผนผลิต -->
+                <col style="width: 24px;"> <!-- 10. ผลิตจริง -->
+                <col style="width: 22px;"> <!-- 11. OK -->
+                <col style="width: 22px;"> <!-- 12. NG -->
+                <col style="width: 24px;"> <!-- 13. สาเหตุ NG (A-H) -->
+                <col style="width: 24px;"> <!-- 14. เสียเวลา: จำนวน -->
+                <col style="width: 24px;"> <!-- 15. เสียเวลา: เปลี่ยนแม่พิมพ์ -->
+                <col style="width: 24px;"> <!-- 16. เสียเวลา: รอตรวจสเปค -->
+                <col style="width: 24px;"> <!-- 17. เสียเวลา: เปลี่ยนวัตถุดิบ -->
+                <col style="width: 24px;"> <!-- 18. เสียเวลา: รองานอื่น -->
+                <col style="width: 32px;"> <!-- 19. QC Check 1 -->
+                <col style="width: 32px;"> <!-- 20. QC Check 2 -->
+                <col style="width: auto;"> <!-- 21. Remark -->
+            </colgroup>
+            <thead>
+                <!-- แถวที่ 1: รวมกันให้ได้ 21 คอลัมน์พอดี (2+6+3+4+4+2 = 21) -->
+                <tr>
+                    <td rowspan="2" colspan="2">
+                        <div class="logo-area">
+                            <span style="color: #00A651; font-size: 14px;"><i class="fas fa-industry"></i> JOZU</span>
                         </div>
-                    </div>
-                `;
+                        <div style="font-size: 4.5px; color: #333;">Jozu Auto Part Co., Ltd.</div>
+                    </td>
+                    <td rowspan="2" colspan="6" style="font-size: 10px; font-weight: bold; line-height: 1.2;">
+                        Production Daily Report<br>
+                        <span style="font-size: 7.5px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
+                    </td>
+                    <td colspan="3" style="font-size: 6.5px;">ผู้จัดการ</td>
+                    <td colspan="4" style="font-size: 6.5px;">หัวหน้างาน</td>
+                    <td colspan="4" style="font-size: 6.5px;">ผู้ปฏิบัติงาน</td>
+                    <td colspan="2" style="font-size: 6.5px;">วันที่</td>
+                </tr>
+                <!-- แถวที่ 2: ช่องเซ็นชื่อและข้อมูล -->
+                <tr>
+                    <td colspan="3" style="height: 13px;"></td>
+                    <td colspan="4"></td>
+                    <td colspan="4" id="lblOperator" style="font-weight: bold; font-size: 6px;">รวมทุกพนักงาน</td>
+                    <td colspan="2" id="lblDate" style="font-size: 6px;">-</td>
+                </tr>
+                <!-- แถวที่ 3: หัวข้อกลุ่มหลัก -->
+                <tr>
+                    <td colspan="2" style="font-size: 5.5px;">Time เวลา</td>
+                    <td rowspan="2" style="font-size: 5.5px;">Lot No.<br><span style="font-size: 4px;">หมายเลขการผลิต</span></td>
+                    <td rowspan="2" style="font-size: 5.5px;">Part No.<br><span style="font-size: 4px;">หมายเลขชิ้นงาน</span></td>
+                    <td rowspan="2" style="font-size: 5.5px;">Process<br><span style="font-size: 4px;">ขั้นตอนการผลิต</span></td>
+                    <td rowspan="2" style="font-size: 5px;">Material IC. No.<br><span style="font-size: 4px;">หมายเลขวัตถุดิบ</span></td>
+                    <td rowspan="2" style="font-size: 5.5px;">น้ำหนักวัตถุดิบ</td>
+                    <td rowspan="2" style="font-size: 5.5px;">Machine No.<br><span style="font-size: 4px;">หมายเลขเครื่องจักร</span></td>
+                    <td colspan="4" style="font-size: 5.5px; font-weight: bold;">จำนวนผลิต</td>
+                    <td rowspan="2" style="font-size: 5.5px;">สาเหตุ NG</td>
+                    <td colspan="5" style="font-size: 5.5px; font-weight: bold;">เวลาที่เสียไปในการผลิต (นาที)</td>
+                    <td rowspan="2" colspan="2" style="font-size: 5px;">QC Line Appearance Check</td>
+                    <td rowspan="2" style="font-size: 5.5px;">ปัญหาการผลิตประจำวัน<br><span style="font-size: 4px;">(Remark)</span></td>
+                </tr>
+                <!-- แถวที่ 4: หัวข้อย่อย -->
+                <tr>
+                    <td style="font-size: 5px;">เวลาเริ่มต้น<br>(Start Time)</td>
+                    <td style="font-size: 5px;">เวลาสิ้นสุด<br>(End Time)</td>
+                    <td style="font-size: 5px;">แผนผลิต</td>
+                    <td style="font-size: 5px;">ผลิตจริง</td>
+                    <td style="font-size: 5px;">OK</td>
+                    <td style="font-size: 5px;">NG</td>
+                    <td style="font-size: 4.5px;">A-H</td>
+                    <td style="font-size: 4.5px;">จำนวน</td>
+                    <td style="font-size: 4.5px;">เปลี่ยนแม่พิมพ์</td>
+                    <td style="font-size: 4.5px;">รอการตรวจสอบชิ้นงาน</td>
+                    <td style="font-size: 4.5px;">เปลี่ยนวัตถุดิบ</td>
+                    <td style="font-size: 4.5px;">รองานจากกระบวนการอื่น</td>
+                </tr>
+            </thead>
+            <tbody id="reportTableBody">
+                <!-- ข้อมูลแสดงที่นี่ -->
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="15" style="text-align: left; padding: 4px; vertical-align: top;">
+                        <strong>หมายเหตุ</strong><br>
+                        <span style="font-size: 6.5px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span><br>
+                        <span style="font-size: 6.5px;">รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 1px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)</span>
+                    </td>
+                    <td colspan="6" style="text-align: center; padding: 4px; vertical-align: middle;">
+                        <div style="font-weight: bold; font-size: 6.5px; margin-bottom: 2px;">ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้นให้ดำเนินการ</div>
+                        <div style="font-size: 6px; display: flex; justify-content: space-around; text-align: center; margin-top: 2px;">
+                            <div>🛑<br>หยุด</div>
+                            <div>🏃‍♂️<br>เรียก</div>
+                            <div>🚶‍♂️<br>รอ</div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="21" style="text-align: right; padding: 2px; font-size: 5.5px; color: #555; border-top: 1px solid #000;">
+                        J-F-PR-005 Rev.07 Ref. 04 Jan. 16
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
 
-                currentA4PageHTML += tagHTML;
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            loadOperatorFilter();
+            renderReport();
+        });
 
-                if (i % 6 === 0 || i === totalTags) {
-                    allTagsHTML += `<div class="page">${currentA4PageHTML}</div>`;
-                    currentA4PageHTML = ''; 
-                }
+        function loadOperatorFilter() {
+            let actuals = JSON.parse(localStorage.getItem('actualProductions')) || [];
+            let select = document.getElementById('filterOperator');
+            let operators = [...new Set(actuals.map(item => item.operator))];
+            
+            operators.forEach(op => {
+                let opt = document.createElement('option');
+                opt.value = op;
+                opt.textContent = op;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderReport() {
+            let actuals = JSON.parse(localStorage.getItem('actualProductions')) || [];
+            let selectedOp = document.getElementById('filterOperator').value;
+            let tbody = document.getElementById('reportTableBody');
+            
+            document.getElementById('lblOperator').textContent = selectedOp ? selectedOp : "รวมทุกพนักงาน";
+            
+            let today = new Date().toISOString().split('T')[0];
+            document.getElementById('lblDate').textContent = today;
+
+            if (selectedOp) {
+                actuals = actuals.filter(item => item.operator === selectedOp);
             }
 
-            container.innerHTML = allTagsHTML;
+            tbody.innerHTML = '';
 
-            document.querySelectorAll('.barcode').forEach(svg => {
-                JsBarcode(svg, svg.getAttribute('data-barcode'), {
-                    format: "CODE128",
-                    displayValue: false,
-                    width: 1.8,
-                    height: 28,
-                    margin: 1
-                });
-            });
+            let minRows = 12; 
+            let totalRows = Math.max(actuals.length, minRows);
+
+            for (let i = 0; i < totalRows; i++) {
+                let item = actuals[i];
+                let tr = document.createElement('tr');
+                tr.style.height = '22px';
+
+                if (item) {
+                    tr.innerHTML = `
+                        <td>${item.startTime || '-'}</td>
+                        <td>${item.endTime || '-'}</td>
+                        <td>${item.lotNo || '-'}</td>
+                        <td>${item.partNo || '-'}</td>
+                        <td>${item.process || '-'}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>${item.mcNo || '-'}</td>
+                        <td>-</td>
+                        <td>${item.qty || 0}</td>
+                        <td>${item.qty || 0}</td>
+                        <td>${item.ngQty || 0}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td colspan="2">-</td>
+                        <td>${item.remark || '-'}</td>
+                    `;
+                } else {
+                    tr.innerHTML = `
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td colspan="2"></td><td></td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            }
         }
-
-        window.onload = initTagPage;
     </script>
 </body>
 </html>
