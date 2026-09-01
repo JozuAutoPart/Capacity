@@ -2,248 +2,264 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>พิมพ์ใบรายงานการผลิตประจำวัน</title>
-    <!-- Bootstrap 5 CSS -->
+    <title>Production Daily Report - Jozu Auto Part</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap');
+        
         body {
-            background-color: #f8f9fa;
             font-family: 'Sarabun', sans-serif;
+            background-color: #525659;
+            color: #000;
+            margin: 0;
+            padding: 20px;
         }
-        .report-container {
-            background: #fff;
-            width: 297mm; /* ขนาดกระดาษ A4 แนวนอน (Landscape) เพื่อให้ตารางกว้างพอดี */
+
+        .no-print {
+            margin-bottom: 20px;
+        }
+
+        .sheet-container {
+            width: 297mm;
             min-height: 210mm;
-            margin: 20px auto;
-            padding: 15mm;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            background: #fff;
+            margin: 0 auto;
+            padding: 10mm 15mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+            position: relative;
         }
+
         table.report-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
+            font-size: 11px;
         }
+
         table.report-table th, table.report-table td {
             border: 1px solid #000;
-            padding: 6px 4px;
+            padding: 4px 2px;
             text-align: center;
             vertical-align: middle;
         }
+
         table.report-table th {
-            background-color: #f2f2f2;
+            background-color: #f0f0f0;
+            font-weight: bold;
         }
-        .text-left { text-align: left !important; padding-left: 8px !important; }
-        
+
+        .logo-area {
+            font-weight: bold;
+            font-size: 16px;
+            color: #008000;
+        }
+
         @media print {
             body {
-                background-color: #fff;
+                background: none;
+                padding: 0;
             }
             .no-print {
                 display: none !important;
             }
-            .report-container {
+            .sheet-container {
                 box-shadow: none;
                 margin: 0;
-                padding: 5mm;
                 width: 100%;
+                padding: 5mm;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 5mm;
             }
         }
     </style>
 </head>
 <body>
 
-    <!-- แถบควบคุมเมนูด้านบน (ซ่อนตอนสั่งพิมพ์) -->
-    <div class="container my-3 no-print">
-        <div class="card p-3 shadow-sm">
-            <div class="row align-items-center">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold mb-1"><i class="fas fa-filter"></i> กรองตามชื่อพนักงาน:</label>
-                    <select id="printOperatorFilter" class="form-select" onchange="loadReportData()">
-                        <option value="">-- พนักงานทั้งหมด --</option>
-                    </select>
-                </div>
-                <div class="col-md-8 text-end">
-                    <button class="btn btn-secondary me-2" onclick="window.history.back()">
-                        <i class="fas fa-arrow-left"></i> กลับหน้าหลัก
-                    </button>
-                    <button class="btn btn-primary" onclick="window.print()">
-                        <i class="fas fa-print"></i> พิมพ์เอกสาร / บันทึก PDF
-                    </button>
-                </div>
+    <div class="container text-center no-print">
+        <div class="card p-3 bg-dark text-white d-flex flex-row justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <label class="form-label m-0">กรองตามชื่อพนักงาน:</label>
+                <select id="filterOperator" class="form-select form-select-sm" style="width: 200px;" onchange="renderReport()">
+                    <option value="">-- พนักงานทั้งหมด --</option>
+                </select>
+            </div>
+            <div>
+                <a href="index.html" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> กลับหน้าหลัก</a>
+                <button onclick="window.print()" class="btn btn-primary btn-sm ms-2"><i class="fas fa-print me-1"></i> พิมพ์เอกสาร / บันทึก PDF</button>
             </div>
         </div>
     </div>
 
-    <!-- ส่วนแสดงผลแบบฟอร์มรายงาน (จำลองตามฟอร์ม Excel ทางการ) -->
-    <div class="report-container">
-        <!-- หัวกระดาษ -->
-        <table class="report-table mb-2">
-            <tr>
-                <td rowspan="2" style="width: 20%;" class="fw-bold fs-5">
-                    <i class="fas fa-industry text-success"></i> Jozu Auto Part
-                </td>
-                <td rowspan="2" style="width: 40%;" class="fw-bold fs-4">
-                    Production Daily Report<br><span class="fs-6 fw-normal">(ใบรายงานการผลิตประจำวัน)</span>
-                </td>
-                <td style="width: 10%; font-size: 11px;">ผู้จัดการ</td>
-                <td style="width: 10%; font-size: 11px;">หัวหน้างาน</td>
-                <td style="width: 10%; font-size: 11px;">ผู้ปฏิบัติงาน</td>
-                <td style="width: 10%; font-size: 11px;">วันที่</td>
-            </tr>
-            <tr>
-                <td style="height: 35px;"></td>
-                <td></td>
-                <td id="headerOperator" class="fw-bold text-primary">-</td>
-                <td id="headerDate">-</td>
-            </tr>
-        </table>
-
-        <!-- ตารางรายการผลิต -->
+    <div class="sheet-container">
         <table class="report-table">
+            <!-- ส่วนหัวตาราง -->
             <thead>
                 <tr>
-                    <th colspan="2" style="width: 12%;">Time เวลา</th>
-                    <th rowspan="2" style="width: 10%;">Lot No.<br>หมายเลขการผลิต</th>
-                    <th rowspan="2" style="width: 12%;">Part No.<br>หมายเลขชิ้นงาน</th>
-                    <th rowspan="2" style="width: 8%;">Process<br>ขั้นตอน</th>
-                    <th rowspan="2" style="width: 10%;">Machine No.<br>หมายเลขเครื่องจักร</th>
-                    <th colspan="4" style="width: 20%;">จำนวนผลิต</th>
-                    <th colspan="2" style="width: 8%;">สาเหตุ NG</th>
-                    <th rowspan="2" style="width: 20%;">ปัญหาการผลิตประจำวัน<br>(Remark)</th>
+                    <td rowspan="2" style="width: 120px;">
+                        <div class="logo-area"><i class="fas fa-industry"></i> JOZU</div>
+                        <small style="font-size: 9px;">Jozu Auto Part Co., Ltd.</small>
+                    </td>
+                    <td rowspan="2" colspan="3" style="font-size: 16px; font-weight: bold;">
+                        Production Daily Report<br>
+                        <span style="font-size: 13px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
+                    </td>
+                    <td>ผู้จัดการ</td>
+                    <td>หัวหน้างาน</td>
+                    <td>ผู้ปฏิบัติงาน</td>
+                    <td>วันที่</td>
                 </tr>
                 <tr>
-                    <th style="width: 6%;">เวลาเริ่มต้น</th>
-                    <th style="width: 6%;">เวลาสิ้นสุด</th>
-                    <th>แผนผลิต</th>
-                    <th>ผลิตจริง</th>
-                    <th>OK</th>
-                    <th>NG</th>
-                    <th>A-H</th>
-                    <th>จำนวน</th>
+                    <td style="height: 25px;"></td>
+                    <td></td>
+                    <td id="lblOperator" style="font-weight: bold; font-size: 10px;">รวมทุกพนักงาน</td>
+                    <td id="lblDate" style="font-size: 10px;">-</td>
+                </tr>
+                <tr>
+                    <td colspan="2">Time เวลา</td>
+                    <td rowspan="2" style="width: 60px;">Lot No.<br><span style="font-size: 9px;">หมายเลขการผลิต</span></td>
+                    <td rowspan="2" style="width: 80px;">Part No.<br><span style="font-size: 9px;">หมายเลขชิ้นงาน</span></td>
+                    <td rowspan="2" style="width: 50px;">Process<br><span style="font-size: 9px;">ขั้นตอน</span></td>
+                    <td rowspan="2" style="width: 65px;">Material IC.<br><span style="font-size: 9px;">No. หมายเลขวัตถุดิบ</span></td>
+                    <td rowspan="2" style="width: 50px;">น้ำหนักวัตถุดิบ</td>
+                    <td rowspan="2" style="width: 65px;">Machine No.<br><span style="font-size: 9px;">หมายเลขเครื่องจักร</span></td>
+                    <td colspan="5">จำนวนผลิต</td>
+                    <td colspan="5">สาเหตุ NG</td>
+                    <td rowspan="2" style="width: 50px; font-size: 9px;">เวลาที่เสียไปในการผลิต (นาที)</td>
+                    <td rowspan="2" style="width: 55px; font-size: 9px;">QC Line Appearance Check</td>
+                    <td rowspan="2">ปัญหาการผลิตประจำวัน<br><span style="font-size: 9px;">(Remark)</span></td>
+                </tr>
+                <tr>
+                    <td style="width: 45px; font-size: 9px;">เวลาเริ่มต้น<br>(Start Time)</td>
+                    <td style="width: 45px; font-size: 9px;">เวลาสิ้นสุด<br>(End Time)</td>
+                    <td style="width: 45px; font-size: 9px;">แผนผลิต</td>
+                    <td style="width: 45px; font-size: 9px;">ผลิตจริง</td>
+                    <td style="width: 35px; font-size: 9px;">OK</td>
+                    <td style="width: 35px; font-size: 9px;">NG</td>
+                    <td style="width: 30px; font-size: 9px;">A-H</td>
+                    <td style="width: 35px; font-size: 9px;">จำนวน</td>
+                    <td style="width: 30px; font-size: 9px;">เปลี่ยนแม่พิมพ์</td>
+                    <td style="width: 30px; font-size: 9px;">รอตรวจสเปคชิ้นงาน</td>
+                    <td style="width: 30px; font-size: 9px;">รอวัตถุดิบ</td>
+                    <td style="width: 30px; font-size: 9px;">เปลี่ยนวัตถุดิบ</td>
+                    <td style="width: 30px; font-size: 9px;">รอเครนจากสายอื่น</td>
                 </tr>
             </thead>
-            <tbody id="printTableBody">
-                <!-- ข้อมูลจะถูกเติมเข้ามาตรงนี้อัตโนมัติ -->
+            <!-- เนื้อหาตารางข้อมูลจริง -->
+            <tbody id="reportTableBody">
+                <!-- ข้อมูลจะถูกดึงมาแสดงที่นี่อัตโนมัติ -->
             </tbody>
+            <!-- ส่วนท้ายตาราง / หมายเหตุ -->
+            <tfoot>
+                <tr>
+                    <td colspan="10" style="text-align: left; padding: 6px; vertical-align: top;">
+                        <strong>หมายเหตุ</strong><br>
+                        <span style="font-size: 10px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span>
+                    </td>
+                    <td colspan="10" style="text-align: left; padding: 6px; vertical-align: middle;">
+                        <div style="font-weight: bold; font-size: 11px; margin-bottom: 3px;">ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้นให้ดำเนินการ</div>
+                        <div style="font-size: 10px; display: flex; justify-content: space-around; text-align: center;">
+                            <div>🛑<br>หยุด</div>
+                            <div>🏃‍♂️<br>เรียก</div>
+                            <div>🚶‍♂️<br>รอ</div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="10" style="text-align: left; padding: 4px; font-size: 10px;">
+                        รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 2px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)
+                    </td>
+                    <td colspan="10" style="text-align: right; padding: 4px; font-size: 9px; color: #555;">
+                        J-F-PR-005 Rev.07 Ref. 04 Jan. 16
+                    </td>
+                </tr>
+            </tfoot>
         </table>
-
-        <!-- ท้ายฟอร์ม -->
-        <div class="row mt-4 align-items-end" style="font-size: 11px;">
-            <div class="col-8">
-                <div class="border p-2">
-                    <strong>หมายเหตุสาเหตุชิ้นงานเสีย:</strong> A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหวง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil
-                </div>
-            </div>
-            <div class="col-4 text-end text-muted">
-                J-F-PR-005 Rev.07 Ref. 04 Jan. 16
-            </div>
-        </div>
     </div>
 
     <script>
-        // โหลดข้อมูลและแสดงผลเมื่อเปิดหน้าเว็บ
-        function loadReportData() {
-            // ดึงข้อมูล Actuals จาก localStorage หรือส่งต่อมาจากหน้าหลัก
-            let actuals = JSON.parse(localStorage.getItem('actualsData') || '[]');
+        // โหลดข้อมูลจาก localStorage ของหน้าหลักมาแสดง
+        window.addEventListener('DOMContentLoaded', () => {
+            loadOperatorFilter();
+            renderReport();
+        });
+
+        function loadOperatorFilter() {
+            let actuals = JSON.parse(localStorage.getItem('actualProductions')) || [];
+            let select = document.getElementById('filterOperator');
+            let operators = [...new Set(actuals.map(item => item.operator))];
             
-            // หากไม่มีใน localStorage ให้ดึงจากตัวแปรกลางหรือจำลองข้อมูลว่าง
-            if (actuals.length === 0 && window.opener && window.opener.actuals) {
-                actuals = window.opener.actuals;
-            }
-
-            const selectedOp = document.getElementById('printOperatorFilter').value;
-            const tbody = document.getElementById('printTableBody');
-            tbody.innerHTML = '';
-
-            // อัปเดตรายชื่อพนักงานใน Dropdown กรอง
-            let operators = new Set();
-            actuals.forEach(a => {
-                let op = a.operator || a['OP Name'] || '';
-                if (op) operators.add(op);
-            });
-
-            let filterSelect = document.getElementById('printOperatorFilter');
-            let currentFilterVal = filterSelect.value;
-            filterSelect.innerHTML = '<option value="">-- พนักงานทั้งหมด --</option>';
             operators.forEach(op => {
                 let opt = document.createElement('option');
                 opt.value = op;
-                opt.innerText = op;
-                if (op === currentFilterVal) opt.selected = true;
-                filterSelect.appendChild(opt);
+                opt.textContent = op;
+                select.appendChild(opt);
             });
+        }
 
-            // กรองข้อมูลตามที่เลือก
-            let filtered = actuals.filter(a => {
-                let op = a.operator || a['OP Name'] || '';
-                if (selectedOp && op !== selectedOp) return false;
-                return true;
-            });
+        function renderReport() {
+            let actuals = JSON.parse(localStorage.getItem('actualProductions')) || [];
+            let selectedOp = document.getElementById('filterOperator').value;
+            let tbody = document.getElementById('reportTableBody');
+            
+            document.getElementById('lblOperator').textContent = selectedOp ? selectedOp : "รวมทุกพนักงาน";
+            
+            // กำหนดวันที่ปัจจุบันแสดงที่หัวกระดาษ
+            let today = new Date().toISOString().split('T')[0];
+            document.getElementById('lblDate').textContent = today;
 
-            // กำหนดวันที่ปัจจุบันที่หัวกระดาษ
-            document.getElementById('headerDate').innerText = new Date().toISOString().split('T')[0];
-            document.getElementById('headerOperator').innerText = selectedOp || 'รวมทุกท่าน';
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" class="text-center text-muted py-4">ไม่พบข้อมูลการผลิต</td></tr>`;
-                return;
+            if (selectedOp) {
+                actuals = actuals.filter(item => item.operator === selectedOp);
             }
 
-            // เติมข้อมูลลงตาราง (กำหนดให้แสดงอย่างน้อย 10 แถวเพื่อให้ฟอร์มสวยงามเต็มหน้ากระดาษ)
-            let rowCount = Math.max(filtered.length, 10);
+            tbody.innerHTML = '';
 
-            for (let i = 0; i < rowCount; i++) {
-                let a = filtered[i];
+            // สร้างแถวข้อมูลว่างให้ครบฟอร์ม (อย่างน้อย 12 แถว เพื่อให้ฟอร์มสวยเต็มหน้ากระดาษ A4)
+            let minRows = 12;
+            let totalRows = Math.max(actuals.length, minRows);
+
+            for (let i = 0; i < totalRows; i++) {
+                let item = actuals[i];
                 let tr = document.createElement('tr');
+                tr.style.height = '24px';
 
-                if (a) {
-                    let timeRange = a.timeWork || a['Time Work'] || '-';
-                    let times = timeRange.split('-');
-                    let startTime = times[0]?.trim() || '';
-                    let endTime = times[1]?.trim() || '';
-                    
-                    let lineMC = a.line || a['Line/MC'] || '';
-                    if (a.mcNo || a['Machine No.']) lineMC += ' / ' + (a.mcNo || a['Machine No.']);
-
-                    let fullPart = a.partNo || a['Part No.'] || '';
-                    let partParts = fullPart.split(' ');
-                    let basePart = partParts[0] || '';
-                    let processVal = partParts.slice(1).join(' ') || '';
-
-                    let lotNo = a.lotNo || a['Lot No.'] || '';
-                    let okQty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                    let ngQty = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
-                    let remark = a.remark || a['Remark'] || '-';
-
+                if (item) {
                     tr.innerHTML = `
-                        <td>${startTime}</td>
-                        <td>${endTime}</td>
-                        <td>${lotNo}</td>
-                        <td>${basePart}</td>
-                        <td>${processVal}</td>
-                        <td>${lineMC}</td>
-                        <td>-</td>
-                        <td>${(okQty + ngQty).toLocaleString()}</td>
-                        <td class="fw-bold">${okQty.toLocaleString()}</td>
-                        <td class="text-danger">${ngQty > 0 ? ngQty.toLocaleString() : ''}</td>
+                        <td>${item.startTime || '-'}</td>
+                        <td>${item.endTime || '-'}</td>
+                        <td>${item.lotNo || '-'}</td>
+                        <td>${item.partNo || '-'}</td>
+                        <td>${item.process || '-'}</td>
                         <td>-</td>
                         <td>-</td>
-                        <td class="text-left">${remark}</td>
+                        <td>${item.mcNo || '-'}</td>
+                        <td>-</td>
+                        <td>${item.qty || 0}</td>
+                        <td>${item.qty || 0}</td>
+                        <td>${item.ngQty || 0}</td>
+                        <td>-</td>
+                        <td>${item.ngQty || 0}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>${item.remark || '-'}</td>
                     `;
                 } else {
-                    // แถวว่างสำหรับเติมกรณีข้อมูลไม่ครบหน้า
+                    // ช่องว่างกรณีข้อมูลไม่ถึง 12 แถว
                     tr.innerHTML = `
-                        <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td>
-                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td></td><td></td><td></td>
                     `;
                 }
                 tbody.appendChild(tr);
             }
         }
-
-        window.addEventListener('DOMContentLoaded', loadReportData);
     </script>
 </body>
 </html>
