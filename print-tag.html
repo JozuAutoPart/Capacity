@@ -109,34 +109,45 @@
     <div id="container"></div>
 
     <script>
-        // 📌 ฐานข้อมูลสำรอง (กรณีไม่ได้ส่งค่าผ่าน URL)
-        const partDatabase = {
+        // ==========================================
+        // 📌 1. กำหนด Part No. และ Lot No. ที่ต้องการพิมพ์
+        // ==========================================
+        const targetPartNo = "17443-BZ190"; 
+        const targetLotNo = "934101";
+
+        // ==========================================
+        // 📌 2. ฐานข้อมูล Masterparts (เพิ่ม/แก้ไขข้อมูลพาร์ทในนี้ได้เลย)
+        // ==========================================
+        const Masterparts = {
+            "17443-BZ190": {
+                partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL",
+                code: "JA119",
+                qty: 1533 // จำนวนต่อ Tag
+            },
             "17442-BZ430": {
                 partName: "BRACKET SUB-ASSY, RADIATOR",
                 code: "JA193",
                 qty: 50
             },
-            "17443-BZ190": {
-                partName: "BRACKET SUB-ASSY, EXHAUST PIPE",
-                code: "JA193",
+            "53219-0D020": {
+                partName: "SUPPORT, RADIATOR, LWR RR",
+                code: "JA114",
                 qty: 50
             }
         };
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const partNo = urlParams.get('partNo') || '17442-BZ430';
-        const lotNo = urlParams.get('lotNo') || '-';
-        
-        const dbInfo = partDatabase[partNo] || {
-            partName: "ไม่ระบุชื่อชิ้นส่วน",
-            code: "JA193",
-            qty: 50
+        // ดึงข้อมูลอัตโนมัติจาก Masterparts ตาม targetPartNo
+        const currentPart = Masterparts[targetPartNo] || {
+            partName: "ไม่พบข้อมูลพาร์ทใน Masterparts",
+            code: "-",
+            qty: 0
         };
 
-        // ดึงค่า Part Name, Code และ จำนวนต่อ Tag (จากคอลัมน์ C)
-        const partName = urlParams.get('partName') || dbInfo.partName;
-        const tagCode = urlParams.get('code') || dbInfo.code;
-        const qtyPerTag = parseInt(urlParams.get('qty')) || dbInfo.qty;
+        const partNo = targetPartNo;
+        const partName = currentPart.partName;
+        const tagCode = currentPart.code;
+        const qtyPerTag = currentPart.qty;
+        const lotNo = targetLotNo;
 
         document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty/Tag: ${qtyPerTag} | Lot: ${lotNo}`;
 
