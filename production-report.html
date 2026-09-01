@@ -98,30 +98,30 @@
     <div class="sheet-container">
         <table class="report-table">
             <colgroup>
-                <col style="width: 32px;">
-                <col style="width: 32px;">
-                <col style="width: 45px;">
-                <col style="width: 50px;">
-                <col style="width: 45px;">
-                <col style="width: 48px;">
-                <col style="width: 38px;">
-                <col style="width: 45px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 26px;">
-                <col style="width: 26px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 38px;">
-                <col style="width: 38px;">
-                <col style="width: auto;">
+                <col style="width: 32px;"> <!-- 1. เวลาเริ่มต้น -->
+                <col style="width: 32px;"> <!-- 2. เวลาสิ้นสุด -->
+                <col style="width: 48px;"> <!-- 3. Lot No -->
+                <col style="width: 52px;"> <!-- 4. Part No -->
+                <col style="width: 45px;"> <!-- 5. Process -->
+                <col style="width: 45px;"> <!-- 6. Material IC -->
+                <col style="width: 38px;"> <!-- 7. น้ำหนักวัตถุดิบ -->
+                <col style="width: 45px;"> <!-- 8. Machine No -->
+                <col style="width: 28px;"> <!-- 9. แผนผลิต -->
+                <col style="width: 28px;"> <!-- 10. ผลิตจริง -->
+                <col style="width: 26px;"> <!-- 11. OK -->
+                <col style="width: 26px;"> <!-- 12. NG -->
+                <col style="width: 28px;"> <!-- 13. สาเหตุ NG (A-H) -->
+                <col style="width: 28px;"> <!-- 14. เสียเวลา: จำนวน -->
+                <col style="width: 28px;"> <!-- 15. เสียเวลา: เปลี่ยนแม่พิมพ์ -->
+                <col style="width: 28px;"> <!-- 16. เสียเวลา: รอตรวจสเปค -->
+                <col style="width: 28px;"> <!-- 17. เสียเวลา: เปลี่ยนวัตถุดิบ -->
+                <col style="width: 28px;"> <!-- 18. เสียเวลา: รองานอื่น -->
+                <col style="width: 38px;"> <!-- 19. QC Line Check -->
+                <col style="width: 38px;"> <!-- 20. (สำรอง) -->
+                <col style="width: auto;"> <!-- 21. Remark -->
             </colgroup>
             <thead>
-                <!-- แถวที่ 1: หัวข้อฟอร์ม และช่องเซ็นชื่อด้านบน -->
+                <!-- แถวที่ 1 -->
                 <tr>
                     <td rowspan="3" colspan="2">
                         <div class="logo-area"><i class="fas fa-industry"></i> JOZU</div>
@@ -136,14 +136,14 @@
                     <td colspan="4" style="font-size: 7.5px;">ผู้ปฏิบัติงาน</td>
                     <td colspan="1" style="font-size: 7.5px;">วันที่</td>
                 </tr>
-                <!-- แถวที่ 2: ช่องว่างสำหรับเซ็นชื่อ/ข้อมูล -->
+                <!-- แถวที่ 2 -->
                 <tr>
                     <td colspan="3" style="height: 15px;"></td>
                     <td colspan="4"></td>
                     <td colspan="4" id="lblOperator" style="font-weight: bold; font-size: 7px;">-</td>
                     <td colspan="1" id="lblDate" style="font-size: 7px;">-</td>
                 </tr>
-                <!-- แถวที่ 3: หัวข้อหลักของตาราง -->
+                <!-- แถวที่ 3 (หัวข้อหลัก) -->
                 <tr>
                     <td colspan="2" style="font-size: 6.5px;">Time เวลา</td>
                     <td rowspan="2" style="font-size: 6.5px;">Lot No.<br><span style="font-size: 5px;">หมายเลขการผลิต</span></td>
@@ -154,11 +154,11 @@
                     <td rowspan="2" style="font-size: 6.5px;">Machine No.<br><span style="font-size: 5px;">หมายเลขเครื่องจักร</span></td>
                     <td colspan="4" style="font-size: 6.5px; font-weight: bold;">จำนวนผลิต</td>
                     <td rowspan="2" style="font-size: 6.5px;">สาเหตุ NG</td>
-                    <td colspan="6" style="font-size: 6.5px; font-weight: bold;">เวลาที่เสียไปในการผลิต (นาที)</td>
-                    <td rowspan="2" style="font-size: 5.5px;">QC Line Appearance Check</td>
+                    <td colspan="5" style="font-size: 6.5px; font-weight: bold;">เวลาที่เสียไปในการผลิต (นาที)</td>
+                    <td rowspan="2" colspan="2" style="font-size: 5.5px;">QC Line Appearance Check</td>
                     <td rowspan="2" style="font-size: 6.5px;">ปัญหาการผลิตประจำวัน<br><span style="font-size: 5px;">(Remark)</span></td>
                 </tr>
-                <!-- แถวที่ 4: หัวข้อย่อย -->
+                <!-- แถวที่ 4 (หัวข้อย่อย) -->
                 <tr>
                     <td style="font-size: 6px;">เวลาเริ่มต้น<br>(Start Time)</td>
                     <td style="font-size: 6px;">เวลาสิ้นสุด<br>(End Time)</td>
@@ -265,15 +265,14 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>-</td>
-                        <td>-</td>
+                        <td colspan="2">-</td>
                         <td>${item.remark || '-'}</td>
                     `;
                 } else {
                     tr.innerHTML = `
                         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                         <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                        <td></td><td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td colspan="2"></td><td></td>
                     `;
                 }
                 tbody.appendChild(tr);
