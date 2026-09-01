@@ -2020,7 +2020,7 @@ async function exportFilteredProductionReport() {
     let selectedOperator = document.getElementById('filterOperator')?.value || '';
     
     try {
-        let response = await fetch('ใบรายงานการผลิต.xlsx');
+        let response = await fetch('./ใบรายงานการผลิต.xlsx');
         if (!response.ok) throw new Error('ไม่สามารถโหลดไฟล์แบบฟอร์ม Excel ต้นฉบับได้ (ตรวจสอบว่าวางไฟล์ "ใบรายงานการผลิต.xlsx" ไว้ที่โฟลเดอร์หลักแล้ว)');
         
         let data = await response.arrayBuffer();
