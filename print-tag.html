@@ -110,46 +110,49 @@
 
     <script>
         // ==========================================
-        // 📌 1. กำหนด Part No. และ Lot No. ที่ต้องการพิมพ์
+        // 📌 1. กำหนด Part No. และ Lot No. ที่ต้องการค้นหา
         // ==========================================
         const targetPartNo = "17443-BZ190"; 
         const targetLotNo = "934101";
 
         // ==========================================
-        // 📌 2. ฐานข้อมูล Masterparts (เพิ่ม/แก้ไขข้อมูลพาร์ทในนี้ได้เลย)
+        // 📌 2. ฐานข้อมูล Masterparts (จับคู่ตามเงื่อนไข)
+        // partName = คอลัมน์ H
+        // qty      = คอลัมน์ C
+        // code     = คอลัมน์ I
         // ==========================================
         const Masterparts = {
             "17443-BZ190": {
-                partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL",
-                code: "JA119",
-                qty: 1533 // จำนวนต่อ Tag
+                partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", // คอลัมน์ H
+                qty: 1533,                                      // คอลัมน์ C
+                code: "JA119"                                   // คอลัมน์ I
             },
             "17442-BZ430": {
-                partName: "BRACKET SUB-ASSY, RADIATOR",
-                code: "JA193",
-                qty: 50
+                partName: "BRACKET SUB-ASSY, RADIATOR",         // คอลัมน์ H
+                qty: 50,                                        // คอลัมน์ C
+                code: "JA193"                                   // คอลัมน์ I
             },
             "53219-0D020": {
-                partName: "SUPPORT, RADIATOR, LWR RR",
-                code: "JA114",
-                qty: 50
+                partName: "SUPPORT, RADIATOR, LWR RR",          // คอลัมน์ H
+                qty: 50,                                        // คอลัมน์ C
+                code: "JA114"                                   // คอลัมน์ I
             }
         };
 
-        // ดึงข้อมูลอัตโนมัติจาก Masterparts ตาม targetPartNo
+        // ดึงข้อมูลอัตโนมัติจาก Masterparts ตาม Part No.
         const currentPart = Masterparts[targetPartNo] || {
             partName: "ไม่พบข้อมูลพาร์ทใน Masterparts",
-            code: "-",
-            qty: 0
+            qty: 0,
+            code: "-"
         };
 
         const partNo = targetPartNo;
-        const partName = currentPart.partName;
-        const tagCode = currentPart.code;
-        const qtyPerTag = currentPart.qty;
+        const partName = currentPart.partName; // คอลัมน์ H
+        const qtyPerTag = currentPart.qty;     // คอลัมน์ C
+        const tagCode = currentPart.code;      // คอลัมน์ I
         const lotNo = targetLotNo;
 
-        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty/Tag: ${qtyPerTag} | Lot: ${lotNo}`;
+        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name (Col.H): ${partName} | Qty (Col.C): ${qtyPerTag} | Code (Col.I): ${tagCode} | Lot: ${lotNo}`;
 
         const totalTags = 6; 
         const container = document.getElementById('container');
