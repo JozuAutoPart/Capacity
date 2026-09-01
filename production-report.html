@@ -121,7 +121,6 @@
                 <col style="width: auto;">
             </colgroup>
             <thead>
-                <!-- แถวที่ 1 -->
                 <tr>
                     <td rowspan="3" colspan="2">
                         <div class="logo-area"><i class="fas fa-industry"></i> JOZU</div>
@@ -133,17 +132,15 @@
                     </td>
                     <td colspan="4" style="font-size: 8px;">ผู้จัดการ</td>
                     <td colspan="4" style="font-size: 8px;">หัวหน้างาน</td>
-                    <td colspan="4" style="font-size: 8px;">ผู้ปฏิบัติงาน</td>
-                    <td colspan="3" style="font-size: 8px;">วันที่</td>
+                    <td colspan="5" style="font-size: 8px;">ผู้ปฏิบัติงาน</td>
+                    <td colspan="2" style="font-size: 8px;">วันที่</td>
                 </tr>
-                <!-- แถวที่ 2 -->
                 <tr>
                     <td colspan="4" style="height: 16px;"></td>
                     <td colspan="4"></td>
-                    <td colspan="4" id="lblOperator" style="font-weight: bold; font-size: 7.5px;">-</td>
-                    <td colspan="3" id="lblDate" style="font-size: 7.5px;">-</td>
+                    <td colspan="5" id="lblOperator" style="font-weight: bold; font-size: 7.5px;">-</td>
+                    <td colspan="2" id="lblDate" style="font-size: 7.5px;">-</td>
                 </tr>
-                <!-- แถวที่ 3 (หัวข้อกลุ่มใหญ่) -->
                 <tr>
                     <td colspan="2" style="font-size: 7px;">Time เวลา</td>
                     <td rowspan="2" style="font-size: 7px;">Lot No.<br><span style="font-size: 5.5px;">หมายเลขการผลิต</span></td>
@@ -158,7 +155,6 @@
                     <td rowspan="2" style="font-size: 6px;">QC Line Appearance Check</td>
                     <td rowspan="2" style="font-size: 7px;">ปัญหาการผลิตประจำวัน<br><span style="font-size: 5.5px;">(Remark)</span></td>
                 </tr>
-                <!-- แถวที่ 4 (หัวข้อย่อย) -->
                 <tr>
                     <td style="font-size: 6.5px;">เวลาเริ่มต้น<br>(Start Time)</td>
                     <td style="font-size: 6.5px;">เวลาสิ้นสุด<br>(End Time)</td>
@@ -171,11 +167,11 @@
                     <td style="font-size: 6px;">รอตรวจสเปคชิ้นงาน</td>
                     <td style="font-size: 6px;">รอวัตถุดิบ</td>
                     <td style="font-size: 6px;">เปลี่ยนวัตถุดิบ</td>
+                    <td style="font-size: 6px;">รอเครนจากสายอื่น</td>
                 </tr>
             </thead>
             <tbody id="reportTableBody">
-                <!-- ข้อมูลแสดงที่นี่ -->
-            </tbody>
+                </tbody>
             <tfoot>
                 <tr>
                     <td colspan="15" style="text-align: left; padding: 4px; vertical-align: top;">
@@ -254,7 +250,7 @@
                         <td>-</td>
                         <td>-</td>
                         <td>${item.mcNo || '-'}</td>
-                        <td>${item.qty || 0}</td>
+                        <td>-</td>
                         <td>${item.qty || 0}</td>
                         <td>${item.qty || 0}</td>
                         <td>${item.ngQty || 0}</td>
@@ -265,7 +261,7 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>${item.qcCheck || '-'}</td>
+                        <td>-</td>
                         <td>${item.remark || '-'}</td>
                     `;
                 } else {
