@@ -465,8 +465,7 @@
             </div>
         </div>
     </div>
-</div>
-           <!-- TAB 4: ACTUAL PRODUCTION -->
+</div><!-- TAB 4: ACTUAL PRODUCTION -->
             <div class="tab-pane fade" id="tab-actual">
                 <div class="row g-3">
                     <div class="col-md-4">
@@ -482,7 +481,6 @@
                                     <label class="form-label small">วันที่ผลิต</label>
                                     <input type="date" id="actualDate" class="form-control form-control-sm" required>
                                 </div>
-                                <!-- ⏱️ ปรับ ID ให้ตรงกับ JavaScript คือ workStartTime และ workEndTime -->
                                 <div class="row" style="display: flex; gap: 10px; margin-bottom: 15px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #ccc;">เวลาเริ่มต้น (Start Time)</label>
@@ -513,18 +511,16 @@
                                         <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
                                     </div>
                                 </div>
-                                <!-- ช่อง Scan Barcode สำหรับเลือก Part No. จากแผน -->
-                               <div class="mb-2">
+                                <div class="mb-2">
                                     <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
                                     <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
-                               </div>
+                                </div>
                                 <div class="mb-2">
                                     <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                                     <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
                                         <option value="">-- เลือก Part No. จากแผน --</option>
                                     </select>
                                 </div>
-                                <!-- ช่องระบุ Process ต่อท้าย (เช่น 1/3, 2/3) -->
                                 <div class="mb-2">
                                     <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
                                     <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
@@ -553,33 +549,37 @@
                     </div>
                     <div class="col-md-8">
                         <div class="card p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                 <h5 class="m-0">ประวัติการบันทึกการผลิตของพนักงาน</h5>
-                                <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('actuals')">
-                                    <i class="fas fa-file-excel me-1"></i> Export ประวัติผลิต
-                                </button>
+                                <div class="d-flex align-items-center gap-2">
+                                    <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 180px;">
+                                        <option value="">-- ทุกพนักงาน (ทั้งหมด) --</option>
+                                    </select>
+                                    <button class="btn btn-success btn-sm" onclick="exportFilteredProductionReport()">
+                                        <i class="fas fa-file-excel me-1"></i> Export ใบรายงานผลิต (.xlsx)
+                                    </button>
+                                </div>
                             </div>
-                           <!-- เพิ่มหัวตาราง เวลาทำงาน ให้ตรงกับช่องข้อมูล -->
-<div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-    <table class="table table-dark table-hover align-middle m-0">
-        <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
-            <tr>
-                <th>Date</th>
-                <th>เวลาทำงาน</th> <!-- 👈 ย้ายมาไว้ตรงนี้ -->
-                <th>OP Name</th>
-                <th>Line/MC</th>
-                <th>Part No.</th>
-                <th>Lot No.</th>
-                <th>OK Qty</th>
-                <th>NG Qty</th>
-                <th>Remark</th>
-                <th class="text-center">จัดการ</th>
-            </tr>
-        </thead>
-        <tbody id="actualTableBody">
-        </tbody>
-    </table>
-</div>
+                            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                                <table class="table table-dark table-hover align-middle m-0">
+                                    <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>เวลาทำงาน</th>
+                                            <th>OP Name</th>
+                                            <th>Line/MC</th>
+                                            <th>Part No.</th>
+                                            <th>Lot No.</th>
+                                            <th>OK Qty</th>
+                                            <th>NG Qty</th>
+                                            <th>Remark</th>
+                                            <th class="text-center">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="actualTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1797,8 +1797,6 @@ function loadActualsFromCloud() {
 }
 
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -1806,6 +1804,7 @@ function renderActuals() {
 
     if (!actuals || actuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
+        updateOperatorDropdown(); // อัปเดต Dropdown ด้วย
         return;
     }
 
@@ -1827,8 +1826,7 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        // ⏱️ ดึงค่าฟิลด์ timeWork จาก Google Sheets มาแสดงผลตรงนี้
-       const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a.time || '-';
+        const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a.time || '-';
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
         const remarkval = a.remark || a['Remark'] || '-';
@@ -1852,7 +1850,11 @@ function renderActuals() {
         `;
         tbody.appendChild(tr);
     });
+
+    // อัปเดตรายชื่อพนักงานใน Dropdown ทันทีหลังเรนเดอร์ตารางเสร็จ
+    updateOperatorDropdown();
 }
+
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
@@ -1900,6 +1902,7 @@ function loadAllData() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
+
 // ฟังก์ชันสร้างเสียง Beep แจ้งเตือนแบบไม่ต้องง้อไฟล์เสียง
 function playSystemBeep() {
     try {
@@ -1953,15 +1956,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // เช็กว่าเจอในแผนหรือไม่
                     if (matched) {
-                        // เจอในแผน -> เล่นเสียง success ของระบบเดิม
                         if (typeof playBeep === 'function') playBeep('success');
                     } else {
-                        // ไม่เจอในแผน -> เล่นเสียง Beep ที่สร้างใหม่ (ดังชัวร์)
                         playSystemBeep(); 
                         
-                        // เพิ่ม Option สำรองกรณีไม่อยู่ในแผน
                         const newOpt = document.createElement('option');
                         newOpt.value = targetPartNo;
                         newOpt.text = targetPartNo + " (นอกแผน)";
@@ -1976,7 +1975,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.dispatchEvent(new Event('input', { bubbles: true }));
                 this.dispatchEvent(new Event('change', { bubbles: true }));
 
-                // โฟกัสไปที่ช่องกรอกจำนวนอัตโนมัติ
                 setTimeout(() => {
                     const qtyInput = document.querySelector('input[type="number"], input[id*="qty"]');
                     if (qtyInput) {
@@ -1988,6 +1986,105 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ==========================================
+// 🚀 ฟังก์ชันใหม่: ตัวเลือกพนักงานและ Export Excel รายบุคคล
+// ==========================================
+
+// อัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติจากตารางประวัติ
+function updateOperatorDropdown() {
+    let select = document.getElementById('filterOperator');
+    if (!select) return;
+    let currentValue = select.value;
+    let operators = new Set();
+    
+    document.querySelectorAll('#actualTableBody tr').forEach(row => {
+        let opCell = row.querySelectorAll('td')[2]; // OP Name อยู่คอลัมน์ที่ 3
+        if (opCell && opCell.innerText.trim() && opCell.innerText.trim() !== '-') {
+            operators.add(opCell.innerText.trim());
+        }
+    });
+
+    select.innerHTML = '<option value="">-- ทุกพนักงาน (ทั้งหมด) --</option>';
+    operators.forEach(op => {
+        let opt = document.createElement('option');
+        opt.value = op;
+        opt.innerText = op;
+        if (op === currentValue) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+// ฟังก์ชันหลัก Export รายงานลงแบบฟอร์ม Excel (รองรับการกรองตามพนักงาน)
+async function exportFilteredProductionReport() {
+    let selectedOperator = document.getElementById('filterOperator')?.value || '';
+    
+    try {
+        let response = await fetch('ใบรายงานการผลิต.xlsx');
+        if (!response.ok) throw new Error('ไม่สามารถโหลดไฟล์แบบฟอร์ม Excel ต้นฉบับได้ (ตรวจสอบว่าวางไฟล์ "ใบรายงานการผลิต.xlsx" ไว้ที่โฟลเดอร์หลักแล้ว)');
+        
+        let data = await response.arrayBuffer();
+        let workbook = XLSX.read(data, { type: 'array' });
+        let worksheet = workbook.Sheets[workbook.SheetNames[0]];
+
+        // ใส่ชื่อผู้ปฏิบัติงานลงในช่องหัวกระดาษ (Row 2, Col Q หรือ Index 16)
+        if (selectedOperator) {
+            worksheet[XLSX.utils.encode_cell({ r: 1, c: 16 })] = { t: 's', v: selectedOperator };
+        }
+
+        let rows = document.querySelectorAll('#actualTableBody tr');
+        let startRow = 7; // แถวเริ่มต้นบันทึกข้อมูลใน Excel
+        let insertedCount = 0;
+
+        rows.forEach((row) => {
+            let cols = row.querySelectorAll('td');
+            if (cols.length < 9) return;
+
+            let opName = cols[2]?.innerText.trim() || ''; 
+            
+            // กรองเฉพาะพนักงานที่เลือก (ถ้าไม่เลือกจะดึงทั้งหมด)
+            if (selectedOperator && opName !== selectedOperator) return;
+
+            let timeRange = cols[1]?.innerText.trim() || '';
+            let times = timeRange.split('-');
+            let startTime = times[0]?.trim() || '';
+            let endTime   = times[1]?.trim() || '';
+            
+            let lineMC    = cols[3]?.innerText.trim() || '';
+            let partNo    = cols[4]?.innerText.trim() || '';
+            let lotNo     = cols[5]?.innerText.trim() || '';
+            let okQty     = cols[6]?.innerText.trim().replace(/,/g, '') || '0';
+            let ngQty     = cols[7]?.innerText.trim().replace(/,/g, '') || '0';
+            let remark    = cols[8]?.innerText.trim() || '';
+
+            let currentRow = startRow + insertedCount;
+
+            // หยอดข้อมูลลงในพิกัดเซลล์ Excel ทางการ
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 0 })] = { t: 's', v: startTime };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 1 })] = { t: 's', v: endTime };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 2 })] = { t: 's', v: lotNo };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 3 })] = { t: 's', v: partNo };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 7 })] = { t: 's', v: lineMC };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 10 })] = { t: 'n', v: Number(okQty) };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 11 })] = { t: 'n', v: Number(ngQty) };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 20 })] = { t: 's', v: remark };
+
+            insertedCount++;
+        });
+
+        if (insertedCount === 0) {
+            alert(selectedOperator ? `ไม่พบข้อมูลการผลิตของพนักงาน: ${selectedOperator}` : 'ไม่พบข้อมูลในตารางประวัติการผลิต');
+            return;
+        }
+
+        let fileName = selectedOperator ? `Production_Report_${selectedOperator}.xlsx` : `Production_Daily_Report_All.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+        
+    } catch (error) {
+        console.error('Export Error:', error);
+        alert('เกิดข้อผิดพลาดในการ Export: ' + error.message);
+    }
+}
      // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History (ปรับปรุงใหม่ให้ยิงบาร์โค้ดแล้วเลือกทันที)
 // ==========================================
