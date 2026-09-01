@@ -4257,11 +4257,12 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
-    const targetMasters = selectedLine === 'ALL'  
-        ? masters  
+    // กรองตามไลน์ที่เลือก (รองรับทั้งตัวพิมพ์เล็ก/ใหญ่ และชื่อฟิลด์ที่อาจต่างกัน)
+    const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
+        ? masters 
         : masters.filter(m => {
-              const mLine = String(m.Line || m.line || '').trim();
-              return mLine === String(selectedLine).trim();
+              const mLine = String(m.Line || m.line || m.LINE || '').trim();
+              return mLine.toUpperCase() === String(selectedLine).trim().toUpperCase();
           });
 
     // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลาง
@@ -4269,7 +4270,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
 
     // กรองหาพาร์ทที่ไม่มีอยู่ใน activePartsSet (แปลว่า Stock เป็น 0 จริงๆ)
     const zeroStockParts = targetMasters.filter(m => {
-        const rawPNo = String(m['Part No.'] || m.partNo || '').trim();
+        const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
@@ -4277,7 +4278,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     });
 
     let badgesHtml = zeroStockParts.map(m => {
-        const pNo = String(m['Part No.'] || m.partNo || '').trim();
+        const pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
     }).join('');
 
