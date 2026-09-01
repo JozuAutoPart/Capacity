@@ -1,1 +1,249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>พิมพ์ใบรายงานการผลิตประจำวัน</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Sarabun', sans-serif;
+        }
+        .report-container {
+            background: #fff;
+            width: 297mm; /* ขนาดกระดาษ A4 แนวนอน (Landscape) เพื่อให้ตารางกว้างพอดี */
+            min-height: 210mm;
+            margin: 20px auto;
+            padding: 15mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        table.report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        table.report-table th, table.report-table td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        table.report-table th {
+            background-color: #f2f2f2;
+        }
+        .text-left { text-align: left !important; padding-left: 8px !important; }
+        
+        @media print {
+            body {
+                background-color: #fff;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .report-container {
+                box-shadow: none;
+                margin: 0;
+                padding: 5mm;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
 
+    <!-- แถบควบคุมเมนูด้านบน (ซ่อนตอนสั่งพิมพ์) -->
+    <div class="container my-3 no-print">
+        <div class="card p-3 shadow-sm">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold mb-1"><i class="fas fa-filter"></i> กรองตามชื่อพนักงาน:</label>
+                    <select id="printOperatorFilter" class="form-select" onchange="loadReportData()">
+                        <option value="">-- พนักงานทั้งหมด --</option>
+                    </select>
+                </div>
+                <div class="col-md-8 text-end">
+                    <button class="btn btn-secondary me-2" onclick="window.history.back()">
+                        <i class="fas fa-arrow-left"></i> กลับหน้าหลัก
+                    </button>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="fas fa-print"></i> พิมพ์เอกสาร / บันทึก PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนแสดงผลแบบฟอร์มรายงาน (จำลองตามฟอร์ม Excel ทางการ) -->
+    <div class="report-container">
+        <!-- หัวกระดาษ -->
+        <table class="report-table mb-2">
+            <tr>
+                <td rowspan="2" style="width: 20%;" class="fw-bold fs-5">
+                    <i class="fas fa-industry text-success"></i> Jozu Auto Part
+                </td>
+                <td rowspan="2" style="width: 40%;" class="fw-bold fs-4">
+                    Production Daily Report<br><span class="fs-6 fw-normal">(ใบรายงานการผลิตประจำวัน)</span>
+                </td>
+                <td style="width: 10%; font-size: 11px;">ผู้จัดการ</td>
+                <td style="width: 10%; font-size: 11px;">หัวหน้างาน</td>
+                <td style="width: 10%; font-size: 11px;">ผู้ปฏิบัติงาน</td>
+                <td style="width: 10%; font-size: 11px;">วันที่</td>
+            </tr>
+            <tr>
+                <td style="height: 35px;"></td>
+                <td></td>
+                <td id="headerOperator" class="fw-bold text-primary">-</td>
+                <td id="headerDate">-</td>
+            </tr>
+        </table>
+
+        <!-- ตารางรายการผลิต -->
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th colspan="2" style="width: 12%;">Time เวลา</th>
+                    <th rowspan="2" style="width: 10%;">Lot No.<br>หมายเลขการผลิต</th>
+                    <th rowspan="2" style="width: 12%;">Part No.<br>หมายเลขชิ้นงาน</th>
+                    <th rowspan="2" style="width: 8%;">Process<br>ขั้นตอน</th>
+                    <th rowspan="2" style="width: 10%;">Machine No.<br>หมายเลขเครื่องจักร</th>
+                    <th colspan="4" style="width: 20%;">จำนวนผลิต</th>
+                    <th colspan="2" style="width: 8%;">สาเหตุ NG</th>
+                    <th rowspan="2" style="width: 20%;">ปัญหาการผลิตประจำวัน<br>(Remark)</th>
+                </tr>
+                <tr>
+                    <th style="width: 6%;">เวลาเริ่มต้น</th>
+                    <th style="width: 6%;">เวลาสิ้นสุด</th>
+                    <th>แผนผลิต</th>
+                    <th>ผลิตจริง</th>
+                    <th>OK</th>
+                    <th>NG</th>
+                    <th>A-H</th>
+                    <th>จำนวน</th>
+                </tr>
+            </thead>
+            <tbody id="printTableBody">
+                <!-- ข้อมูลจะถูกเติมเข้ามาตรงนี้อัตโนมัติ -->
+            </tbody>
+        </table>
+
+        <!-- ท้ายฟอร์ม -->
+        <div class="row mt-4 align-items-end" style="font-size: 11px;">
+            <div class="col-8">
+                <div class="border p-2">
+                    <strong>หมายเหตุสาเหตุชิ้นงานเสีย:</strong> A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหวง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil
+                </div>
+            </div>
+            <div class="col-4 text-end text-muted">
+                J-F-PR-005 Rev.07 Ref. 04 Jan. 16
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // โหลดข้อมูลและแสดงผลเมื่อเปิดหน้าเว็บ
+        function loadReportData() {
+            // ดึงข้อมูล Actuals จาก localStorage หรือส่งต่อมาจากหน้าหลัก
+            let actuals = JSON.parse(localStorage.getItem('actualsData') || '[]');
+            
+            // หากไม่มีใน localStorage ให้ดึงจากตัวแปรกลางหรือจำลองข้อมูลว่าง
+            if (actuals.length === 0 && window.opener && window.opener.actuals) {
+                actuals = window.opener.actuals;
+            }
+
+            const selectedOp = document.getElementById('printOperatorFilter').value;
+            const tbody = document.getElementById('printTableBody');
+            tbody.innerHTML = '';
+
+            // อัปเดตรายชื่อพนักงานใน Dropdown กรอง
+            let operators = new Set();
+            actuals.forEach(a => {
+                let op = a.operator || a['OP Name'] || '';
+                if (op) operators.add(op);
+            });
+
+            let filterSelect = document.getElementById('printOperatorFilter');
+            let currentFilterVal = filterSelect.value;
+            filterSelect.innerHTML = '<option value="">-- พนักงานทั้งหมด --</option>';
+            operators.forEach(op => {
+                let opt = document.createElement('option');
+                opt.value = op;
+                opt.innerText = op;
+                if (op === currentFilterVal) opt.selected = true;
+                filterSelect.appendChild(opt);
+            });
+
+            // กรองข้อมูลตามที่เลือก
+            let filtered = actuals.filter(a => {
+                let op = a.operator || a['OP Name'] || '';
+                if (selectedOp && op !== selectedOp) return false;
+                return true;
+            });
+
+            // กำหนดวันที่ปัจจุบันที่หัวกระดาษ
+            document.getElementById('headerDate').innerText = new Date().toISOString().split('T')[0];
+            document.getElementById('headerOperator').innerText = selectedOp || 'รวมทุกท่าน';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="13" class="text-center text-muted py-4">ไม่พบข้อมูลการผลิต</td></tr>`;
+                return;
+            }
+
+            // เติมข้อมูลลงตาราง (กำหนดให้แสดงอย่างน้อย 10 แถวเพื่อให้ฟอร์มสวยงามเต็มหน้ากระดาษ)
+            let rowCount = Math.max(filtered.length, 10);
+
+            for (let i = 0; i < rowCount; i++) {
+                let a = filtered[i];
+                let tr = document.createElement('tr');
+
+                if (a) {
+                    let timeRange = a.timeWork || a['Time Work'] || '-';
+                    let times = timeRange.split('-');
+                    let startTime = times[0]?.trim() || '';
+                    let endTime = times[1]?.trim() || '';
+                    
+                    let lineMC = a.line || a['Line/MC'] || '';
+                    if (a.mcNo || a['Machine No.']) lineMC += ' / ' + (a.mcNo || a['Machine No.']);
+
+                    let fullPart = a.partNo || a['Part No.'] || '';
+                    let partParts = fullPart.split(' ');
+                    let basePart = partParts[0] || '';
+                    let processVal = partParts.slice(1).join(' ') || '';
+
+                    let lotNo = a.lotNo || a['Lot No.'] || '';
+                    let okQty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    let ngQty = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
+                    let remark = a.remark || a['Remark'] || '-';
+
+                    tr.innerHTML = `
+                        <td>${startTime}</td>
+                        <td>${endTime}</td>
+                        <td>${lotNo}</td>
+                        <td>${basePart}</td>
+                        <td>${processVal}</td>
+                        <td>${lineMC}</td>
+                        <td>-</td>
+                        <td>${(okQty + ngQty).toLocaleString()}</td>
+                        <td class="fw-bold">${okQty.toLocaleString()}</td>
+                        <td class="text-danger">${ngQty > 0 ? ngQty.toLocaleString() : ''}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td class="text-left">${remark}</td>
+                    `;
+                } else {
+                    // แถวว่างสำหรับเติมกรณีข้อมูลไม่ครบหน้า
+                    tr.innerHTML = `
+                        <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    `;
+                }
+                tbody.appendChild(tr);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadReportData);
+    </script>
+</body>
+</html>
