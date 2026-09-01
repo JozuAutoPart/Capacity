@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th" data-bs-theme="dark">
 <head>
@@ -4098,12 +4099,21 @@ function renderStockZeroPieChart() {
 
     let masterDb = window.masterPartsDatabase || [];
     let totalParts = masterDb.length;
-    if (totalParts === 0) totalParts = 219;
+    if (totalParts === 0) totalParts = 279; // ยึดตามจำนวนจริงหน้าจอ
 
-    let activePartsSet = getActivePartsMap(); // ใช้ฟังก์ชันกลางเช็กพาร์ทที่มี Stock
+    // เรียกฟังก์ชันกลางเช็กพาร์ทที่มี Stock และคำนวณจำนวนศูนย์จากฐานข้อมูลชุดเดียวกัน
+    let activePartsSet = getActivePartsMap();
+    
+    const zeroStockParts = masterDb.length > 0 ? masterDb.filter(m => {
+        const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
+        const cleanPNo = rawPNo.toUpperCase();
+        if (!cleanPNo) return false;
+        return !activePartsSet.has(cleanPNo);
+    }) : [];
 
-    let availableCount = activePartsSet.size; 
-    let zeroCount = Math.max(0, totalParts - availableCount); 
+    // ดึงค่าจำนวนศูนย์ที่ตรงกับแถบด้านบนเป๊ะๆ
+    let zeroCount = masterDb.length > 0 ? zeroStockParts.length : Math.max(0, totalParts - activePartsSet.size);
+    let availableCount = Math.max(0, totalParts - zeroCount);
     let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
 
     // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard ตามจริง
