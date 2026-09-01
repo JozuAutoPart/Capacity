@@ -109,7 +109,7 @@
     <div id="container"></div>
 
     <script>
-        // 📌 ฐานข้อมูลชิ้นส่วน (ผูก Part No. กับ Part Name, Code และ จำนวนต่อ Tag จากคอลัมน์ C)
+        // 📌 ฐานข้อมูลสำรอง (กรณีไม่ได้ส่งค่าผ่าน URL)
         const partDatabase = {
             "17442-BZ430": {
                 partName: "BRACKET SUB-ASSY, RADIATOR",
@@ -120,32 +120,25 @@
                 partName: "BRACKET SUB-ASSY, EXHAUST PIPE",
                 code: "JA193",
                 qty: 50
-            },
-            "53219-0D020": {
-                partName: "SUPPORT, RADIATOR, LWR RR",
-                code: "JA114",
-                qty: 50
             }
         };
 
         const urlParams = new URLSearchParams(window.location.search);
         const partNo = urlParams.get('partNo') || '17442-BZ430';
         const lotNo = urlParams.get('lotNo') || '-';
-        const line = urlParams.get('line') || '-';
-
-        // ดึงข้อมูลจาก Database เป็นค่าเริ่มต้น
+        
         const dbInfo = partDatabase[partNo] || {
             partName: "ไม่ระบุชื่อชิ้นส่วน",
             code: "JA193",
-            qty: 100
+            qty: 50
         };
 
-        // หากส่งค่าพารามิเตอร์มาทาง URL จะใช้ค่าจาก URL ก่อน ถ้าไม่มีจะดึงจาก Database
+        // ดึงค่า Part Name, Code และ จำนวนต่อ Tag (จากคอลัมน์ C)
         const partName = urlParams.get('partName') || dbInfo.partName;
         const tagCode = urlParams.get('code') || dbInfo.code;
         const qtyPerTag = parseInt(urlParams.get('qty')) || dbInfo.qty;
 
-        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty: ${qtyPerTag} | Lot: ${lotNo}`;
+        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty/Tag: ${qtyPerTag} | Lot: ${lotNo}`;
 
         const totalTags = 6; 
         const container = document.getElementById('container');
