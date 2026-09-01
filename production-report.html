@@ -98,30 +98,30 @@
     <div class="sheet-container">
         <table class="report-table">
             <colgroup>
-                <col style="width: 32px;">
-                <col style="width: 32px;">
-                <col style="width: 48px;">
-                <col style="width: 55px;">
-                <col style="width: 42px;">
-                <col style="width: 48px;">
-                <col style="width: 42px;">
-                <col style="width: 48px;">
                 <col style="width: 30px;">
                 <col style="width: 30px;">
+                <col style="width: 45px;">
+                <col style="width: 50px;">
+                <col style="width: 40px;">
+                <col style="width: 45px;">
+                <col style="width: 38px;">
+                <col style="width: 45px;">
                 <col style="width: 28px;">
                 <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 32px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 28px;">
-                <col style="width: 42px;">
+                <col style="width: 26px;">
+                <col style="width: 26px;">
+                <col style="width: 26px;">
+                <col style="width: 35px;">
+                <col style="width: 26px;">
+                <col style="width: 26px;">
+                <col style="width: 26px;">
+                <col style="width: 26px;">
+                <col style="width: 26px;">
+                <col style="width: 38px;">
                 <col style="width: auto;">
             </colgroup>
             <thead>
-                <!-- แถวที่ 1: โลโก้, ชื่อรายงาน, และช่องผู้จัดการ / หัวหน้างาน / ผู้ปฏิบัติงาน / วันที่ -->
+                <!-- แถวที่ 1 -->
                 <tr>
                     <td rowspan="3" colspan="2">
                         <div class="logo-area"><i class="fas fa-industry"></i> JOZU</div>
@@ -132,18 +132,18 @@
                         <span style="font-size: 9.5px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
                     </td>
                     <td colspan="4" style="font-size: 8px;">ผู้จัดการ</td>
-                    <td colspan="3" style="font-size: 8px;">หัวหน้างาน</td>
-                    <td colspan="5" style="font-size: 8px;">ผู้ปฏิบัติงาน</td>
+                    <td colspan="4" style="font-size: 8px;">หัวหน้างาน</td>
+                    <td colspan="4" style="font-size: 8px;">ผู้ปฏิบัติงาน</td>
                     <td colspan="3" style="font-size: 8px;">วันที่</td>
                 </tr>
-                <!-- แถวที่ 2: ช่องเซ็นชื่อว่างๆ / แสดงชื่อพนักงาน และวันที่ -->
+                <!-- แถวที่ 2 -->
                 <tr>
                     <td colspan="4" style="height: 16px;"></td>
-                    <td colspan="3"></td>
-                    <td colspan="5" id="lblOperator" style="font-weight: bold; font-size: 7.5px;">-</td>
+                    <td colspan="4"></td>
+                    <td colspan="4" id="lblOperator" style="font-weight: bold; font-size: 7.5px;">-</td>
                     <td colspan="3" id="lblDate" style="font-size: 7.5px;">-</td>
                 </tr>
-                <!-- แถวที่ 3: หัวข้อกลุ่มใหญ่ -->
+                <!-- แถวที่ 3 (หัวข้อกลุ่มใหญ่) -->
                 <tr>
                     <td colspan="2" style="font-size: 7px;">Time เวลา</td>
                     <td rowspan="2" style="font-size: 7px;">Lot No.<br><span style="font-size: 5.5px;">หมายเลขการผลิต</span></td>
@@ -152,25 +152,25 @@
                     <td rowspan="2" style="font-size: 6.5px;">Material IC.<br><span style="font-size: 5.5px;">No. หมายเลขวัตถุดิบ</span></td>
                     <td rowspan="2" style="font-size: 7px;">น้ำหนักวัตถุดิบ</td>
                     <td rowspan="2" style="font-size: 7px;">Machine No.<br><span style="font-size: 5.5px;">หมายเลขเครื่องจักร</span></td>
-                    <td colspan="4" style="font-size: 7.5px; font-weight: bold;">จำนวนผลิต</td>
+                    <td colspan="4" style="font-size: 7px; font-weight: bold;">จำนวนผลิต</td>
                     <td rowspan="2" style="font-size: 7px;">สาเหตุ NG</td>
-                    <td colspan="5" style="font-size: 7.5px; font-weight: bold;">เวลาที่เสียไปในการผลิต (นาที)</td>
-                    <td rowspan="2" style="font-size: 6.5px;">QC Line Appearance Check</td>
+                    <td colspan="5" style="font-size: 7px; font-weight: bold;">เวลาที่เสียไปในการผลิต (นาที)</td>
+                    <td rowspan="2" style="font-size: 6px;">QC Line Appearance Check</td>
                     <td rowspan="2" style="font-size: 7px;">ปัญหาการผลิตประจำวัน<br><span style="font-size: 5.5px;">(Remark)</span></td>
                 </tr>
-                <!-- แถวที่ 4: หัวข้อย่อย -->
+                <!-- แถวที่ 4 (หัวข้อย่อย) -->
                 <tr>
                     <td style="font-size: 6.5px;">เวลาเริ่มต้น<br>(Start Time)</td>
                     <td style="font-size: 6.5px;">เวลาสิ้นสุด<br>(End Time)</td>
-                    <td style="font-size: 7px;">แผนผลิต</td>
-                    <td style="font-size: 7px;">ผลิตจริง</td>
-                    <td style="font-size: 7px;">OK</td>
-                    <td style="font-size: 7px;">NG</td>
-                    <td style="font-size: 7px;">เปลี่ยนแม่พิมพ์</td>
-                    <td style="font-size: 6.5px;">รอตรวจสเปคชิ้นงาน</td>
-                    <td style="font-size: 6.5px;">รอวัตถุดิบ</td>
-                    <td style="font-size: 6.5px;">เปลี่ยนวัตถุดิบ</td>
-                    <td style="font-size: 6.5px;">รอเครนจากสายอื่น</td>
+                    <td style="font-size: 6.5px;">แผนผลิต</td>
+                    <td style="font-size: 6.5px;">ผลิตจริง</td>
+                    <td style="font-size: 6.5px;">OK</td>
+                    <td style="font-size: 6.5px;">NG</td>
+                    <td style="font-size: 6px;">A-H</td>
+                    <td style="font-size: 6px;">เปลี่ยนแม่พิมพ์</td>
+                    <td style="font-size: 6px;">รอตรวจสเปคชิ้นงาน</td>
+                    <td style="font-size: 6px;">รอวัตถุดิบ</td>
+                    <td style="font-size: 6px;">เปลี่ยนวัตถุดิบ</td>
                 </tr>
             </thead>
             <tbody id="reportTableBody">
@@ -254,7 +254,7 @@
                         <td>-</td>
                         <td>-</td>
                         <td>${item.mcNo || '-'}</td>
-                        <td>-</td>
+                        <td>${item.qty || 0}</td>
                         <td>${item.qty || 0}</td>
                         <td>${item.qty || 0}</td>
                         <td>${item.ngQty || 0}</td>
@@ -265,7 +265,7 @@
                         <td>-</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>-</td>
+                        <td>${item.qcCheck || '-'}</td>
                         <td>${item.remark || '-'}</td>
                     `;
                 } else {
