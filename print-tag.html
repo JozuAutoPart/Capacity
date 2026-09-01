@@ -110,7 +110,7 @@
 
     <script>
         // ==========================================
-        // 📌 ฐานข้อมูล Masterparts (ครอบคลุมครบถ้วนทุกหน้ารูปภาพ)
+        // 📌 ฐานข้อมูล Masterparts (อัปเดตล่าสุดครบถ้วน)
         // ==========================================
         const Masterparts = {
             "53219-0D020": { partName: "SUPPORT,RADIATOR,LWR RR", qty: 50, code: "JA114" },
@@ -361,7 +361,38 @@
             "53481-02120": { partName: "BRACKET,HOOD SUPPORT,RH", qty: 200, code: "JA137" },
             "17141-0C080-12": { partName: "BRACKET,HEAT INSULATOR,NO.4", qty: 400, code: "JA082" },
             "512E6-KK010": { partName: "BRACKET, ELECTRIC UNIT WIRE HRNS, NO.6", qty: 100, code: "JA205" },
-            "512F1-KK010": { partName: "BRACKET, ELECTRIC UNIT WATER PIPE, NO.1", qty: 100, code: "JA206" }
+            "512F1-KK010": { partName: "BRACKET, ELECTRIC UNIT WATER PIPE, NO.1", qty: 100, code: "JA206" },
+            // พาร์ทเพิ่มเติมจากภาพล่าสุด (แถว 253-283)
+            "53238-BZ040": { partName: "BRACKET,HOOD DUMPER MOUNTING,NO.2 RH", qty: 60, code: "JA276" },
+            "17154-0T040": { partName: "FLANGE,EXHAUST MANIFOLD,NO.2", qty: 18, code: "JA109" },
+            "67325-06050": { partName: "EXTENSION,RR DOOR BEAM,FR RH", qty: 70, code: "JA151" },
+            "67326-06050": { partName: "EXTENSION,RR DOOR BEAM,FR LH", qty: 70, code: "JA152" },
+            "76224-4JA0A": { partName: "REINF ASSY-FR PLR LWR RH", qty: 60, code: "JA164" },
+            "76225-4JA0A": { partName: "REINF ASSY-FR PLR LWR LH", qty: 60, code: "JA165" },
+            "55343-06040": { partName: "BRACKET,INSTRUMENT PANEL,TO DASH,PASS", qty: 40, code: "JA215" },
+            "55378-06150": { partName: "BRACKET,GLOVE COMPT DOOR LOOK MOUNTING", qty: 40, code: "JA216" },
+            "67323-06200": { partName: "EXTENSION,FR DOOR BEAM RH", qty: 45, code: "JA220" },
+            "67324-06190": { partName: "EXTENSION,FR DOOR BEAM,RR LH", qty: 45, code: "JA221" },
+            "55347-KK100": { partName: "BRACKET,INSTRUMENT PANEL,BRACEMT,NO.2", qty: 50, code: "JA248" },
+            "55348-KK090": { partName: "BRACKET,AIR BAG PASSENGER MT NO.1", qty: 50, code: "JA250" },
+            "55365-06040": { partName: "BRACKET,RADIO TUNER MOUNTION,NO.1", qty: 80, code: "JA254" },
+            "55125-BZ080": { partName: "BRACKET,STEERING SUPPORT", qty: 25, code: "JA254" },
+            "55321-BZ180": { partName: "BRACKET, FLOOR BRACE MOUNTING, NO.1", qty: 30, code: "JA277" },
+            "55342-BZ070": { partName: "BRACE, INSTRUMENT PANEL TO DASH, LWR", qty: 15, code: "JA278" },
+            "55598-BZ160": { partName: "BRACKET, GLOVE COMPT DOOR HINGE, RH", qty: 80, code: "JA283" },
+            "55321-BZ350": { partName: "BRACKET, INSTRUMENT PANEL, NO.1", qty: 20, code: "JA286" },
+            "17141-0C040-15": { partName: "PLATE PIPE", qty: 1000, code: "JA002" },
+            "17531-0L060": { partName: "CONE,CATALATIC CONVERTER OPR NO.1", qty: 12, code: "JA185" },
+            "25051-BZ200-08": { partName: "COVE NO.1", qty: 40, code: "JA181" },
+            "25051-BZ200-10": { partName: "CONE NO.2", qty: 30, code: "JA182" },
+            "17443-0V110": { partName: "FLANGE EXHAUST PIPE NO 3", qty: 30, code: "JA195" },
+            "17531-0E040": { partName: "CONE, CATALYTIC CONVERTER, UPR NO.1", qty: 12, code: "JA200" },
+            "743F4-5RY0A": { partName: "REINF-FR FLOOR, RH/LH", qty: 50, code: "TMC027" },
+            "92334-011-7142": { partName: "VALVE CHAMBER", qty: 3000, code: "MS014" },
+            "K1155-011-7131": { partName: "VALVE CHAMBER", qty: 5000, code: "MS011" },
+            "H1116-011-5710": { partName: "BRAZING SHEET", qty: 1000, code: "MS008" },
+            "K1155-011-2251": { partName: "INNER TUBE", qty: 250, code: "MS010" },
+            "K1041-011-7110": { partName: "Valve Disc", qty: 10000, code: "MS013" }
         };
 
         // รับค่า Part No. และ Lot No. จาก URL ที่ส่งมาจาก Google Sheets
@@ -376,9 +407,9 @@
             code: "-"
         };
 
-        const partName = currentPart.partName; // ดึงชื่อจาก Col.H
-        const qtyPerTag = currentPart.qty;     // ดึงจำนวนจาก Col.C
-        const tagCode = currentPart.code;      // ดึง Code จาก Col.I
+        const partName = currentPart.partName; 
+        const qtyPerTag = currentPart.qty;     
+        const tagCode = currentPart.code;      
 
         document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Part Name: ${partName} | Qty: ${qtyPerTag} | Code: ${tagCode} | Lot: ${lotNo}`;
 
