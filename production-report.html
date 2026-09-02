@@ -86,7 +86,7 @@
         <div class="card p-3 bg-dark text-white d-flex flex-row justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <label class="form-label m-0">กรองตามชื่อพนักงาน:</label>
-                <select id="filterOperator" class="form-select form-select-sm" style="width: 200px;" onchange="renderReport()">
+                <select id="filterOperator" class="form-select form-select-sm" style="width: 100px;" onchange="renderReport()">
                     <option value="">-- พนักงานทั้งหมด --</option>
                 </select>
             </div>
@@ -239,7 +239,7 @@
             for (let i = 0; i < totalRows; i++) {
                 let item = actuals[i];
                 let tr = document.createElement('tr');
-                tr.style.height = '10px'; // ปรับความสูงช่องตารางข้อมูลให้กะทัดรัดและสวยงามพอดีตา
+                tr.style.height = '22px'; // ปรับความสูงช่องตารางข้อมูลให้กะทัดรัดและสวยงามพอดีตา
 
                 if (item) {
                     tr.innerHTML = `
