@@ -1767,7 +1767,7 @@ function submitActual(e) {
     });
 }
 
-// ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
+// ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets (อัปเดตการดึงเวลาทำงานให้ครอบคลุมทุกชื่อฟิลด์)
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -1786,7 +1786,7 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    timeWork: item.timeWork || item['Time'] || item['Time Work'] || '-', // 👈 รองรับการโหลดเวลา
+                    timeWork: item.timeWork || item['Time Work'] || item['Time'] || item['เวลาทำงาน'] || item['time'] || '-',
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
@@ -1805,7 +1805,7 @@ function renderActuals() {
 
     if (!actuals || actuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
-        updateOperatorDropdown(); // อัปเดต Dropdown ด้วย
+        updateOperatorDropdown();
         return;
     }
 
@@ -1852,11 +1852,10 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 
-    // อัปเดตรายชื่อพนักงานใน Dropdown ทันทีหลังเรนเดอร์ตารางเสร็จ
     updateOperatorDropdown();
 }
 
-// ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
+// ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ (อัปเดตการดึงเวลาทำงานเช่นกัน)
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -1865,7 +1864,21 @@ function loadAllData() {
         .then(res => res.json())
         .then(data => {
             if (data.plans) plans = data.plans;
-            if (data.actuals) actuals = data.actuals;
+            if (data.actuals) {
+                actuals = data.actuals.map(item => ({
+                    id: item.id || Date.now(),
+                    date: item.date || item['Date'] || '',
+                    operator: item.operator || item['OP Name'] || '',
+                    line: item.line || item['Line/MC'] || '',
+                    mcNo: item.mcNo || item['Machine No.'] || '',
+                    partNo: item.partNo || item['Part No.'] || '',
+                    lotNo: item.lotNo || item['Lot No.'] || '',
+                    qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
+                    ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+                    timeWork: item.timeWork || item['Time Work'] || item['Time'] || item['เวลาทำงาน'] || item['time'] || '-',
+                    remark: item.remark || item['Remark'] || '-'
+                }));
+            }
             
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
@@ -1911,15 +1924,15 @@ function playSystemBeep() {
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         
-        oscillator.type = 'square'; // เสียงแบบเครื่องจักร/แจ้งเตือน
-        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); // ความถี่เสียง (ยิ่งเยอะยิ่งแหลม)
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // ความดัง
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
         
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.2); // ดัง 0.2 วินาทีแล้วดับ
+        oscillator.stop(audioCtx.currentTime + 0.2);
     } catch (e) {
         console.log("Audio not supported");
     }
@@ -1935,7 +1948,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const scannedVal = this.value.trim();
                 if (!scannedVal) return;
 
-                // 1. แปลงบาร์โค้ดเป็น Part No. จาก MasterParts
                 const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
                 const found = masterData.find(item => 
                     String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === scannedVal.toLowerCase() || 
@@ -1945,7 +1957,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
                 this.value = targetPartNo;
 
-                // 2. ค้นหาช่อง Dropdown Part No. ของแผน
                 const partSelectEl = document.getElementById('actualPartNo') || document.querySelector('select[name*="part"], select[id*="part"]');
                 if (partSelectEl) {
                     let matched = false;
@@ -1992,7 +2003,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // 🚀 ฟังก์ชันใหม่: ตัวเลือกพนักงานและ Export Excel รายบุคคล
 // ==========================================
 
-// อัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติจากตารางประวัติ
 function updateOperatorDropdown() {
     let select = document.getElementById('filterOperator');
     if (!select) return;
@@ -2000,7 +2010,7 @@ function updateOperatorDropdown() {
     let operators = new Set();
     
     document.querySelectorAll('#actualTableBody tr').forEach(row => {
-        let opCell = row.querySelectorAll('td')[2]; // OP Name อยู่คอลัมน์ที่ 3
+        let opCell = row.querySelectorAll('td')[2];
         if (opCell && opCell.innerText.trim() && opCell.innerText.trim() !== '-') {
             operators.add(opCell.innerText.trim());
         }
@@ -2016,8 +2026,6 @@ function updateOperatorDropdown() {
     });
 }
 
-// ฟังก์ชันหลัก Export รายงานลงแบบฟอร์ม Excel (รองรับการกรองตามพนักงาน)
-// ฟังก์ชันหลัก Export รายงานลงแบบฟอร์ม Excel (ปรับพิกัดตามแบบฟอร์มจริง)
 async function exportFilteredProductionReport() {
     let selectedOperator = document.getElementById('filterOperator')?.value || '';
     
@@ -2029,17 +2037,15 @@ async function exportFilteredProductionReport() {
         let workbook = XLSX.read(data, { type: 'array' });
         let worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
-        // ใส่ชื่อผู้ปฏิบัติงานลงในช่องหัวกระดาษ (ช่องผู้ปฏิบัติงานตรงกับคอลัมน์ Q แถวที่ 2)
         if (selectedOperator) {
             worksheet[XLSX.utils.encode_cell({ r: 1, c: 16 })] = { t: 's', v: selectedOperator };
         }
 
-        // ใส่วันที่ปัจจุบันที่ช่องวันที่ (มุมขวาบน ตรงกับคอลัมน์ U แถวที่ 2)
         let currentDate = new Date().toISOString().split('T')[0];
         worksheet[XLSX.utils.encode_cell({ r: 1, c: 20 })] = { t: 's', v: currentDate };
 
         let rows = document.querySelectorAll('#actualTableBody tr');
-        let startRow = 7; // แถวเริ่มต้นข้อมูล (แถวที่ 8 ใน Excel เริ่มนับ Index จาก 7)
+        let startRow = 7;
         let insertedCount = 0;
 
         rows.forEach((row) => {
@@ -2048,7 +2054,6 @@ async function exportFilteredProductionReport() {
 
             let opName = cols[2]?.innerText.trim() || ''; 
             
-            // กรองเฉพาะพนักงานที่เลือก
             if (selectedOperator && opName !== selectedOperator) return;
 
             let timeRange = cols[1]?.innerText.trim() || '';
@@ -2056,30 +2061,28 @@ async function exportFilteredProductionReport() {
             let startTime = times[0]?.trim() || '';
             let endTime   = times[1]?.trim() || '';
             
-            let lineMC    = cols[3]?.innerText.trim() || ''; // Line / Machine
-            let fullPartNo = cols[4]?.innerText.trim() || ''; // Part No + Process
+            let lineMC    = cols[3]?.innerText.trim() || '';
+            let fullPartNo = cols[4]?.innerText.trim() || '';
             let lotNo     = cols[5]?.innerText.trim() || '';
             let okQty     = cols[6]?.innerText.trim().replace(/,/g, '') || '0';
             let ngQty     = cols[7]?.innerText.trim().replace(/,/g, '') || '0';
             let remark    = cols[8]?.innerText.trim() || '';
 
-            // แยก Part No. ออกจาก Process (เช่น "17154-0T040 1/5" แยกเป็น Part และ Process)
             let partParts = fullPartNo.split(' ');
             let basePart = partParts[0] || '';
             let processVal = partParts.slice(1).join(' ') || '';
 
             let currentRow = startRow + insertedCount;
 
-            // 🎯 หยอดข้อมูลลงพิกัดเซลล์ตามแบบฟอร์มจริงของคุณ
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 0 })] = { t: 's', v: startTime }; // A: เวลาเริ่มต้น
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 1 })] = { t: 's', v: endTime };   // B: เวลาสิ้นสุด
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 2 })] = { t: 's', v: lotNo };    // C: Lot No.
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 3 })] = { t: 's', v: basePart }; // D: Part No.
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 4 })] = { t: 's', v: processVal }; // E: Process
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 7 })] = { t: 's', v: lineMC };   // H: Machine No.
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 10 })] = { t: 'n', v: Number(okQty) }; // K: OK
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 11 })] = { t: 'n', v: Number(ngQty) }; // L: NG
-            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 20 })] = { t: 's', v: remark };  // U: ปัญหาการผลิตประจำวัน
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 0 })] = { t: 's', v: startTime };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 1 })] = { t: 's', v: endTime };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 2 })] = { t: 's', v: lotNo };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 3 })] = { t: 's', v: basePart };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 4 })] = { t: 's', v: processVal };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 7 })] = { t: 's', v: lineMC };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 10 })] = { t: 'n', v: Number(okQty) };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 11 })] = { t: 'n', v: Number(ngQty) };
+            worksheet[XLSX.utils.encode_cell({ r: currentRow, c: 20 })] = { t: 's', v: remark };
 
             insertedCount++;
         });
