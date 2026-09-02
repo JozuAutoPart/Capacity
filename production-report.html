@@ -40,7 +40,7 @@
 
         table.report-table th, table.report-table td {
             border: 1px solid #000;
-            padding: 4px 2px; /* เพิ่ม Padding แนวตั้งเล็กน้อยให้หัวตารางไม่อึดอัด */
+            padding: 2px 1px;
             text-align: center;
             vertical-align: middle;
             overflow: hidden;
@@ -122,26 +122,26 @@
             </colgroup>
             <thead>
                 <tr>
-                    <td rowspan="2" colspan="2" style="padding: 4px;">
+                    <td rowspan="2" colspan="2" style="padding: 2px;">
                         <img src="Jozu.png" alt="Jozu Logo" class="logo-img">
                     </td>
-                    <td rowspan="2" colspan="6" style="font-size: 11px; font-weight: bold; line-height: 1.3;">
+                    <td rowspan="2" colspan="6" style="font-size: 11px; font-weight: bold; line-height: 1.2;">
                         Production Daily Report<br>
                         <span style="font-size: 8px; font-weight: normal;">(ใบรายงานการผลิตประจำวัน)</span>
                     </td>
-                    <td colspan="3" style="font-size: 7px; padding: 3px;">ผู้จัดการ</td>
-                    <td colspan="4" style="font-size: 7px; padding: 3px;">หัวหน้างาน</td>
-                    <td colspan="3" style="font-size: 7px; padding: 3px;">ผู้ปฏิบัติงาน</td>
-                    <td colspan="2" style="font-size: 7px; padding: 3px;">วันที่</td>
+                    <td colspan="3" style="font-size: 7px; padding: 1px;">ผู้จัดการ</td>
+                    <td colspan="4" style="font-size: 7px; padding: 1px;">หัวหน้างาน</td>
+                    <td colspan="3" style="font-size: 7px; padding: 1px;">ผู้ปฏิบัติงาน</td>
+                    <td colspan="2" style="font-size: 7px; padding: 1px;">วันที่</td>
                 </tr>
                 <tr>
-                    <td colspan="3" style="height: 18px;"></td>
+                    <td colspan="3" style="height: 12px;"></td>
                     <td colspan="4"></td>
                     <td colspan="3" id="lblOperator" style="font-weight: bold; font-size: 6.5px;">รวมทุกพนักงาน</td>
                     <td colspan="2" id="lblDate" style="font-size: 6.5px;">-</td>
                 </tr>
                 <tr>
-                    <td colspan="2" style="font-size: 6px; padding: 4px 2px;">Time เวลา</td>
+                    <td colspan="2" style="font-size: 6px; padding: 2px 1px;">Time เวลา</td>
                     <td rowspan="2" style="font-size: 6px;">Lot No.<br><span style="font-size: 4.5px;">หมายเลขการผลิต</span></td>
                     <td rowspan="2" style="font-size: 6px;">Part No.<br><span style="font-size: 4.5px;">หมายเลขชิ้นงาน</span></td>
                     <td rowspan="2" style="font-size: 6px;">Process<br><span style="font-size: 4.5px;">ขั้นตอนการผลิต</span></td>
@@ -154,8 +154,8 @@
                     <td rowspan="2" style="font-size: 6px;">ปัญหาการผลิตประจำวัน<br><span style="font-size: 4.5px;">(Remark)</span></td>
                 </tr>
                 <tr>
-                    <td style="font-size: 5.5px; padding: 4px 2px;">เวลาเริ่มต้น<br>(Start Time)</td>
-                    <td style="font-size: 5.5px; padding: 4px 2px;">เวลาสิ้นสุด<br>(End Time)</td>
+                    <td style="font-size: 5.5px; padding: 2px 1px;">เวลาเริ่มต้น<br>(Start Time)</td>
+                    <td style="font-size: 5.5px; padding: 2px 1px;">เวลาสิ้นสุด<br>(End Time)</td>
                     <td style="font-size: 5.5px;">แผนผลิต</td>
                     <td style="font-size: 5.5px;">ผลิตจริง</td>
                     <td style="font-size: 5.5px;">OK</td>
@@ -173,12 +173,12 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="13" style="text-align: left; padding: 6px; vertical-align: top;">
+                    <td colspan="13" style="text-align: left; padding: 4px; vertical-align: top;">
                         <strong>หมายเหตุ</strong><br>
                         <span style="font-size: 7px;">สาเหตุชิ้นงานเสีย: A รอยขีดข่วน, B รอยทับเศษ, C เสียรูป, D แหว่ง, E ทดลองแม่พิมพ์, F เชื่อม, G หัว Coil, H ท้าย Coil</span><br>
                         <span style="font-size: 7px;">รายละเอียดหมายเลขการผลิต: <span style="letter-spacing: 1px; font-weight: bold;">XX XXX XX</span> (เดือน / ปีผลิต / Running No.)</span>
                     </td>
-                    <td colspan="6" style="text-align: center; padding: 6px; vertical-align: middle;">
+                    <td colspan="6" style="text-align: center; padding: 4px; vertical-align: middle;">
                         <div style="font-weight: bold; font-size: 7px; margin-bottom: 2px;">ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้นให้ดำเนินการ</div>
                         <div style="font-size: 6.5px; display: flex; justify-content: space-around; text-align: center; margin-top: 2px;">
                             <div>🛑<br>หยุด</div>
@@ -188,7 +188,7 @@
                     </td>
                 </tr>
                 <tr>
-                    <td colspan="19" style="text-align: right; padding: 3px; font-size: 6px; color: #555; border-top: 1px solid #000;">
+                    <td colspan="19" style="text-align: right; padding: 2px; font-size: 6px; color: #555; border-top: 1px solid #000;">
                         J-F-PR-005 Rev.07 Ref. 04 Jan. 16
                     </td>
                 </tr>
@@ -239,7 +239,7 @@
             for (let i = 0; i < totalRows; i++) {
                 let item = actuals[i];
                 let tr = document.createElement('tr');
-                tr.style.height = '24px'; /* ปรับความสูงช่องตารางข้อมูลให้เหมาะสม อ่านง่าย */
+                tr.style.height = '22px'; // ปรับความสูงช่องตารางข้อมูลให้กะทัดรัดและสวยงามพอดีตา
 
                 if (item) {
                     tr.innerHTML = `
