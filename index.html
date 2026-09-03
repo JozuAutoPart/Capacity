@@ -2423,8 +2423,7 @@ function renderStock() {
         if(!partNo) return;
 
         // เงื่อนไขตรวจสอบ: ถ้ามีรูปแบบลงท้ายด้วยเครื่องหมายทับและตัวเลข (เช่น 1/2, 2/3, 1/5) จะไม่นำมาแสดงและคำนวณใน Stock WIP
-        const hasProcessSuffix = /\s+\d+\/\d+$/.test(partNo.trim());
-
+        const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
         if (!hasProcessSuffix) {
             // WIP Summary (ยอดผลิตเข้า WIP ทั้งหมด)
             const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
