@@ -1043,9 +1043,9 @@ function renderDashboard() {
 
         // กรองข้อมูลประวัติการผลิต ตาม Line และ Part No.
         const actForPlan = actuals.filter(a => {
-            let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
-            let aline = String(String(alineRaw).split('/')[0] || '').trim();
-            let aPart = String(a["Part No."] || a.partNo || '').trim();
+           let alineRaw = a["Line/MC"] || a.line || a.Line || '';
+let aline = String(String(alineRaw).split('/')[0] || '').trim();
+let aPart = String(a["Part No."] || a.partNo || '').trim();
             return aLine === planLine && aPart === planPart;
         });
 
