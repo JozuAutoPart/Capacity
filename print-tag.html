@@ -448,31 +448,29 @@
                 companyName = "STEM";
             }
 
-            const card = document.createElement('div');
+          const card = document.createElement('div');
             card.className = 'tag-card';
             card.innerHTML = `
                 <table class="tag-table">
                     <tr>
-                        <!-- ขยายขนาดตัวอักษรของคำว่า Part No. ตรงนี้ครับ -->
                         <td style="width: 22%; font-size: 14px; font-weight: bold;" class="label-title">Part No.</td>
-                        <td colspan="2" class="fw-bold" style="font-size: 22px; font-weight: bold; padding: 12px 6px; letter-spacing: 0.5px;">${partNo}</td>
-                        <td style="width: 22%;" class="label-title text-center">Stamp Mark</td>
+                      <td colspan="3" class="fw-bold" style="font-size: 22px; font-weight: bold; padding: 12px 6px; letter-spacing: 0.5px;">${partNo}</td>
                     </tr>
                     <tr>
                         <td class="label-title">Part Name</td>
-                        <td class="fw-bold" colspan="3">${partName}</td>
+                      <td class="fw-bold" colspan="3">${partName}</td>
                     </tr>
                     <tr>
                         <td class="label-title">Q'ty</td>
                         <td style="font-size: 16px;"><span class="fw-bold" style="font-size: 20px;">${qtyPerTag}</span> Pcs.</td>
-                        <td class="label-title text-center" style="width: 15%;">Code</td>
-                       <td class="text-center fw-bold" style="font-size: 20px;">${tagCode}</td>
+                        <td class="label-title text-center" style="width: 22%;">Stamp Mark</td>
+                        <td class="text-center fw-bold" style="width: 25%;"></td>
                     </tr>
                     <tr>
                         <td class="label-title">Production / Lot No.:</td>
                         <td>${lotNo}</td>
-                        <td class="label-title text-center">Supplier Check</td>
-                        <td class="label-title text-center">Delivery Date</td>
+                        <td class="label-title text-center">Code</td>
+                        <td class="text-center fw-bold" style="font-size: 20px;">${tagCode}</td>
                     </tr>
                     <tr>
                         <td class="text-center" style="font-size: 10px;">Production Date</td>
@@ -510,4 +508,3 @@
     </script>
 </body>
 </html>
-
