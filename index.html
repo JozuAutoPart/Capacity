@@ -1798,6 +1798,7 @@ function loadActualsFromCloud() {
 }
 
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -1813,7 +1814,7 @@ function renderActuals() {
         let dateA = new Date(a.date || a['Date'] || 0);
         let dateB = new Date(b.date || b['Date'] || 0);
         return dateB - dateA;
-    });
+    }).slice(0, 100); // <--- เพิ่ม .slice ตรงนี้เพื่อจำกัดจำนวนแสดงผล ป้องกันแรมเต็ม
 
     sortedActuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
