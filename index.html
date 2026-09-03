@@ -1406,7 +1406,7 @@ function renderPlans() {
         }
 
         return true;
-    });
+    }).slice(0, 100); // <--- เพิ่ม .slice ตรงนี้เพื่อจำกัดการแสดงผลไม่ให้เกิน 100 รายการ ป้องกันแรมเต็ม
 
     if (!activePlans || activePlans.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต</td></tr>`;
@@ -2219,7 +2219,8 @@ if (searchInput) {
 
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
-    const qgateHistory = (qgate || []).slice().reverse();
+    // จำกัดให้แสดงผลเฉพาะ 100 รายการล่าสุด ป้องกันหน่วยความจำเต็ม
+    const qgateHistory = (qgate || []).slice().reverse().slice(0, 100);
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
     if(historyBody) {
@@ -2259,7 +2260,6 @@ function renderQGate() {
         }
     }
 }
-
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม - สิ้นสุด)
 function submitQGateTransaction(e) {
     e.preventDefault();
@@ -2797,7 +2797,8 @@ function renderDelivery() {
 
     const customerMap = getCustomerMapping();
 
-    deliveries.slice().reverse().forEach(d => {
+    // จำกัดให้แสดงผลเฉพาะ 100 รายการล่าสุด ป้องกันหน่วยความจำเต็ม
+    deliveries.slice().reverse().slice(0, 100).forEach(d => {
         let pNoStr = (d.partNo || "").trim();
         
         // 🌟 บังคับดึงชื่อลูกค้าจาก Master Parts (Column D) มาแสดงผลเสมอทุกแถว (ทั้งเก่าและใหม่)
@@ -2822,7 +2823,6 @@ function renderDelivery() {
         tbody.appendChild(tr);
     });
 }
-
 function deleteDelivery(id) {
     if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปถ่ายเดียว)')) {
         deliveries = deliveries.filter(d => d.id !== id);
