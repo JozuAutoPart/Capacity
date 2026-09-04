@@ -2425,40 +2425,40 @@ function renderStock() {
     partsSet.forEach(partNo => {
         if(!partNo) return;
 
-        // เงื่อนไขตรวจสอบ: ถ้ามีรูปแบบลงท้ายด้วยเครื่องหมายทับและตัวเลข (เช่น 1/2, 2/3, 1/5) จะไม่นำมาแสดงและคำนวณใน Stock WIP
+        // 🔍 ตรวจสอบรูปแบบลงท้ายด้วยเครื่องหมายทับและตัวเลข (เช่น 1/2, 2/3, 4/7) เพื่อคัดกรองกระบวนการย่อยออก
         const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
-        if (!hasProcessSuffix) {
-            // WIP Summary (ยอดผลิตเข้า WIP ทั้งหมด)
-            const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
-                let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                return sum + (isNaN(val) ? 0 : val);
-            }, 0);
+        if (hasProcessSuffix) return; // ข้ามรายการที่เป็นกระบวนการย่อยทันที ไม่ให้แสดงทั้ง WIP และ FG
 
-            // WIP Summary (ยอดตัดโอนออกไป FG)
-            const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
-                let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-                return sum + (isNaN(val) ? 0 : val);
-            }, 0);
+        // WIP Summary (ยอดผลิตเข้า WIP ทั้งหมด)
+        const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+            let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+            return sum + (isNaN(val) ? 0 : val);
+        }, 0);
 
-            const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
-            const currentwip = (totalIn - totalTransferred) + adjustWip;
+        // WIP Summary (ยอดตัดโอนออกไป FG)
+        const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+            let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+            return sum + (isNaN(val) ? 0 : val);
+        }, 0);
 
-            const trwip = document.createElement('tr');
-            trwip.innerHTML = `
-                <td class="fw-bold text-info">${partNo}</td>
-                <td>${totalIn.toLocaleString()}</td>
-                <td>${totalTransferred.toLocaleString()}</td>
-                <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
-                        <i class="fas fa-edit"></i> ปรับ
-                    </button>
-                </td>
-            `;
-            wipbody.appendChild(trwip);
-        }
+        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+        const currentwip = (totalIn - totalTransferred) + adjustWip;
 
-        // FG Summary (ส่วนของ FG ยังคงแสดงผลและคำนวณตามปกติ)
+        const trwip = document.createElement('tr');
+        trwip.innerHTML = `
+            <td class="fw-bold text-info">${partNo}</td>
+            <td>${totalIn.toLocaleString()}</td>
+            <td>${totalTransferred.toLocaleString()}</td>
+            <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
+                    <i class="fas fa-edit"></i> ปรับ
+                </button>
+            </td>
+        `;
+        wipbody.appendChild(trwip);
+
+        // FG Summary (ส่วนของ FG นำมาแสดงผลเฉพาะ Part หลักที่ไม่ใช่กระบวนการย่อยแล้ว)
         const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
             let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
             return sum + (isNaN(val) ? 0 : val);
