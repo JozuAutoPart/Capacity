@@ -2262,15 +2262,16 @@ function renderQGate() {
     }
 }
 // ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม - สิ้นสุด)
+// ฟังก์ชันบันทึกข้อมูล Q-Gate (ปรับปรุงให้ทำงานรวดเร็วขึ้น ไม่หน่วง)
 function submitQGateTransaction(e) {
     e.preventDefault();
     const startTime = document.getElementById('qgateStartTime').value;
     const endTime = document.getElementById('qgateEndTime').value;
-    const timeRange = `${startTime} - ${endTime}`;
+    const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : '-';
     const inspector = document.getElementById('qgateInspector').value.trim();
     const partNo = document.getElementById('qgatePartNo').value;
     const totalQty = parseInt(document.getElementById('qgateTotalQty').value);
-    const ngQty = parseInt(document.getElementById('qgateNgQty').value);
+    const ngQty = parseInt(document.getElementById('qgateNgQty').value || 0);
 
     if (!partNo) {
         alert("กรุณาเลือก Part No. จาก WIP ที่ต้องการตรวจ!");
@@ -2295,21 +2296,22 @@ function submitQGateTransaction(e) {
         passQty: passQty
     };
 
+    // 1. อัปเดตข้อมูลและหน้าจอฝั่ง Client ทันที (ไม่ต้องรอ Server) เพื่อความรวดเร็ว
     qgate.unshift(newItem);
-    if (typeof saveAll === 'function') {
-        saveAll('saveQgate', newItem);
+    renderQGate();
+    if (typeof checkAndLoadWipForQGate === 'function') {
+        checkAndLoadWipForQGate();
     }
 
-    alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
+    // 2. เคลียร์ฟอร์มและรีเซ็ตวันที่ทันที
     document.getElementById('qgateForm').reset();
-    
     const nowDate = new Date();
     const localDate = new Date(nowDate.getTime() - (nowDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     document.getElementById('qgateDate').value = localDate;
 
-    renderQGate();
-    if (typeof checkAndLoadWipForQGate === 'function') {
-        checkAndLoadWipForQGate();
+    // 3. ส่งข้อมูลไปบันทึกที่ Cloud แบบเบื้องหลัง (Background Async)
+    if (typeof saveAll === 'function') {
+        saveAll('saveQgate', newItem);
     }
 }
 
