@@ -2332,6 +2332,7 @@ function deleteQGateItem(id) {
 }
 
 // ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
+// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate (กรองรายการที่มีเศษส่วน/เครื่องหมายทับออก)
 function checkAndLoadWipForQGate() {
     const selectPart = document.getElementById('qgatePartNo');
     if (!selectPart) return;
@@ -2361,6 +2362,10 @@ function checkAndLoadWipForQGate() {
     }
 
     Object.keys(wipMap).forEach(partNo => {
+        // 🔍 ข้ามรายการที่มีรูปแบบลงท้ายด้วยเครื่องหมายทับ (เช่น 4/6, 1/2) ไม่ให้แสดงในดรอปดาวน์ Q-Gate
+        const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
+        if (hasProcessSuffix) return;
+
         let currentWip = wipMap[partNo];
         if (currentWip > 0) {
             const opt = document.createElement('option');
