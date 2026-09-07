@@ -1383,41 +1383,61 @@ function renderPlans() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // ดึงค่าจากช่องค้นหาที่เราเพิ่งสร้าง
+    // ดึงค่าจากช่องค้นหา
     const searchEl = document.getElementById('planSearchInput');
     const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
     let activePlans = plans.filter(plan => {
+        const planPartNo = String(plan["Part No."] || "").trim();
+        const planLotNo = String(plan["Lot No."] || "").trim();
         let planQty = Number(plan["Plan Qty"]) || 0;
-        let actualQty = Number(plan.actualQty) || 0;
+
+        // คำนวณหายอดผลิตจริง (actuals) ที่ตรงกับ Part No. (และ Lot No. ถ้ามี) ของแผนนี้
+        let actualQty = 0;
+        if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+            actuals.forEach(a => {
+                const aPartNo = String(a.partNo || a['Part No.'] || "").trim();
+                const aLotNo = String(a.lotNo || a['Lot No.'] || "").trim();
+                const aQty = Number(a.qty || a['OK Qty'] || 0);
+
+                if (aPartNo === planPartNo) {
+                    // ถ้ามี Lot No. กำหนดไว้ ให้เช็ค Lot ให้ตรงกัน หรือถ้าแผนไม่มี Lot ให้รวมยอดของ Part นั้นทั้งหมด
+                    if (planLotNo && planLotNo !== '-') {
+                        if (aLotNo === planLotNo) actualQty += aQty;
+                    } else {
+                        actualQty += aQty;
+                    }
+                }
+            });
+        }
+
         let diff = planQty - actualQty;
 
-        // เงื่อนไขตัดทิ้งเมื่อเหลือ <= 2% (ตามตรรกะในฟังก์ชันเดิม)
-        if (planQty > 0 && diff > 0 && (diff / planQty) <= 0.02) {
+        // 📌 เงื่อนไขซ่อน: ถ้าผลิตครบตามแผนแล้ว (ยอดผลิตจริง >= ยอดแผน) หรือเหลือเศษน้อยกว่า 2% ให้ซ่อนออกจากหน้าเว็บ
+        if (planQty > 0 && (actualQty >= planQty || (diff > 0 && (diff / planQty) <= 0.02))) {
             return false; 
         }
 
         // เงื่อนไขการค้นหา (พิมพ์กรอง Part No. หรือ Lot No.)
         if (query) {
-            const pNo = String(plan["Part No."] || '').toLowerCase();
-            const lNo = String(plan["Lot No."] || '').toLowerCase();
+            const pNo = planPartNo.toLowerCase();
+            const lNo = planLotNo.toLowerCase();
             if (!pNo.includes(query) && !lNo.includes(query)) {
-                return false; // ถ้าไม่ตรงกับที่พิมพ์ ให้ซ่อนออก
+                return false; 
             }
         }
 
         return true;
-    }).slice(0, 100); // <--- เพิ่ม .slice ตรงนี้เพื่อจำกัดการแสดงผลไม่ให้เกิน 100 รายการ ป้องกันแรมเต็ม
+    }).slice(0, 100); // จำกัดการแสดงผลไม่ให้เกิน 100 รายการ ป้องกันแรมเต็ม
 
     if (!activePlans || activePlans.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต (หรือผลิตครบหมดแล้ว)</td></tr>`;
         return;
     }
 
     activePlans.forEach(plan => {
         const tr = document.createElement('tr');
         
-        // ดึงค่าตัวแปรสำหรับส่งไปหน้าพิมพ์ Tag
         const partNo = plan["Part No."] || '';
         const lotNo = plan["Lot No."] || '';
         const planQty = plan["Plan Qty"] || 0;
