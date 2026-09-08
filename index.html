@@ -2120,7 +2120,7 @@ async function exportFilteredProductionReport() {
     }
 }
      // ==========================================
-// 📌 ระบบจัดการ Q-Gate Inspection & History (ปรับปรุงแก้ไขการสแกนบาร์โค้ดให้แม่นยำ 100%)
+// 📌 ระบบจัดการ Q-Gate Inspection & History (สมบูรณ์และเสถียรที่สุด)
 // ==========================================
 
 // ดักจับหน้าต่าง Alert ของ Q-Gate ให้ข้ามอัตโนมัติ ไม่ต้องกด OK
@@ -2136,14 +2136,13 @@ document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
     
-    // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
     renderQGate();
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
     }
 });
 
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดและพิมพ์ค้นหาที่ช่อง Part No. / WIP ในหน้า Q-Gate
+// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (ป้องกันการเด้งเปลี่ยนพาร์ทอัตโนมัติ)
 document.addEventListener('DOMContentLoaded', () => {
     const qgateInputEl = document.getElementById('qgatePartSearch') || 
                          document.querySelector('input[placeholder*="ค้นหา Part No"]') || 
@@ -2153,7 +2152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const partSelectEl = document.getElementById('qgatePartNo');
 
     if (qgateInputEl && partSelectEl) {
-        // 1. ดักจับตอนยิงบาร์โค้ดหรือกด Enter
+        // 1. ดักจับตอนกด Enter จากการยิงบาร์โค้ด
         qgateInputEl.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -2162,7 +2161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let partNo = rawBarcode;
 
-                // แกะรหัสจากลิงก์ URL บาร์โค้ด (ถ้ามี)
+                // แกะรหัสจากลิงก์ URL บาร์โค้ด
                 if (rawBarcode.includes('partNo=')) {
                     try {
                         let urlParams = new URLSearchParams(rawBarcode.includes('?') ? rawBarcode.split('?')[1] : rawBarcode);
@@ -2196,14 +2195,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     partSelectEl.value = partNo;
                 }
 
-                // เรียกฟังก์ชันอัปเดตข้อมูล WIP ทันที
+                // เรียกฟังก์ชันอัปเดตข้อมูล WIP และรูปภาพ
                 partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
 
                 if (typeof playBeep === 'function') {
                     playBeep('success');
                 }
 
-                // ย้ายโฟกัสไปช่องกรอกจำนวนตรวจสอบอัตโนมัติ
                 setTimeout(() => {
                     const inspectQtyInput = document.getElementById('qgateTotalQty') || 
                                             document.querySelector('input[name="inspectQty"]') || 
@@ -2214,22 +2212,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 100);
 
-                console.log("✨ Q-Gate อ่านบาร์โค้ดตรงเป๊ะ:", partNo);
+                console.log("✨ Q-Gate ล็อคพาร์ทที่สแกนสำเร็จตรงเป๊ะ:", partNo);
             }
         });
 
-        // 2. ฟังก์ชันกรองรายชื่อ Part No. ใน Dropdown ตามตัวอักษรที่พิมพ์ (แยกขาดจากการกด Enter)
+        // 2. ปิด Event input อัตโนมัติ เพื่อไม่ให้ไปสลับเลือกพาร์ทอื่นตอนยิงบาร์โค้ด
         qgateInputEl.addEventListener('input', function(e) {
-            const keyword = e.target.value.toLowerCase().trim();
-            // ถ้าเป็นการพิมพ์สแกนยาวๆ หรือกด Enter ไปแล้ว ไม่ต้องกรองซ่อนออฟชัน
-            if (!keyword || keyword.length > 25) return; 
-
-            const options = partSelectEl.options;
-            for (let i = 0; i < options.length; i++) {
-                if (i === 0) continue; 
-                const text = options[i].text.toLowerCase();
-                options[i].style.display = text.includes(keyword) ? '' : 'none';
-            }
+            // คงค่าว่างไว้ ป้องกัน Bug เด้งไปพาร์ทแรก
         });
     }
 });
@@ -2277,7 +2266,7 @@ function renderQGate() {
     }
 }
 
-// ฟังก์ชันบันทึกข้อมูล Q-Gate (ปรับปรุงให้ทำงานรวดเร็วขึ้น ไม่หน่วง และป้องกันการกดซ้ำ)
+// ฟังก์ชันบันทึกข้อมูล Q-Gate
 function submitQGateTransaction(e) {
     e.preventDefault();
     
@@ -2317,14 +2306,12 @@ function submitQGateTransaction(e) {
         passQty: passQty
     };
 
-    // 1. อัปเดตข้อมูลและแสดงผลหน้าจอฝั่ง Client ทันทีแบบไม่รอช้า
     qgate.unshift(newItem);
     renderQGate();
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
     }
 
-    // 2. เคลียร์ฟอร์มทันที
     document.getElementById('qgateForm').reset();
     const nowDate = new Date();
     const localDate = new Date(nowDate.getTime() - (nowDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -2333,7 +2320,6 @@ function submitQGateTransaction(e) {
     const wipHint = document.getElementById('qgateWipHint');
     if(wipHint) wipHint.innerText = '';
 
-    // 3. ส่งข้อมูลไปบันทึกที่ Cloud แบบ Async (ไม่บล็อกหน้าจอ)
     if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
         fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
@@ -2360,7 +2346,7 @@ function deleteQGateItem(id) {
     }
 }
 
-// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate (กรองรายการที่มีเศษส่วน/เครื่องหมายทับออก)
+// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
 function checkAndLoadWipForQGate() {
     const selectPart = document.getElementById('qgatePartNo');
     if (!selectPart) return;
@@ -2403,7 +2389,7 @@ function checkAndLoadWipForQGate() {
     });
 }
 
-// 📌 ฟังก์ชัน updateQGateWipInfo แสดงยอดคงเหลือจริง
+// ฟังก์ชันอัปเดตยอดคงเหลือและรูปภาพ
 function updateQGateWipInfo() {
     const selectedPart = document.getElementById('qgatePartNo').value;
     if (typeof updateQGatePartImage === 'function') {
@@ -2430,7 +2416,7 @@ function updateQGateWipInfo() {
     }
 }
 
-// ผูกอีเวนต์ change ให้กับดรอปดาวน์ Q-Gate เพื่ออัปเดตยอด WIP อัตโนมัติ
+// ผูกอีเวนต์ change ให้กับดรอปดาวน์ Q-Gate
 document.addEventListener('DOMContentLoaded', () => {
     const partSelectEl = document.getElementById('qgatePartNo');
     if (partSelectEl) {
