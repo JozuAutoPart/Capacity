@@ -2119,8 +2119,7 @@ async function exportFilteredProductionReport() {
         alert('เกิดข้อผิดพลาดในการ Export: ' + error.message);
     }
 }
-     // ==========================================
-// 📌 ระบบจัดการ Q-Gate Inspection & History (สมบูรณ์และเสถียรที่สุด)
+// 📌 ระบบจัดการ Q-Gate Inspection & History (ปรับปรุงใหม่ให้ยิงบาร์โค้ดแล้วเลือกทันที)
 // ==========================================
 
 // ดักจับหน้าต่าง Alert ของ Q-Gate ให้ข้ามอัตโนมัติ ไม่ต้องกด OK
@@ -2136,72 +2135,75 @@ document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
     
+    // โหลดข้อมูลประวัติ Q-Gate และรายการ Part No. จาก WIP
     renderQGate();
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
     }
 });
 
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (ป้องกันการเด้งเปลี่ยนพาร์ทอัตโนมัติ)
+// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. / WIP ในหน้า Q-Gate
 document.addEventListener('DOMContentLoaded', () => {
+    // ค้นหาช่อง input สำหรับพิมพ์/สแกนบาร์โค้ดในหน้า Q-Gate ให้ครอบคลุมทุกไอ디ที่เป็นไปได้
     const qgateInputEl = document.getElementById('qgatePartSearch') || 
                          document.querySelector('input[placeholder*="ค้นหา Part No"]') || 
                          document.querySelector('input[placeholder*="Scan"]') ||
                          document.querySelector('input[placeholder*="บาร์โค้ด"]');
 
-    const partSelectEl = document.getElementById('qgatePartNo');
-
-    if (qgateInputEl && partSelectEl) {
-        // 1. ดักจับตอนกด Enter จากการยิงบาร์โค้ด
+    if (qgateInputEl) {
         qgateInputEl.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 let rawBarcode = qgateInputEl.value.trim();
                 if (!rawBarcode) return;
                 
-                let partNo = rawBarcode;
+                // ตัดรูปแบบบาร์โค้ด เช่น ถ้ามีเครื่องหมายขีดและตามด้วยจำนวน ให้ตัดออกเอาเฉพาะ Part No. เพียวๆ
+                let parts = rawBarcode.split('-');
+                let partNo = "";
 
-                // แกะรหัสจากลิงก์ URL บาร์โค้ด
-                if (rawBarcode.includes('partNo=')) {
-                    try {
-                        let urlParams = new URLSearchParams(rawBarcode.includes('?') ? rawBarcode.split('?')[1] : rawBarcode);
-                        if (urlParams.has('partNo')) {
-                            partNo = urlParams.get('partNo');
-                        }
-                    } catch (err) {
-                        console.error("Parse URL Barcode error:", err);
-                    }
+                if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
+                    parts.pop(); // ตัดจำนวนข้างหลังจาก Tag ออก
+                    partNo = parts.join('-');
                 } else {
-                    partNo = rawBarcode.replace(/[\.]+$/, '');
+                    partNo = rawBarcode;
                 }
 
                 qgateInputEl.value = partNo;
 
-                // ค้นหาและเลือก Part No. ใน Dropdown แบบตรงกันเป๊ะ
-                let matched = false;
-                for (let i = 0; i < partSelectEl.options.length; i++) {
-                    if (partSelectEl.options[i].value === partNo) {
-                        partSelectEl.value = partSelectEl.options[i].value;
-                        matched = true;
-                        break;
+                // วิ่งไปเลือกพาร์ทใน Dropdown อัตโนมัติ (id="qgatePartNo")
+                const partSelectEl = document.getElementById('qgatePartNo');
+                if (partSelectEl) {
+                    let matched = false;
+                    for (let i = 0; i < partSelectEl.options.length; i++) {
+                        if (partSelectEl.options[i].value === partNo || partSelectEl.options[i].text.includes(partNo)) {
+                            partSelectEl.value = partSelectEl.options[i].value;
+                            matched = true;
+                            break;
+                        }
                     }
-                }
-                
-                if (!matched && partNo) {
-                    const newOpt = document.createElement('option');
-                    newOpt.value = partNo;
-                    newOpt.text = `${partNo} (จากการสแกน)`;
-                    partSelectEl.appendChild(newOpt);
-                    partSelectEl.value = partNo;
+                    
+                    // ถ้ายังไม่มีในตัวเลือก ให้สร้าง option ใหม่เพิ่มเข้าไปแล้วเลือกทันที
+                    if (!matched && partNo) {
+                        const newOpt = document.createElement('option');
+                        newOpt.value = partNo;
+                        newOpt.text = `${partNo} (จากการสแกน)`;
+                        partSelectEl.appendChild(newOpt);
+                        partSelectEl.value = partNo;
+                    }
+
+                    // สั่งให้ระบบรันอีเวนต์ change เพื่ออัปเดตยอดคงเหลือ WIP หรือรูปภาพทันที
+                    partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
                 }
 
-                // เรียกฟังก์ชันอัปเดตข้อมูล WIP และรูปภาพ
-                partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                qgateInputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                qgateInputEl.dispatchEvent(new Event('change', { bubbles: true }));
 
+                // เล่นเสียงสำเร็จ (ถ้ามีฟังก์ชัน)
                 if (typeof playBeep === 'function') {
                     playBeep('success');
                 }
 
+                // โฟกัสไปที่ช่องกรอกจำนวนตรวจสอบอัตโนมัติทันที
                 setTimeout(() => {
                     const inspectQtyInput = document.getElementById('qgateTotalQty') || 
                                             document.querySelector('input[name="inspectQty"]') || 
@@ -2212,20 +2214,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 100);
 
-                console.log("✨ Q-Gate ล็อคพาร์ทที่สแกนสำเร็จตรงเป๊ะ:", partNo);
+                console.log("✨ สแกนบาร์โค้ดสำเร็จ, เลือก Part No:", partNo);
             }
-        });
-
-        // 2. ปิด Event input อัตโนมัติ เพื่อไม่ให้ไปสลับเลือกพาร์ทอื่นตอนยิงบาร์โค้ด
-        qgateInputEl.addEventListener('input', function(e) {
-            // คงค่าว่างไว้ ป้องกัน Bug เด้งไปพาร์ทแรก
         });
     }
 });
 
+// ฟังก์ชันกรองรายชื่อ Part No. ตามคำค้นหา
+const searchInput = document.getElementById('qgatePartSearch');
+if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+        const keyword = e.target.value.toLowerCase();
+        const selectEl = document.getElementById('qgatePartNo');
+        if (!selectEl) return;
+        
+        const options = selectEl.options;
+        for (let i = 0; i < options.length; i++) {
+            if (i === 0) continue; // ข้ามตัวเลือกแรก (-- เลือก Part No. --)
+            const text = options[i].text.toLowerCase();
+            options[i].style.display = text.includes(keyword) ? '' : 'none';
+        }
+    });
+}
+
 // ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
 function renderQGate() {
-    const qgateHistory = (qgate || []).slice().reverse().slice(0, 100);
+    const qgateHistory = (qgate || []).slice().reverse();
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
     if(historyBody) {
@@ -2266,25 +2280,19 @@ function renderQGate() {
     }
 }
 
-// ฟังก์ชันบันทึกข้อมูล Q-Gate
+// ฟังก์ชันบันทึกข้อมูล Q-Gate (รวมเวลาเริ่ม - สิ้นสุด)
 function submitQGateTransaction(e) {
     e.preventDefault();
-    
     const startTime = document.getElementById('qgateStartTime').value;
     const endTime = document.getElementById('qgateEndTime').value;
-    const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : '-';
+    const timeRange = `${startTime} - ${endTime}`;
     const inspector = document.getElementById('qgateInspector').value.trim();
     const partNo = document.getElementById('qgatePartNo').value;
     const totalQty = parseInt(document.getElementById('qgateTotalQty').value);
-    const ngQty = parseInt(document.getElementById('qgateNgQty').value || 0);
+    const ngQty = parseInt(document.getElementById('qgateNgQty').value);
 
     if (!partNo) {
         alert("กรุณาเลือก Part No. จาก WIP ที่ต้องการตรวจ!");
-        return;
-    }
-
-    if (isNaN(totalQty) || totalQty <= 0) {
-        alert("กรุณากรอกจำนวนตรวจสอบทั้งหมดให้ถูกต้อง!");
         return;
     }
 
@@ -2307,26 +2315,20 @@ function submitQGateTransaction(e) {
     };
 
     qgate.unshift(newItem);
-    renderQGate();
-    if (typeof checkAndLoadWipForQGate === 'function') {
-        checkAndLoadWipForQGate();
+    if (typeof saveAll === 'function') {
+        saveAll('saveQgate', newItem);
     }
 
+    alert("บันทึกผลการตรวจ Q-Gate สำเร็จ!");
     document.getElementById('qgateForm').reset();
+    
     const nowDate = new Date();
     const localDate = new Date(nowDate.getTime() - (nowDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     document.getElementById('qgateDate').value = localDate;
-    
-    const wipHint = document.getElementById('qgateWipHint');
-    if(wipHint) wipHint.innerText = '';
 
-    if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'saveQgate', data: newItem })
-        }).catch(err => console.error("Cloud sync error:", err));
-    } else if (typeof saveAll === 'function') {
-        saveAll('saveQgate', newItem);
+    renderQGate();
+    if (typeof checkAndLoadWipForQGate === 'function') {
+        checkAndLoadWipForQGate();
     }
 }
 
@@ -2376,9 +2378,6 @@ function checkAndLoadWipForQGate() {
     }
 
     Object.keys(wipMap).forEach(partNo => {
-        const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
-        if (hasProcessSuffix) return;
-
         let currentWip = wipMap[partNo];
         if (currentWip > 0) {
             const opt = document.createElement('option');
@@ -2389,40 +2388,17 @@ function checkAndLoadWipForQGate() {
     });
 }
 
-// ฟังก์ชันอัปเดตยอดคงเหลือและรูปภาพ
 function updateQGateWipInfo() {
     const selectedPart = document.getElementById('qgatePartNo').value;
     if (typeof updateQGatePartImage === 'function') {
         updateQGatePartImage(selectedPart);
     }
-    
     let wipQty = 0;
-    if (selectedPart) {
-        let totalIn = 0;
-        if (typeof actuals !== 'undefined') {
-            totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === selectedPart).reduce((sum, a) => sum + Number(a.qty || a['OK Qty'] || 0), 0);
-        }
-        let totalOut = 0;
-        if (typeof qgate !== 'undefined') {
-            totalOut = qgate.filter(q => (q.partNo || q['Part No.'] || '') === selectedPart).reduce((sum, q) => sum + Number(q.totalQty || q['Check Qty'] || 0), 0);
-        }
-        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${selectedPart}`) || 0);
-        wipQty = (totalIn - totalOut) + adjustWip;
-    }
-
     const wipHint = document.getElementById('qgateWipHint');
     if(wipHint) {
-        wipHint.innerText = selectedPart ? `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น` : '';
+        wipHint.innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
     }
 }
-
-// ผูกอีเวนต์ change ให้กับดรอปดาวน์ Q-Gate
-document.addEventListener('DOMContentLoaded', () => {
-    const partSelectEl = document.getElementById('qgatePartNo');
-    if (partSelectEl) {
-        partSelectEl.addEventListener('change', updateQGateWipInfo);
-    }
-});
 // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
