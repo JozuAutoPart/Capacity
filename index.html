@@ -2145,6 +2145,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. / WIP ในหน้า Q-Gate (เทียบค่าแบบ Exact Match ตรงกันเป๊ะ)
 // 📌 ดักจับและแกะรหัส Part No. จากบาร์โค้ดที่เป็น URL หรือมีพารามิเตอร์ปนมาโดยอัตโนมัติ
+// 📌 แก้ไขโค้ดรับบาร์โค้ดหน้า Q-Gate ให้แกะรหัส Part No. แม่นยำตรงกันกับหน้าผลิต
 document.addEventListener('DOMContentLoaded', () => {
     const qgateInputEl = document.getElementById('qgatePartSearch') || 
                          document.querySelector('input[placeholder*="ค้นหา Part No"]') || 
@@ -2160,7 +2161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let partNo = rawBarcode;
 
-                // ถ้าบาร์โค้ดที่สแกนเป็นลิงก์หรือมีคำว่า partNo= ฝังอยู่ ให้ดึงเฉพาะรหัสพาร์ทออกมา
+                // ถ้าบาร์โค้ดสแกนติด URL พารามิเตอร์มา ให้ดึงเฉพาะค่า partNo ออกมา
                 if (rawBarcode.includes('partNo=')) {
                     try {
                         let urlParams = new URLSearchParams(rawBarcode.includes('?') ? rawBarcode.split('?')[1] : rawBarcode);
@@ -2171,7 +2172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.error("Parse URL Barcode error:", err);
                     }
                 } else {
-                    // ทำความสะอาดอักขระพิเศษหรือจุดท้ายข้อความ
+                    // ทำความสะอาดจุดหรืออักขระพิเศษท้ายข้อความ
                     partNo = rawBarcode.replace(/[\.]+$/, '');
                 }
 
@@ -2216,7 +2217,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 100);
 
-                console.log("✨ Q-Gate แกะรหัสพาร์ทจากบาร์โค้ดสำเร็จ:", partNo);
+                console.log("✨ Q-Gate อ่านบาร์โค้ดตรงเป๊ะ:", partNo);
             }
         });
     }
