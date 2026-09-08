@@ -2144,6 +2144,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 // 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. / WIP ในหน้า Q-Gate (เทียบค่าแบบ Exact Match ตรงกันเป๊ะ)
+// 📌 แก้ไขโค้ดรับบาร์โค้ดในหน้า Q-Gate ให้ใช้ค่าเต็มๆ ตามจริง ห้ามตัดท้าย
 document.addEventListener('DOMContentLoaded', () => {
     const qgateInputEl = document.getElementById('qgatePartSearch') || 
                          document.querySelector('input[placeholder*="ค้นหา Part No"]') || 
@@ -2157,7 +2158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let rawBarcode = qgateInputEl.value.trim();
                 if (!rawBarcode) return;
                 
-                // ใช้ค่า Part No. ตามจริงที่สแกนมาโดยไม่ตัดขีดหรือตัวเลขท้ายทิ้ง
+                // ใช้ค่า Part No. ตามที่ยิงบาร์โค้ดมาแบบตรงๆ 100% ไม่มีการตัดขีดหรือตัดข้อความทิ้ง
                 let partNo = rawBarcode;
                 qgateInputEl.value = partNo;
 
@@ -2165,7 +2166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (partSelectEl) {
                     let matched = false;
                     
-                    // 🔍 วนลูปเทียบหา Part No. แบบตรงกันเป๊ะกับ value ของ option เท่านั้น
+                    // วนหา Part No. ที่ตรงกันเป๊ะใน Dropdown
                     for (let i = 0; i < partSelectEl.options.length; i++) {
                         if (partSelectEl.options[i].value === partNo) {
                             partSelectEl.value = partSelectEl.options[i].value;
@@ -2174,7 +2175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     
-                    // ถ้าไม่พบในรายการ ให้เพิ่มเข้าไปใหม่โดยใช้ค่าที่สแกนตรงๆ
+                    // ถ้าใน Dropdown ยังไม่มี ให้สร้างตัวเลือกใหม่ตามบาร์โค้ดที่สแกนเข้ามาทันที
                     if (!matched && partNo) {
                         const newOpt = document.createElement('option');
                         newOpt.value = partNo;
@@ -2203,7 +2204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 100);
 
-                console.log("✨ Q-Gate เลือก Part No. สำเร็จ:", partNo);
+                console.log("✨ Q-Gate อ่านค่าบาร์โค้ดสำเร็จ (ไม่ตัดทิ้ง):", partNo);
             }
         });
     }
