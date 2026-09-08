@@ -2464,14 +2464,6 @@ function updateQGateWipInfo() {
     document.getElementById('qgateWipHint').innerText = `คงเหลือใน WIP: ${wipQty.toLocaleString()} ชิ้น`;
 }
 
-// ผูกอีเวนต์ change ให้กับดรอปดาวน์ Q-Gate
-document.addEventListener('DOMContentLoaded', () => {
-    const partSelectEl = document.getElementById('qgatePartNo');
-    if (partSelectEl) {
-        partSelectEl.addEventListener('change', updateQGateWipInfo);
-    }
-});
-
 // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
