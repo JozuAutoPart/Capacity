@@ -2141,7 +2141,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (ป้องกันการเด้งเปลี่ยนพาร์ทอัตโนมัติ)
+// 📌 อัปเดตการดักจับบาร์โค้ดหน้า Q-Gate ให้ค้นหาแบบยืดหยุ่น (ป้องกันหาไม่เจอแล้วหลุด)
 document.addEventListener('DOMContentLoaded', () => {
     const qgateInputEl = document.getElementById('qgatePartSearch') || 
                          document.querySelector('input[placeholder*="ค้นหา Part No"]') || 
@@ -2151,7 +2151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const partSelectEl = document.getElementById('qgatePartNo');
 
     if (qgateInputEl && partSelectEl) {
-        // 1. ดักจับตอนกด Enter จากการยิงบาร์โค้ด
         qgateInputEl.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -2176,16 +2175,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 qgateInputEl.value = partNo;
 
-                // ค้นหาและเลือก Part No. ใน Dropdown แบบตรงกันเป๊ะ
+                // ค้นหาแบบยืดหยุ่น (เช็คว่าใน Dropdown มีพาร์ทนี้ประกอบอยู่หรือไม่)
                 let matched = false;
+                let cleanTarget = partNo.toLowerCase().trim();
+
                 for (let i = 0; i < partSelectEl.options.length; i++) {
-                    if (partSelectEl.options[i].value === partNo) {
+                    let optVal = partSelectEl.options[i].value.toLowerCase().trim();
+                    let optText = partSelectEl.options[i].text.toLowerCase().trim();
+
+                    // ถ้าค่าตรงกัน หรือมีข้อความบางส่วนตรงกัน ให้เลือกรหัสนี้ทันที
+                    if (optVal === cleanTarget || optVal.includes(cleanTarget) || cleanTarget.includes(optVal)) {
                         partSelectEl.value = partSelectEl.options[i].value;
                         matched = true;
                         break;
                     }
                 }
                 
+                // ถ้ายังไม่เจอจริงๆ ให้สร้างออฟชันใหม่เพิ่มเข้าไปทันที ป้องกันการเด้งไปโดนพาร์ทอื่น
                 if (!matched && partNo) {
                     const newOpt = document.createElement('option');
                     newOpt.value = partNo;
@@ -2194,7 +2200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     partSelectEl.value = partNo;
                 }
 
-                // เรียกฟังก์ชันอัปเดตข้อมูล WIP และรูปภาพ
+                // อัปเดตข้อมูล WIP และรูปภาพ
                 partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
 
                 if (typeof playBeep === 'function') {
@@ -2211,10 +2217,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 100);
 
-                console.log("✨ Q-Gate ล็อคพาร์ทที่สแกนสำเร็จตรงเป๊ะ:", partNo);
+                console.log("✨ Q-Gate จับคู่พาร์ทสำเร็จ:", partSelectEl.value);
             }
         });
-
+    }
+});
         // 2. ปิด Event input อัตโนมัติ เพื่อไม่ให้ไปสลับเลือกพาร์ทอื่นตอนยิงบาร์โค้ด
         qgateInputEl.addEventListener('input', function(e) {
             // คงค่าว่างไว้ ป้องกัน Bug เด้งไปพาร์ทแรก
