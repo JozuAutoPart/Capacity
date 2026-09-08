@@ -2143,7 +2143,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. / WIP ในหน้า Q-Gate
+// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดที่ช่องค้นหา Part No. / WIP ในหน้า Q-Gate (เทียบค่าแบบ Exact Match ตรงกันเป๊ะ)
 document.addEventListener('DOMContentLoaded', () => {
     const qgateInputEl = document.getElementById('qgatePartSearch') || 
                          document.querySelector('input[placeholder*="ค้นหา Part No"]') || 
@@ -2157,29 +2157,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 let rawBarcode = qgateInputEl.value.trim();
                 if (!rawBarcode) return;
                 
-                let parts = rawBarcode.split('-');
-                let partNo = "";
-
-                if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
-                    parts.pop(); 
-                    partNo = parts.join('-');
-                } else {
-                    partNo = rawBarcode;
-                }
-
+                // ใช้ค่า Part No. ตามจริงที่สแกนมาโดยไม่ตัดขีดหรือตัวเลขท้ายทิ้ง
+                let partNo = rawBarcode;
                 qgateInputEl.value = partNo;
 
                 const partSelectEl = document.getElementById('qgatePartNo');
                 if (partSelectEl) {
                     let matched = false;
+                    
+                    // 🔍 วนลูปเทียบหา Part No. แบบตรงกันเป๊ะกับ value ของ option เท่านั้น
                     for (let i = 0; i < partSelectEl.options.length; i++) {
-                        if (partSelectEl.options[i].value === partNo || partSelectEl.options[i].text.includes(partNo)) {
+                        if (partSelectEl.options[i].value === partNo) {
                             partSelectEl.value = partSelectEl.options[i].value;
                             matched = true;
                             break;
                         }
                     }
                     
+                    // ถ้าไม่พบในรายการ ให้เพิ่มเข้าไปใหม่โดยใช้ค่าที่สแกนตรงๆ
                     if (!matched && partNo) {
                         const newOpt = document.createElement('option');
                         newOpt.value = partNo;
@@ -2208,12 +2203,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 100);
 
-                console.log("✨ สแกนบาร์โค้ดสำเร็จ, เลือก Part No:", partNo);
+                console.log("✨ Q-Gate เลือก Part No. สำเร็จ:", partNo);
             }
         });
     }
 });
-
 // ฟังก์ชันกรองรายชื่อ Part No. ตามคำค้นหา
 const searchInput = document.getElementById('qgatePartSearch');
 if (searchInput) {
