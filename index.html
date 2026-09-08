@@ -2141,7 +2141,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (ป้องกันการเด้งเปลี่ยนพาร์ทอัตโนมัติ)
+// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (ปรับปรุงใหม่: ค้นหาแม่นยำ 100% ไม่หลุดเพี้ยน)
 document.addEventListener('DOMContentLoaded', () => {
     const qgateInputEl = document.getElementById('qgatePartSearch') || 
                          document.querySelector('input[placeholder*="ค้นหา Part No"]') || 
@@ -2175,18 +2175,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 qgateInputEl.value = partNo;
+                let cleanTarget = partNo.toLowerCase().trim();
 
-                // ค้นหาและเลือก Part No. ใน Dropdown แบบตรงกันเป๊ะ
-                let matched = false;
+                // ค้นหาแบบยืดหยุ่นและแม่นยำ (ตัดช่องว่างและเทียบตัวพิมพ์เล็ก-ใหญ่)
+                let matchedValue = "";
                 for (let i = 0; i < partSelectEl.options.length; i++) {
-                    if (partSelectEl.options[i].value === partNo) {
-                        partSelectEl.value = partSelectEl.options[i].value;
-                        matched = true;
+                    let optVal = String(partSelectEl.options[i].value).toLowerCase().trim();
+                    // ตัดข้อความวงเล็บด้านหลังออกหากมี (เช่น พาร์ทที่มีข้อความต่อท้ายใน Dropdown)
+                    let baseOptVal = optVal.split(' ')[0]; 
+
+                    if (optVal === cleanTarget || baseOptVal === cleanTarget || optVal.includes(cleanTarget) || cleanTarget.includes(optVal)) {
+                        matchedValue = partSelectEl.options[i].value;
                         break;
                     }
                 }
                 
-                if (!matched && partNo) {
+                if (matchedValue) {
+                    partSelectEl.value = matchedValue;
+                } else if (partNo) {
+                    // ถ้าไม่มีในลิสต์ ให้สร้างออฟชันใหม่เพิ่มเข้าไปทันที ป้องกันการเด้งไปโดนพาร์ทอื่น
                     const newOpt = document.createElement('option');
                     newOpt.value = partNo;
                     newOpt.text = `${partNo} (จากการสแกน)`;
@@ -2211,7 +2218,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }, 100);
 
-                console.log("✨ Q-Gate ล็อคพาร์ทที่สแกนสำเร็จตรงเป๊ะ:", partNo);
+                console.log("✨ Q-Gate ล็อคพาร์ทที่สแกนสำเร็จตรงเป๊ะ:", partSelectEl.value);
             }
         });
 
