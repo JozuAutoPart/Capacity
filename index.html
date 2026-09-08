@@ -2350,7 +2350,7 @@ function deleteQGateItem(id) {
     }
 }
 
-// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
+// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate (รองรับการแปลงรหัสพาร์ทที่ซ้ำ/รหัสหน้างาน)
 function checkAndLoadWipForQGate() {
     const selectPart = document.getElementById('qgatePartNo');
     if (!selectPart) return;
@@ -2359,9 +2359,20 @@ function checkAndLoadWipForQGate() {
 
     const wipMap = {};
     
+    // 🛠️ ฟังก์ชันช่วยแปลงรหัสพาร์ทหน้างานให้เป็นพาร์ทจริงอันเดียวกัน
+    function normalizePartNo(rawPart) {
+        let p = String(rawPart || '').trim();
+        // ตัวอย่างเงื่อนไขการแปลงรหัสพาร์ทที่ซ้ำหรือรหัสย่อ
+        if (p === "JA188" || p === "JA188.") {
+            return "17443-BZ190"; // ปรับแก้รหัสจริงตามที่ต้องการตรงนี้ได้เลยครับ
+        }
+        return p;
+    }
+
     if (typeof actuals !== 'undefined') {
         actuals.forEach(a => {
-            let pNo = a.partNo || a['Part No.'] || '';
+            let rawPNo = a.partNo || a['Part No.'] || '';
+            let pNo = normalizePartNo(rawPNo); // แปลงรหัสก่อนรวมยอด
             let qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
             if (pNo) {
                 wipMap[pNo] = (wipMap[pNo] || 0) + qty;
@@ -2371,7 +2382,8 @@ function checkAndLoadWipForQGate() {
 
     if (typeof qgate !== 'undefined') {
         qgate.forEach(q => {
-            let pNo = q.partNo || q['Part No.'] || '';
+            let rawPNo = q.partNo || q['Part No.'] || '';
+            let pNo = normalizePartNo(rawPNo); // แปลงรหัสก่อนหักยอด
             let qty = Number(q.totalQty !== undefined ? q.totalQty : (q['Check Qty'] || 0));
             if (pNo) {
                 wipMap[pNo] = (wipMap[pNo] || 0) - qty;
