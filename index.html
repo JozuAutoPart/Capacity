@@ -1717,11 +1717,10 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
-    const startTime = document.getElementById('workStartTime') ? document.getElementById('workStartTime').value : '';
-    const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
+   // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จาก ID ใน HTML จริงๆ
+    const startTime = document.getElementById('workStartTime').value;
+    const endTime = document.getElementById('workEndTime').value;
     const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
-
     const actual = {
         date: document.getElementById('actualDate').value,
         operator: document.getElementById('actualOperator').value.trim(),
