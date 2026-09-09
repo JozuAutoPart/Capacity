@@ -1717,9 +1717,12 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
-    const startTime = document.getElementById('workStartTime') ? document.getElementById('workStartTime').value : '';
-    const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม (รองรับทั้ง ID เดิมและ ID ทางเลือก)
+    const startTimeEl = document.getElementById('workStartTime') || document.getElementById('startTime');
+    const endTimeEl = document.getElementById('workEndTime') || document.getElementById('endTime');
+    
+    const startTime = startTimeEl ? startTimeEl.value : '';
+    const endTime = endTimeEl ? endTimeEl.value : '';
     const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
 
     const actual = {
@@ -1731,7 +1734,7 @@ function submitActual(e) {
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
-        timeWork: timeRange, // 👈 เพิ่มฟิลด์ช่วงเวลาทำงาน
+        timeWork: timeRange, // 👈 เพิ่มฟิลด์ช่วงเวลาทำงานที่ดึงค่ามาแล้ว
         remark: document.getElementById('actualRemark').value.trim()
     };
 
@@ -1787,7 +1790,6 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
-
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
