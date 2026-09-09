@@ -252,7 +252,7 @@
             "17510-0Y160-02": { partName: "OUTER PLATE", qty: 30, code: "STEM166" },
             "17537-0C060": { partName: "PLATE EXHAUST PIPE", qty: 9, code: "STEM167" },
             "17537-0C070": { partName: "PLATE EXHAUST PIPE", qty: 9, code: "STEM168" },
-            "17141-0C120-10": { partName: "BRACKET,HEAT INSULATOR NO.4", qty: 250, code: "STEM171" },
+            "17141-0C120-12": { partName: "BRACKET,HEAT INSULATOR NO.4", qty: 250, code: "STEM171" },
             "SG551-W0050": { partName: "INSULATOR HEAT", qty: 50, code: "STEM178" },
             "17535-0E010": { partName: "SEPARATOR,MUFFLER", qty: 12, code: "STEM179" },
             "17551-0T290": { partName: "INSULATOR HEAT", qty: 50, code: "STEM180" },
@@ -320,6 +320,7 @@
             "55387-0A010": { partName: "BRACKET,COMPUTER MOUNTING,NO.2", qty: 100, code: "JA243" },
             "5538C-0A010": { partName: "BRACKET,ELECTRICAL PARTS MOUNTING,NO.3", qty: 150, code: "JA244" },
             "55397-0A040": { partName: "SEAL,HOOD SIDE TO COWL SIDE,RH", qty: 250, code: "JA246" },
+            "55124-0D040": { partName: "SHIELD STEERING SUPPRT", qty: 50, code: "JA116" },
             "55342-BZ060": { partName: "BRACE,INSTRUMENT PANEL TO COWL , LWR", qty: 18, code: "JA263" },
             "55375-BZ250": { partName: "BRACKET , INSTRUMENT PANEL LWR NMT, NO.2", qty: 140, code: "JA265" },
             "55381-BZ150": { partName: "BRACKET , FINISH PANEL MOUNTING , NO.1", qty: 50, code: "JA268" },
@@ -329,6 +330,7 @@
             "55387-0K020": { partName: "BRACKET, COMPUTER MOUNTING, NO.2", qty: 80, code: "JA292" },
             "55427-0K030": { partName: "BRACKET,AIR BAG PASSENGER MT,NO.1", qty: 160, code: "JA293" },
             "55427-KK020": { partName: "BRACKET,AIR BAG PASSENGER MT,NO.1", qty: 200, code: "JA297" },
+            "55427-KK030": { partName: "BRACKET,AIR BAG PASSENGER MT,NO.1", qty: 200, code: "JA298" },
             "55371-KK020": { partName: "BRACKET, ANTENNA CABLE CAL AMP", qty: 200, code: "JA299" },
             "55386-0G020": { partName: "BRACKET, COMPUTER MOUNTING, NO.1", qty: 120, code: "JA312" },
             "55427-0G020": { partName: "BRACKET, AIR BAG PASSENGER MT, NO. 1", qty: 150, code: "JA314" },
@@ -338,6 +340,7 @@
             "55464-KK020": { partName: "BRACKET,KNEE PROTECTOR,NO.4", qty: 200, code: "JA321" },
             "17510-0Y090-03": { partName: "INNER PLATE", qty: 60, code: "STEM129" },
             "17510-0Y090-04": { partName: "INNER PLATE", qty: 60, code: "STEM130" },
+            "17141-0C120-10": { partName: "BRACKET,HEAT INSULATOR NO.2", qty: 150, code: "STEM172" },
             "SG552-W0090": { partName: "INSULATOR HEAT NO.2", qty: 50, code: "STEM186" },
             "SG553-W0050": { partName: "INSULATOR HEAT NO.3", qty: 50, code: "STEM187" },
             "5251D029": { partName: "PLATE,R/FLRC/MBR RR", qty: 100, code: "TMC001" },
@@ -361,7 +364,7 @@
             "63179-KK010": { partName: "PLATE,ROOF PANEL,R/F,LH", qty: 500, code: "FTS112" },
             "17260-EE500": { partName: "SHUTTER ASSY-FILLER TUBE", qty: 300, code: "FTS054" },
             "17261-1HJ0A": { partName: "GUIDE FILLER TUBE SHUTTER", qty: 200, code: "FTS076" },
-            "17261-CJ40A": { partName: "SHUTTER ASSY-FILLER TUBE", qty: 200, code: "FTS086" },
+            "17261-CJ40A": { partName: "SHUTTER ASSY-FILLER TUBE", qty: 200, code: "FTS066" },
             "898137-1430": { partName: "COLLAR", qty: 1000, code: "FTS072" },
             "Y2222-011-1122": { partName: "COVER", qty: 300, code: "MS015" },
             "58374-06080": { partName: "REINFORCE LUG DOOR STRIKER", qty: 400, code: "JA097" },
@@ -400,7 +403,6 @@
             "K1155-011-2251": { partName: "INNER TUBE", qty: 250, code: "MS010" },
             "K1041-011-7110": { partName: "Valve Disc", qty: 10000, code: "MS013" }
         };
-
         // รับค่าพารามิเตอร์จาก URL (PartNo, LotNo และ Total Qty จากการสั่งผลิต)
         const urlParams = new URLSearchParams(window.location.search);
         const partNo = urlParams.get('partNo') || '53219-0D020'; 
