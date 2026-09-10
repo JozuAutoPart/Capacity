@@ -1800,7 +1800,6 @@ function submitActual(e) {
 }
 
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
-// ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets แบบสมบูรณ์ (ดึง TimeWork มาแสดงผลได้ครบถ้วน)
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -1819,8 +1818,8 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    // ⏱️ ดักจับชื่อคีย์เวลาทุกรูปแบบที่มาจาก Google Sheets ไม่ให้หลุดเป็นขีดอีก
-                    timeWork: item.TimeWork || item.timeWork || item['TimeWork'] || item['Time Work'] || item['timeWork'] || item['เวลาทำงาน'] || item['Time'] || '-',
+                    // ⏱️ ดักจับชื่อคีย์เวลาทุกลักษณะ ทั้งพิมพ์เล็กพิมพ์ใหญ่จาก Google Sheets
+                    timeWork: item.TimeWork || item.timeWork || item['TimeWork'] || item['timeWork'] || item['เวลาทำงาน'] || '-',
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
