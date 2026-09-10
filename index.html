@@ -1717,11 +1717,11 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-   // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จาก ID ใน HTML จริงๆ
     // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
     const startTime = document.getElementById('workStartTime') ? document.getElementById('workStartTime').value : '';
     const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
     const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
+    
     const actual = {
         date: document.getElementById('actualDate').value,
         operator: document.getElementById('actualOperator').value.trim(),
@@ -1819,7 +1819,6 @@ function loadActualsFromCloud() {
 }
 
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -1835,7 +1834,7 @@ function renderActuals() {
         let dateA = new Date(a.date || a['Date'] || 0);
         let dateB = new Date(b.date || b['Date'] || 0);
         return dateB - dateA;
-    }).slice(0, 100); // <--- เพิ่ม .slice ตรงนี้เพื่อจำกัดจำนวนแสดงผล ป้องกันแรมเต็ม
+    }).slice(0, 100); // <--- จำกัดจำนวนแสดงผล ป้องกันแรมเต็ม
 
     sortedActuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
@@ -1933,15 +1932,15 @@ function playSystemBeep() {
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         
-        oscillator.type = 'square'; // เสียงแบบเครื่องจักร/แจ้งเตือน
-        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); // ความถี่เสียง (ยิ่งเยอะยิ่งแหลม)
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // ความดัง
+        oscillator.type = 'square'; 
+        oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); 
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
         
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.2); // ดัง 0.2 วินาทีแล้วดับ
+        oscillator.stop(audioCtx.currentTime + 0.2); 
     } catch (e) {
         console.log("Audio not supported");
     }
@@ -1957,7 +1956,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const scannedVal = this.value.trim();
                 if (!scannedVal) return;
 
-                // 1. แปลงบาร์โค้ดเป็น Part No. จาก MasterParts
                 const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
                 const found = masterData.find(item => 
                     String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === scannedVal.toLowerCase() || 
@@ -1967,7 +1965,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
                 this.value = targetPartNo;
 
-                // 2. ค้นหาช่อง Dropdown Part No. ของแผน
                 const partSelectEl = document.getElementById('actualPartNo') || document.querySelector('select[name*="part"], select[id*="part"]');
                 if (partSelectEl) {
                     let matched = false;
@@ -2011,10 +2008,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// 🚀 ฟังก์ชันใหม่: ตัวเลือกพนักงานและ Export Excel รายบุคคล
+// 🚀 ฟังก์ชันจัดการพนักงานและเชื่อมโยงไปหน้าพิมพ์แยกอิสระ
 // ==========================================
 
-// อัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติจากตารางประวัติ
 function updateOperatorDropdown() {
     let select = document.getElementById('filterOperator');
     if (!select) return;
@@ -2038,92 +2034,50 @@ function updateOperatorDropdown() {
     });
 }
 
-// ฟังก์ชันหลัก Export รายงานลงแบบฟอร์ม Excel (รองรับการกรองตามพนักงาน)
-async function exportFilteredProductionReport() {
+function exportFilteredProductionReport() {
     let selectedOperator = document.getElementById('filterOperator')?.value || '';
+    let rows = document.querySelectorAll('#actualTableBody tr');
+    let reportData = [];
 
-    try {
-        let response = await fetch('ใบรายงานการผลิต.xlsx');
-        if (!response.ok) throw new Error('ไม่สามารถโหลดไฟล์แบบฟอร์ม Excel ได้');
+    rows.forEach((tr) => {
+        let tds = tr.querySelectorAll('td');
+        if (tds.length < 9) return;
 
-        let data = await response.arrayBuffer();
-        let workbook = XLSX.read(data, { type: 'array' });
-        let worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        let timeVal = tds[1]?.innerText.trim() || '';  
+        let opName = tds[2]?.innerText.trim() || '';   
+        let lineMc = tds[3]?.innerText.trim() || '';   
+        let partNo = tds[4]?.innerText.trim() || '';   
+        let lotNo = tds[5]?.innerText.trim() || '';    
+        let okQty = tds[6]?.innerText.trim() || '0';   
+        let ngQty = tds[7]?.innerText.trim() || '0';   
+        let remark = tds[8]?.innerText.trim() || '';   
 
-        // ใส่ชื่อผู้ปฏิบัติงานที่คอลัมน์ Q แถวที่ 2 (Index r:1, c:16)
-        if (selectedOperator) {
-            worksheet[XLSX.utils.encode_cell({ r: 1, c: 16 })] = { t: 's', v: selectedOperator };
+        if (selectedOperator && !opName.includes(selectedOperator)) return;
+
+        let startTime = "";
+        let endTime = "";
+        if (timeVal.includes('-')) {
+            let parts = timeVal.split('-');
+            startTime = parts[0].trim();
+            endTime = parts[1].trim();
+        } else {
+            startTime = timeVal;
         }
 
-        // ใส่วันที่ปัจจุบันที่คอลัมน์ U แถวที่ 2 (Index r:1, c:20)
-        let currentDate = new Date().toISOString().split('T')[0];
-        worksheet[XLSX.utils.encode_cell({ r: 1, c: 20 })] = { t: 's', v: currentDate };
+        reportData.push({ startTime, endTime, lotNo, partNo, lineMc, okQty, ngQty, remark });
+    });
 
-        let rows = document.querySelectorAll('#actualTableBody tr');
-        let startRow = 7; // เริ่มบรรทัดที่ 8 ใน Excel (Index 7)
-
-        // กำหนดสไตล์เส้นขอบบางๆ ให้เซลล์
-        let thinBorder = {
-            top: { style: 'thin', color: { rgb: "000000" } },
-            bottom: { style: 'thin', color: { rgb: "000000" } },
-            left: { style: 'thin', color: { rgb: "000000" } },
-            right: { style: 'thin', color: { rgb: "000000" } }
-        };
-
-        rows.forEach((tr) => {
-            let tds = tr.querySelectorAll('td');
-            if (tds.length < 9) return;
-
-            let timeVal = tds[1]?.innerText.trim() || '';  
-            let opName = tds[2]?.innerText.trim() || '';   
-            let lineMc = tds[3]?.innerText.trim() || '';   
-            let partNo = tds[4]?.innerText.trim() || '';   
-            let lotNo = tds[5]?.innerText.trim() || '';    
-            let okQty = tds[6]?.innerText.trim() || '0';   
-            let ngQty = tds[7]?.innerText.trim() || '0';   
-            let remark = tds[8]?.innerText.trim() || '';   
-
-            if (selectedOperator && !opName.includes(selectedOperator)) return;
-
-            let startTime = "";
-            let endTime = "";
-            if (timeVal.includes('-')) {
-                let parts = timeVal.split('-');
-                startTime = parts[0].trim();
-                endTime = parts[1].trim();
-            } else {
-                startTime = timeVal;
-            }
-
-            // ฟังก์ชันช่วยใส่ค่าพร้อมเส้นตาราง
-            function setCellWithBorder(r, c, val, type = 's') {
-                let cellRef = XLSX.utils.encode_cell({ r: r, c: c });
-                worksheet[cellRef] = { 
-                    t: type, 
-                    v: val, 
-                    s: { border: thinBorder } 
-                };
-            }
-
-            // บันทึกข้อมูลลงเซลล์พร้อมตีเส้นตาราง
-            setCellWithBorder(startRow, 0, startTime); // A: เวลาเริ่ม
-            setCellWithBorder(startRow, 1, endTime);   // B: เวลาสิ้นสุด
-            setCellWithBorder(startRow, 2, lotNo);     // C: Lot No.
-            setCellWithBorder(startRow, 3, partNo);    // D: Part No.
-            setCellWithBorder(startRow, 7, lineMc);    // H: Machine No.
-            setCellWithBorder(startRow, 10, Number(okQty) || 0, 'n'); // K: OK
-            setCellWithBorder(startRow, 11, Number(ngQty) || 0, 'n'); // L: NG
-            setCellWithBorder(startRow, 25, remark);  // Z: ปัญหา/หมายเหตุ
-
-            startRow++;
-        });
-
-        XLSX.writeFile(workbook, 'Production_Daily_Report_Exported.xlsx');
-
-    } catch (err) {
-        console.error(err);
-        alert('เกิดข้อผิดพลาดในการสร้างรายงาน Excel: ' + err.message);
+    if (reportData.length === 0) {
+        alert('ไม่พบข้อมูลตามเงื่อนไขที่เลือกสำหรับพิมพ์รายงาน');
+        return;
     }
+
+    // บันทึกข้อมูลลงในหน่วยความจำชั่วคราวของเบราว์เซอร์เพื่อส่งไปหน้าพิมพ์
+    localStorage.setItem('productionReportData', JSON.stringify(reportData));
+    localStorage.setItem('productionReportOperator', selectedOperator || 'ทั้งหมด');
+
+    // เปิดหน้าพิมพ์แยกออกมาทันที
+    window.open('print-production.html', '_blank');
 }
 // 📌 ระบบจัดการ Q-Gate Inspection & History (สมบูรณ์และเสถียรที่สุด)
 // ==========================================
