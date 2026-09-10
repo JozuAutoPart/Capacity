@@ -1830,6 +1830,7 @@ function loadActualsFromCloud() {
 }
 
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับการแสดงเวลาทำงาน)
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -1837,7 +1838,7 @@ function renderActuals() {
 
     if (!actuals || actuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
-        updateOperatorDropdown(); // อัปเดต Dropdown ด้วย
+        updateOperatorDropdown();
         return;
     }
 
@@ -1845,7 +1846,7 @@ function renderActuals() {
         let dateA = new Date(a.date || a['Date'] || 0);
         let dateB = new Date(b.date || b['Date'] || 0);
         return dateB - dateA;
-    }).slice(0, 100); // <--- จำกัดจำนวนแสดงผล ป้องกันแรมเต็ม
+    }).slice(0, 100);
 
     sortedActuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
@@ -1859,7 +1860,9 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a.time || '-';
+        // ⏱️ ดึงค่าเวลาทำงานทุกรูปแบบฟิลด์ เพื่อให้หน้าเว็บแสดงผลไม่ติดขีดข่วน
+        const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a['Time'] || '-';
+        
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
         const remarkval = a.remark || a['Remark'] || '-';
@@ -1884,10 +1887,8 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 
-    // อัปเดตรายชื่อพนักงานใน Dropdown ทันทีหลังเรนเดอร์ตารางเสร็จ
     updateOperatorDropdown();
 }
-
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
