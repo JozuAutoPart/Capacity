@@ -186,35 +186,23 @@
             </div>
         </div>
 
-        <!-- ส่วนแสดงกราฟโดนัทสัดส่วนของเสียเทียบกับการผลิต (PPM vs Target 250 PPM) -->
-        <div class="card bg-dark text-white p-3 border-secondary">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0"><i class="fas fa-chart-pie me-2 text-warning"></i> สัดส่วนของเสียการผลิต (Defect Ratio vs Target 250 PPM)</h5>
-                <span id="badgePpmStatus" class="badge bg-secondary fs-6">Target: 250 PPM</span>
-            </div>
-            <div class="row align-items-center">
-                <div class="col-md-6 text-center" style="position: relative; height: 260px;">
-                    <canvas id="defectPpmChart"></canvas>
-                </div>
-                <div class="col-md-6">
-                    <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary">
-                        <div class="mb-3">
-                            <span class="text-muted d-block">ยอดผลิตรวมทั้งหมด (Total Production)</span>
-                            <h3 id="lblTotalProd" class="fw-bold text-white mb-0">0</h3>
-                        </div>
-                        <div class="mb-3">
-                            <span class="text-muted d-block">ยอดของเสียรวมทั้งหมด (Total NG Qty)</span>
-                            <h3 id="lblTotalNg" class="fw-bold text-danger mb-0">0</h3>
-                        </div>
-                        <div>
-                            <span class="text-muted d-block">อัตราของเสียจริง (Actual PPM)</span>
-                            <h2 id="lblActualPpm" class="fw-bold text-warning mb-0">0 PPM</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
+       <div class="col-md-6 text-center" style="position: relative; height: 260px; display: flex; justify-content: center; align-items: center;">
+    <!-- ชุดไฟจราจรจำลอง -->
+    <div style="display: flex; gap: 25px; align-items: center;">
+        <div style="text-align: center;">
+            <div id="lightGreen" style="width: 60px; height: 60px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
+            <small style="color: #28a745; display: block; margin-top: 8px; font-weight: bold;">1-200 PPM</small>
+        </div>
+        <div style="text-align: center;">
+            <div id="lightYellow" style="width: 60px; height: 60px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
+            <small style="color: #ffc107; display: block; margin-top: 8px; font-weight: bold;">201-250 PPM</small>
+        </div>
+        <div style="text-align: center;">
+            <div id="lightRed" style="width: 60px; height: 60px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
+            <small style="color: #dc3545; display: block; margin-top: 8px; font-weight: bold;">> 251 PPM</small>
         </div>
     </div>
+</div>
           <!-- กราฟวงกลมและกล่องสรุปสัดส่วน Stock Part -->
 <div class="row mt-4" id="stockSummaryBox" style="display: none;">
     <!-- ฝั่งซ้าย: กราฟวงกลม -->
@@ -1117,27 +1105,26 @@ if (dashDiffBalanceEl) {
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
 
-    // กำหนดสถานะไฟจราจรตามช่วง PPM
-    // 1-200 PPM = เขียว, 201-250 PPM = เหลือง, > 251 PPM = แดง
+    // เงื่อนไขช่วงไฟจราจร
     let lightState = 'green';
     let statusText = '';
     let badgeClass = '';
 
     if (actualPpm <= 200) {
         lightState = 'green';
-        statusText = 'Status: ผ่านเป้าหมายยอดเยี่ยม (≤ 200 PPM)';
+        statusText = 'Status: ผ่านเป้าหมายยอดเยี่ยม (1-200 PPM)';
         badgeClass = 'badge bg-success fs-6';
     } else if (actualPpm <= 250) {
         lightState = 'yellow';
-        statusText = 'Status: เฝ้าระวัง (201 - 250 PPM)';
+        statusText = 'Status: เฝ้าระวัง (201-250 PPM)';
         badgeClass = 'badge bg-warning text-dark fs-6';
     } else {
         lightState = 'red';
-        statusText = `Status: เกินเป้าหมาย (> 250 PPM)`;
+        statusText = 'Status: เกินเป้าหมาย (> 251 PPM)';
         badgeClass = 'badge bg-danger fs-6';
     }
 
-    // อัปเดตข้อความสถิติ
+    // อัปเดตตัวเลขสถิติ
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
@@ -1154,57 +1141,20 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         badgeStatus.innerText = statusText;
     }
 
-    // ทำลายกราฟโดนัทเดิมทิ้ง (ถ้ามี) เพื่อเปลี่ยนมาแสดงผลเป็นไฟจราจร
-    const canvasEl = document.getElementById('defectPpmChart');
-    if (ppmChartInstance) {
-        ppmChartInstance.destroy();
-        ppmChartInstance = null;
-    }
+    // สลับไฟติด/ดับ ตามค่า PPM ที่คำนวณได้
+    const elGreen = document.getElementById('lightGreen');
+    const elYellow = document.getElementById('lightYellow');
+    const elRed = document.getElementById('lightRed');
 
-    // สร้างกล่องแสดงผลไฟจราจรแทนที่ตำแหน่ง Canvas เดิม
-    if (canvasEl) {
-        const parentContainer = canvasEl.parentElement;
-        if (parentContainer) {
-            // ซ่อน canvas และสร้าง HTML ไฟจราจรแสดงแทน
-            canvasEl.style.display = 'none';
-            
-            let trafficLightContainer = document.getElementById('trafficLightSignalBox');
-            if (!trafficLightContainer) {
-                trafficLightContainer = document.createElement('div');
-                trafficLightContainer.id = 'trafficLightSignalBox';
-                trafficLightContainer.style.display = 'flex';
-                trafficLightContainer.style.justifyContent = 'center';
-                trafficLightContainer.style.alignItems = 'center';
-                trafficLightContainer.style.gap = '25px';
-                trafficLightContainer.style.height = '100%';
-                parentContainer.appendChild(trafficLightContainer);
-            }
+    if (elGreen && elYellow && elRed) {
+        elGreen.style.backgroundColor = lightState === 'green' ? '#28a745' : '#333333';
+        elGreen.style.boxShadow = lightState === 'green' ? '0 0 20px #28a745' : 'none';
 
-            // สีเปิด/ปิดของไฟ (ถ้าไม่เลือกดวงนั้น จะแสดงสีเทาจางๆ)
-            const greenColor = lightState === 'green' ? '#28a745' : '#333333';
-            const greenShadow = lightState === 'green' ? '0 0 20px #28a745' : 'none';
-            
-            const yellowColor = lightState === 'yellow' ? '#ffc107' : '#333333';
-            const yellowShadow = lightState === 'yellow' ? '0 0 20px #ffc107' : 'none';
-            
-            const redColor = lightState === 'red' ? '#dc3545' : '#333333';
-            const redShadow = lightState === 'red' ? '0 0 20px #dc3545' : 'none';
+        elYellow.style.backgroundColor = lightState === 'yellow' ? '#ffc107' : '#333333';
+        elYellow.style.boxShadow = lightState === 'yellow' ? '0 0 20px #ffc107' : 'none';
 
-            trafficLightContainer.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="width: 60px; height: 60px; background-color: ${greenColor}; border-radius: 50%; box-shadow: ${greenShadow}; margin: 0 auto; border: 3px solid #555;"></div>
-                    <small style="color: ${lightState === 'green' ? '#28a745' : '#777'}; display: block; margin-top: 8px; font-weight: bold;">1-200 PPM</small>
-                </div>
-                <div style="text-align: center;">
-                    <div style="width: 60px; height: 60px; background-color: ${yellowColor}; border-radius: 50%; box-shadow: ${yellowShadow}; margin: 0 auto; border: 3px solid #555;"></div>
-                    <small style="color: ${lightState === 'yellow' ? '#ffc107' : '#777'}; display: block; margin-top: 8px; font-weight: bold;">201-250 PPM</small>
-                </div>
-                <div style="text-align: center;">
-                    <div style="width: 60px; height: 60px; background-color: ${redColor}; border-radius: 50%; box-shadow: ${redShadow}; margin: 0 auto; border: 3px solid #555;"></div>
-                    <small style="color: ${lightState === 'red' ? '#dc3545' : '#777'}; display: block; margin-top: 8px; font-weight: bold;">> 251 PPM</small>
-                </div>
-            `;
-        }
+        elRed.style.backgroundColor = lightState === 'red' ? '#dc3545' : '#333333';
+        elRed.style.boxShadow = lightState === 'red' ? '0 0 20px #dc3545' : 'none';
     }
 }
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
