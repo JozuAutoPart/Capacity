@@ -1230,6 +1230,8 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
+       const totalPlanEl = document.getElementById('dashTotalPlan');
+if (!totalPlanEl) return; // ถ้าอยู่หน้าอื่น ให้หยุดทำงานทันที ไม่ให้ไปหา Element อื่นต่อ 
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
