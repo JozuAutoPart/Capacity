@@ -1166,21 +1166,20 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         badgeStatus.innerText = statusText;
     }
 
-    // ควบคุมไฟจราจรตามสถานะ (เปลี่ยนสีและใส่แสงเรืองเฉพาะดวงที่ทำงาน)
+    // สลับไฟติด/ดับ
     const elGreen = document.getElementById('lightGreen');
     const elYellow = document.getElementById('lightYellow');
     const elRed = document.getElementById('lightRed');
 
-    if (elGreen && elYellow && elRed) {
-        // ไฟเขียว
+    if (elGreen) {
         elGreen.style.backgroundColor = lightState === 'green' ? '#28a745' : '#333333';
         elGreen.style.boxShadow = lightState === 'green' ? '0 0 20px #28a745' : 'none';
-
-        // ไฟเหลือง
+    }
+    if (elYellow) {
         elYellow.style.backgroundColor = lightState === 'yellow' ? '#ffc107' : '#333333';
         elYellow.style.boxShadow = lightState === 'yellow' ? '0 0 20px #ffc107' : 'none';
-
-        // ไฟแดง
+    }
+    if (elRed) {
         elRed.style.backgroundColor = lightState === 'red' ? '#dc3545' : '#333333';
         elRed.style.boxShadow = lightState === 'red' ? '0 0 20px #dc3545' : 'none';
     }
