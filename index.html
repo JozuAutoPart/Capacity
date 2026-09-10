@@ -1118,11 +1118,11 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
     const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
 
-    // คำนวณจำนวนของเสียที่ยอมรับได้ตาม Target PPM
-    const targetAllowedNg = Math.round((totalProduction * targetPpm) / 1_000_000);
+    // คำนวณจำนวนของเสียสูงสุดที่ยอมรับได้ตาม Target 250 PPM จากยอดผลิตทั้งหมด
+    const allowedNg = Math.round((totalProduction * targetPpm) / 1_000_000);
     
-    // แยกส่วนของเสีย: ส่วนที่อยู่ในเป้า (หรือส่วนปกติ) กับ ส่วนที่เกินเป้า (ถ้ามี)
-    // หรือให้แสดงสัดส่วนระหว่าง Good Qty, NG ที่อยู่ใน Target, และ NG ที่เกิน Target
+    // หากของเสียจริง (totalNg) เกินเป้าที่ยอมรับได้ ให้แสดงส่วนต่างสีแดงชัดเจน
+    // หรือถ้าต้องการเทียบสัดส่วนระหว่าง [งานดี, ของเสียที่ไม่เกินเป้า, ของเสียที่เกินเป้า]
     const goodQty = Math.max(0, totalProduction - totalNg);
     
     // เช็คสถานะผ่าน/ไม่ผ่าน
@@ -1162,16 +1162,22 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         ppmChartInstance.destroy();
     }
 
-    // หากต้องการให้กราฟโชว์สัดส่วน งานดี (เขียว) และ ของเสีย (แดง) แบบชัดเจนเหมือนกราฟด้านล่าง
+    // ปรับให้ข้อมูลในกราฟสะท้อนเทียบกับ Target (ถ้าของเสียจริงน้อยกว่าเป้า ให้โชว์เป้าที่เหลือ, ถ้าเกินให้โชว์ส่วนเกินสีแดง)
+    // หรือถ้าต้องการให้กราฟโชว์สัดส่วนเป้าหมาย 250 PPM เป็นหลัก:
+    // ให้เทียบสัดส่วนระหว่าง Good Qty กับ Target Allowed NG เพื่อให้เห็นติ่งสีแดง/สัดส่วนชัดเจนแบบกราฟด้านล่าง
+    let displayNg = totalNg > 0 ? totalNg : 0;
+    // ถ้าของเสีย 822 ชิ้นแต่น้อยเกินไปจนมองไม่เห็นในวงล้อใหญ่ เราสามารถทำ Minimum Visual Slice ให้กราฟเห็นสัดส่วนชัดเจนขึ้นได้ครับ
+    let visualNg = displayNg === 0 ? 0 : Math.max(displayNg, Math.round(totalProduction * 0.01)); // ย้อมสัดส่วนขั้นต่ำให้มองเห็นภาพรวมถ้าต้องการ หรือใช้ค่าจริง
+
     ppmChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Good Qty (งานดี)', 'NG Qty (ของเสีย)'],
+            labels: ['Good Qty (งานดี)', 'NG Qty (ของเสียเทียบ Target)'],
             datasets: [{
-                data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
+                data: [goodQty, displayNg],
                 backgroundColor: [
-                    '#28a745', // สีเขียว (งานดี)
-                    '#dc3545'  // สีแดง (ของเสียที่จะขึ้นสัดส่วนตามจริงแบบกราฟด้านล่าง)
+                    '#28a745', // สีเขียว
+                    '#dc3545'  // สีแดง
                 ],
                 borderWidth: 0
             }]
@@ -1189,7 +1195,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
                         label: function(context) {
                             let label = context.label || '';
                             let value = context.raw || 0;
-                            return ` ${label}: ${value.toLocaleString()} ชิ้น`;
+                            return ` ${label}: ${value.toLocaleString()} ชิ้น (Target: ${targetPpm} PPM)`;
                         }
                     }
                 }
