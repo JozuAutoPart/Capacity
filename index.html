@@ -1105,26 +1105,26 @@ if (dashDiffBalanceEl) {
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
 
-    // เงื่อนไขช่วงไฟจราจร
+    // กำหนดสถานะตามช่วง PPM: 1-200 (เขียว), 201-250 (เหลือง), > 251 (แดง)
     let lightState = 'green';
     let statusText = '';
     let badgeClass = '';
 
     if (actualPpm <= 200) {
         lightState = 'green';
-        statusText = 'Status: ผ่านเป้าหมายยอดเยี่ยม (1-200 PPM)';
+        statusText = 'Status: ผ่านเป้าหมายยอดเยี่ยม (≤ 200 PPM)';
         badgeClass = 'badge bg-success fs-6';
     } else if (actualPpm <= 250) {
         lightState = 'yellow';
-        statusText = 'Status: เฝ้าระวัง (201-250 PPM)';
+        statusText = 'Status: เฝ้าระวัง (201 - 250 PPM)';
         badgeClass = 'badge bg-warning text-dark fs-6';
     } else {
         lightState = 'red';
-        statusText = 'Status: เกินเป้าหมาย (> 251 PPM)';
+        statusText = 'Status: เกินเป้าหมาย (> 250 PPM)';
         badgeClass = 'badge bg-danger fs-6';
     }
 
-    // อัปเดตตัวเลขสถิติ
+    // อัปเดตข้อความสถิติและ Badge
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
@@ -1141,18 +1141,21 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         badgeStatus.innerText = statusText;
     }
 
-    // สลับไฟติด/ดับ ตามค่า PPM ที่คำนวณได้
+    // ควบคุมไฟจราจรตามสถานะ (เปลี่ยนสีและใส่แสงเรืองเฉพาะดวงที่ทำงาน)
     const elGreen = document.getElementById('lightGreen');
     const elYellow = document.getElementById('lightYellow');
     const elRed = document.getElementById('lightRed');
 
     if (elGreen && elYellow && elRed) {
+        // ไฟเขียว
         elGreen.style.backgroundColor = lightState === 'green' ? '#28a745' : '#333333';
         elGreen.style.boxShadow = lightState === 'green' ? '0 0 20px #28a745' : 'none';
 
+        // ไฟเหลือง
         elYellow.style.backgroundColor = lightState === 'yellow' ? '#ffc107' : '#333333';
         elYellow.style.boxShadow = lightState === 'yellow' ? '0 0 20px #ffc107' : 'none';
 
+        // ไฟแดง
         elRed.style.backgroundColor = lightState === 'red' ? '#dc3545' : '#333333';
         elRed.style.boxShadow = lightState === 'red' ? '0 0 20px #dc3545' : 'none';
     }
