@@ -2062,6 +2062,14 @@ async function exportFilteredProductionReport() {
         let rows = document.querySelectorAll('#actualTableBody tr');
         let startRow = 7; // เริ่มบรรทัดที่ 8 ใน Excel (Index 7)
 
+        // กำหนดสไตล์เส้นขอบบางๆ ให้เซลล์
+        let thinBorder = {
+            top: { style: 'thin', color: { rgb: "000000" } },
+            bottom: { style: 'thin', color: { rgb: "000000" } },
+            left: { style: 'thin', color: { rgb: "000000" } },
+            right: { style: 'thin', color: { rgb: "000000" } }
+        };
+
         rows.forEach((tr) => {
             let tds = tr.querySelectorAll('td');
             if (tds.length < 9) return;
@@ -2087,15 +2095,25 @@ async function exportFilteredProductionReport() {
                 startTime = timeVal;
             }
 
-            // เขียนข้อมูลลงเซลล์แบบฟอร์มโดยรักษาโครงสร้างเดิม
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 0 })] = { t: 's', v: startTime }; // A: เวลาเริ่ม
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 1 })] = { t: 's', v: endTime };   // B: เวลาสิ้นสุด
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 2 })] = { t: 's', v: lotNo };     // C: Lot No.
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 3 })] = { t: 's', v: partNo };    // D: Part No.
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 7 })] = { t: 's', v: lineMc };    // H: Machine No.
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 10 })] = { t: 'n', v: Number(okQty) || 0 }; // K: OK
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 11 })] = { t: 'n', v: Number(ngQty) || 0 }; // L: NG
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 25 })] = { t: 's', v: remark };  // Z: ปัญหา/หมายเหตุ
+            // ฟังก์ชันช่วยใส่ค่าพร้อมเส้นตาราง
+            function setCellWithBorder(r, c, val, type = 's') {
+                let cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                worksheet[cellRef] = { 
+                    t: type, 
+                    v: val, 
+                    s: { border: thinBorder } 
+                };
+            }
+
+            // บันทึกข้อมูลลงเซลล์พร้อมตีเส้นตาราง
+            setCellWithBorder(startRow, 0, startTime); // A: เวลาเริ่ม
+            setCellWithBorder(startRow, 1, endTime);   // B: เวลาสิ้นสุด
+            setCellWithBorder(startRow, 2, lotNo);     // C: Lot No.
+            setCellWithBorder(startRow, 3, partNo);    // D: Part No.
+            setCellWithBorder(startRow, 7, lineMc);    // H: Machine No.
+            setCellWithBorder(startRow, 10, Number(okQty) || 0, 'n'); // K: OK
+            setCellWithBorder(startRow, 11, Number(ngQty) || 0, 'n'); // L: NG
+            setCellWithBorder(startRow, 25, remark);  // Z: ปัญหา/หมายเหตุ
 
             startRow++;
         });
