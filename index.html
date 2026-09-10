@@ -1717,10 +1717,21 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
-    const startTime = document.getElementById('workStartTime') ? document.getElementById('workStartTime').value : '';
-    const endTime = document.getElementById('workEndTime') ? document.getElementById('workEndTime').value : '';
-    const timeRange = (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || endTime || '-');
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม (รองรับหลายรูปแบบ ID ทั้ง workStartTime/actualStartTime)
+    const startTimeEl = document.getElementById('workStartTime') || document.getElementById('actualStartTime') || document.querySelector('input[id*="Start"]');
+    const endTimeEl = document.getElementById('workEndTime') || document.getElementById('actualEndTime') || document.querySelector('input[id*="End"]');
+    
+    const startTime = startTimeEl ? startTimeEl.value : '';
+    const endTime = endTimeEl ? endTimeEl.value : '';
+    
+    let timeRange = '-';
+    if (startTime && endTime) {
+        timeRange = `${startTime} - ${endTime}`;
+    } else if (startTime) {
+        timeRange = startTime;
+    } else if (endTime) {
+        timeRange = endTime;
+    }
     
     const actual = {
         date: document.getElementById('actualDate').value,
@@ -1731,7 +1742,7 @@ function submitActual(e) {
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
-        timeWork: timeRange, // 👈 เพิ่มฟิลด์ช่วงเวลาทำงาน
+        timeWork: timeRange, // 👈 บันทึกช่วงเวลาทำงานที่ดึงมาได้
         remark: document.getElementById('actualRemark').value.trim()
     };
 
