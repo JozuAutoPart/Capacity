@@ -1121,15 +1121,8 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
     // เช็คสถานะผ่าน/ไม่ผ่านเป้าหมาย
     const isPassed = actualPpm <= targetPpm;
 
-    // กำหนดสีของกราฟตามเงื่อนไข (ผ่านเป้า = เขียวทั้งหมด หรือ ไม่ผ่าน = แดงเด่น)
-    // ในที่นี้กำหนดให้:
-    // - ถ้าผ่านเป้า: Good Qty เป็นสีเขียว (#28a745), NG Qty เป็นสีเทาเข้มหรือสีส้มอ่อนเพื่อให้ตัดกัน
-    // - ถ้าไม่ผ่านเป้า: Good Qty เป็นสีเขียว, ส่วน NG Qty ที่เกินจะเป็นสีแดง (#dc3545)
-    // หรือถ้าต้องการให้ "ภาพรวมวงล้อเปลี่ยนสีตามสถานะ" สามารถปรับสีของ Good Qty ตามตัวแปร isPassed ได้เช่นกันครับ
-    
-    // ตัวอย่าง: ถ้าต้องการให้สีหลักของกราฟแสดงสถานะภาพรวม (ถ้าไม่ผ่านให้วงล้อสะท้อนโทนแดง)
-    const goodColor = '#28a745'; 
-    const ngColor = '#dc3545';
+    // กำหนดสีตามเงื่อนไข: ผ่านเป้า = สีเขียว (#28a745), ไม่ผ่านเป้า = สีแดง (#dc3545)
+    const statusColor = isPassed ? '#28a745' : '#dc3545';
 
     // อัปเดตข้อความสถิติ
     const lblTotalProd = document.getElementById('lblTotalProd');
@@ -1167,19 +1160,16 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         ppmChartInstance.destroy();
     }
 
-    // หากต้องการให้สีหลักของชิ้นงานดี (Good Qty) เปลี่ยนเป็นสีแดงด้วยเมื่อไม่ผ่านเป้า สามารถปรับตรงนี้ได้:
-    // เช่น const primaryColor = isPassed ? '#28a745' : '#dc3545';
-
     ppmChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Good Qty', 'NG Qty (ของเสีย)'],
             datasets: [{
+                // ถ้าผ่านเป้า Good Qty จะเป็นสีเขียว / ถ้าไม่ผ่าน Good Qty จะเป็นสีแดง (หรือปรับตามต้องการ)
                 data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
-                // หากไม่ผ่านเป้า ให้เน้นสีแดงที่ชิ้นส่วนของเสีย หรือปรับเปลี่ยนตามต้องการ
                 backgroundColor: [
-                    isPassed ? '#28a745' : '#e0a800', // ถ้าไม่ผ่าน ให้ชิ้นงานดีแสดงสีอื่น หรือใช้เขียวปกติ
-                    ngColor                            // ของเสียแสดงสีแดงเสมอเพื่อเตือนภัย
+                    statusColor, // สีของ Good Qty จะเปลี่ยนตามสถานะ (เขียว/แดง)
+                    '#dc3545'    // สีของ NG Qty (ของเสีย) เป็นสีแดงเสมอเพื่อเตือนภัย
                 ],
                 borderWidth: 0
             }]
