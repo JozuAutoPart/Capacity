@@ -466,7 +466,7 @@
         </div>
     </div>
 </div>
-            <!-- TAB 4: ACTUAL PRODUCTION -->
+          <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -556,9 +556,9 @@
                         <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 180px;">
                             <option value="">-- ทุกพนักงาน (ทั้งหมด) --</option>
                         </select>
-                        <a href="production-report.html" target="_blank" class="btn btn-success btn-sm">
-                            <i class="fas fa-print me-1"></i> พิมพ์ใบรายงานการผลิต
-                        </a>
+                        <button type="button" onclick="exportFilteredProductionReport()" class="btn btn-success btn-sm">
+                            <i class="fas fa-file-excel me-1"></i> พิมพ์ใบรายงานการผลิต
+                        </button>
                     </div>
                 </div>
                 <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
