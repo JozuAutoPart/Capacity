@@ -1118,7 +1118,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
     const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
 
-    // เช็คสถานะผ่าน/ไม่ผ่านเป้าหมาย
+    // เช็คสถานะผ่าน/ไม่ผ่านเป้าหมาย สำหรับแสดงที่ข้อความและ Badge ด้านขวา
     const isPassed = actualPpm <= targetPpm;
 
     // อัปเดตข้อความสถิติ
@@ -1146,7 +1146,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     }
 
-    // วาดกราฟโดนัท (Doughnut Chart)
+    // วาดกราฟโดนัท (Doughnut Chart) ตามสัดส่วนจริง
     const canvasEl = document.getElementById('defectPpmChart');
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
@@ -1162,10 +1162,11 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         data: {
             labels: ['Good Qty', 'NG Qty (ของเสีย)'],
             datasets: [{
+                // แสดงสัดส่วนตามจริง: งานดีสีเขียว, ของเสียสีแดงตามสัดส่วน
                 data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
                 backgroundColor: [
-                    '#28a745', // Good Qty เป็นสีเขียวเสมอ (เพราะเป็นงานดี)
-                    '#dc3545'  // NG Qty เป็นสีแดงเสมอ (ของเสีย)
+                    '#28a745', // Good Qty (สีเขียว)
+                    '#dc3545'  // NG Qty (สีแดงตามสัดส่วนจริง)
                 ],
                 borderWidth: 0
             }]
