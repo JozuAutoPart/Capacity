@@ -186,20 +186,45 @@
             </div>
         </div>
 
-  <div class="col-md-6 text-center" style="position: relative; height: 260px; display: flex; justify-content: center; align-items: center;">
-    <!-- ชุดไฟจราจรจำลอง -->
-    <div style="display: flex; gap: 25px; align-items: center;">
-        <div style="text-align: center;">
-            <div id="lightGreen" style="width: 60px; height: 60px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
-            <small style="color: #28a745; display: block; margin-top: 8px; font-weight: bold;">1-200 PPM</small>
+<div class="card bg-dark text-white p-3 border-secondary">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="fas fa-chart-pie me-2 text-warning"></i> สัดส่วนของเสียการผลิต (Defect Ratio vs Target 250 PPM)</h5>
+        <span id="badgePpmStatus" class="badge bg-secondary fs-6">Target: 250 PPM</span>
+    </div>
+    <div class="row align-items-center">
+        <!-- ฝั่งซ้าย: ไฟจราจร -->
+        <div class="col-md-6 text-center d-flex justify-content-center align-items-center" style="height: 260px;">
+            <div class="d-flex gap-4 align-items-center justify-content-center w-100">
+                <div class="text-center">
+                    <div id="lightGreen" style="width: 70px; height: 70px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
+                    <span style="color: #28a745; display: block; margin-top: 8px; font-weight: bold; font-size: 14px;">1-200 PPM</span>
+                </div>
+                <div class="text-center">
+                    <div id="lightYellow" style="width: 70px; height: 70px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
+                    <span style="color: #ffc107; display: block; margin-top: 8px; font-weight: bold; font-size: 14px;">201-250 PPM</span>
+                </div>
+                <div class="text-center">
+                    <div id="lightRed" style="width: 70px; height: 70px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
+                    <span style="color: #dc3545; display: block; margin-top: 8px; font-weight: bold; font-size: 14px;">> 251 PPM</span>
+                </div>
+            </div>
         </div>
-        <div style="text-align: center;">
-            <div id="lightYellow" style="width: 60px; height: 60px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
-            <small style="color: #ffc107; display: block; margin-top: 8px; font-weight: bold;">201-250 PPM</small>
-        </div>
-        <div style="text-align: center;">
-            <div id="lightRed" style="width: 60px; height: 60px; background-color: #333333; border-radius: 50%; margin: 0 auto; border: 3px solid #555; transition: all 0.3s;"></div>
-            <small style="color: #dc3545; display: block; margin-top: 8px; font-weight: bold;">> 251 PPM</small>
+        <!-- ฝั่งขวา: กล่องแสดงตัวเลขสถิติ -->
+        <div class="col-md-6">
+            <div class="p-3 bg-secondary bg-opacity-10 rounded border border-secondary">
+                <div class="mb-3">
+                    <span class="text-muted d-block">ยอดผลิตรวมทั้งหมด (Total Production)</span>
+                    <h3 id="lblTotalProd" class="fw-bold text-white mb-0">0</h3>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted d-block">ยอดของเสียรวมทั้งหมด (Total NG Qty)</span>
+                    <h3 id="lblTotalNg" class="fw-bold text-danger mb-0">0</h3>
+                </div>
+                <div>
+                    <span class="text-muted d-block">อัตราของเสียจริง (Actual PPM)</span>
+                    <h2 id="lblActualPpm" class="fw-bold text-warning mb-0">0 PPM</h2>
+                </div>
+            </div>
         </div>
     </div>
 </div>
