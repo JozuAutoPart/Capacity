@@ -1121,10 +1121,6 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
     // เช็คสถานะผ่าน/ไม่ผ่านเป้าหมาย
     const isPassed = actualPpm <= targetPpm;
 
-    // กำหนดสี: ถ้าผ่านเป้า Good Qty เป็นเขียว (#28a745) / ถ้าไม่ผ่านเป้า Good Qty จะเปลี่ยนเป็นสีแดงตามที่คุณต้องการ
-    const goodQtyColor = isPassed ? '#28a745' : '#dc3545';
-    const ngQtyColor = '#dc3545'; // ของเสียเป็นสีแดงเสมอ
-
     // อัปเดตข้อความสถิติ
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
@@ -1168,8 +1164,8 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
             datasets: [{
                 data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
                 backgroundColor: [
-                    goodQtyColor, // ผ่านเป้า = เขียว, ไม่ผ่านเป้า = แดง
-                    ngQtyColor    // ของเสีย = แดง
+                    '#28a745', // Good Qty เป็นสีเขียวเสมอ (เพราะเป็นงานดี)
+                    '#dc3545'  // NG Qty เป็นสีแดงเสมอ (ของเสีย)
                 ],
                 borderWidth: 0
             }]
@@ -1180,25 +1176,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { 
-                        color: '#ffffff',
-                        // กำหนดสีของกล่องสี่เหลี่ยมใน Legend ให้ถูกต้องตามข้อมูลแต่ละประเภท
-                        generateLabels: function(chart) {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map((label, i) => {
-                                    return {
-                                        text: label,
-                                        fillStyle: i === 0 ? goodQtyColor : ngQtyColor,
-                                        strokeStyle: i === 0 ? goodQtyColor : ngQtyColor,
-                                        hidden: false,
-                                        index: i
-                                    };
-                                });
-                            }
-                            return [];
-                        }
-                    }
+                    labels: { color: '#ffffff' }
                 },
                 tooltip: {
                     callbacks: {
