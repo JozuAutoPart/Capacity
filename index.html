@@ -1115,18 +1115,27 @@ if (dashDiffBalanceEl) {
 }
 
 function renderDashboardPpmChart(totalProduction, totalNg) {
-    const targetPpm = 250;
     const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
 
-    // คำนวณจำนวนของเสียสูงสุดที่ยอมรับได้ตาม Target 250 PPM จากยอดผลิตทั้งหมด
-    const allowedNg = Math.round((totalProduction * targetPpm) / 1_000_000);
-    
-    // หากของเสียจริง (totalNg) เกินเป้าที่ยอมรับได้ ให้แสดงส่วนต่างสีแดงชัดเจน
-    // หรือถ้าต้องการเทียบสัดส่วนระหว่าง [งานดี, ของเสียที่ไม่เกินเป้า, ของเสียที่เกินเป้า]
-    const goodQty = Math.max(0, totalProduction - totalNg);
-    
-    // เช็คสถานะผ่าน/ไม่ผ่าน
-    const isPassed = actualPpm <= targetPpm;
+    // กำหนดสถานะไฟจราจรตามช่วง PPM
+    // 1-200 PPM = เขียว, 201-250 PPM = เหลือง, > 251 PPM = แดง
+    let lightState = 'green';
+    let statusText = '';
+    let badgeClass = '';
+
+    if (actualPpm <= 200) {
+        lightState = 'green';
+        statusText = 'Status: ผ่านเป้าหมายยอดเยี่ยม (≤ 200 PPM)';
+        badgeClass = 'badge bg-success fs-6';
+    } else if (actualPpm <= 250) {
+        lightState = 'yellow';
+        statusText = 'Status: เฝ้าระวัง (201 - 250 PPM)';
+        badgeClass = 'badge bg-warning text-dark fs-6';
+    } else {
+        lightState = 'red';
+        statusText = `Status: เกินเป้าหมาย (> 250 PPM)`;
+        badgeClass = 'badge bg-danger fs-6';
+    }
 
     // อัปเดตข้อความสถิติ
     const lblTotalProd = document.getElementById('lblTotalProd');
@@ -1138,71 +1147,65 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
     if (lblTotalNg) lblTotalNg.innerText = totalNg.toLocaleString();
     if (lblPpm) {
         lblPpm.innerText = actualPpm.toLocaleString() + " PPM";
-        if (isPassed) {
-            lblPpm.className = "fw-bold text-success mb-0";
-            if (badgeStatus) {
-                badgeStatus.className = "badge bg-success fs-6";
-                badgeStatus.innerText = `Status: ผ่านเป้าหมาย (≤ ${targetPpm} PPM)`;
-            }
-        } else {
-            lblPpm.className = "fw-bold text-danger mb-0";
-            if (badgeStatus) {
-                badgeStatus.className = "badge bg-danger fs-6";
-                badgeStatus.innerText = `Status: เกินเป้าหมาย (> ${targetPpm} PPM)`;
-            }
-        }
+        lblPpm.className = lightState === 'green' ? "fw-bold text-success mb-0" : (lightState === 'yellow' ? "fw-bold text-warning mb-0" : "fw-bold text-danger mb-0");
+    }
+    if (badgeStatus) {
+        badgeStatus.className = badgeClass;
+        badgeStatus.innerText = statusText;
     }
 
-    // วาดกราฟโดนัท (Doughnut Chart)
+    // ทำลายกราฟโดนัทเดิมทิ้ง (ถ้ามี) เพื่อเปลี่ยนมาแสดงผลเป็นไฟจราจร
     const canvasEl = document.getElementById('defectPpmChart');
-    if (!canvasEl) return;
-    const ctx = canvasEl.getContext('2d');
-
     if (ppmChartInstance) {
         ppmChartInstance.destroy();
+        ppmChartInstance = null;
     }
 
-    // ปรับให้ข้อมูลในกราฟสะท้อนเทียบกับ Target (ถ้าของเสียจริงน้อยกว่าเป้า ให้โชว์เป้าที่เหลือ, ถ้าเกินให้โชว์ส่วนเกินสีแดง)
-    // หรือถ้าต้องการให้กราฟโชว์สัดส่วนเป้าหมาย 250 PPM เป็นหลัก:
-    // ให้เทียบสัดส่วนระหว่าง Good Qty กับ Target Allowed NG เพื่อให้เห็นติ่งสีแดง/สัดส่วนชัดเจนแบบกราฟด้านล่าง
-    let displayNg = totalNg > 0 ? totalNg : 0;
-    // ถ้าของเสีย 822 ชิ้นแต่น้อยเกินไปจนมองไม่เห็นในวงล้อใหญ่ เราสามารถทำ Minimum Visual Slice ให้กราฟเห็นสัดส่วนชัดเจนขึ้นได้ครับ
-    let visualNg = displayNg === 0 ? 0 : Math.max(displayNg, Math.round(totalProduction * 0.01)); // ย้อมสัดส่วนขั้นต่ำให้มองเห็นภาพรวมถ้าต้องการ หรือใช้ค่าจริง
+    // สร้างกล่องแสดงผลไฟจราจรแทนที่ตำแหน่ง Canvas เดิม
+    if (canvasEl) {
+        const parentContainer = canvasEl.parentElement;
+        if (parentContainer) {
+            // ซ่อน canvas และสร้าง HTML ไฟจราจรแสดงแทน
+            canvasEl.style.display = 'none';
+            
+            let trafficLightContainer = document.getElementById('trafficLightSignalBox');
+            if (!trafficLightContainer) {
+                trafficLightContainer = document.createElement('div');
+                trafficLightContainer.id = 'trafficLightSignalBox';
+                trafficLightContainer.style.display = 'flex';
+                trafficLightContainer.style.justifyContent = 'center';
+                trafficLightContainer.style.alignItems = 'center';
+                trafficLightContainer.style.gap = '25px';
+                trafficLightContainer.style.height = '100%';
+                parentContainer.appendChild(trafficLightContainer);
+            }
 
-    ppmChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Good Qty (งานดี)', 'NG Qty (ของเสียเทียบ Target)'],
-            datasets: [{
-                data: [goodQty, displayNg],
-                backgroundColor: [
-                    '#28a745', // สีเขียว
-                    '#dc3545'  // สีแดง
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#ffffff' }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            let value = context.raw || 0;
-                            return ` ${label}: ${value.toLocaleString()} ชิ้น (Target: ${targetPpm} PPM)`;
-                        }
-                    }
-                }
-            },
-            cutout: '70%'
+            // สีเปิด/ปิดของไฟ (ถ้าไม่เลือกดวงนั้น จะแสดงสีเทาจางๆ)
+            const greenColor = lightState === 'green' ? '#28a745' : '#333333';
+            const greenShadow = lightState === 'green' ? '0 0 20px #28a745' : 'none';
+            
+            const yellowColor = lightState === 'yellow' ? '#ffc107' : '#333333';
+            const yellowShadow = lightState === 'yellow' ? '0 0 20px #ffc107' : 'none';
+            
+            const redColor = lightState === 'red' ? '#dc3545' : '#333333';
+            const redShadow = lightState === 'red' ? '0 0 20px #dc3545' : 'none';
+
+            trafficLightContainer.innerHTML = `
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background-color: ${greenColor}; border-radius: 50%; box-shadow: ${greenShadow}; margin: 0 auto; border: 3px solid #555;"></div>
+                    <small style="color: ${lightState === 'green' ? '#28a745' : '#777'}; display: block; margin-top: 8px; font-weight: bold;">1-200 PPM</small>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background-color: ${yellowColor}; border-radius: 50%; box-shadow: ${yellowShadow}; margin: 0 auto; border: 3px solid #555;"></div>
+                    <small style="color: ${lightState === 'yellow' ? '#ffc107' : '#777'}; display: block; margin-top: 8px; font-weight: bold;">201-250 PPM</small>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background-color: ${redColor}; border-radius: 50%; box-shadow: ${redShadow}; margin: 0 auto; border: 3px solid #555;"></div>
+                    <small style="color: ${lightState === 'red' ? '#dc3545' : '#777'}; display: block; margin-top: 8px; font-weight: bold;">> 251 PPM</small>
+                </div>
+            `;
         }
-    });
+    }
 }
        // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
