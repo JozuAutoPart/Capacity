@@ -2050,24 +2050,23 @@ async function exportFilteredProductionReport() {
         let workbook = XLSX.read(data, { type: 'array' });
         let worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
-        // ใส่ชื่อผู้ปฏิบัติงาน
+        // ใส่ชื่อผู้ปฏิบัติงานที่คอลัมน์ Q แถวที่ 2 (Index r:1, c:16)
         if (selectedOperator) {
             worksheet[XLSX.utils.encode_cell({ r: 1, c: 16 })] = { t: 's', v: selectedOperator };
         }
 
-        // ใส่วันที่ปัจจุบัน
+        // ใส่วันที่ปัจจุบันที่คอลัมน์ U แถวที่ 2 (Index r:1, c:20)
         let currentDate = new Date().toISOString().split('T')[0];
         worksheet[XLSX.utils.encode_cell({ r: 1, c: 20 })] = { t: 's', v: currentDate };
 
         let rows = document.querySelectorAll('#actualTableBody tr');
-        let startRow = 7; // แถวที่ 8 ใน Excel (Index 7)
+        let startRow = 7; // เริ่มบรรทัดที่ 8 ใน Excel (Index 7)
 
         rows.forEach((tr) => {
             let tds = tr.querySelectorAll('td');
             if (tds.length < 9) return;
 
-            // ดึงข้อมูลตามตำแหน่งข้อมูลจริงในตารางเว็บของคุณ
-            let timeVal = tds[1]?.innerText.trim() || '';  // เวลาทำงาน (เช่น 08:00 - 17:00)
+            let timeVal = tds[1]?.innerText.trim() || '';  // เวลาทำงาน
             let opName = tds[2]?.innerText.trim() || '';   // ชื่อพนักงาน
             let lineMc = tds[3]?.innerText.trim() || '';   // Line/MC
             let partNo = tds[4]?.innerText.trim() || '';   // Part No.
@@ -2076,7 +2075,7 @@ async function exportFilteredProductionReport() {
             let ngQty = tds[7]?.innerText.trim() || '0';   // NG Qty
             let remark = tds[8]?.innerText.trim() || '';   // Remark
 
-            // กรองตามพนักงานที่เลือกใน Dropdown
+            // กรองตามพนักงานที่เลือก
             if (selectedOperator && !opName.includes(selectedOperator)) return;
 
             let startTime = "";
@@ -2089,19 +2088,20 @@ async function exportFilteredProductionReport() {
                 startTime = timeVal;
             }
 
-            // บันทึกลง Excel ตามตำแหน่งคอลัมน์ที่ถูกต้อง
+            // บันทึกลงช่องในแบบฟอร์ม Excel ทีละแถวอย่างแม่นยำ
             worksheet[XLSX.utils.encode_cell({ r: startRow, c: 0 })] = { t: 's', v: startTime }; // A: เวลาเริ่ม
             worksheet[XLSX.utils.encode_cell({ r: startRow, c: 1 })] = { t: 's', v: endTime };   // B: เวลาสิ้นสุด
             worksheet[XLSX.utils.encode_cell({ r: startRow, c: 2 })] = { t: 's', v: lotNo };     // C: Lot No.
             worksheet[XLSX.utils.encode_cell({ r: startRow, c: 3 })] = { t: 's', v: partNo };    // D: Part No.
             worksheet[XLSX.utils.encode_cell({ r: startRow, c: 7 })] = { t: 's', v: lineMc };    // H: Machine No.
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 10 })] = { t: 'n', v: Number(okQty) || 0 }; // K: OK Qty
-            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 11 })] = { t: 'n', v: Number(ngQty) || 0 }; // L: NG Qty
+            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 10 })] = { t: 'n', v: Number(okQty) || 0 }; // K: OK
+            worksheet[XLSX.utils.encode_cell({ r: startRow, c: 11 })] = { t: 'n', v: Number(ngQty) || 0 }; // L: NG
             worksheet[XLSX.utils.encode_cell({ r: startRow, c: 25 })] = { t: 's', v: remark };  // Z: ปัญหา/หมายเหตุ
 
             startRow++;
         });
 
+        // บันทึกและดาวน์โหลดไฟล์
         XLSX.writeFile(workbook, 'Production_Daily_Report_Exported.xlsx');
 
     } catch (err) {
