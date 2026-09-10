@@ -1831,6 +1831,7 @@ function loadActualsFromCloud() {
 
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับการแสดงเวลาทำงาน)
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (อัปเดตดึงค่า TimeWork ให้แสดงผลตรงเป๊ะ)
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -1860,8 +1861,8 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        // ⏱️ ดึงค่าเวลาทำงานทุกรูปแบบฟิลด์ เพื่อให้หน้าเว็บแสดงผลไม่ติดขีดข่วน
-        const timeworkval = a.timeWork || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a['Time'] || '-';
+        // ⏱️ ดึงค่าเวลาจากทุกรูปแบบชื่อคีย์ (รองรับ TimeWork จาก Google Sheets ทั้งพิมพ์เล็ก/ใหญ่)
+        const timeworkval = a.timeWork || a['TimeWork'] || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a['Time'] || '-';
         
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
