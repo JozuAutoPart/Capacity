@@ -1118,7 +1118,14 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
     const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
 
-    // เช็คสถานะผ่าน/ไม่ผ่านเป้าหมาย สำหรับแสดงที่ข้อความและ Badge ด้านขวา
+    // คำนวณจำนวนของเสียที่ยอมรับได้ตาม Target PPM
+    const targetAllowedNg = Math.round((totalProduction * targetPpm) / 1_000_000);
+    
+    // แยกส่วนของเสีย: ส่วนที่อยู่ในเป้า (หรือส่วนปกติ) กับ ส่วนที่เกินเป้า (ถ้ามี)
+    // หรือให้แสดงสัดส่วนระหว่าง Good Qty, NG ที่อยู่ใน Target, และ NG ที่เกิน Target
+    const goodQty = Math.max(0, totalProduction - totalNg);
+    
+    // เช็คสถานะผ่าน/ไม่ผ่าน
     const isPassed = actualPpm <= targetPpm;
 
     // อัปเดตข้อความสถิติ
@@ -1146,27 +1153,25 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     }
 
-    // วาดกราฟโดนัท (Doughnut Chart) ตามสัดส่วนจริง
+    // วาดกราฟโดนัท (Doughnut Chart)
     const canvasEl = document.getElementById('defectPpmChart');
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
-    
-    const goodQty = Math.max(0, totalProduction - totalNg);
 
     if (ppmChartInstance) {
         ppmChartInstance.destroy();
     }
 
+    // หากต้องการให้กราฟโชว์สัดส่วน งานดี (เขียว) และ ของเสีย (แดง) แบบชัดเจนเหมือนกราฟด้านล่าง
     ppmChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Good Qty', 'NG Qty (ของเสีย)'],
+            labels: ['Good Qty (งานดี)', 'NG Qty (ของเสีย)'],
             datasets: [{
-                // แสดงสัดส่วนตามจริง: งานดีสีเขียว, ของเสียสีแดงตามสัดส่วน
                 data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
                 backgroundColor: [
-                    '#28a745', // Good Qty (สีเขียว)
-                    '#dc3545'  // NG Qty (สีแดงตามสัดส่วนจริง)
+                    '#28a745', // สีเขียว (งานดี)
+                    '#dc3545'  // สีแดง (ของเสียที่จะขึ้นสัดส่วนตามจริงแบบกราฟด้านล่าง)
                 ],
                 borderWidth: 0
             }]
