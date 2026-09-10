@@ -1,1 +1,168 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Production Daily Report - ใบรายงานการผลิตประจำวัน</title>
+    <style>
+        body {
+            font-family: 'TH Sarabun PSK', 'Calibri', sans-serif;
+            font-size: 14pt;
+            margin: 20px;
+            color: #000;
+        }
+        .header-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .title {
+            font-size: 20pt;
+            font-weight: bold;
+        }
+        .subtitle {
+            font-size: 16pt;
+        }
+        .info-section {
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 14pt;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 12pt;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .left-align {
+            text-align: left;
+            padding-left: 8px;
+        }
+        .btn-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            font-size: 16pt;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        @media print {
+            .btn-container { display: none; }
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
 
+    <div class="header-container">
+        <div class="title">Production Daily Report</div>
+        <div class="subtitle">(ใบรายงานการผลิตประจำวัน)</div>
+    </div>
+
+    <div class="info-section">
+        <span id="displayOperator">ผู้ปฏิบัติงาน: ทั้งหมด</span> &nbsp;&nbsp;&nbsp;&nbsp;
+        <span id="displayDate">วันที่: -</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">เวลาเริ่มต้น<br>(Start Time)</th>
+                <th rowspan="2">เวลาสิ้นสุด<br>(End Time)</th>
+                <th rowspan="2">Lot No.<br>หมายเลขการผลิต</th>
+                <th rowspan="2">Part No.<br>หมายเลขชิ้นงาน</th>
+                <th rowspan="2">Process<br>ขั้นตอนการผลิต</th>
+                <th rowspan="2">Material IC.<br>หมายเลขวัตถุดิบ</th>
+                <th rowspan="2">น้ำหนักวัตถุดิบ</th>
+                <th rowspan="2">Machine No.<br>หมายเลขเครื่องจักร</th>
+                <th rowspan="2">แผนผลิต</th>
+                <th rowspan="2">ผลิตจริง</th>
+                <th colspan="2">จำนวนผลิต</th>
+                <th colspan="2">สาเหตุ NG</th>
+                <th colspan="4">เวลาที่เสียในการผลิต(นาที)</th>
+                <th rowspan="2">QC Line Appearance Check</th>
+                <th rowspan="2" colspan="7">ปัญหาการผลิตประจำวัน</th>
+            </tr>
+            <tr>
+                <th>OK</th>
+                <th>NG</th>
+                <th>A-H</th>
+                <th>จำนวน</th>
+                <th>เปลี่ยนแม่พิมพ์</th>
+                <th>รอกำหนดตรวจ</th>
+                <th>เปลี่ยนวัสดุจาก QC</th>
+                <th>งานจาก Line Appearance</th>
+            </tr>
+        </thead>
+        <tbody id="reportTableBody">
+            <!-- ข้อมูลจะถูกดึงมาแสดงที่นี่อัตโนมัติ -->
+        </tbody>
+    </table>
+
+    <div class="btn-container">
+        <button class="btn" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // ดึงข้อมูลที่ส่งต่อมาจากหน้าหลัก (localStorage)
+            const reportData = JSON.parse(localStorage.getItem('productionReportData')) || [];
+            const operator = localStorage.getItem('productionReportOperator') || 'ทั้งหมด';
+            const currentDate = new Date().toISOString().split('T')[0];
+
+            document.getElementById('displayOperator').innerText = `ผู้ปฏิบัติงาน: ${operator}`;
+            document.getElementById('displayDate').innerText = `วันที่: ${currentDate}`;
+
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+
+            if (reportData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="20" style="padding: 20px;">ไม่พบข้อมูลการผลิต</td></tr>`;
+                return;
+            }
+
+            reportData.forEach(item => {
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.startTime}</td>
+                    <td>${item.endTime}</td>
+                    <td>${item.lotNo}</td>
+                    <td>${item.partNo}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>${item.lineMc}</td>
+                    <td></td>
+                    <td></td>
+                    <td>${item.okQty}</td>
+                    <td>${item.ngQty}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td colspan="7" class="left-align">${item.remark}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+    </script>
+</body>
+</html>
