@@ -383,7 +383,7 @@
         </div>
     </div>
 </div>
-   <!-- TAB 3: PLANNING -->
+  <!-- TAB 3: PLANNING -->
 <div class="tab-pane fade" id="tab-plan">
     <div class="row g-3">
         <div class="col-md-4">
@@ -392,7 +392,7 @@
                 <form id="planForm" onsubmit="submitPlan(event)">
                     <div class="mb-2">
                         <label class="form-label small">วันที่เริ่มผลิต (Start Date)</label>
-                        <input type="date" id="planDate" class="form-control form-control-sm bg-secondary text-white border-0" required>
+                        <input type="date" id="planDate" class="form-control form-control-sm bg-secondary text-white border-0" onchange="autoSetFinishDate()" required>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">วันที่สิ้นสุด (Finish Date)</label>
@@ -1506,7 +1506,26 @@ function deletePlan(id) {
         select.innerHTML = optionsHtml;
         if (currentValue) select.value = currentValue;
     }
-
+function autoSetFinishDate() {
+    const startDateInput = document.getElementById('planDate');
+    const finishDateInput = document.getElementById('planFinishDate');
+    
+    if (!startDateInput || !finishDateInput) return;
+    
+    const startDateVal = startDateInput.value;
+    if (startDateVal) {
+        let date = new Date(startDateVal);
+        // บวกเพิ่มไปอีก 3 วัน
+        date.setDate(date.getDate() + 3);
+        
+        // แปลงกลับเป็นรูปแบบ YYYY-MM-DD
+        let year = date.getFullYear();
+        let month = String(date.getMonth() + 1).padStart(2, '0');
+        let day = String(date.getDate()).padStart(2, '0');
+        
+        finishDateInput.value = `${year}-${month}-${day}`;
+    }
+}
     // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (ค้นหาคีย์ฉลาดขึ้นรองรับทุกรูปแบบ)
     function calculatePlanFromWeight() {
         const partNoSelect = document.getElementById('planPartNo');
