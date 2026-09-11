@@ -2853,14 +2853,32 @@ function renderDelivery() {
 
     const customerMap = getCustomerMapping();
 
-    // จำกัดให้แสดงผลเฉพาะ 100 รายการล่าสุด ป้องกันหน่วยความจำเต็ม
-    deliveries.slice().reverse().slice(0, 100).forEach(d => {
+    // 1. ดึงวันที่ปัจจุบันในรูปแบบ YYYY-MM-DD เพื่อใช้กรองเฉพาะวันนี้
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    // 2. กรองเอาเฉพาะข้อมูลของวันนี้เท่านั้น
+    const todayDeliveries = deliveries.filter(d => {
+        if (!d.date) return false;
+        const itemDate = d.date.split('T')[0];
+        return itemDate === todayStr;
+    });
+
+    if (todayDeliveries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีประวัติการส่งมอบสินค้าของวันนี้ (${todayStr})</td></tr>`;
+        return;
+    }
+
+    // 3. แสดงผลเฉพาะข้อมูลของวันนี้ (พลิกกลับด้านเอาล่าสุดขึ้นบน และจำกัดไม่เกิน 20 รายการ)
+    todayDeliveries.slice().reverse().slice(0, 20).forEach(d => {
         let pNoStr = (d.partNo || "").trim();
         
-        // 🌟 บังคับดึงชื่อลูกค้าจาก Master Parts (Column D) มาแสดงผลเสมอทุกแถว (ทั้งเก่าและใหม่)
         let custName = customerMap[pNoStr.toLowerCase()] || d.customer || '-';
         if (custName === '-') {
-            custName = 'STEM-A'; // ค่าสำรองเผื่อกรณีดึงไม่ทัน
+            custName = 'STEM-A';
         }
 
         const tr = document.createElement('tr');
