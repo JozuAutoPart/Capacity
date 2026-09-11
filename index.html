@@ -1387,12 +1387,11 @@ function renderPlans() {
     const searchEl = document.getElementById('planSearchInput');
     const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
-    let activePlans = plans.filter(plan => {
+   let activePlans = plans.filter(plan => {
         const planPartNo = String(plan["Part No."] || "").trim();
         const planLotNo = String(plan["Lot No."] || "").trim();
         let planQty = Number(plan["Plan Qty"]) || 0;
 
-        // คำนวณหายอดผลิตจริง (actuals) ที่ตรงกับ Part No. (และ Lot No. ถ้ามี) ของแผนนี้
         let actualQty = 0;
         if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
             actuals.forEach(a => {
@@ -1401,7 +1400,6 @@ function renderPlans() {
                 const aQty = Number(a.qty || a['OK Qty'] || 0);
 
                 if (aPartNo === planPartNo) {
-                    // ถ้ามี Lot No. กำหนดไว้ ให้เช็ค Lot ให้ตรงกัน หรือถ้าแผนไม่มี Lot ให้รวมยอดของ Part นั้นทั้งหมด
                     if (planLotNo && planLotNo !== '-') {
                         if (aLotNo === planLotNo) actualQty += aQty;
                     } else {
@@ -1413,12 +1411,10 @@ function renderPlans() {
 
         let diff = planQty - actualQty;
 
-        // 📌 เงื่อนไขซ่อน: ถ้าผลิตครบตามแผนแล้ว (ยอดผลิตจริง >= ยอดแผน) หรือเหลือเศษน้อยกว่า 2% ให้ซ่อนออกจากหน้าเว็บ
         if (planQty > 0 && (actualQty >= planQty || (diff > 0 && (diff / planQty) <= 0.02))) {
             return false; 
         }
 
-        // เงื่อนไขการค้นหา (พิมพ์กรอง Part No. หรือ Lot No.)
         if (query) {
             const pNo = planPartNo.toLowerCase();
             const lNo = planLotNo.toLowerCase();
@@ -1428,8 +1424,14 @@ function renderPlans() {
         }
 
         return true;
-    }).slice(0, 20); // จำกัดการแสดงผลไม่ให้เกิน 100 รายการ ป้องกันแรมเต็ม
-
+    })
+    .sort((a, b) => {
+        // 🔄 เพิ่มการเรียงวันที่จาก ใหม่ -> เก่า
+        let dateA = new Date(a["Start"] || a.Start || 0);
+        let dateB = new Date(b["Start"] || b.Start || 0);
+        return dateB - dateA;
+    })
+    .slice(0, 15); // 👈 เปลี่ยนจาก .slice(0, 100) มาเป็น .slice(0, 20) ตรงนี้
     if (!activePlans || activePlans.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต (หรือผลิตครบหมดแล้ว)</td></tr>`;
         return;
