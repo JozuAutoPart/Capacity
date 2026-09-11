@@ -1850,7 +1850,7 @@ function renderActuals() {
         return dateB - dateA;
     }).slice(0, 100);
 
-    sortedActuals.forEach((a) => {
+    actuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
 
         let rawDate = a.date || a['Date'] || '';
