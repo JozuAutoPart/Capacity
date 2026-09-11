@@ -1428,7 +1428,7 @@ function renderPlans() {
         }
 
         return true;
-    }).slice(0, 100); // จำกัดการแสดงผลไม่ให้เกิน 100 รายการ ป้องกันแรมเต็ม
+    }).slice(0, 20); // จำกัดการแสดงผลไม่ให้เกิน 100 รายการ ป้องกันแรมเต็ม
 
     if (!activePlans || activePlans.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต (หรือผลิตครบหมดแล้ว)</td></tr>`;
