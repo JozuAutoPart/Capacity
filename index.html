@@ -392,7 +392,7 @@
                 <form id="planForm" onsubmit="submitPlan(event)">
                     <div class="mb-2">
                         <label class="form-label small">วันที่เริ่มผลิต (Start Date)</label>
-                        <input type="date" id="planDate" class="form-control form-control-sm bg-secondary text-white border-0" onchange="autoSetFinishDate()" required>
+                       <input type="date" id="planDate" class="form-control form-control-sm bg-secondary text-white border-0" onchange="autoSetFinishDate()" oninput="autoSetFinishDate()" required>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">วันที่สิ้นสุด (Finish Date)</label>
@@ -1509,23 +1509,36 @@ function deletePlan(id) {
 function autoSetFinishDate() {
     const startDateInput = document.getElementById('planDate');
     const finishDateInput = document.getElementById('planFinishDate');
-    
+
     if (!startDateInput || !finishDateInput) return;
-    
+
     const startDateVal = startDateInput.value;
     if (startDateVal) {
         let date = new Date(startDateVal);
         // บวกเพิ่มไปอีก 3 วัน
         date.setDate(date.getDate() + 3);
-        
+
         // แปลงกลับเป็นรูปแบบ YYYY-MM-DD
         let year = date.getFullYear();
         let month = String(date.getMonth() + 1).padStart(2, '0');
         let day = String(date.getDate()).padStart(2, '0');
-        
+
         finishDateInput.value = `${year}-${month}-${day}`;
     }
 }
+
+// ให้ทำงานทันทีเมื่อเปิดหน้าเว็บ เพื่อเซ็ตค่าเริ่มต้นและบวก 3 วันทันที
+document.addEventListener("DOMContentLoaded", function() {
+    const startDateInput = document.getElementById('planDate');
+    if (startDateInput && !startDateInput.value) {
+        const today = new Date();
+        let year = today.getFullYear();
+        let month = String(today.getMonth() + 1).padStart(2, '0');
+        let day = String(today.getDate()).padStart(2, '0');
+        startDateInput.value = `${year}-${month}-${day}`;
+    }
+    autoSetFinishDate();
+});
     // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (ค้นหาคีย์ฉลาดขึ้นรองรับทุกรูปแบบ)
     function calculatePlanFromWeight() {
         const partNoSelect = document.getElementById('planPartNo');
