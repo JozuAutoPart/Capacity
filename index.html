@@ -1863,7 +1863,8 @@ function renderActuals() {
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
         // ⏱️ ดึงค่าเวลาจากทุกรูปแบบชื่อคีย์ (รองรับ TimeWork จาก Google Sheets ทั้งพิมพ์เล็ก/ใหญ่)
-        const timeworkval = a.timeWork || a['TimeWork'] || a['Time Work'] || a['timeWork'] || a['เวลาทำงาน'] || a['Time'] || '-';
+        // 📌 ดึงค่าเวลาจากทุกรูปแบบคีย์ให้ตรงกันเป๊ะ
+    const timeworkval = a.timeWork || a.timework || a['TimeWork'] || a['timeWork'] || a['Time work'] || a['เวลาทำงาน'] || a['Time'] || a['time'] || '-';
         
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
