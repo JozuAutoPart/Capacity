@@ -408,8 +408,10 @@
         const partNo = urlParams.get('partNo') || '53219-0D020'; 
         const lotNo = urlParams.get('lotNo') || '-';
         const totalOrderQty = parseInt(urlParams.get('qty')) || 0;
-
-        const currentPart = Masterparts[partNo] || {
+// ค้นหาพาร์ทโดยแปลงเป็นตัวพิมพ์เล็กและตัดช่องว่างเพื่อป้องกันหาไม่เจอ
+        const cleanPartNo = (partNo || '').trim().toLowerCase();
+        const foundKey = Object.keys(Masterparts || {}).find(k => k.trim().toLowerCase() === cleanPartNo);
+        const currentPart = foundKey ? Masterparts[foundKey] : {
             partName: "ไม่พบข้อมูลพาร์ทนี้ใน Masterparts",
             qty: 60,
             code: "-"
