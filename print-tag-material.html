@@ -93,7 +93,6 @@
     </div>
 
     <script>
-        // ดึงค่าจาก URL Parameters
         const params = new URLSearchParams(window.location.search);
         
         const rawDate = params.get('date') || '';
@@ -101,15 +100,14 @@
         if (rawDate) {
             let parts = rawDate.split('-');
             if (parts.length === 3) {
-                // แปลง ค.ศ. เป็น พ.ศ. (ค.ศ. + 543)
-                let thaiYear = parseInt(parts[0]) + 543;
-                formattedDate = `${parts[2]}/${parts[1]}/${thaiYear}`;
+                // ใช้ปี ค.ศ. ตรงๆ (YYYY/MM/DD หรือ DD/MM/YYYY ตามรูปแบบที่ต้องการ)
+                formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
             }
         } else {
             let now = new Date();
             let dd = String(now.getDate()).padStart(2, '0');
             let mm = String(now.getMonth() + 1).padStart(2, '0');
-            let yyyy = now.getFullYear() + 543;
+            let yyyy = now.getFullYear();
             formattedDate = `${dd}/${mm}/${yyyy}`;
         }
 
@@ -119,7 +117,6 @@
         const type = params.get('type') || '-';
         const unit = params.get('unit') || 'Sheet';
 
-        // แสดงผลลงใน Tag (บังคับตัวหนังสือสีดำทั้งหมด)
         document.getElementById('lblDate').innerText = formattedDate;
         document.getElementById('lblPartNo').innerText = partNo;
         document.getElementById('lblIcNo').innerText = icNo;
