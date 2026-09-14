@@ -1,1 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>พิมพ์ Tag วัสดุ (Material Tag)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #555; font-family: 'Sarabun', sans-serif; }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            margin: 10mm auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10mm;
+        }
+        .tag-box {
+            border: 2px solid #000;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+        .tag-header { font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 5px; }
+        @media print {
+            body { background: none; }
+            .page { margin: 0; box-shadow: none; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
 
+    <div class="container text-center my-3 no-print">
+        <button onclick="window.print()" class="btn btn-primary fw-bold px-4">🖨️ พิมพ์ Tag วัสดุ</button>
+    </div>
+
+    <div class="page" id="tagContainer">
+        <!-- Tag จะถูกสร้างอัตโนมัติจาก JavaScript ด้านล่าง -->
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const partNo = urlParams.get('partNo') || '-';
+        const qty = urlParams.get('qty') || '0';
+        const typeSize = urlParams.get('type') || '-';
+
+        const container = document.getElementById('tagContainer');
+        
+        // สร้างจำลองออกมา 8 ใบต่อหน้า A4
+        let html = '';
+        for (let i = 0; i < 8; i++) {
+            html += `
+                <div class="tag-box">
+                    <div>
+                        <div class="tag-header d-flex justify-content-between">
+                            <span>MATERIAL TAG</span>
+                            <span>#${i+1}</span>
+                        </div>
+                        <div><strong>Part No:</strong> <span class="text-info">${partNo}</span></div>
+                        <div><strong>Type / Size:</strong> ${typeSize}</div>
+                        <div><strong>Qty:</strong> <span class="text-danger fw-bold">${Number(qty).toLocaleString()} Pcs.</span></div>
+                    </div>
+                    <div class="text-center text-muted small border-top pt-1">
+                        Jozu Auto Part Co., Ltd. - Material Control
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    </script>
+</body>
+</html>
