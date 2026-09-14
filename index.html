@@ -2700,6 +2700,7 @@ function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
+        // เพิ่มบรรทัดนี้เพื่อปลดล็อกเสียงอัตโนมัติถ้าเบราว์เซอร์ระงับไว้
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
@@ -2727,7 +2728,6 @@ function playBeep(type) {
         console.log('Audio not supported');
     }
 }
-
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
@@ -2779,13 +2779,16 @@ if (deliveryPartInputEl) {
             setTimeout(() => {
                 updateFgMaxHint(); 
 
-                // สั่งคลิก Submit เพียงรอบเดียว เพื่อป้องกันข้อมูลเบิ้ลซ้ำซ้อนจนหายไป
-                const submitBtn = document.querySelector('#deliveryForm button[type="submit"]') || document.getElementById('deliverySubmitBtn');
+                const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
                 if (submitBtn) {
                     submitBtn.click();
-                } else if (typeof submitDelivery === 'function') {
-                    submitDelivery();
                 }
+
+                setTimeout(() => {
+                    if (typeof saveDeliveryData === 'function') {
+                        saveDeliveryData();
+                    }
+                }, 100);
                 
                 setTimeout(() => {
                     deliveryPartInputEl.focus();
@@ -2865,29 +2868,14 @@ function renderDelivery() {
 
     const customerMap = getCustomerMapping();
 
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
-
-    const todayDeliveries = deliveries.filter(d => {
-        if (!d.date) return false;
-        const itemDate = d.date.split('T')[0];
-        return itemDate === todayStr;
-    });
-
-    if (todayDeliveries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีประวัติการส่งมอบสินค้าของวันนี้ (${todayStr})</td></tr>`;
-        return;
-    }
-
-    todayDeliveries.slice().reverse().slice(0, 20).forEach(d => {
+    // จำกัดให้แสดงผลเฉพาะ 100 รายการล่าสุด ป้องกันหน่วยความจำเต็ม
+    deliveries.slice().reverse().slice(0, 100).forEach(d => {
         let pNoStr = (d.partNo || "").trim();
         
+        // 🌟 บังคับดึงชื่อลูกค้าจาก Master Parts (Column D) มาแสดงผลเสมอทุกแถว (ทั้งเก่าและใหม่)
         let custName = customerMap[pNoStr.toLowerCase()] || d.customer || '-';
         if (custName === '-') {
-            custName = 'STEM-A';
+            custName = 'STEM-A'; // ค่าสำรองเผื่อกรณีดึงไม่ทัน
         }
 
         const tr = document.createElement('tr');
@@ -2906,9 +2894,8 @@ function renderDelivery() {
         tbody.appendChild(tr);
     });
 }
-
 function deleteDelivery(id) {
-    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปเท่าเดิม)')) {
+    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปถ่ายเดียว)')) {
         deliveries = deliveries.filter(d => d.id !== id);
         renderDelivery();
         loadDeliveryParts();
@@ -2918,7 +2905,6 @@ function deleteDelivery(id) {
         alert("ยกเลิกการส่งมอบสำเร็จ");
     }
 }
-
 window.addEventListener('error', function(e) {
     if (e.message && e.message.includes('updateQGateIpInfo')) {
         e.preventDefault();
