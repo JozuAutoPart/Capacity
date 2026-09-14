@@ -67,10 +67,10 @@
         const partNo = urlParams.get('partNo') || '-';
         const qty = urlParams.get('qty') || '0';
         const typeSize = urlParams.get('type') || '-';
+        const unit = urlParams.get('unit') || 'Sheet'; // รับค่าหน่วยจาก URL
 
         const container = document.getElementById('tagContainer');
         
-        // สร้าง Tag ออกมา 1 ใบ (หรือปรับเพิ่มจำนวนตามต้องการ)
         let html = `
             <div class="page">
                 <div>
@@ -81,7 +81,7 @@
                     <div class="tag-body">
                         <div><strong>Part No:</strong> <span class="text-info">${partNo}</span></div>
                         <div><strong>Type / Size:</strong> ${typeSize}</div>
-                        <div><strong>Qty:</strong> <span class="text-danger fw-bold">${Number(qty).toLocaleString()} Pcs.</span></div>
+                        <div><strong>Qty:</strong> <span class="text-danger fw-bold">${Number(qty).toLocaleString()} ${unit}</span></div>
                     </div>
                 </div>
                 <div class="tag-footer text-center text-muted">
