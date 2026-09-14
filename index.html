@@ -3427,16 +3427,38 @@ function clearAllData() {
         alert("❌ รหัสผ่านไม่ถูกต้อง! ระบบยกเลิกการลบข้อมูล");
     }
 }
-      // ==========================================
-// 📌 ระบบจัดการ Material (รับ - จ่าย - สต็อก)
+ // 📌 ระบบจัดการ Material (รับ - จ่าย - สต็อก)
 // ==========================================
 
-// ตั้งค่าเริ่มต้นวันที่ปัจจุบันและโหลดสต็อกเมื่อเปิดหน้าเว็บ
+// ตั้งค่าเริ่มต้นวันที่ปัจจุบัน, รัน IC No. อัตโนมัติ (7 หลัก) และโหลดสต็อกเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('matDate')) document.getElementById('matDate').value = today;
+    if(document.getElementById('matIcNo')) document.getElementById('matIcNo').value = generateAutoIcNo();
     loadMaterialStock();
 });
+
+// ฟังก์ชันสร้าง IC No. อัตโนมัติ 7 หลัก (ปี2หลัก + เดือน2หลัก + รันนิ่ง 3 หลัก เช่น 2609001)
+function generateAutoIcNo() {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = yy + mm; // 4 หลักแรก (เช่น 2609)
+
+    let maxSeq = 0;
+    if (typeof materialHistory !== 'undefined' && Array.isArray(materialHistory)) {
+        materialHistory.forEach(item => {
+            if (item.icNo && item.icNo.startsWith(prefix)) {
+                let seqPart = parseInt(item.icNo.slice(4), 10);
+                if (!isNaN(seqPart) && seqPart > maxSeq) {
+                    maxSeq = seqPart;
+                }
+            }
+        });
+    }
+    let nextSeq = String(maxSeq + 1).padStart(3, '0'); // รันนิ่ง 3 หลัก (รวมเป็น 7 หลัก)
+    return prefix + nextSeq;
+}
 
 // สลับการแสดงผลฟิลด์ฟอร์มตามประเภท รับเข้า หรือ จ่ายออก
 function toggleMatFormFields() {
@@ -3446,19 +3468,21 @@ function toggleMatFormFields() {
     const outGroups = document.querySelectorAll('.mat-out-group');
 
     if(type === 'IN') {
-        lblDate.innerText = "วันที่รับวัตถุดิบ";
+        if(lblDate) lblDate.innerText = "วันที่รับวัตถุดิบ";
         inGroups.forEach(el => el.style.display = 'block');
         outGroups.forEach(el => el.style.display = 'none');
-        document.getElementById('matSupplier').required = true;
-        document.getElementById('matReceiver').required = true;
-        document.getElementById('matRequester').required = false;
+        if(document.getElementById('matSupplier')) document.getElementById('matSupplier').required = true;
+        if(document.getElementById('matReceiver')) document.getElementById('matReceiver').required = true;
+        if(document.getElementById('matRequester')) document.getElementById('matRequester').required = false;
+        if(document.getElementById('matIcNo')) document.getElementById('matIcNo').value = generateAutoIcNo();
     } else {
-        lblDate.innerText = "วันที่จ่าย";
+        if(lblDate) lblDate.innerText = "วันที่จ่าย";
         inGroups.forEach(el => el.style.display = 'none');
         outGroups.forEach(el => el.style.display = 'block');
-        document.getElementById('matSupplier').required = false;
-        document.getElementById('matReceiver').required = false;
-        document.getElementById('matRequester').required = true;
+        if(document.getElementById('matSupplier')) document.getElementById('matSupplier').required = false;
+        if(document.getElementById('matReceiver')) document.getElementById('matReceiver').required = false;
+        if(document.getElementById('matRequester')) document.getElementById('matRequester').required = true;
+        if(document.getElementById('matIcNo')) document.getElementById('matIcNo').value = '-';
     }
 }
 
@@ -3471,8 +3495,10 @@ function submitMaterialTransaction(e) {
     const type = document.getElementById('matType').value;
     const date = document.getElementById('matDate').value;
     const partNo = document.getElementById('matPartNo').value.trim();
+    const icNo = type === 'IN' ? (document.getElementById('matIcNo') ? document.getElementById('matIcNo').value.trim() : generateAutoIcNo()) : '-';
     const typeSize = document.getElementById('matTypeSize').value.trim();
     const qty = parseInt(document.getElementById('matQty').value);
+    const unit = document.getElementById('matUnit') ? document.getElementById('matUnit').value : 'Sheet';
     
     let detailInfo = '';
     if(type === 'IN') {
@@ -3489,29 +3515,31 @@ function submitMaterialTransaction(e) {
         type: type,
         date: date,
         partNo: partNo,
+        icNo: icNo,
         typeSize: typeSize,
         qty: qty,
+        unit: unit,
         detail: detailInfo
     };
 
     materialHistory.unshift(transaction);
     if (typeof saveAll === 'function') {
-        saveAll('saveBms', transaction); // ส่งข้อมูลบันทึกเข้า Google Sheets (แท็บ BMS)
+        saveAll('saveBms', transaction); 
     }
 
     alert(`บันทึกรายการ${type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}สำเร็จ!`);
     document.getElementById('materialForm').reset();
-    document.getElementById('matType').value = type; // คงค่าประเภทเดิมไว้
+    document.getElementById('matType').value = type; 
     toggleMatFormFields();
     document.getElementById('matDate').value = new Date().toISOString().split('T')[0];
+    if(document.getElementById('matIcNo')) document.getElementById('matIcNo').value = generateAutoIcNo();
     loadMaterialStock();
 }
 
-// ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ (พร้อมปุ่มพิมพ์ Tag วัสดุแบบแยกเฉพาะ)
+// ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ
 function loadMaterialStock() {
     let stockMap = {};
     
-    // อัปเดตข้อมูลจากตัวแปรส่วนกลางถ้ามี
     if (typeof bms !== 'undefined' && Array.isArray(bms)) {
         materialHistory = bms;
     }
@@ -3519,8 +3547,10 @@ function loadMaterialStock() {
     materialHistory.forEach(item => {
         let key = item.partNo + "||" + item.typeSize;
         if(!stockMap[key]) {
-            stockMap[key] = { partNo: item.partNo, typeSize: item.typeSize, in: 0, out: 0 };
+            stockMap[key] = { partNo: item.partNo, icNo: item.icNo || '', typeSize: item.typeSize, unit: item.unit || 'Sheet', in: 0, out: 0 };
         }
+        if(item.icNo && item.icNo !== '-') stockMap[key].icNo = item.icNo;
+
         if(item.type === 'IN') {
             stockMap[key].in += Number(item.qty || 0);
         } else {
@@ -3528,22 +3558,20 @@ function loadMaterialStock() {
         }
     });
 
-    // ดึงค่าคำค้นหาจากช่อง Search Box
     const searchBox = document.getElementById('matSearchBox');
     const keyword = searchBox ? searchBox.value.toLowerCase().trim() : '';
 
-    // แสดงผลตาราง Stock คงเหลือ (พร้อมระบบกรองคำค้นหา)
     const stockBody = document.getElementById('matStockTableBody');
     if(stockBody) {
         stockBody.innerHTML = '';
         
         let filteredKeys = Object.keys(stockMap).filter(key => {
             let item = stockMap[key];
-            return item.partNo.toLowerCase().includes(keyword) || item.typeSize.toLowerCase().includes(keyword);
+            return item.partNo.toLowerCase().includes(keyword) || item.typeSize.toLowerCase().includes(keyword) || (item.icNo && item.icNo.toLowerCase().includes(keyword));
         });
 
         if(filteredKeys.length === 0) {
-            stockBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">ไม่พบข้อมูล Material ที่ค้นหา</td></tr>`;
+            stockBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล Material ที่ค้นหา</td></tr>`;
         } else {
             filteredKeys.forEach(key => {
                 let item = stockMap[key];
@@ -3551,24 +3579,24 @@ function loadMaterialStock() {
                 stockBody.innerHTML += `
                     <tr>
                         <td class="fw-bold">${item.partNo}</td>
+                        <td><strong>${item.icNo || '-'}</strong></td>
                         <td>${item.typeSize}</td>
                         <td class="text-success">+${item.in.toLocaleString()}</td>
                         <td class="text-danger">-${item.out.toLocaleString()}</td>
-                        <td class="fw-bold text-info">${balance.toLocaleString()}</td>
+                        <td class="fw-bold text-info">${balance.toLocaleString()} ${item.unit || 'Sheet'}</td>
                     </tr>
                 `;
             });
         }
     }
 
-    // แสดงผลตารางประวัติย้อนหลัง (พร้อมปุ่มพิมพ์ Tag แยกเฉพาะแต่ละรายการ)
     const historyBody = document.getElementById('matHistoryTableBody');
     if(historyBody) {
         historyBody.innerHTML = '';
         if(materialHistory.length === 0) {
-            historyBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
+            historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการทำรายการ</td></tr>`;
         } else {
-            materialHistory.slice(0, 15).forEach(item => {
+            materialHistory.slice(0, 15).forEach((item, index) => {
                 let rawDate = item.date || '';
                 let cleanDate = rawDate ? rawDate.split('T')[0] : '';
                 historyBody.innerHTML += `
@@ -3576,14 +3604,15 @@ function loadMaterialStock() {
                         <td>${cleanDate}</td>
                         <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
                         <td class="fw-bold">${item.partNo || ''}</td>
+                        <td><strong>${item.icNo || '-'}</strong></td>
                         <td>${item.typeSize || ''}</td>
-                        <td class="fw-bold">${Number(item.qty || 0).toLocaleString()}</td>
+                        <td class="fw-bold">${Number(item.qty || 0).toLocaleString()} ${item.unit || 'Sheet'}</td>
                         <td><small class="text-muted">${item.detail || ''}</small></td>
                         <td class="text-center">
-                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(item.typeSize || '')}')" title="พิมพ์ Tag วัสดุนี้">
+                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(item.icNo || '')}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(item.typeSize || '')}', '${encodeURIComponent(item.unit || 'Sheet')}', '${encodeURIComponent(cleanDate)}')" title="พิมพ์ Tag วัสดุนี้">
                                 <i class="fas fa-print"></i>
                             </button>
-                            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialItem(${item.id})" title="ลบรายการนี้">
+                            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialHistory(${index})" title="ลบรายการนี้">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </td>
@@ -3594,23 +3623,20 @@ function loadMaterialStock() {
     }
 }
 
-// ฟังก์ชันพิมพ์ Tag เฉพาะรายการวัตถุดิบนั้นๆ
-function printSpecificMaterialTag(partNo, qty, typeSize) {
-    const url = `print-tag-material.html?partNo=${partNo}&qty=${qty}&type=${typeSize}`;
-    window.open(url, '_blank');
-}
-
-// ฟังก์ชันพิมพ์ Tag เฉพาะรายการวัตถุดิบนั้นๆ
-function printSpecificMaterialTag(partNo, qty, typeSize) {
-    const url = `print-tag-material.html?partNo=${partNo}&qty=${qty}&type=${typeSize}`;
+// ฟังก์ชันพิมพ์ Tag เฉพาะรายการในประวัติ
+function printSpecificMaterialTag(partNo, icNo, qty, typeSize, unit, date) {
+    const url = `print-tag-material.html?partNo=${partNo}&icNo=${icNo || '-'}&qty=${qty}&type=${typeSize}&unit=${unit || 'Sheet'}&date=${date || ''}`;
     window.open(url, '_blank');
 }
 
 // ฟังก์ชันพิมพ์ Tag จากฟอร์มรับเข้า (ฝั่งซ้าย)
 function printMaterialTag() {
     const partNo = document.getElementById('matPartNo') ? document.getElementById('matPartNo').value : '';
+    const icNo = document.getElementById('matIcNo') ? document.getElementById('matIcNo').value : generateAutoIcNo();
     const qty = document.getElementById('matQty') ? document.getElementById('matQty').value : '';
     const type = document.getElementById('matTypeSize') ? document.getElementById('matTypeSize').value : '';
+    const unit = document.getElementById('matUnit') ? document.getElementById('matUnit').value : 'Sheet';
+    const date = document.getElementById('matDate') ? document.getElementById('matDate').value : '';
 
     if (!partNo) {
         alert('กรุณากรอก Part No. ก่อนพิมพ์ Tag');
@@ -3618,15 +3644,15 @@ function printMaterialTag() {
         return;
     }
 
-    const url = `print-tag-material.html?partNo=${encodeURIComponent(partNo)}&qty=${encodeURIComponent(qty)}&type=${encodeURIComponent(type)}`;
+    const url = `print-tag-material.html?partNo=${encodeURIComponent(partNo)}&icNo=${encodeURIComponent(icNo)}&qty=${encodeURIComponent(qty)}&type=${encodeURIComponent(type)}&unit=${encodeURIComponent(unit)}&date=${encodeURIComponent(date)}`;
     window.open(url, '_blank');
 }
 
+// ฟังก์ชันลบประวัติรายการ
 function deleteMaterialHistory(index) {
     if (confirm('คุณต้องการลบประวัติรายการนี้ใช่หรือไม่?')) {
         materialHistory.splice(index, 1);
         if (typeof loadMaterialStock === 'function') loadMaterialStock();
-        if (typeof renderMaterialHistory === 'function') renderMaterialHistory();
     }
 }
             // สั่งให้โหลดข้อมูลทั้งหมดจาก Google Sheets ทันทีที่เปิดหน้าเว็บ
