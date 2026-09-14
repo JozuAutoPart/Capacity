@@ -2700,7 +2700,6 @@ function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        // เพิ่มบรรทัดนี้เพื่อปลดล็อกเสียงอัตโนมัติถ้าเบราว์เซอร์ระงับไว้
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
@@ -2728,6 +2727,7 @@ function playBeep(type) {
         console.log('Audio not supported');
     }
 }
+
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
@@ -2779,16 +2779,13 @@ if (deliveryPartInputEl) {
             setTimeout(() => {
                 updateFgMaxHint(); 
 
-                const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
+                // สั่งคลิก Submit เพียงรอบเดียว เพื่อป้องกันข้อมูลเบิ้ลซ้ำซ้อนจนหายไป
+                const submitBtn = document.querySelector('#deliveryForm button[type="submit"]') || document.getElementById('deliverySubmitBtn');
                 if (submitBtn) {
                     submitBtn.click();
+                } else if (typeof submitDelivery === 'function') {
+                    submitDelivery();
                 }
-
-                setTimeout(() => {
-                    if (typeof saveDeliveryData === 'function') {
-                        saveDeliveryData();
-                    }
-                }, 100);
                 
                 setTimeout(() => {
                     deliveryPartInputEl.focus();
@@ -2868,14 +2865,12 @@ function renderDelivery() {
 
     const customerMap = getCustomerMapping();
 
-    // 1. ดึงวันที่ปัจจุบันในรูปแบบ YYYY-MM-DD เพื่อใช้กรองเฉพาะวันนี้
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     const todayStr = `${year}-${month}-${day}`;
 
-    // 2. กรองเอาเฉพาะข้อมูลของวันนี้เท่านั้น
     const todayDeliveries = deliveries.filter(d => {
         if (!d.date) return false;
         const itemDate = d.date.split('T')[0];
@@ -2887,7 +2882,6 @@ function renderDelivery() {
         return;
     }
 
-    // 3. แสดงผลเฉพาะข้อมูลของวันนี้ (พลิกกลับด้านเอาล่าสุดขึ้นบน และจำกัดไม่เกิน 20 รายการ)
     todayDeliveries.slice().reverse().slice(0, 20).forEach(d => {
         let pNoStr = (d.partNo || "").trim();
         
@@ -2912,8 +2906,9 @@ function renderDelivery() {
         tbody.appendChild(tr);
     });
 }
+
 function deleteDelivery(id) {
-    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปถ่ายเดียว)')) {
+    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปเท่าเดิม)')) {
         deliveries = deliveries.filter(d => d.id !== id);
         renderDelivery();
         loadDeliveryParts();
@@ -2924,18 +2919,16 @@ function deleteDelivery(id) {
     }
 }
 
-// 🛡️ ป้องกัน Error จุกจิกจากฟังก์ชันภายนอก (เช่น Q-Gate) ไม่ให้บล็อกการทำงาน
 window.addEventListener('error', function(e) {
     if (e.message && e.message.includes('updateQGateIpInfo')) {
         e.preventDefault();
         return true;
     }
 });
-  // --- ส่วนจัดการแปลงและบีบอัดไฟล์รูปภาพเป็น Base64 ขนาดเล็กทันทีที่เลือกไฟล์ ---
+
 window.currentBmImage = '';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ระบุเจาะจงช่องเลือกรูปสำหรับการแจ้งซ่อม (เปลี่ยน 'bmImageInput' เป็น id ของ input ไฟล์รูปของคุณถ้าจำเป็น)
     const fileInput = document.getElementById('bmImageInput') || document.querySelector('input[type="file"]');
     
     if (fileInput) {
@@ -2969,7 +2962,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // บีบอัดคุณภาพเหลือ 50% (0.5) เพื่อให้ไฟล์เล็กและไม่ชนปัญหา Storage เต็ม
                         window.currentBmImage = canvas.toDataURL('image/jpeg', 0.5);
                         console.log("Image compressed and converted to Base64 successfully.");
                     };
@@ -2980,7 +2972,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
 // --- TAB 8: DIE MAINTENANCE & PM ---
 function submitDieBm(e) {
     if (e) e.preventDefault();
