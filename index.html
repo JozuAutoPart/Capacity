@@ -301,64 +301,53 @@
                         <input type="text" id="matPartNo" class="form-control form-control-sm" placeholder="เช่น PART-001" required>
                     </div>
                     <div class="mb-2">
+                        <label class="form-label small">IC No.</label>
+                        <input type="text" id="matIcNo" class="form-control form-control-sm" placeholder="เช่น IC-001">
+                    </div>
+                    <div class="mb-2">
                         <label class="form-label small">Type / Size</label>
                         <input type="text" id="matTypeSize" class="form-control form-control-sm" placeholder="เช่น SUS304 / 2.0mm" required>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">จำนวน (Quantity)</label>
-                        <input type="number" id="matQty" class="form-control form-control-sm" placeholder="0" min="1" required>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="matQty" class="form-control" placeholder="0" min="1" required>
+                            <select id="matUnit" class="form-select" style="max-width: 100px;">
+                                <option value="Sheet">Sheet</option>
+                                <option value="KG.">KG.</option>
+                            </select>
+                        </div>
                     </div>
-                    
-                   <form id="materialForm">
-    <!-- ฟิลด์เลือกประเภทรายการ รับเข้า / จ่ายออก (ถ้ามีอยู่แล้วใช้ของเดิมได้ หรือดูโครงสร้างนี้ประกอบ) -->
-    
-    <div class="mb-2">
-        <label class="form-label small">Part No.</label>
-        <input type="text" id="matPartNo" class="form-control form-control-sm" placeholder="เช่น PART-001" required>
-    </div>
 
-    <div class="mb-2">
-        <label class="form-label small">Type / Size</label>
-        <input type="text" id="matTypeSize" class="form-control form-control-sm" placeholder="เช่น SUS304 / 2.0mm">
-    </div>
+                    <!-- ฟิลด์เฉพาะขา "รับเข้า" -->
+                    <div class="mb-2 mat-in-group">
+                        <label class="form-label small">Supplier</label>
+                        <input type="text" id="matSupplier" class="form-control form-control-sm" placeholder="ชื่อผู้ขาย / บริษัท" required>
+                    </div>
+                    <div class="mb-2 mat-in-group">
+                        <label class="form-label small">ผู้รับ (Receiver)</label>
+                        <input type="text" id="matReceiver" class="form-control form-control-sm" placeholder="ชื่อผู้รับของ" required>
+                    </div>
 
-    <!-- เพิ่มช่องจำนวน (Quantity) และหน่วย (Unit) -->
-    <div class="mb-2">
-        <label class="form-label small">จำนวน (Quantity)</label>
-        <div class="input-group input-group-sm">
-            <input type="number" id="matQty" class="form-control" placeholder="0" required>
-            <select id="matUnit" class="form-select" style="max-width: 100px;">
-                <option value="Sheet">Sheet</option>
-                <option value="KG.">KG.</option>
-            </select>
+                    <!-- ฟิลด์เฉพาะขา "จ่ายออก" (ซ่อนไว้ก่อนเมื่อเริ่มระบบ) -->
+                    <div class="mb-2 mat-out-group" style="display: none;">
+                        <label class="form-label small">ผู้เบิก (Requester)</label>
+                        <input type="text" id="matRequester" class="form-control form-control-sm" placeholder="ชื่อผู้เบิก / ไลน์ผลิต">
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
+                        <i class="fas fa-save me-1"></i> บันทึกรายการ
+                    </button>
+
+                    <!-- ปุ่มพิมพ์ Tag วัสดุ -->
+                    <button type="button" class="btn btn-outline-info btn-sm w-100 fw-bold mt-2" onclick="printMaterialTag()">
+                        <i class="fas fa-print me-1"></i> พิมพ์ Tag วัสดุ
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
-
-    <!-- ฟิลด์เฉพาะขา "รับเข้า" -->
-    <div class="mb-2 mat-in-group">
-        <label class="form-label small">Supplier</label>
-        <input type="text" id="matSupplier" class="form-control form-control-sm" placeholder="ชื่อผู้ขาย / บริษัท" required>
-    </div>
-    <div class="mb-2 mat-in-group">
-        <label class="form-label small">ผู้รับ (Receiver)</label>
-        <input type="text" id="matReceiver" class="form-control form-control-sm" placeholder="ชื่อผู้รับของ" required>
-    </div>
-
-    <!-- ฟิลด์เฉพาะขา "จ่ายออก" (ซ่อนไว้ก่อนเมื่อเริ่มระบบ) -->
-    <div class="mb-2 mat-out-group" style="display: none;">
-        <label class="form-label small">ผู้เบิก (Requester)</label>
-        <input type="text" id="matRequester" class="form-control form-control-sm" placeholder="ชื่อผู้เบิก / ไลน์ผลิต">
-    </div>
-
-    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
-        <i class="fas fa-save me-1"></i> บันทึกรายการ
-    </button>
-
-    <!-- ปุ่มพิมพ์ Tag วัสดุ -->
-    <button type="button" class="btn btn-outline-info btn-sm w-100 fw-bold mt-2" onclick="printMaterialTag()">
-        <i class="fas fa-print me-1"></i> พิมพ์ Tag วัสดุ
-    </button>
-</form>
+</div>
 
         <!-- ฝั่งขวา: สต็อกคงเหลือ และ ประวัติ -->
         <div class="col-md-8">
@@ -3613,18 +3602,20 @@ function loadMaterialStock() {
     }
 }
 
-// ฟังก์ชันพิมพ์ Tag เฉพาะรายการวัตถุดิบนั้นๆ (รองรับหน่วย Sheet / KG.)
-function printSpecificMaterialTag(partNo, qty, typeSize, unit = 'Sheet') {
-    const url = `print-tag-material.html?partNo=${encodeURIComponent(partNo)}&qty=${encodeURIComponent(qty)}&type=${encodeURIComponent(typeSize)}&unit=${encodeURIComponent(unit)}`;
+// ฟังก์ชันพิมพ์ Tag เฉพาะรายการวัตถุดิบนั้นๆ (รองรับ IC No., หน่วย และวันที่)
+function printSpecificMaterialTag(partNo, icNo, qty, typeSize, unit = 'Sheet', date = '') {
+    const url = `print-tag-material.html?partNo=${encodeURIComponent(partNo)}&icNo=${encodeURIComponent(icNo || '-')}&qty=${encodeURIComponent(qty)}&type=${encodeURIComponent(typeSize)}&unit=${encodeURIComponent(unit)}&date=${encodeURIComponent(date)}`;
     window.open(url, '_blank');
 }
 
 // ฟังก์ชันพิมพ์ Tag จากฟอร์มรับเข้า (ฝั่งซ้าย)
 function printMaterialTag() {
     const partNo = document.getElementById('matPartNo') ? document.getElementById('matPartNo').value : '';
+    const icNo = document.getElementById('matIcNo') ? document.getElementById('matIcNo').value : '';
     const qty = document.getElementById('matQty') ? document.getElementById('matQty').value : '';
     const type = document.getElementById('matTypeSize') ? document.getElementById('matTypeSize').value : '';
     const unit = document.getElementById('matUnit') ? document.getElementById('matUnit').value : 'Sheet';
+    const date = document.getElementById('matDate') ? document.getElementById('matDate').value : '';
 
     if (!partNo) {
         alert('กรุณากรอก Part No. ก่อนพิมพ์ Tag');
@@ -3632,7 +3623,7 @@ function printMaterialTag() {
         return;
     }
 
-    const url = `print-tag-material.html?partNo=${encodeURIComponent(partNo)}&qty=${encodeURIComponent(qty)}&type=${encodeURIComponent(type)}&unit=${encodeURIComponent(unit)}`;
+    const url = `print-tag-material.html?partNo=${encodeURIComponent(partNo)}&icNo=${encodeURIComponent(icNo)}&qty=${encodeURIComponent(qty)}&type=${encodeURIComponent(type)}&unit=${encodeURIComponent(unit)}&date=${encodeURIComponent(date)}`;
     window.open(url, '_blank');
 }
 
