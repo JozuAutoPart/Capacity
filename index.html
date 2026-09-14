@@ -4381,30 +4381,7 @@ document.addEventListener('change', function(e) {
     }
 });
 
-function handleLogin() {
-    var pass = document.getElementById('loginPassword').value.trim();
-    var overlay = document.getElementById('loginOverlay');
-    var errorMsg = document.getElementById('loginError');
 
-    if (pass === "1111" || pass === "2222" || pass === "3333" || pass === "9999") {
-        if (overlay) {
-            overlay.style.display = 'none';
-        }
-    } else {
-        if (errorMsg) {
-            errorMsg.style.display = 'block';
-        }
-    }
-}
-
-document.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        var overlay = document.getElementById('loginOverlay');
-        if (overlay && overlay.style.display !== 'none') {
-            handleLogin();
-        }
-    }
-});
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
