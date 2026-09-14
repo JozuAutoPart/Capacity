@@ -3503,7 +3503,7 @@ function submitMaterialTransaction(e) {
     loadMaterialStock();
 }
 
-// ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ (รวมอยู่ในฟังก์ชันเดียวอย่างถูกต้อง)
+// ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ (พร้อมปุ่มพิมพ์ Tag วัสดุแบบแยกเฉพาะ)
 function loadMaterialStock() {
     let stockMap = {};
     
@@ -3557,7 +3557,7 @@ function loadMaterialStock() {
         }
     }
 
-    // แสดงผลตารางประวัติย้อนหลัง (พร้อมตัดตัว T ออกจากวันที่)
+    // แสดงผลตารางประวัติย้อนหลัง (พร้อมปุ่มพิมพ์ Tag แยกเฉพาะแต่ละรายการ)
     const historyBody = document.getElementById('matHistoryTableBody');
     if(historyBody) {
         historyBody.innerHTML = '';
@@ -3576,6 +3576,9 @@ function loadMaterialStock() {
                         <td class="fw-bold">${Number(item.qty || 0).toLocaleString()}</td>
                         <td><small class="text-muted">${item.detail || ''}</small></td>
                         <td class="text-center">
+                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(item.typeSize || '')}')" title="พิมพ์ Tag วัสดุนี้">
+                                <i class="fas fa-print"></i>
+                            </button>
                             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialItem(${item.id})" title="ลบรายการนี้">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
@@ -3586,14 +3589,32 @@ function loadMaterialStock() {
         }
     }
 }
-        function deleteMaterialHistory(index) {
+
+// ฟังก์ชันพิมพ์ Tag เฉพาะรายการวัตถุดิบนั้นๆ
+function printSpecificMaterialTag(partNo, qty, typeSize) {
+    const url = `print-tag-material.html?partNo=${partNo}&qty=${qty}&type=${typeSize}`;
+    window.open(url, '_blank');
+}
+
+// ฟังก์ชันพิมพ์ Tag จากฟอร์มรับเข้า (ฝั่งซ้าย)
+function printMaterialTag() {
+    const partNo = document.getElementById('matPartNo') ? document.getElementById('matPartNo').value : '';
+    const qty = document.getElementById('matQty') ? document.getElementById('matQty').value : '';
+    const type = document.getElementById('matTypeSize') ? document.getElementById('matTypeSize').value : '';
+
+    if (!partNo) {
+        alert('กรุณากรอก Part No. ก่อนพิมพ์ Tag');
+        document.getElementById('matPartNo').focus();
+        return;
+    }
+
+    const url = `print-tag-material.html?partNo=${encodeURIComponent(partNo)}&qty=${encodeURIComponent(qty)}&type=${encodeURIComponent(type)}`;
+    window.open(url, '_blank');
+}
+
+function deleteMaterialHistory(index) {
     if (confirm('คุณต้องการลบประวัติรายการนี้ใช่หรือไม่?')) {
         materialHistory.splice(index, 1);
-        
-        // ถ้าโปรเจกต์ของคุณมิวมีการเก็บบันทึกลง localStorage ให้สั่งเซฟอัปเดตด้วย
-        // localStorage.setItem('materialHistory', JSON.stringify(materialHistory));
-        
-        // เรียกฟังก์ชันโหลดหน้าจอสต็อกและประวัติใหม่
         if (typeof loadMaterialStock === 'function') loadMaterialStock();
         if (typeof renderMaterialHistory === 'function') renderMaterialHistory();
     }
