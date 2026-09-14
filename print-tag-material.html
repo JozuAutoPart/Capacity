@@ -2,103 +2,129 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>พิมพ์ Tag วัสดุ (Material Tag)</title>
+    <title>พิมพ์ Tag วัสดุ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { 
-            background: #555; 
-            font-family: 'Sarabun', sans-serif; 
-            margin: 0;
-            padding: 0;
+        body {
+            background-color: #555;
+            font-family: 'Sarabun', sans-serif;
         }
-        .page {
+        .tag-container {
             width: 100mm;
             height: 50mm;
-            padding: 4mm;
-            margin: 10mm auto;
-            background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            background: #fff;
+            margin: 20px auto;
+            padding: 4mm 6mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            position: relative;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
-        .tag-header { 
-            font-weight: bold; 
-            border-bottom: 2px solid #000; 
-            padding-bottom: 2px; 
-            margin-bottom: 3px; 
-            font-size: 13px;
+        .tag-header {
+            border-bottom: 2px solid #000;
+            padding-bottom: 2px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14pt;
+            color: #000;
         }
         .tag-body {
-            font-size: 12px;
+            font-size: 11pt;
             line-height: 1.3;
+            color: #000;
+        }
+        .tag-body div {
+            margin-bottom: 2px;
         }
         .tag-footer {
-            font-size: 10px;
-            border-top: 1px solid #ccc;
+            border-top: 1px solid #000;
             padding-top: 2px;
+            text-align: center;
+            font-size: 8pt;
+            color: #000;
+        }
+        .text-black-custom {
+            color: #000 !important;
         }
         @media print {
-            body { background: none; }
-            .page { 
-                width: 100mm; 
-                height: 50mm; 
-                margin: 0; 
-                box-shadow: none; 
+            body {
+                background: none;
+            }
+            .no-print {
+                display: none;
+            }
+            .tag-container {
+                margin: 0;
+                box-shadow: none;
+                width: 100mm;
+                height: 50mm;
                 page-break-after: always;
             }
-            .no-print { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container text-center my-3 no-print">
-        <button onclick="window.print()" class="btn btn-primary fw-bold px-4">🖨️ พิมพ์ Tag ขนาด 100x50 มม.</button>
+    <div class="text-center no-print my-3">
+        <button class="btn btn-primary fw-bold px-4" onclick="window.print()">
+            <i class="fas fa-print me-2"></i> พิมพ์ Tag ขนาด 100x50 มม.
+        </button>
     </div>
 
-    <div id="tagContainer">
-        <!-- Tag จะถูกสร้างอัตโนมัติที่นี่ -->
+    <div class="tag-container">
+        <div class="tag-header">
+            <span>MATERIAL TAG</span>
+            <span id="tagReceiveType">RECEIVE</span>
+        </div>
+        <div class="tag-body">
+            <div><strong>Date:</strong> <span id="lblDate" class="text-black-custom"></span></div>
+            <div><strong>Part No:</strong> <span id="lblPartNo" class="text-black-custom"></span></div>
+            <div><strong>IC No:</strong> <span id="lblIcNo" class="text-black-custom"></span></div>
+            <div><strong>Type / Size:</strong> <span id="lblType" class="text-black-custom"></span></div>
+            <div><strong>Qty:</strong> <span id="lblQty" class="text-black-custom fw-bold"></span></div>
+        </div>
+        <div class="tag-footer">
+            Jozu Auto Part Co., Ltd. - Material Control
+        </div>
     </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const partNo = urlParams.get('partNo') || '-';
-        const icNo = urlParams.get('icNo') || '-';
-        const qty = urlParams.get('qty') || '0';
-        const typeSize = urlParams.get('type') || '-';
-        const unit = urlParams.get('unit') || 'Sheet';
-
-        // สร้างวันที่ปัจจุบันในรูปแบบ DD/MM/YYYY (หรือจะปรับเปลี่ยนตามต้องการ)
-        const now = new Date();
-        const currentDate = String(now.getDate()).padStart(2, '0') + '/' + 
-                            String(now.getMonth() + 1).padStart(2, '0') + '/' + 
-                            (now.getFullYear() + 543); // ปี พ.ศ.
-
-        const container = document.getElementById('tagContainer');
+        // ดึงค่าจาก URL Parameters
+        const params = new URLSearchParams(window.location.search);
         
-        let html = `
-            <div class="page">
-                <div>
-                    <div class="tag-header d-flex justify-content-between">
-                        <span>MATERIAL TAG</span>
-                        <span>RECEIVE</span>
-                    </div>
-                    <div class="tag-body">
-                        <div><strong>Date:</strong> <span class="fw-bold">${currentDate}</span></div>
-                        <div><strong>Part No:</strong> <span class="text-info">${partNo}</span></div>
-                        <div><strong>IC No:</strong> <span class="text-dark fw-bold">${icNo}</span></div>
-                        <div><strong>Type / Size:</strong> ${typeSize}</div>
-                        <div><strong>Qty:</strong> <span class="text-danger fw-bold">${Number(qty).toLocaleString()} ${unit}</span></div>
-                    </div>
-                </div>
-                <div class="tag-footer text-center text-muted">
-                    Jozu Auto Part Co., Ltd. - Material Control
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
+        const rawDate = params.get('date') || '';
+        let formattedDate = rawDate;
+        if (rawDate) {
+            let parts = rawDate.split('-');
+            if (parts.length === 3) {
+                // แปลง ค.ศ. เป็น พ.ศ. (ค.ศ. + 543)
+                let thaiYear = parseInt(parts[0]) + 543;
+                formattedDate = `${parts[2]}/${parts[1]}/${thaiYear}`;
+            }
+        } else {
+            let now = new Date();
+            let dd = String(now.getDate()).padStart(2, '0');
+            let mm = String(now.getMonth() + 1).padStart(2, '0');
+            let yyyy = now.getFullYear() + 543;
+            formattedDate = `${dd}/${mm}/${yyyy}`;
+        }
+
+        const partNo = params.get('partNo') || '-';
+        const icNo = params.get('icNo') || '-';
+        const qty = params.get('qty') || '0';
+        const type = params.get('type') || '-';
+        const unit = params.get('unit') || 'Sheet';
+
+        // แสดงผลลงใน Tag (บังคับตัวหนังสือสีดำทั้งหมด)
+        document.getElementById('lblDate').innerText = formattedDate;
+        document.getElementById('lblPartNo').innerText = partNo;
+        document.getElementById('lblIcNo').innerText = icNo;
+        document.getElementById('lblType').innerText = type;
+        document.getElementById('lblQty').innerText = `${Number(qty).toLocaleString()} ${unit}`;
     </script>
 </body>
 </html>
