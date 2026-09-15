@@ -1783,8 +1783,14 @@ function submitActual(e) {
         timeRange = endTime;
     }
     
+    // 🗓️ ดึงวันที่ตามเวลาท้องถิ่นประเทศไทย (แก้ปัญหาวันที่เพี้ยนถอยหลังเป็นวันที่ 14)
+    const now = new Date();
+    const localDateStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const formDateVal = document.getElementById('actualDate').value;
+    const finalDate = formDateVal ? formDateVal : localDateStr;
+    
    const actual = {
-        date: document.getElementById('actualDate').value,
+        date: finalDate,
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
         mcNo: document.getElementById('actualMcNo').value.trim(),
@@ -1832,11 +1838,12 @@ function submitActual(e) {
             // ---------------------------------------------------------
 
             document.getElementById('actualForm').reset();
-            document.getElementById('actualDate').value = new Date().toISOString().split('T')[0];
+            // เซ็ตค่าช่องวันที่กลับเป็นวันปัจจุบันตามเวลาไทยหลังกดบันทึก
+            const resetNow = new Date();
+            document.getElementById('actualDate').value = new Date(resetNow.getTime() - (resetNow.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            
             checkAndLoadPlans();
             renderActuals();
-            
-            // 🛑 เอา loadAllData() ออก เพื่อไม่ให้ข้อมูลจากชีทที่ยังอัปเดตไม่ทันวิ่งมาทับข้อมูลใหม่ที่เพิ่งกดบันทึก
 
             alert("บันทึกข้อมูลสำเร็จ!");
         } else {
