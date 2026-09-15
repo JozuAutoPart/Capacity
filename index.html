@@ -1767,7 +1767,7 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม (รองรับหลายรูปแบบ ID ทั้ง workStartTime/actualStartTime)
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
     const startTimeEl = document.getElementById('workStartTime') || document.getElementById('actualStartTime') || document.querySelector('input[id*="Start"]');
     const endTimeEl = document.getElementById('workEndTime') || document.getElementById('actualEndTime') || document.querySelector('input[id*="End"]');
     
@@ -1792,11 +1792,12 @@ function submitActual(e) {
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
         ngQty: Number(document.getElementById('actualNgQty').value || 0),
-        timeWork: timeRange,   // 👈 ส่งชื่อ timeWork ไปด้วย
-        TimeWork: timeRange,   // 👈 เผื่อเคสตัวพิมพ์ใหญ่
-        timeRange: timeRange,  // 👈 เผื่อเคสเช็คแบบ Q-Gate
+        timeWork: timeRange,
+        TimeWork: timeRange,
+        timeRange: timeRange,
         remark: document.getElementById('actualRemark').value.trim()
     };
+
     // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
@@ -1805,7 +1806,7 @@ function submitActual(e) {
     .then(response => response.json())
     .then(result => {
         if (result.status === "success") {
-            actuals.push(actual);
+            actuals.unshift(actual); // เพิ่มข้อมูลใหม่ไว้ด้านบนสุดทันที
 
             // ---------------------------------------------------------
             // เงื่อนไข: ถ้าระบุ Process จะ "ไม่นำเข้า Stock WIP" จะเข้าเฉพาะขั้นตอนสุดท้าย
@@ -1835,9 +1836,7 @@ function submitActual(e) {
             checkAndLoadPlans();
             renderActuals();
             
-            if (typeof loadAllData === 'function') {
-                loadAllData();
-            }
+            // 🛑 เอา loadAllData() ออก เพื่อไม่ให้ข้อมูลจากชีทที่ยังอัปเดตไม่ทันวิ่งมาทับข้อมูลใหม่ที่เพิ่งกดบันทึก
 
             alert("บันทึกข้อมูลสำเร็จ!");
         } else {
@@ -1869,7 +1868,6 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    // ⏱️ ดักจับชื่อคีย์เวลาทุกลักษณะ ทั้งพิมพ์เล็กพิมพ์ใหญ่จาก Google Sheets
                     timeWork: item.TimeWork || item.timeWork || item['TimeWork'] || item['timeWork'] || item['เวลาทำงาน'] || '-',
                     remark: item.remark || item['Remark'] || '-'
                 }));
@@ -1880,9 +1878,8 @@ function loadActualsFromCloud() {
         })
         .catch(err => console.error("Error loading Actuals:", err));
 }
+
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับการแสดงเวลาทำงาน)
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (อัปเดตดึงค่า TimeWork ให้แสดงผลตรงเป๊ะ)
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -1898,7 +1895,6 @@ function renderActuals() {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
-        // แปลงวันที่ให้เป็นมาตรฐาน YYYY-MM-DD ก่อนนำมาเทียบ
         let dateA = new Date(parseDateString(rawA));
         let dateB = new Date(parseDateString(rawB));
         
@@ -1917,9 +1913,7 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        // ⏱️ ดึงค่าเวลาจากทุกรูปแบบชื่อคีย์ (รองรับ TimeWork จาก Google Sheets ทั้งพิมพ์เล็ก/ใหญ่)
-        // 📌 ดึงค่าเวลาจากทุกรูปแบบคีย์ให้ตรงกันเป๊ะ
-    const timeworkval = a.timeWork || a.timework || a['TimeWork'] || a['timeWork'] || a['Time work'] || a['เวลาทำงาน'] || a['Time'] || a['time'] || '-';
+        const timeworkval = a.timeWork || a.timework || a['TimeWork'] || a['timeWork'] || a['Time work'] || a['เวลาทำงาน'] || a['Time'] || a['time'] || '-';
         
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
@@ -1947,21 +1941,21 @@ function renderActuals() {
 
     updateOperatorDropdown();
 }
-        // ฟังก์ชันช่วยจัดรูปแบบวันที่ไม่ให้เดือนกับวันสลับกัน
+
+// ฟังก์ชันช่วยจัดรูปแบบวันที่ไม่ให้เดือนกับวันสลับกัน
 function parseDateString(dateStr) {
     if (!dateStr) return 0;
     let cleanStr = String(dateStr).split('T')[0];
     let parts = cleanStr.split(/[-/]/);
     if (parts.length === 3) {
-        // ถ้าเป็นปีขึ้นต้น (YYYY-MM-DD) ใช้ได้เลย
         if (parts[0].length === 4) {
             return `${parts[0]}-${parts[1]}-${parts[2]}`;
         }
-        // ถ้าเป็นแบบ (DD-MM-YYYY) ให้สลับเป็น YYYY-MM-DD ให้ถูกต้อง
         return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
     return cleanStr;
 }
+
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
@@ -2095,7 +2089,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // 🚀 ฟังก์ชันจัดการพนักงานและเชื่อมโยงไปหน้าพิมพ์แยกอิสระ
 // ==========================================
-
 function updateOperatorDropdown() {
     let select = document.getElementById('filterOperator');
     if (!select) return;
@@ -2157,11 +2150,9 @@ function exportFilteredProductionReport() {
         return;
     }
 
-    // บันทึกข้อมูลลงในหน่วยความจำชั่วคราวของเบราว์เซอร์เพื่อส่งไปหน้าพิมพ์
     localStorage.setItem('productionReportData', JSON.stringify(reportData));
     localStorage.setItem('productionReportOperator', selectedOperator || 'ทั้งหมด');
 
-    // เปิดหน้าพิมพ์แยกออกมาทันที
     window.open('print-production.html', '_blank');
 }
 // 📌 ระบบจัดการ Q-Gate Inspection & History (สมบูรณ์และเสถียรที่สุด)
