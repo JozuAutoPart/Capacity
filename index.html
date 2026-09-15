@@ -1895,9 +1895,14 @@ function renderActuals() {
     }
 
     const sortedActuals = [...actuals].sort((a, b) => {
-        let dateA = new Date(a.date || a['Date'] || 0);
-        let dateB = new Date(b.date || b['Date'] || 0);
-        return dateB - dateA;
+        let rawA = a.date || a['Date'] || '';
+        let rawB = b.date || b['Date'] || '';
+        
+        // แปลงวันที่ให้เป็นมาตรฐาน YYYY-MM-DD ก่อนนำมาเทียบ
+        let dateA = new Date(parseDateString(rawA));
+        let dateB = new Date(parseDateString(rawB));
+        
+        return dateB - dateA; // เรียงจากวันล่าสุดไปเก่า
     }).slice(0, 100);
 
     sortedActuals.forEach((a) => {
@@ -1941,6 +1946,21 @@ function renderActuals() {
     });
 
     updateOperatorDropdown();
+}
+        // ฟังก์ชันช่วยจัดรูปแบบวันที่ไม่ให้เดือนกับวันสลับกัน
+function parseDateString(dateStr) {
+    if (!dateStr) return 0;
+    let cleanStr = String(dateStr).split('T')[0];
+    let parts = cleanStr.split(/[-/]/);
+    if (parts.length === 3) {
+        // ถ้าเป็นปีขึ้นต้น (YYYY-MM-DD) ใช้ได้เลย
+        if (parts[0].length === 4) {
+            return `${parts[0]}-${parts[1]}-${parts[2]}`;
+        }
+        // ถ้าเป็นแบบ (DD-MM-YYYY) ให้สลับเป็น YYYY-MM-DD ให้ถูกต้อง
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return cleanStr;
 }
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
