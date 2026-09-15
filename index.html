@@ -1905,14 +1905,14 @@ const sortedActuals = [...actuals].sort((a, b) => {
         let dateA = new Date(parseDateString(rawA));
         let dateB = new Date(parseDateString(rawB));
         
-        return dateB - dateA; // เรียงจากวันล่าสุดไปเก่า
-    });
+        return dateB - dateA; 
+    }); // <--- เช็กว่ามีวงเล็บปิดและปีกกาปิดตรงนี้ครบถ้วนไหม
 
-    // ตัดเอาเฉพาะ 100 รายการล่าสุดหลังจากจัดเรียงแล้ว
     const displayActuals = sortedActuals.slice(0, 100);
 
     displayActuals.forEach((a) => {
-        // โค้ดเรนเดอร์แถวตารางเดิมของคุณมิว
+        // ... โค้ดเรนเดอร์ข้างใน ...
+    }); // <--- ปีกกาปิดของ forEach ครบไหม
 
     sortedActuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
