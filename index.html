@@ -1854,7 +1854,8 @@ function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
     
-    fetch(scriptUrl + "?action=getActuals")
+    // เติม &t=timestamp ป้องกันเบราว์เซอร์จำค่าแคชเก่า
+    fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
@@ -1868,7 +1869,7 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    timeWork: item.TimeWork || item.timeWork || item['TimeWork'] || item['timeWork'] || item['เวลาทำงาน'] || '-',
+                    timeWork: item.TimeWork || item.timeWork || item['TimeWork'] || item['timeWork'] || item['Time work'] || item['เวลาทำงาน'] || item['Time'] || item['time'] || '-',
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
@@ -1967,11 +1968,13 @@ function parseDateString(dateStr) {
     return cleanStr;
 }
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
+// ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ (เพิ่มตัวกัน Cache ป้องกันข้อมูลเก่าค้าง)
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    fetch(scriptUrl)
+    // เติม ?t= timestamp ป้องกันเบราว์เซอร์จำค่าแคชเก่า
+    fetch(scriptUrl + "?t=" + new Date().getTime())
         .then(res => res.json())
         .then(data => {
             if (data.plans) plans = data.plans;
@@ -2006,6 +2009,7 @@ function loadAllData() {
             if (typeof renderActuals === 'function') renderActuals();
             if (typeof renderWipStock === 'function') renderWipStock();
             if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+            console.log("โหลดข้อมูลทั้งหมดจาก Cloud สำเร็จแบบสดๆ");
         })
         .catch(err => console.error("Error loading data:", err));
 }
@@ -2013,7 +2017,6 @@ function loadAllData() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
-
 // ฟังก์ชันสร้างเสียง Beep แจ้งเตือนแบบไม่ต้องง้อไฟล์เสียง
 function playSystemBeep() {
     try {
