@@ -1942,20 +1942,30 @@ function renderActuals() {
     updateOperatorDropdown();
 }
 
-// ฟังก์ชันช่วยจัดรูปแบบวันที่ไม่ให้เดือนกับวันสลับกัน
+// ฟังก์ชันช่วยจัดรูปแบบวันที่ให้แม่นยำ ไม่เพี้ยนและไม่สลับเดือน/วัน
 function parseDateString(dateStr) {
-    if (!dateStr) return 0;
-    let cleanStr = String(dateStr).split('T')[0];
+    if (!dateStr) return "0000-00-00";
+    let cleanStr = String(dateStr).split('T')[0].trim();
+    
+    // ถ้าข้อมูลมาเป็นแบบ YYYY-MM-DD อยู่แล้ว คืนค่าเดิมได้เลย
+    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(cleanStr)) {
+        return cleanStr.replace(/\//g, '-');
+    }
+    
+    // ถ้ามาเป็นแบบอื่น ให้แยกส่วน
     let parts = cleanStr.split(/[-/]/);
     if (parts.length === 3) {
-        if (parts[0].length === 4) {
-            return `${parts[0]}-${parts[1]}-${parts[2]}`;
+        // กรณี DD-MM-YYYY ให้สลับเป็น YYYY-MM-DD
+        if (parts[2].length === 4) {
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
         }
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        // กรณี YYYY-MM-DD
+        if (parts[0].length === 4) {
+            return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        }
     }
     return cleanStr;
 }
-
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
