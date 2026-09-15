@@ -1898,8 +1898,7 @@ function renderActuals() {
         updateOperatorDropdown();
         return;
     }
-
-    const sortedActuals = [...actuals].sort((a, b) => {
+const sortedActuals = [...actuals].sort((a, b) => {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
@@ -1907,7 +1906,13 @@ function renderActuals() {
         let dateB = new Date(parseDateString(rawB));
         
         return dateB - dateA; // เรียงจากวันล่าสุดไปเก่า
-    }).slice(0, 100);
+    });
+
+    // ตัดเอาเฉพาะ 100 รายการล่าสุดหลังจากจัดเรียงแล้ว
+    const displayActuals = sortedActuals.slice(0, 100);
+
+    displayActuals.forEach((a) => {
+        // โค้ดเรนเดอร์แถวตารางเดิมของคุณมิว
 
     sortedActuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
