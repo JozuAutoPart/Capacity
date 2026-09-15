@@ -1898,7 +1898,8 @@ function renderActuals() {
         updateOperatorDropdown();
         return;
     }
-const sortedActuals = [...actuals].sort((a, b) => {
+
+    const sortedActuals = [...actuals].sort((a, b) => {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
@@ -1906,19 +1907,25 @@ const sortedActuals = [...actuals].sort((a, b) => {
         let dateB = new Date(parseDateString(rawB));
         
         return dateB - dateA; 
-    }); // <--- เช็กว่ามีวงเล็บปิดและปีกกาปิดตรงนี้ครบถ้วนไหม
+    });
 
     const displayActuals = sortedActuals.slice(0, 100);
 
     displayActuals.forEach((a) => {
-        // ... โค้ดเรนเดอร์ข้างใน ...
-    }); // <--- ปีกกาปิดของ forEach ครบไหม
-
-    sortedActuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
 
+        // ระบบแปลงวันที่แบบหน้า Q-Gate ป้องกัน Timezone เพี้ยน (วันที่ไม่ตรง)
+        let displayDate = '';
         let rawDate = a.date || a['Date'] || '';
-        let cleanDate = rawDate ? rawDate.split('T')[0] : '-';
+        if (rawDate) {
+            const d = new Date(rawDate);
+            if (!isNaN(d.getTime())) {
+                const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                displayDate = localD.toISOString().split('T')[0];
+            } else {
+                displayDate = String(rawDate).substring(0, 10);
+            }
+        }
 
         const opval = a.operator || a['OP Name'] || '-';
         const lineval = a.line || a['Line/MC'] || '-';
@@ -1934,7 +1941,7 @@ const sortedActuals = [...actuals].sort((a, b) => {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${cleanDate}</td>
+            <td>${displayDate}</td>
             <td class="text-warning small fw-bold">${timeworkval}</td>
             <td>${opval}</td>
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
@@ -1954,7 +1961,6 @@ const sortedActuals = [...actuals].sort((a, b) => {
 
     updateOperatorDropdown();
 }
-
 // ฟังก์ชันช่วยจัดรูปแบบวันที่ให้แม่นยำ ไม่เพี้ยนและไม่สลับเดือน/วัน
 function parseDateString(dateStr) {
     if (!dateStr) return "0000-00-00";
