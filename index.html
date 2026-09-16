@@ -2951,8 +2951,24 @@ function renderDelivery() {
 
     const customerMap = getCustomerMapping();
 
-    // จำกัดให้แสดงผลเฉพาะ 100 รายการล่าสุด ป้องกันหน่วยความจำเต็ม
-    deliveries.slice().reverse().slice(0, 100).forEach(d => {
+    // 🌟 ดึงวันที่ปัจจุบันของเครื่องในรูปแบบ YYYY-MM-DD แบบเป๊ะๆ
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+    // 🌟 กรองเฉพาะรายการที่ตรงกับ "วันนี้" เท่านั้น (วันต่อวัน)
+    const todayDeliveries = deliveries.filter(d => {
+        if (!d.date) return false;
+        let dDateOnly = d.date.includes('T') ? d.date.split('T')[0] : d.date;
+        return dDateOnly === todayStr;
+    });
+
+    if (todayDeliveries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีประวัติการส่งมอบสินค้าของวันนี้</td></tr>`;
+        return;
+    }
+
+    // แสดงผลเฉพาะรายการของวันนี้
+    todayDeliveries.slice().reverse().forEach(d => {
         let pNoStr = (d.partNo || "").trim();
         
         let custName = customerMap[pNoStr.toLowerCase()] || d.customer || '-';
@@ -2960,7 +2976,6 @@ function renderDelivery() {
             custName = 'STEM-A'; 
         }
 
-        // 🌟 แก้ไขจุดนี้: แปลงวันที่ให้ดึงเอาเฉพาะปี-เดือน-วัน ตามเวลาท้องถิ่น ป้องกันการเพี้ยนตอน F5
         let displayDate = '';
         if (d.date) {
             let dateObj = new Date(d.date);
