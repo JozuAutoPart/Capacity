@@ -1933,7 +1933,8 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        const timeworkval = a.timeWork || a.timework || a['TimeWork'] || a['timeWork'] || a['Time work'] || a['เวลาทำงาน'] || a['Time'] || a['time'] || '-';
+        // เพิ่ม a.timeRange ไว้ตัวแรกสุด เพื่อดึงเวลาขึ้นมาแสดงผลเหมือนหน้า Q-Gate
+        const timeworkval = a.timeRange || a.timeWork || a.timework || a['TimeWork'] || a['timeWork'] || a['Time work'] || a['เวลาทำงาน'] || a['Time'] || a['time'] || '-';
         
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
