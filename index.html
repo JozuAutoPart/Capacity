@@ -2960,10 +2960,18 @@ function renderDelivery() {
             custName = 'STEM-A'; 
         }
 
-        // 🌟 ปรับปรุงการแสดงผลวันที่ให้ปลอดภัย รองรับทั้ง YYYY-MM-DD และรูปแบบ ISO String
+        // 🌟 แก้ไขจุดนี้: แปลงวันที่ให้ดึงเอาเฉพาะปี-เดือน-วัน ตามเวลาท้องถิ่น ป้องกันการเพี้ยนตอน F5
         let displayDate = '';
         if (d.date) {
-            displayDate = d.date.includes('T') ? d.date.split('T')[0] : d.date;
+            let dateObj = new Date(d.date);
+            if (!isNaN(dateObj.getTime())) {
+                let y = dateObj.getFullYear();
+                let m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                let day = String(dateObj.getDate()).padStart(2, '0');
+                displayDate = `${y}-${m}-${day}`;
+            } else {
+                displayDate = d.date.split('T')[0];
+            }
         }
 
         const tr = document.createElement('tr');
