@@ -2675,69 +2675,6 @@ function filterFgTable() {
 }
 // --- TAB 7: DELIVERY (การส่งมอบ) - FINAL POLISHED VERSION ---
 
-// ระบบจัดการ AudioContext ตัวเดียวเพื่อป้องกันการโดนบล็อกเสียงจากเบราว์เซอร์
-let globalAudioCtx = null;
-
-function getAudioContext() {
-    if (!globalAudioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        globalAudioCtx = new AudioContext();
-    }
-    return globalAudioCtx;
-}
-
-function playBeep(type) {
-    try {
-        const audioCtx = getAudioContext();
-        
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume().then(() => {
-                executeBeep(audioCtx, type);
-            });
-        } else {
-            executeBeep(audioCtx, type);
-        }
-    } catch (e) {
-        console.log('Audio not supported', e);
-    }
-}
-
-function executeBeep(audioCtx, type) {
-    try {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        const currentTime = audioCtx.currentTime;
-
-        if (type === 'success') {
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(800, currentTime);
-            gainNode.gain.setValueAtTime(0.1, currentTime);
-            oscillator.start(currentTime);
-            oscillator.stop(currentTime + 0.15);
-        } else {
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(200, currentTime);
-            gainNode.gain.setValueAtTime(0.2, currentTime);
-            oscillator.start(currentTime);
-            oscillator.stop(currentTime + 0.3);
-        }
-    } catch (err) {
-        console.log('Beep execution error:', err);
-    }
-}
-
-// ช่วยปลดล็อกเสียงอัตโนมัติทันทีที่มีการคลิกหน้าจอครั้งแรก
-document.addEventListener('click', () => {
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') {
-        ctx.resume();
-    }
-}, { once: true });
-
 function getCustomerMapping() {
     let customerMap = {};
     let masterDb = window.masterPartsDatabase || [];
@@ -2803,6 +2740,38 @@ function updateFgMaxHint() {
     }
 }
 
+function playBeep(type) {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // เพิ่มบรรทัดนี้เพื่อปลดล็อกเสียงอัตโนมัติถ้าเบราว์เซอร์ระงับไว้
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        if (type === 'success') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.15);
+        } else {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
+        }
+    } catch (e) {
+        console.log('Audio not supported');
+    }
+}
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
@@ -2903,16 +2872,9 @@ function submitDelivery(e) {
         ? customerEl.value.trim() 
         : (customerMap[partNo.toLowerCase()] || '-');
 
-    // 🌟 1. ปรับวิธีดึงวันที่ให้เป็นเวลาปัจจุบันตามเครื่อง (Local Date YYYY-MM-DD ที่ถูกต้อง)
-    const now = new Date();
-    const localDateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-    
-    const inputDateVal = document.getElementById('deliveryDate').value;
-    const finalDate = inputDateVal ? inputDateVal : localDateStr;
-
     const record = {
         id: Date.now(),
-        date: finalDate, // ใช้ค่าวันที่ที่ถูกต้อง
+        date: document.getElementById('deliveryDate').value,
         partNo: partNo,
         qty: deliveryQty,
         customer: resolvedCustomer,
@@ -2926,9 +2888,7 @@ function submitDelivery(e) {
     }
 
     document.getElementById('deliveryForm').reset();
-    
-    // 🌟 2. เซ็ตค่าช่องวันที่ในฟอร์มให้เป็นวันที่ 16 เสมอ (ใช้ localDateStr)
-    document.getElementById('deliveryDate').value = localDateStr;
+    document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
     
     renderDelivery();
     loadDeliveryParts();
@@ -2938,6 +2898,7 @@ function submitDelivery(e) {
 
     alert("บันทึกการส่งมอบสำเร็จ!");
 }
+
 function renderDelivery() {
     const tbody = document.getElementById('deliveryTableBody');
     if (!tbody) return;
@@ -2951,47 +2912,19 @@ function renderDelivery() {
 
     const customerMap = getCustomerMapping();
 
-    // 🌟 ดึงวันที่ปัจจุบันของเครื่องในรูปแบบ YYYY-MM-DD แบบเป๊ะๆ
-    const now = new Date();
-    const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-
-    // 🌟 กรองเฉพาะรายการที่ตรงกับ "วันนี้" เท่านั้น (วันต่อวัน)
-    const todayDeliveries = deliveries.filter(d => {
-        if (!d.date) return false;
-        let dDateOnly = d.date.includes('T') ? d.date.split('T')[0] : d.date;
-        return dDateOnly === todayStr;
-    });
-
-    if (todayDeliveries.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ยังไม่มีประวัติการส่งมอบสินค้าของวันนี้</td></tr>`;
-        return;
-    }
-
-    // แสดงผลเฉพาะรายการของวันนี้
-    todayDeliveries.slice().reverse().forEach(d => {
+    // จำกัดให้แสดงผลเฉพาะ 100 รายการล่าสุด ป้องกันหน่วยความจำเต็ม
+    deliveries.slice().reverse().slice(0, 100).forEach(d => {
         let pNoStr = (d.partNo || "").trim();
         
+        // 🌟 บังคับดึงชื่อลูกค้าจาก Master Parts (Column D) มาแสดงผลเสมอทุกแถว (ทั้งเก่าและใหม่)
         let custName = customerMap[pNoStr.toLowerCase()] || d.customer || '-';
         if (custName === '-') {
-            custName = 'STEM-A'; 
-        }
-
-        let displayDate = '';
-        if (d.date) {
-            let dateObj = new Date(d.date);
-            if (!isNaN(dateObj.getTime())) {
-                let y = dateObj.getFullYear();
-                let m = String(dateObj.getMonth() + 1).padStart(2, '0');
-                let day = String(dateObj.getDate()).padStart(2, '0');
-                displayDate = `${y}-${m}-${day}`;
-            } else {
-                displayDate = d.date.split('T')[0];
-            }
+            custName = 'STEM-A'; // ค่าสำรองเผื่อกรณีดึงไม่ทัน
         }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${displayDate}</td>
+            <td>${d.date ? d.date.split('T')[0] : ''}</td>
             <td class="fw-bold text-info">${pNoStr}</td>
             <td class="text-primary fw-bold">${Number(d.qty || 0).toLocaleString()}</td>
             <td class="fw-bold text-success">${custName}</td>
@@ -3017,16 +2950,18 @@ function deleteDelivery(id) {
     }
 }
 
+// 🛡️ ป้องกัน Error จุกจิกจากฟังก์ชันภายนอก (เช่น Q-Gate) ไม่ให้บล็อกการทำงาน
 window.addEventListener('error', function(e) {
     if (e.message && e.message.includes('updateQGateIpInfo')) {
         e.preventDefault();
         return true;
     }
 });
-
+  // --- ส่วนจัดการแปลงและบีบอัดไฟล์รูปภาพเป็น Base64 ขนาดเล็กทันทีที่เลือกไฟล์ ---
 window.currentBmImage = '';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ระบุเจาะจงช่องเลือกรูปสำหรับการแจ้งซ่อม (เปลี่ยน 'bmImageInput' เป็น id ของ input ไฟล์รูปของคุณถ้าจำเป็น)
     const fileInput = document.getElementById('bmImageInput') || document.querySelector('input[type="file"]');
     
     if (fileInput) {
@@ -3060,6 +2995,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
+                        // บีบอัดคุณภาพเหลือ 50% (0.5) เพื่อให้ไฟล์เล็กและไม่ชนปัญหา Storage เต็ม
                         window.currentBmImage = canvas.toDataURL('image/jpeg', 0.5);
                         console.log("Image compressed and converted to Base64 successfully.");
                     };
