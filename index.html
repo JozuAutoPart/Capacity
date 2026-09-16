@@ -2903,9 +2903,16 @@ function submitDelivery(e) {
         ? customerEl.value.trim() 
         : (customerMap[partNo.toLowerCase()] || '-');
 
+    // 🌟 1. ปรับวิธีดึงวันที่ให้เป็นเวลาปัจจุบันตามเครื่อง (Local Date YYYY-MM-DD ที่ถูกต้อง)
+    const now = new Date();
+    const localDateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    
+    const inputDateVal = document.getElementById('deliveryDate').value;
+    const finalDate = inputDateVal ? inputDateVal : localDateStr;
+
     const record = {
         id: Date.now(),
-        date: document.getElementById('deliveryDate').value,
+        date: finalDate, // ใช้ค่าวันที่ที่ถูกต้อง
         partNo: partNo,
         qty: deliveryQty,
         customer: resolvedCustomer,
@@ -2919,7 +2926,9 @@ function submitDelivery(e) {
     }
 
     document.getElementById('deliveryForm').reset();
-    document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
+    
+    // 🌟 2. เซ็ตค่าช่องวันที่ในฟอร์มให้เป็นวันที่ 16 เสมอ (ใช้ localDateStr)
+    document.getElementById('deliveryDate').value = localDateStr;
     
     renderDelivery();
     loadDeliveryParts();
@@ -2929,7 +2938,6 @@ function submitDelivery(e) {
 
     alert("บันทึกการส่งมอบสำเร็จ!");
 }
-
 function renderDelivery() {
     const tbody = document.getElementById('deliveryTableBody');
     if (!tbody) return;
