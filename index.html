@@ -4347,30 +4347,53 @@ document.addEventListener('change', function(e) {
 // --- ฟังก์ชันกลางสำหรับตรวจสอบและดึงพาร์ทที่มี Stock มากกว่า 0 จริงๆ จากหน้าตาราง ---
 function getActivePartsMap() {
     let activePartsSet = new Set();
-    let targetTables = document.querySelectorAll('#wipTableBody tr, #fgTableBody tr'); 
-    let rowsToProcess = targetTables.length > 0 ? targetTables : document.querySelectorAll('table tbody tr');
-
-    rowsToProcess.forEach(tr => {
-        let cols = tr.querySelectorAll('td');
-        if (cols.length >= 2) {
-            let pNo = cols[0].innerText.trim();
-            if (!pNo || pNo.toLowerCase().includes('no data') || pNo.length < 2) return;
-
-            for (let i = 1; i < cols.length; i++) {
-                let cellText = cols[i].innerText.replace(/,/g, '').trim();
-                let val = parseFloat(cellText) || 0;
-                
-                // เช็กตัวที่มีค่ามากกว่า 0
-                if (val > 0 && !cellText.includes('In Stock') && !cellText.includes('Out') && !cellText.includes(':')) {
+    
+    // 1. เช็คจากฝั่ง Stock FG ก่อน (ถ้ามีฟังก์ชันคำนวณ หรือดึงจากตาราง FG)
+    if (typeof getFgBalances === 'function') {
+        const fgMap = getFgBalances();
+        for (let pNo in fgMap) {
+            if (fgMap[pNo] > 0) {
+                activePartsSet.add(String(pNo).trim().toUpperCase());
+            }
+        }
+    } else {
+        let fgRows = document.querySelectorAll('#fgTableBody tr');
+        fgRows.forEach(tr => {
+            let cols = tr.querySelectorAll('td');
+            if (cols.length >= 4) {
+                let pNo = cols[0].innerText.trim();
+                let balanceText = cols[cols.length - 2].innerText.replace(/,/g, '').trim();
+                let balanceVal = parseFloat(balanceText) || 0;
+                if (pNo && balanceVal > 0) {
                     activePartsSet.add(pNo.toUpperCase());
-                    break; 
                 }
+            }
+        });
+    }
+
+    // 2. 🌟 เพิ่มการเช็คจากฝั่ง Stock WIP (คงเหลือ WIP ปัจจุบัน) เข้าไปด้วย
+    let wipRows = document.querySelectorAll('#wipTableBody tr');
+    wipRows.forEach(tr => {
+        let cols = tr.querySelectorAll('td');
+        // ตรวจสอบว่าตาราง WIP มีคอลัมน์เพียงพอ (สมมติคอลัมน์สุดท้ายหรือรองสุดท้ายคือ "คงเหลือ WIP ปัจจุบัน")
+        if (cols.length >= 4) {
+            let pNo = cols[0].innerText.trim();
+            if (!pNo || pNo.toLowerCase().includes('no data')) return;
+
+            // ดึงค่าจากคอลัมน์ "คงเหลือ WIP ปัจจุบัน" (ลองเช็คดูว่าอยู่คอลัมน์เกือบสุดท้าย หรือปรับ index ตามตารางจริง)
+            // หรือใช้วิธีวนลูปหาตัวเลขช่องที่เป็นยอดคงเหลือ WIP
+            let wipBalanceText = cols[cols.length - 2].innerText.replace(/,/g, '').trim();
+            let wipBalanceVal = parseFloat(wipBalanceText) || 0;
+
+            // ถ้ามียอดคงเหลือ WIP มากกว่า 0 ให้ถือว่าแอคทีฟ (มีของในกระบวนการผลิต ไม่ถือว่าขาดสะบั้น)
+            if (pNo && wipBalanceVal > 0) {
+                activePartsSet.add(pNo.toUpperCase());
             }
         }
     });
+
     return activePartsSet;
 }
-
 // ประกาศตัวแปรเก็บค่าล่าสุดไว้ในระดับ Global (ป้องกันการรีเฟรชแล้วหลุด)
 function renderStockZeroPieChart() {
     let canvasElement = document.getElementById('stockZeroPieChart');
