@@ -2952,9 +2952,15 @@ function renderDelivery() {
             custName = 'STEM-A'; 
         }
 
+        // 🌟 ปรับปรุงการแสดงผลวันที่ให้ปลอดภัย รองรับทั้ง YYYY-MM-DD และรูปแบบ ISO String
+        let displayDate = '';
+        if (d.date) {
+            displayDate = d.date.includes('T') ? d.date.split('T')[0] : d.date;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${d.date ? d.date.split('T')[0] : ''}</td>
+            <td>${displayDate}</td>
             <td class="fw-bold text-info">${pNoStr}</td>
             <td class="text-primary fw-bold">${Number(d.qty || 0).toLocaleString()}</td>
             <td class="fw-bold text-success">${custName}</td>
@@ -2968,7 +2974,6 @@ function renderDelivery() {
         tbody.appendChild(tr);
     });
 }
-
 function deleteDelivery(id) {
     if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปถ่ายเดียว)')) {
         deliveries = deliveries.filter(d => d.id !== id);
