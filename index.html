@@ -2675,6 +2675,69 @@ function filterFgTable() {
 }
 // --- TAB 7: DELIVERY (การส่งมอบ) - FINAL POLISHED VERSION ---
 
+// ระบบจัดการ AudioContext ตัวเดียวเพื่อป้องกันการโดนบล็อกเสียงจากเบราว์เซอร์
+let globalAudioCtx = null;
+
+function getAudioContext() {
+    if (!globalAudioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        globalAudioCtx = new AudioContext();
+    }
+    return globalAudioCtx;
+}
+
+function playBeep(type) {
+    try {
+        const audioCtx = getAudioContext();
+        
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(() => {
+                executeBeep(audioCtx, type);
+            });
+        } else {
+            executeBeep(audioCtx, type);
+        }
+    } catch (e) {
+        console.log('Audio not supported', e);
+    }
+}
+
+function executeBeep(audioCtx, type) {
+    try {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        const currentTime = audioCtx.currentTime;
+
+        if (type === 'success') {
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, currentTime);
+            gainNode.gain.setValueAtTime(0.1, currentTime);
+            oscillator.start(currentTime);
+            oscillator.stop(currentTime + 0.15);
+        } else {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(200, currentTime);
+            gainNode.gain.setValueAtTime(0.2, currentTime);
+            oscillator.start(currentTime);
+            oscillator.stop(currentTime + 0.3);
+        }
+    } catch (err) {
+        console.log('Beep execution error:', err);
+    }
+}
+
+// ช่วยปลดล็อกเสียงอัตโนมัติทันทีที่มีการคลิกหน้าจอครั้งแรก
+document.addEventListener('click', () => {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        ctx.resume();
+    }
+}, { once: true });
+
 function getCustomerMapping() {
     let customerMap = {};
     let masterDb = window.masterPartsDatabase || [];
@@ -2740,38 +2803,6 @@ function updateFgMaxHint() {
     }
 }
 
-function playBeep(type) {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // เพิ่มบรรทัดนี้เพื่อปลดล็อกเสียงอัตโนมัติถ้าเบราว์เซอร์ระงับไว้
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-        
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        if (type === 'success') {
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.15);
-        } else {
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.3);
-        }
-    } catch (e) {
-        console.log('Audio not supported');
-    }
-}
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
@@ -2916,10 +2947,9 @@ function renderDelivery() {
     deliveries.slice().reverse().slice(0, 100).forEach(d => {
         let pNoStr = (d.partNo || "").trim();
         
-        // 🌟 บังคับดึงชื่อลูกค้าจาก Master Parts (Column D) มาแสดงผลเสมอทุกแถว (ทั้งเก่าและใหม่)
         let custName = customerMap[pNoStr.toLowerCase()] || d.customer || '-';
         if (custName === '-') {
-            custName = 'STEM-A'; // ค่าสำรองเผื่อกรณีดึงไม่ทัน
+            custName = 'STEM-A'; 
         }
 
         const tr = document.createElement('tr');
@@ -2938,6 +2968,7 @@ function renderDelivery() {
         tbody.appendChild(tr);
     });
 }
+
 function deleteDelivery(id) {
     if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปถ่ายเดียว)')) {
         deliveries = deliveries.filter(d => d.id !== id);
@@ -2949,6 +2980,7 @@ function deleteDelivery(id) {
         alert("ยกเลิกการส่งมอบสำเร็จ");
     }
 }
+
 window.addEventListener('error', function(e) {
     if (e.message && e.message.includes('updateQGateIpInfo')) {
         e.preventDefault();
