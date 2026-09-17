@@ -140,7 +140,7 @@
                 <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#tab-stock" type="button"><i class="fas fa-warehouse me-2 text-info"></i>Stock WIP & FG</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" id="delivery-tab" data-bs-toggle="tab" data-bs-target="#tab-delivery" type="button" onclick="loadDeliveryParts()"><i class="fas fa-truck me-2 text-primary"></i>Delivery (การส่งมอบ)</button>
+                <button class="nav-link" id="delivery-tab" data-bs-toggle="tab" data-bs-target="#tab-delivery" type="button" onclick="renderDelivery()"><i class="fas fa-truck me-2 text-primary"></i>Delivery (การส่งมอบ)</button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button" onclick="renderDiePM();"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
@@ -3785,7 +3785,6 @@ function loadAllDataFromCloud() {
                     }));
 
                     if (typeof renderDelivery === 'function') renderDelivery();
-                    if (typeof loadDeliveryParts === 'function') loadDeliveryParts();
                     if (typeof renderStock === 'function') renderStock();
                 }
             })
