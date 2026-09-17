@@ -2720,7 +2720,7 @@ function getCustomerMapping() {
 let pendingPdsData = null;
 
 // ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
-// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
+// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js (ใช้พิกัดตำแหน่ง X เพื่อดึงช่อง Total ขวาสุดอย่างแม่นยำ)
 async function previewPDSSheet() {
     const fileInput = document.getElementById('pdsPdfFile');
     if (!fileInput || fileInput.files.length === 0) {
@@ -2745,55 +2745,58 @@ async function previewPDSSheet() {
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
-                let textItems = textContent.items.map(item => item.str.trim());
                 
+                // จัดกลุ่มข้อความตามพิกัดแนวตั้ง (Y-coordinate) เพื่อจำแนกเป็นแต่ละบรรทัด/แถว
+                let rowsMap = {};
+                textContent.items.forEach(item => {
+                    let y = Math.round(item.transform[5] / 8) * 8;
+                    if (!rowsMap[y]) rowsMap[y] = [];
+                    rowsMap[y].push({
+                        x: item.transform[4],
+                        str: item.str.trim()
+                    });
+                });
+
+                // เรียงลำดับแถวจากบนลงล่าง
+                let sortedYKeys = Object.keys(rowsMap).map(Number).sort((a, b) => b - a);
+
                 let currentPartNo = null;
 
-                for (let j = 0; j < textItems.length; j++) {
-                    let text = textItems[j];
+                sortedYKeys.forEach(y => {
+                    let rowItems = rowsMap[y].sort((a, b) => a.x - b.x);
                     
-                    // 1. ตรวจจับรหัส Part No.
-                    if (/^\d{5}-[a-zA-Z0-9]+$/.test(text)) {
-                        currentPartNo = text;
-                    }
-
-                    // 2. เมื่อเจอ Part No. ให้เก็บตัวเลขทั้งหมดในละแวกแถวนี้ แล้วเลือกตัวเลขที่มีค่ามากที่สุด (หรือตัวท้ายสุดก่อนขึ้นบรรทัดใหม่) ซึ่งก็คือช่อง Total
-                    if (currentPartNo) {
-                        let rowNumbers = [];
-                        
-                        for (let k = 1; k <= 10; k++) {
-                            if (j + k < textItems.length) {
-                                let nextText = textItems[j + k];
-                                
-                                // ถ้าเจอพาร์ทถัดไปหรือคำว่า EXPORT ให้หยุดขอบเขตแถวนี้
-                                if (/^\d{5}-[a-zA-Z0-9]+$/.test(nextText) || nextText === "(EXPORT)") {
-                                    break;
-                                }
-
-                                let cleanNum = parseInt(nextText.replace(/,/g, ''), 10);
-                                // คัดกรองตัวเลขที่เป็นจำนวน (ตัดเลข Kanban น้อยๆ ออก เลือกเฉพาะช่อง Total ที่มักจะมีค่ามากกว่า หรือเลือกตัวเลขตัวท้ายสุดในแถว)
-                                if (!isNaN(cleanNum) && cleanNum > 0 && cleanNum < 50000) {
-                                    rowNumbers.push(cleanNum);
-                                }
-                            }
+                    // 1. ตรวจหารหัส Part No. ในแถว
+                    rowItems.forEach(item => {
+                        if (/^\d{5}-[a-zA-Z0-9]+$/.test(item.str)) {
+                            currentPartNo = item.str;
                         }
+                    });
 
-                        if (rowNumbers.length > 0) {
-                            // ในใบ PDS ช่อง Total จะอยู่ขวาสุดของแถว และมักจะมีค่ามากที่สุด (หรือใช้ตัวท้ายสุดของ array)
-                            // เพื่อความชัวร์ เลือกตัวเลขที่มากที่สุดในกลุ่มแถวนี้ (เพราะช่อง Total จะรวมยอดแล้ว มากกว่าช่อง Kanban แน่นอน)
-                            let totalQty = Math.max(...rowNumbers);
+                    // 2. ถ้าเจอ Part No. ให้มองหาตัวเลขฝั่งขวาตาราง (X > 450) ซึ่งเป็นโซนตัวเลขจำนวน
+                    if (currentPartNo) {
+                        let rightSideNumbers = rowItems.filter(item => {
+                            let num = parseInt(item.str.replace(/,/g, ''), 10);
+                            return item.x > 450 && !isNaN(num) && num > 0 && num < 100000;
+                        });
 
+                        if (rightSideNumbers.length > 0) {
+                            // เรียงลำดับตัวเลขจากซ้ายไปขวา (Remain -> Qty/Pack -> Kanban -> Total)
+                            rightSideNumbers.sort((a, b) => a.x - b.x);
+                            
+                            // ช่อง TOTAL จะอยู่ขวาสุดเสมอ (ตัวเลขที่มีพิกัด X มากที่สุดในแถว)
+                            let totalItem = rightSideNumbers[rightSideNumbers.length - 1];
+                            let totalQty = parseInt(totalItem.str.replace(/,/g, ''), 10);
+
+                            // บวกรวมยอดถ้ามีหลายบรรทัดย่อยในพาร์ทเดียวกัน
                             let existingItem = extractedItems.find(item => item.partNo === currentPartNo);
                             if (existingItem) {
-                                existingItem.qty += totalQty; // บวกรวมยอดหากมีหลายบรรทัดย่อย
+                                existingItem.qty += totalQty;
                             } else {
                                 extractedItems.push({ partNo: currentPartNo, qty: totalQty });
                             }
-                            
-                            currentPartNo = null; // เคลียร์ค่าเพื่อรอจับพาร์ทถัดไป
                         }
                     }
-                }
+                });
             }
 
             if (extractedItems.length === 0) {
