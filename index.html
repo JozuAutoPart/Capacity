@@ -2719,7 +2719,6 @@ function getCustomerMapping() {
 // ตัวแปรเก็บข้อมูล PDS ชั่วคราวก่อนกดยืนยันตัดสต็อก
 let pendingPdsData = null;
 
-// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
 // ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js (กรองบรรทัดสรุปยอด Total PCS ท้ายตารางออก)
 async function previewPDSSheet() {
     const fileInput = document.getElementById('pdsPdfFile');
@@ -2860,9 +2859,10 @@ async function previewPDSSheet() {
 
     fileReader.readAsArrayBuffer(file);
 }
-// ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด
-function confirmPDSDelivery() {
-    if (!pendingPdsData || !pendingPdsData.items) {
+
+// ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด (ปรับปรุงใหม่ รองรับข้อมูลจำนวนมากแบบทยอยบันทึก)
+async function confirmPDSDelivery() {
+    if (!pendingPdsData || !pendingPdsData.items || pendingPdsData.items.length === 0) {
         alert("ไม่พบข้อมูล PDS ที่พร้อมบันทึก!");
         return;
     }
@@ -2878,37 +2878,67 @@ function confirmPDSDelivery() {
         }
     }
 
-    // วนลูปบันทึกแต่ละรายการลงใน deliveries log และตัด Stock
-    pendingPdsData.items.forEach(item => {
-        const record = {
-            id: Date.now() + Math.random(),
-            date: pendingPdsData.date,
-            partNo: item.partNo,
-            qty: item.qty,
-            customer: pendingPdsData.customer,
-            remark: `PDS: ${pendingPdsData.pdsNo} / PO: ${pendingPdsData.poNo}`
-        };
+    let items = pendingPdsData.items;
+    let totalItems = items.length;
+    let chunkSize = 15; // แบ่งส่งทีละ 15 รายการต่อรอบ เพื่อป้องกันระบบ Timeout
+    let successCount = 0;
 
-        deliveries.push(record);
+    const badgeElement = document.getElementById('pdsItemCountBadge');
+    let originalBadgeText = badgeElement ? badgeElement.innerText : "";
 
-        if (typeof saveAll === 'function') {
-            saveAll('saveDelivery', record);
+    try {
+        for (let i = 0; i < totalItems; i += chunkSize) {
+            let chunk = items.slice(i, i + chunkSize);
+            
+            if (badgeElement) {
+                badgeElement.innerText = `กำลังบันทึก (${i + 1}-${Math.min(i + chunkSize, totalItems)}/${totalItems})...`;
+            }
+
+            // วนลูปบันทึกทีละชุดย่อย
+            for (let item of chunk) {
+                const record = {
+                    id: Date.now() + Math.random(),
+                    date: pendingPdsData.date,
+                    partNo: item.partNo,
+                    qty: item.qty,
+                    customer: pendingPdsData.customer,
+                    remark: `PDS: ${pendingPdsData.pdsNo} / PO: ${pendingPdsData.poNo}`
+                };
+
+                deliveries.push(record);
+
+                if (typeof saveAll === 'function') {
+                    await saveAll('saveDelivery', record);
+                }
+                successCount++;
+            }
+            
+            // หน่วงเวลาเล็กน้อยระหว่างชุด เพื่อความเสถียร
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
-    });
 
-    // รีเซ็ตฟอร์มและซ่อนพรีวิว
-    document.getElementById('pdsPdfFile').value = '';
-    document.getElementById('pdsPreviewBox').style.display = 'none';
-    pendingPdsData = null;
+        // รีเซ็ตฟอร์มและซ่อนพรีวิว
+        document.getElementById('pdsPdfFile').value = '';
+        document.getElementById('pdsPreviewBox').style.display = 'none';
+        pendingPdsData = null;
 
-    // อัปเดตตารางแสดงผลและสต็อก
-    renderDelivery();
-    if (typeof renderStock === 'function') {
-        renderStock();
+        // อัปเดตตารางแสดงผลและสต็อก
+        renderDelivery();
+        if (typeof renderStock === 'function') {
+            renderStock();
+        }
+
+        playBeep('success');
+        alert(`บันทึกการส่งมอบและตัด Stock FG สำเร็จครบถ้วน ${successCount} รายการเรียบร้อยครับ!`);
+
+    } catch (error) {
+        console.error("Error saving delivery batch:", error);
+        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + error.message);
+    } finally {
+        if (badgeElement) {
+            badgeElement.innerText = originalBadgeText;
+        }
     }
-
-    playBeep('success');
-    alert("บันทึกการส่งมอบและตัด Stock FG สำเร็จเรียบร้อย!");
 }
 
 function playBeep(type) {
