@@ -2720,7 +2720,7 @@ function getCustomerMapping() {
 let pendingPdsData = null;
 
 // ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
-// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js (ใช้พิกัดตำแหน่ง X เพื่อดึงช่อง Total ขวาสุดอย่างแม่นยำ)
+// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js (กรองบรรทัดสรุปยอด Total PCS ท้ายตารางออก)
 async function previewPDSSheet() {
     const fileInput = document.getElementById('pdsPdfFile');
     if (!fileInput || fileInput.files.length === 0) {
@@ -2746,25 +2746,39 @@ async function previewPDSSheet() {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
                 
-                // จัดกลุ่มข้อความตามพิกัดแนวตั้ง (Y-coordinate) เพื่อจำแนกเป็นแต่ละบรรทัด/แถว
+                // ตรวจสอบและตัดข้อความสรุปท้ายหน้าออกทันที
+                let rawItems = textContent.items.map(item => item.str.trim());
+                let fullRowText = rawItems.join(' ');
+                if (fullRowText.includes("TOTAL PCS") || fullRowText.includes("TOTAL K/B")) {
+                    // ข้ามการประมวลผลบรรทัดสรุปท้ายตาราง
+                }
+
                 let rowsMap = {};
                 textContent.items.forEach(item => {
+                    let text = item.str.trim();
+                    // ข้ามข้อความสรุปท้ายหน้า
+                    if (text.includes("TOTAL PCS") || text.includes("TOTAL K/B")) return;
+
                     let y = Math.round(item.transform[5] / 8) * 8;
                     if (!rowsMap[y]) rowsMap[y] = [];
                     rowsMap[y].push({
                         x: item.transform[4],
-                        str: item.str.trim()
+                        str: text
                     });
                 });
 
-                // เรียงลำดับแถวจากบนลงล่าง
                 let sortedYKeys = Object.keys(rowsMap).map(Number).sort((a, b) => b - a);
-
                 let currentPartNo = null;
 
                 sortedYKeys.forEach(y => {
                     let rowItems = rowsMap[y].sort((a, b) => a.x - b.x);
-                    
+                    let rowString = rowItems.map(r => r.str).join(' ');
+
+                    // ข้ามบรรทัดสรุปยอดท้ายตาราง
+                    if (rowString.includes("TOTAL PCS") || rowString.includes("TOTAL K/B")) {
+                        return;
+                    }
+
                     // 1. ตรวจหารหัส Part No. ในแถว
                     rowItems.forEach(item => {
                         if (/^\d{5}-[a-zA-Z0-9]+$/.test(item.str)) {
@@ -2772,28 +2786,26 @@ async function previewPDSSheet() {
                         }
                     });
 
-                    // 2. ถ้าเจอ Part No. ให้มองหาตัวเลขฝั่งขวาตาราง (X > 450) ซึ่งเป็นโซนตัวเลขจำนวน
+                    // 2. ถ้าเจอ Part No. ให้ดึงตัวเลขช่อง Total ขวาสุด (X > 450)
                     if (currentPartNo) {
                         let rightSideNumbers = rowItems.filter(item => {
                             let num = parseInt(item.str.replace(/,/g, ''), 10);
-                            return item.x > 450 && !isNaN(num) && num > 0 && num < 100000;
+                            return item.x > 450 && !isNaN(num) && num > 0 && num < 10000; // จำกัดไม่ให้เกิน 10,000 เพื่อป้องกันไปโดนตัวเลขรวมยอดหลักหมื่น
                         });
 
                         if (rightSideNumbers.length > 0) {
-                            // เรียงลำดับตัวเลขจากซ้ายไปขวา (Remain -> Qty/Pack -> Kanban -> Total)
                             rightSideNumbers.sort((a, b) => a.x - b.x);
-                            
-                            // ช่อง TOTAL จะอยู่ขวาสุดเสมอ (ตัวเลขที่มีพิกัด X มากที่สุดในแถว)
                             let totalItem = rightSideNumbers[rightSideNumbers.length - 1];
                             let totalQty = parseInt(totalItem.str.replace(/,/g, ''), 10);
 
-                            // บวกรวมยอดถ้ามีหลายบรรทัดย่อยในพาร์ทเดียวกัน
                             let existingItem = extractedItems.find(item => item.partNo === currentPartNo);
                             if (existingItem) {
                                 existingItem.qty += totalQty;
                             } else {
                                 extractedItems.push({ partNo: currentPartNo, qty: totalQty });
                             }
+                            
+                            currentPartNo = null; // รีเซ็ตเพื่อรอจับพาร์ทถัดไป
                         }
                     }
                 });
