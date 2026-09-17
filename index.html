@@ -765,7 +765,7 @@
                 </div>
             </div>
 
-         <!-- TAB 7: DELIVERY (การส่งมอบสินค้า) - ปรับปรุงใหม่ให้อัปโหลด PDF PDS -->
+       <!-- TAB 7: DELIVERY (การส่งมอบสินค้า) - ปรับปรุงใหม่ให้อัปโหลด PDF PDS -->
 <div class="tab-pane fade" id="tab-delivery">
     <div class="row g-3">
         <div class="col-md-4">
@@ -802,7 +802,7 @@
                             <tbody id="pdsPreviewTableBody">
                                 <!-- รายการจะถูกแทรกตรงนี้ -->
                             </tbody>
-                        </table>
+                    </table>
                     </div>
 
                     <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" onclick="confirmPDSDelivery()">
@@ -815,11 +815,18 @@
         
         <div class="col-md-8">
             <div class="card p-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <!-- หัวข้อตารางพร้อมช่องเลือกวันที่กรองรายวัน -->
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="m-0"><i class="fas fa-shipping-fast me-2 text-primary"></i>ประวัติการส่งมอบสินค้า (Delivery Log)</h5>
-                    <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('delivery')">
-                        <i class="fas fa-file-excel me-1"></i> Export ประวัติการส่งมอบ
-                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-secondary text-white border-secondary">เลือกวันที่</span>
+                            <input type="date" id="deliveryDateFilter" class="form-control" onchange="renderDelivery()">
+                        </div>
+                        <button class="btn btn-outline-success btn-sm" onclick="exportToExcelXLSX('delivery')">
+                            <i class="fas fa-file-excel me-1"></i> Export
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-dark table-hover align-middle m-0">
@@ -2989,9 +2996,27 @@ function renderDelivery() {
         return;
     }
 
+    // ดึงค่าวันที่จากช่องกรอง (ถ้ามีเลือกไว้)
+    const dateFilterInput = document.getElementById('deliveryDateFilter');
+    const selectedDate = dateFilterInput ? dateFilterInput.value : '';
+
     const customerMap = getCustomerMapping();
 
-    deliveries.slice().reverse().slice(0, 100).forEach(d => {
+    // กรองข้อมูลตามวันที่เลือก
+    let filteredDeliveries = deliveries.slice().reverse();
+    if (selectedDate) {
+        filteredDeliveries = filteredDeliveries.filter(d => {
+            let dDate = d.date ? d.date.split('T')[0] : '';
+            return dDate === selectedDate;
+        });
+    }
+
+    if (filteredDeliveries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">ไม่พบประวัติการส่งมอบในวันที่เลือก</td></tr>`;
+        return;
+    }
+
+    filteredDeliveries.slice(0, 100).forEach(d => {
         let pNoStr = (d.partNo || "").trim();
         let custName = customerMap[pNoStr.toLowerCase()] || d.customer || '-';
         if (custName === '-') {
@@ -3014,7 +3039,6 @@ function renderDelivery() {
         tbody.appendChild(tr);
     });
 }
-
 function deleteDelivery(id) {
     if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปเดิม)')) {
         deliveries = deliveries.filter(d => d.id !== id);
