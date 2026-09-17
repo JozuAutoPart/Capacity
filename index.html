@@ -2747,46 +2747,53 @@ async function previewPDSSheet() {
                 const textContent = await page.getTextContent();
                 let textItems = textContent.items.map(item => item.str.trim());
                 
+                let currentPartNo = null;
+
                 for (let j = 0; j < textItems.length; j++) {
                     let text = textItems[j];
                     
-                    // ค้นหารหัส Part No.
+                    // 1. ถ้าเจอ Part No. ให้จำค่าไว้ใช้กับตัวเลข Total ในแถวของมัน
                     if (/^\d{5}-[a-zA-Z0-9]+$/.test(text)) {
-                        let partNo = text;
-                        let totalQty = 0;
-                        let validNumbers = [];
+                        currentPartNo = text;
+                    }
+
+                    // 2. ถ้าเรามี Part No. แล้ว และเจอตัวเลขที่เป็นช่อง Total (มักจะเป็นตัวเลขตัวสุดท้ายก่อนจะขึ้นบรรทัดใหม่หรือพาร์ทใหม่)
+                    if (currentPartNo) {
+                        let numbersInRow = [];
                         
-                        // กวาดเก็บตัวเลขทั้งหมดในละแวกแถวปัจจุบัน (ไม่เกิน 12 ช่องถัดไป)
-                        for (let k = 1; k <= 12; k++) {
+                        // กวาดหาตัวเลขในละแวกใกล้เคียง (ไม่เกิน 8 บล็อกถัดไป)
+                        for (let k = 1; k <= 8; k++) {
                             if (j + k < textItems.length) {
                                 let nextText = textItems[j + k];
                                 
-                                // ถ้าเจอพาร์ทถัดไปให้หยุด
-                                if (/^\d{5}-[a-zA-Z0-9]+$/.test(nextText) && k > 1) {
+                                // ถ้าเจอพาร์ทถัดไปหรือคำว่า EXPORT ให้หยุดขอบเขตแถวนี้
+                                if (/^\d{5}-[a-zA-Z0-9]+$/.test(nextText) || nextText === "(EXPORT)") {
                                     break;
                                 }
 
                                 let cleanNum = parseInt(nextText.replace(/,/g, ''), 10);
-                                // คัดกรองตัวเลขที่เป็นจำนวนส่ง (ตัดเลขสต็อกคงเหลือหลักหมื่นออก เช่น 12,189 หรือ 14,479 ถ้าไม่ใช่ Total)
-                                if (!isNaN(cleanNum) && cleanNum > 0 && cleanNum < 10000) {
-                                    validNumbers.push(cleanNum);
+                                // คัดกรองตัวเลขที่เป็นจำนวนสั่งซื้อ (ตัดเลขล็อตหรือบาร์โค้ดยาวๆ ออก)
+                                if (!isNaN(cleanNum) && cleanNum > 0 && cleanNum < 50000) {
+                                    numbersInRow.push(cleanNum);
                                 }
                             }
                         }
 
-                        // ช่อง TOTAL ใน PDF จะอยู่ท้ายสุดของรายการตัวเลขในแถวเสมอ (เช่น มี Kanban=2, Total=36 -> เลือกตัวที่มากที่สุดหรือตัวท้ายสุด)
-                        if (validNumbers.length > 0) {
-                            // กรองเอาเฉพาะตัวเลขที่มีค่ามากกว่าค่า Kanban (ช่อง Total มักจะเป็นผลคูณหรือค่ามากที่สุดในแถว)
-                            totalQty = Math.max(...validNumbers); 
-                        }
+                        // ช่อง Total ใน PDF จะอยู่ท้ายสุดของแถวก่อนขึ้นรายการถัดไปเสมอ
+                        if (numbersInRow.length > 0) {
+                            let totalQty = numbersInRow[numbersInRow.length - 1]; // เอาตัวสุดท้ายซึ่งคือช่อง Total
 
-                        if (totalQty > 0) {
-                            let existingItem = extractedItems.find(item => item.partNo === partNo);
+                            let existingItem = extractedItems.find(item => item.partNo === currentPartNo);
                             if (existingItem) {
-                                existingItem.qty += totalQty; // รวมยอดหากมีหลายบรรทัดย่อยในพาร์ทเดียวกัน
+                                // ถ้าพาร์ทนี้เคยถูกบันทึกไปแล้ว (กรณีมีหลายบรรทัดย่อย) ให้บวกยอด Total เพิ่มเข้าไป
+                                // เช็กป้องกันการเก็บบันทึกซ้ำจากตำแหน่งเดิมซ้ำซ้อนโดยดูระยะห่าง
+                                existingItem.qty += totalQty;
                             } else {
-                                extractedItems.push({ partNo: partNo, qty: totalQty });
+                                extractedItems.push({ partNo: currentPartNo, qty: totalQty });
                             }
+                            
+                            // รีเซ็ตเพื่อรอจับพาร์ทถัดไป
+                            currentPartNo = null; 
                         }
                     }
                 }
