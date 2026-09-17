@@ -2754,35 +2754,35 @@ async function previewPDSSheet() {
                     if (/^\d{5}-[a-zA-Z0-9]+$/.test(text)) {
                         let partNo = text;
                         let totalQty = 0;
-                        let candidates = [];
+                        let numericBlock = [];
                         
-                        // ค้นหาตัวเลขทั้งหมดในละแวกแถวถัดไป (เก็บไว้คัดเลือกตัวที่เป็น Total ท้ายสุด)
-                        for (let k = 1; k <= 12; k++) {
+                        // กวาดเก็บตัวเลขทั้งหมดในละแวกแถวปัจจุบันจนกว่าจะเจอพาร์ทถัดไป
+                        for (let k = 1; k <= 10; k++) {
                             if (j + k < textItems.length) {
-                                let nextText = textItems[j + k].replace(/,/g, '');
+                                let nextText = textItems[j + k];
                                 
-                                // ถ้าเจอพาร์ทถัดไปหรือเจอคำว่า EXPORT / ใบเสร็จ ให้หยุดสแกนของแถวนี้
-                                if (/^\d{5}-[a-zA-Z0-9]+$/.test(textItems[j + k]) && k > 1) {
+                                // ถ้าเจอพาร์ทถัดไปให้หยุด
+                                if (/^\d{5}-[a-zA-Z0-9]+$/.test(nextText) && k > 1) {
                                     break;
                                 }
 
-                                let parsedNum = parseInt(nextText, 10);
-                                if (!isNaN(parsedNum) && parsedNum > 0 && parsedNum < 1000000) {
-                                    candidates.push(parsedNum);
+                                let cleanNum = parseInt(nextText.replace(/,/g, ''), 10);
+                                // คัดกรองเอาเฉพาะตัวเลขที่มีโอกาสเป็นช่อง Qty/Total (ตัดเลขล็อต, เลขบาร์โค้ดขนาดยาวทิ้ง)
+                                if (!isNaN(cleanNum) && cleanNum > 0 && cleanNum < 100000) {
+                                    numericBlock.push(cleanNum);
                                 }
                             }
                         }
 
-                        // ในตาราง PDS ช่อง TOTAL มักจะเป็นตัวเลขตัวท้ายๆ ขวาปานกลางถึงท้ายสุดของแถว
-                        if (candidates.length > 0) {
-                            // เลือกตัวเลขที่มีค่ามากที่สุดในกลุ่ม หรือตัวเกือบท้ายสุด (ช่อง TOTAL มักจะรวมยอดแล้วมีค่ามากที่สุดในแถว)
-                            totalQty = candidates[candidates.length - 1]; 
+                        // ช่อง TOTAL ในตาราง PDS ของท่าน จะอยู่เป็นตัวเลขท้ายสุดของบล็อกแถวนี้เสมอ
+                        if (numericBlock.length > 0) {
+                            totalQty = numericBlock[numericBlock.length - 1];
                         }
 
                         if (totalQty > 0) {
                             let existingItem = extractedItems.find(item => item.partNo === partNo);
                             if (existingItem) {
-                                existingItem.qty += totalQty; // รวมยอดหากมีหลายบรรทัดย่อย
+                                existingItem.qty += totalQty; // รวมยอดกรณีมีหลายบรรทัดย่อยในพาร์ทเดียวกัน
                             } else {
                                 extractedItems.push({ partNo: partNo, qty: totalQty });
                             }
