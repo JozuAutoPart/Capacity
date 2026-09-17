@@ -2720,6 +2720,7 @@ function getCustomerMapping() {
 let pendingPdsData = null;
 
 // ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
+// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
 async function previewPDSSheet() {
     const fileInput = document.getElementById('pdsPdfFile');
     if (!fileInput || fileInput.files.length === 0) {
@@ -2749,26 +2750,35 @@ async function previewPDSSheet() {
                 for (let j = 0; j < textItems.length; j++) {
                     let text = textItems[j];
                     
-                    // ใช้ Regex ค้นหารูปแบบ Part No. ที่ถูกต้อง (ตัวเลข 5 หลัก ขีดกลาง และรหัสตามหลัง)
-                    if (/^\d{5}-[A-Z0-9\-]{3,10}$/i.test(text)) {
+                    // ค้นหารหัส Part No. ตามรูปแบบในเอกสาร (ตัวเลข 5 หลัก ขีดกลาง และตัวอักษรผสม)
+                    if (/^\d{5}-[a-zA-Z0-9]+$/.test(text)) {
                         let partNo = text;
-                        let qty = 0;
+                        let totalQty = 0;
                         
-                        // ค้นหาตัวเลขจำนวน (Qty) จากช่องถัดไป
-                        for (let k = 1; k <= 3; k++) {
+                        // ค้นหาตัวเลข Total (ตัวเลขท้ายสุดในแถวที่มีค่ามากกว่า 0)
+                        for (let k = 1; k <= 10; k++) {
                             if (j + k < textItems.length) {
                                 let nextText = textItems[j + k].replace(/,/g, '');
                                 let parsedNum = parseInt(nextText, 10);
+                                // เช็กว่าเป็นตัวเลขที่มีโอกาสเป็นยอดรวม (มักจะอยู่เกือบท้ายรายการของแถว)
                                 if (!isNaN(parsedNum) && parsedNum > 0 && parsedNum < 100000) {
-                                    qty = parsedNum;
+                                    totalQty = parsedNum; // อัปเดตเก็บค่าล่าสุดที่เป็นไปได้
+                                }
+                                // ถ้าเจอพาร์ทถัดไปหรือเลยขอบเขตตาราง ให้หยุดหาของแถวนี้
+                                if (/^\d{5}-[a-zA-Z0-9]+$/.test(textItems[j + k]) && k > 1) {
                                     break;
                                 }
                             }
                         }
 
-                        if (qty > 0) {
-                            if (!extractedItems.some(item => item.partNo === partNo)) {
-                                extractedItems.push({ partNo: partNo, qty: qty });
+                        // หากลุ่มข้อมูลตัวเลข Total ที่แท้จริง (ดึงตัวเลขตัวสุดท้ายก่อนขึ้นพาร์ทใหม่)
+                        if (totalQty > 0) {
+                            // ตรวจสอบว่ามีพาร์ทนี้ในรายการหรือยัง ถ้ามีแล้วให้บวกเพิ่มหรือแทนที่
+                            let existingItem = extractedItems.find(item => item.partNo === partNo);
+                            if (existingItem) {
+                                existingItem.qty += totalQty; // รวมยอดถ้ามีหลายบรรทัด (เช่น PDS มีแบ่งตารางย่อย)
+                            } else {
+                                extractedItems.push({ partNo: partNo, qty: totalQty });
                             }
                         }
                     }
@@ -2776,7 +2786,7 @@ async function previewPDSSheet() {
             }
 
             if (extractedItems.length === 0) {
-                alert("ไม่พบรูปแบบ Part No. ที่ถูกต้องในไฟล์ PDF กรุณาตรวจสอบรูปแบบไฟล์อีกครั้ง");
+                alert("ไม่พบรูปแบบ Part No. ในไฟล์ PDF กรุณาตรวจสอบรูปแบบไฟล์อีกครั้ง");
                 return;
             }
 
