@@ -2719,6 +2719,7 @@ function getCustomerMapping() {
 // ตัวแปรเก็บข้อมูล PDS ชั่วคราวก่อนกดยืนยันตัดสต็อก
 let pendingPdsData = null;
 
+// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
 async function previewPDSSheet() {
     const fileInput = document.getElementById('pdsPdfFile');
     if (!fileInput || fileInput.files.length === 0) {
@@ -2748,12 +2749,12 @@ async function previewPDSSheet() {
                 for (let j = 0; j < textItems.length; j++) {
                     let text = textItems[j];
                     
-                    // ปรับ Regex ให้ยืดหยุ่นขึ้น รองรับขีดกลางและตัวอักษรผสม
-                    if (text.length >= 10 && text.includes('-')) {
+                    // ใช้ Regex ค้นหารูปแบบ Part No. ที่ถูกต้อง (ตัวเลข 5 หลัก ขีดกลาง และรหัสตามหลัง)
+                    if (/^\d{5}-[A-Z0-9\-]{3,10}$/i.test(text)) {
                         let partNo = text;
-                        
-                        // พยายามหาตัวเลขจำนวน (Qty) จากช่องถัดไป
                         let qty = 0;
+                        
+                        // ค้นหาตัวเลขจำนวน (Qty) จากช่องถัดไป
                         for (let k = 1; k <= 3; k++) {
                             if (j + k < textItems.length) {
                                 let nextText = textItems[j + k].replace(/,/g, '');
@@ -2774,9 +2775,8 @@ async function previewPDSSheet() {
                 }
             }
 
-            // แจ้งเตือนหากหาไม่เจอจริงๆ แทนที่จะใส่ข้อมูลหลอก
             if (extractedItems.length === 0) {
-                alert("ไม่พบรูปแบบ Part No. ในไฟล์ PDF กรุณาตรวจสอบรูปแบบไฟล์อีกครั้ง");
+                alert("ไม่พบรูปแบบ Part No. ที่ถูกต้องในไฟล์ PDF กรุณาตรวจสอบรูปแบบไฟล์อีกครั้ง");
                 return;
             }
 
