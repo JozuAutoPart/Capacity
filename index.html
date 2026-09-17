@@ -2754,10 +2754,10 @@ async function previewPDSSheet() {
                     if (/^\d{5}-[a-zA-Z0-9]+$/.test(text)) {
                         let partNo = text;
                         let totalQty = 0;
-                        let numericBlock = [];
+                        let validNumbers = [];
                         
-                        // กวาดเก็บตัวเลขทั้งหมดในละแวกแถวปัจจุบันจนกว่าจะเจอพาร์ทถัดไป
-                        for (let k = 1; k <= 10; k++) {
+                        // กวาดเก็บตัวเลขทั้งหมดในละแวกแถวปัจจุบัน (ไม่เกิน 12 ช่องถัดไป)
+                        for (let k = 1; k <= 12; k++) {
                             if (j + k < textItems.length) {
                                 let nextText = textItems[j + k];
                                 
@@ -2767,22 +2767,23 @@ async function previewPDSSheet() {
                                 }
 
                                 let cleanNum = parseInt(nextText.replace(/,/g, ''), 10);
-                                // คัดกรองเอาเฉพาะตัวเลขที่มีโอกาสเป็นช่อง Qty/Total (ตัดเลขล็อต, เลขบาร์โค้ดขนาดยาวทิ้ง)
-                                if (!isNaN(cleanNum) && cleanNum > 0 && cleanNum < 100000) {
-                                    numericBlock.push(cleanNum);
+                                // คัดกรองตัวเลขที่เป็นจำนวนส่ง (ตัดเลขสต็อกคงเหลือหลักหมื่นออก เช่น 12,189 หรือ 14,479 ถ้าไม่ใช่ Total)
+                                if (!isNaN(cleanNum) && cleanNum > 0 && cleanNum < 10000) {
+                                    validNumbers.push(cleanNum);
                                 }
                             }
                         }
 
-                        // ช่อง TOTAL ในตาราง PDS ของท่าน จะอยู่เป็นตัวเลขท้ายสุดของบล็อกแถวนี้เสมอ
-                        if (numericBlock.length > 0) {
-                            totalQty = numericBlock[numericBlock.length - 1];
+                        // ช่อง TOTAL ใน PDF จะอยู่ท้ายสุดของรายการตัวเลขในแถวเสมอ (เช่น มี Kanban=2, Total=36 -> เลือกตัวที่มากที่สุดหรือตัวท้ายสุด)
+                        if (validNumbers.length > 0) {
+                            // กรองเอาเฉพาะตัวเลขที่มีค่ามากกว่าค่า Kanban (ช่อง Total มักจะเป็นผลคูณหรือค่ามากที่สุดในแถว)
+                            totalQty = Math.max(...validNumbers); 
                         }
 
                         if (totalQty > 0) {
                             let existingItem = extractedItems.find(item => item.partNo === partNo);
                             if (existingItem) {
-                                existingItem.qty += totalQty; // รวมยอดกรณีมีหลายบรรทัดย่อยในพาร์ทเดียวกัน
+                                existingItem.qty += totalQty; // รวมยอดหากมีหลายบรรทัดย่อยในพาร์ทเดียวกัน
                             } else {
                                 extractedItems.push({ partNo: partNo, qty: totalQty });
                             }
