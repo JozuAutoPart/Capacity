@@ -2750,33 +2750,39 @@ async function previewPDSSheet() {
                 for (let j = 0; j < textItems.length; j++) {
                     let text = textItems[j];
                     
-                    // ค้นหารหัส Part No. ตามรูปแบบในเอกสาร (ตัวเลข 5 หลัก ขีดกลาง และตัวอักษรผสม)
+                    // ค้นหารหัส Part No.
                     if (/^\d{5}-[a-zA-Z0-9]+$/.test(text)) {
                         let partNo = text;
                         let totalQty = 0;
+                        let candidates = [];
                         
-                        // ค้นหาตัวเลข Total (ตัวเลขท้ายสุดในแถวที่มีค่ามากกว่า 0)
-                        for (let k = 1; k <= 10; k++) {
+                        // ค้นหาตัวเลขทั้งหมดในละแวกแถวถัดไป (เก็บไว้คัดเลือกตัวที่เป็น Total ท้ายสุด)
+                        for (let k = 1; k <= 12; k++) {
                             if (j + k < textItems.length) {
                                 let nextText = textItems[j + k].replace(/,/g, '');
-                                let parsedNum = parseInt(nextText, 10);
-                                // เช็กว่าเป็นตัวเลขที่มีโอกาสเป็นยอดรวม (มักจะอยู่เกือบท้ายรายการของแถว)
-                                if (!isNaN(parsedNum) && parsedNum > 0 && parsedNum < 100000) {
-                                    totalQty = parsedNum; // อัปเดตเก็บค่าล่าสุดที่เป็นไปได้
-                                }
-                                // ถ้าเจอพาร์ทถัดไปหรือเลยขอบเขตตาราง ให้หยุดหาของแถวนี้
+                                
+                                // ถ้าเจอพาร์ทถัดไปหรือเจอคำว่า EXPORT / ใบเสร็จ ให้หยุดสแกนของแถวนี้
                                 if (/^\d{5}-[a-zA-Z0-9]+$/.test(textItems[j + k]) && k > 1) {
                                     break;
+                                }
+
+                                let parsedNum = parseInt(nextText, 10);
+                                if (!isNaN(parsedNum) && parsedNum > 0 && parsedNum < 1000000) {
+                                    candidates.push(parsedNum);
                                 }
                             }
                         }
 
-                        // หากลุ่มข้อมูลตัวเลข Total ที่แท้จริง (ดึงตัวเลขตัวสุดท้ายก่อนขึ้นพาร์ทใหม่)
+                        // ในตาราง PDS ช่อง TOTAL มักจะเป็นตัวเลขตัวท้ายๆ ขวาปานกลางถึงท้ายสุดของแถว
+                        if (candidates.length > 0) {
+                            // เลือกตัวเลขที่มีค่ามากที่สุดในกลุ่ม หรือตัวเกือบท้ายสุด (ช่อง TOTAL มักจะรวมยอดแล้วมีค่ามากที่สุดในแถว)
+                            totalQty = candidates[candidates.length - 1]; 
+                        }
+
                         if (totalQty > 0) {
-                            // ตรวจสอบว่ามีพาร์ทนี้ในรายการหรือยัง ถ้ามีแล้วให้บวกเพิ่มหรือแทนที่
                             let existingItem = extractedItems.find(item => item.partNo === partNo);
                             if (existingItem) {
-                                existingItem.qty += totalQty; // รวมยอดถ้ามีหลายบรรทัด (เช่น PDS มีแบ่งตารางย่อย)
+                                existingItem.qty += totalQty; // รวมยอดหากมีหลายบรรทัดย่อย
                             } else {
                                 extractedItems.push({ partNo: partNo, qty: totalQty });
                             }
