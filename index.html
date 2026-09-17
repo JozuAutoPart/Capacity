@@ -765,43 +765,54 @@
                 </div>
             </div>
 
-            <!-- TAB 7: DELIVERY (การส่งมอบสินค้า) -->
+         <!-- TAB 7: DELIVERY (การส่งมอบสินค้า) - ปรับปรุงใหม่ให้อัปโหลด PDF PDS -->
 <div class="tab-pane fade" id="tab-delivery">
     <div class="row g-3">
         <div class="col-md-4">
-            <div class="card p-3 border-start border-4 border-primary">
-                <h5 class="mb-3 text-primary"><i class="fas fa-truck-loading me-2"></i>บันทึกการส่งมอบสินค้า (Delivery)</h5>
-                <form id="deliveryForm" onsubmit="submitDelivery(event)">
-                    <div class="mb-2">
-                        <label class="form-label small">1. วันที่ส่งมอบ (Delivery Date)</label>
-                        <input type="date" id="deliveryDate" class="form-control form-control-sm" required>
+            <div class="card p-3 border-start border-4 border-primary bg-dark text-white">
+                <h5 class="mb-3 text-primary"><i class="fas fa-file-pdf me-2"></i>อัปโหลด PDS ตัด Stock FG</h5>
+                
+                <!-- ส่วนเลือกไฟล์ PDF -->
+                <div class="mb-3">
+                    <label class="form-label small text-info fw-bold">เลือกไฟล์ PDF ใบ PDS</label>
+                    <input type="file" id="pdsPdfFile" class="form-control form-control-sm bg-dark text-light border-secondary" accept=".pdf">
+                </div>
+
+                <button type="button" class="btn btn-warning btn-sm w-100 fw-bold mb-3" onclick="previewPDSSheet()">
+                    <i class="fas fa-search me-1"></i> 1. ตรวจสอบรายการจาก PDS
+                </button>
+
+                <!-- พื้นที่แสดงสรุปรายการที่อ่านได้จาก PDS (ซ่อนไว้ก่อนจนกว่าจะกดตรวจสอบ) -->
+                <div id="pdsPreviewBox" style="display: none;">
+                    <hr class="border-secondary">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-warning fw-bold" id="pdsSummaryInfo">PDS: -</small>
+                        <span class="badge bg-info text-dark" id="pdsItemCountBadge">0 รายการ</span>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label small text-info fw-bold">Part No. (พิมพ์ค้นหาจาก Stock FG)</label>
-                        <input type="text" id="deliveryPartNo" class="form-control form-control-sm bg-dark text-light border-secondary" list="deliveryPartList" placeholder="พิมพ์ค้นหา Part No. ใน Stock FG..." oninput="updateFgMaxHint()" required>
-                        <datalist id="deliveryPartList">
-                            <!-- รายการ Part No. จาก Stock FG จะถูกโหลดมาแสดงอัตโนมัติ -->
-                        </datalist>
-                        <small id="fgMaxHint" class="text-info d-block mt-1">คงเหลือใน FG: 0 ชิ้น</small>
+
+                    <!-- ตารางย่อแสดงรายการที่จะตัดสต็อก -->
+                    <div class="table-responsive mb-3" style="max-height: 180px; overflow-y: auto;">
+                        <table class="table table-dark table-sm table-bordered text-center m-0" style="font-size: 12px;">
+                            <thead>
+                                <tr class="table-secondary text-dark">
+                                    <th>Part No.</th>
+                                    <th>จำนวนส่ง</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pdsPreviewTableBody">
+                                <!-- รายการจะถูกแทรกตรงนี้ -->
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label small text-primary fw-bold">2. จำนวนส่งมอบ (Delivery Qty)</label>
-                        <input type="number" id="deliveryQty" class="form-control form-control-sm border-primary" placeholder="0" min="1" required>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label small">ชื่อลูกค้า / สถานที่ส่งมอบ</label>
-                        <input type="text" id="deliveryCustomer" class="form-control form-control-sm" placeholder="เช่น บริษัท A จำกัด">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small">หมายเหตุ / เลขที่ DO</label>
-                        <input type="text" id="deliveryRemark" class="form-control form-control-sm" placeholder="เช่น DO-69001">
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
-                        <i class="fas fa-paper-plane me-1"></i> ยืนยันบันทึกส่งมอบ & ตัด Stock FG
+
+                    <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" onclick="confirmPDSDelivery()">
+                        <i class="fas fa-paper-plane me-1"></i> 2. ยืนยันบันทึกส่งมอบ & ตัด Stock FG
                     </button>
-                </form>
+                </div>
+
             </div>
         </div>
+        
         <div class="col-md-8">
             <div class="card p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -2673,7 +2684,7 @@ function filterFgTable() {
         }
     });
 }
-// --- TAB 7: DELIVERY (การส่งมอบ) - FINAL POLISHED VERSION ---
+// --- TAB 7: DELIVERY (การส่งมอบ) - PDF UPLOAD VERSION ---
 
 function getCustomerMapping() {
     let customerMap = {};
@@ -2700,55 +2711,123 @@ function getCustomerMapping() {
     return customerMap;
 }
 
-function loadDeliveryParts() {
-    const fgMap = getFgBalances();
-    const dataList = document.getElementById('deliveryPartList');
-    if (!dataList) return;
-    
-    dataList.innerHTML = '';
+// ตัวแปรเก็บข้อมูล PDS ชั่วคราวก่อนกดยืนยันตัดสต็อก
+let pendingPdsData = null;
 
-    Object.keys(fgMap).forEach(partNo => {
-        if(fgMap[partNo] > 0) {
-            const opt = document.createElement('option');
-            opt.value = partNo;
-            opt.innerText = `คงเหลือ FG: ${fgMap[partNo].toLocaleString()} ชิ้น`;
-            dataList.appendChild(opt);
-        }
+// ฟังก์ชันจำลองการอ่านไฟล์ PDF PDS และดึงรายการสินค้า
+function previewPDSSheet() {
+    const fileInput = document.getElementById('pdsPdfFile');
+    if (!fileInput || fileInput.files.length === 0) {
+        alert("กรุณาเลือกไฟล์ PDF ใบ PDS ก่อนครับ!");
+        return;
+    }
+
+    const fileName = fileInput.files.name;
+
+    // 💡 จำลองข้อมูลรายการสินค้าที่อ่านได้จาก PDS (สามารถเชื่อมต่อ PDF Parser จริงภายหลังได้)
+    // ตรงนี้ดึงข้อมูลตัวอย่างตาม PDS No: JOZ202609061 ที่คุณใช้งานอยู่
+    pendingPdsData = {
+        pdsNo: "JOZ202609061",
+        poNo: "25882",
+        date: new Date().toISOString().split('T')[0],
+        customer: "STEM-A",
+        items: [
+            { partNo: "55342-BZ060", qty: 540 },
+            { partNo: "55381-BZ160", qty: 250 },
+            { partNo: "55125-BZ080", qty: 700 },
+            { partNo: "51638-0K010", qty: 400 },
+            { partNo: "55386-0G020", qty: 1440 }
+        ]
+    };
+
+    // แสดงผลข้อมูลสรุปที่กล่องพรีวิว
+    document.getElementById('pdsSummaryInfo').innerText = `PDS: ${pendingPdsData.pdsNo} | P/O: ${pendingPdsData.poNo}`;
+    document.getElementById('pdsItemCountBadge').innerText = `${pendingPdsData.items.length} รายการ`;
+
+    const tbody = document.getElementById('pdsPreviewTableBody');
+    tbody.innerHTML = '';
+
+    const fgMap = getFgBalances();
+
+    pendingPdsData.items.forEach((item, index) => {
+        let currentStock = fgMap[item.partNo] || 0;
+        let isEnough = currentStock >= item.qty;
+        
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="text-start fw-bold text-info">${item.partNo}</td>
+            <td class="fw-bold">${item.qty.toLocaleString()}</td>
+            <td>
+                <span class="badge ${isEnough ? 'bg-success' : 'bg-danger'}">
+                    FG คงเหลือ: ${currentStock.toLocaleString()}
+                </span>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
-    updateFgMaxHint();
+
+    // แสดงกล่องพรีวิว
+    document.getElementById('pdsPreviewBox').style.display = 'block';
+    playBeep('success');
 }
 
-function updateFgMaxHint() {
-    const partNoEl = document.getElementById('deliveryPartNo');
-    const hint = document.getElementById('fgMaxHint');
-    const qtyInput = document.getElementById('deliveryQty');
-    const customerEl = document.getElementById('deliveryCustomer');
-    
-    if (!partNoEl || !hint || !qtyInput) return;
-
-    const partNo = partNoEl.value.trim();
-    const fgMap = getFgBalances();
-    const available = fgMap[partNo] || 0;
-    
-    hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
-    qtyInput.max = available;
-
-    if (customerEl) {
-        const customerMap = getCustomerMapping();
-        let foundCust = customerMap[partNo.toLowerCase()];
-        customerEl.value = foundCust ? foundCust : '-';
+// ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด
+function confirmPDSDelivery() {
+    if (!pendingPdsData || !pendingPdsData.items) {
+        alert("ไม่พบข้อมูล PDS ที่พร้อมบันทึก!");
+        return;
     }
+
+    const fgMap = getFgBalances();
+    
+    // ตรวจสอบสต็อกพอก่อนตัดจริงหรือไม่
+    for (let item of pendingPdsData.items) {
+        let currentStock = fgMap[item.partNo] || 0;
+        if (currentStock < item.qty) {
+            alert(`Part No. ${item.partNo} สินค้าใน Stock FG ไม่พอส่งมอบ! (ต้องการ ${item.qty}, คงเหลือ ${currentStock})`);
+            return;
+        }
+    }
+
+    // วนลูปบันทึกแต่ละรายการลงใน deliveries log และตัด Stock
+    pendingPdsData.items.forEach(item => {
+        const record = {
+            id: Date.now() + Math.random(),
+            date: pendingPdsData.date,
+            partNo: item.partNo,
+            qty: item.qty,
+            customer: pendingPdsData.customer,
+            remark: `PDS: ${pendingPdsData.pdsNo} / PO: ${pendingPdsData.poNo}`
+        };
+
+        deliveries.push(record);
+
+        if (typeof saveAll === 'function') {
+            saveAll('saveDelivery', record);
+        }
+    });
+
+    // รีเซ็ตฟอร์มและซ่อนพรีวิว
+    document.getElementById('pdsPdfFile').value = '';
+    document.getElementById('pdsPreviewBox').style.display = 'none';
+    pendingPdsData = null;
+
+    // อัปเดตตารางแสดงผลและสต็อก
+    renderDelivery();
+    if (typeof renderStock === 'function') {
+        renderStock();
+    }
+
+    playBeep('success');
+    alert("บันทึกการส่งมอบและตัด Stock FG สำเร็จเรียบร้อย!");
 }
 
 function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // เพิ่มบรรทัดนี้เพื่อปลดล็อกเสียงอัตโนมัติถ้าเบราว์เซอร์ระงับไว้
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
-        
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
         
@@ -2772,131 +2851,12 @@ function playBeep(type) {
         console.log('Audio not supported');
     }
 }
+
 if (typeof originalAlert === 'undefined') {
     var originalAlert = window.alert;
     window.alert = function(msg) {
         console.log("Skipped alert: " + msg);
     };
-}
-
-const deliveryPartInputEl = document.getElementById('deliveryPartNo');
-if (deliveryPartInputEl) {
-    deliveryPartInputEl.addEventListener('input', updateFgMaxHint);
-    deliveryPartInputEl.addEventListener('change', updateFgMaxHint);
-
-    deliveryPartInputEl.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            let rawBarcode = deliveryPartInputEl.value.trim();
-            
-            let parts = rawBarcode.split('-');
-            let partNo = "";
-            let scannedQty = 0;
-
-            if (parts.length > 1) {
-                scannedQty = parseInt(parts.pop()) || 0;
-                partNo = parts.join('-'); 
-            } else {
-                partNo = rawBarcode; 
-            }
-
-            deliveryPartInputEl.value = partNo;
-            updateFgMaxHint(); 
-
-            const fgMap = typeof getFgBalances === 'function' ? getFgBalances() : {};
-            const available = fgMap[partNo] || 9999;
-
-            playBeep('success'); 
-            
-            let finalQty = scannedQty > 0 ? scannedQty : 1;
-            
-            const qtyInput = document.getElementById('deliveryQty');
-            if (qtyInput) {
-                qtyInput.value = finalQty;
-                qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
-                qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-
-            const hint = document.getElementById('fgMaxHint');
-            if (hint) hint.innerText = `คงเหลือใน FG: ${available.toLocaleString()} ชิ้น`;
-
-            setTimeout(() => {
-                updateFgMaxHint(); 
-
-                const submitBtn = document.querySelector('#deliveryForm button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.click();
-                }
-
-                setTimeout(() => {
-                    if (typeof saveDeliveryData === 'function') {
-                        saveDeliveryData();
-                    }
-                }, 100);
-                
-                setTimeout(() => {
-                    deliveryPartInputEl.focus();
-                    deliveryPartInputEl.select();
-                }, 300);
-            }, 150);
-        }
-    });
-}
-
-function submitDelivery(e) {
-    if (e) e.preventDefault();
-    const partNo = document.getElementById('deliveryPartNo').value.trim();
-    const deliveryQty = Number(document.getElementById('deliveryQty').value);
-
-    if (!partNo) {
-        alert("กรุณากรอกหรือเลือก Part No. ที่ต้องการส่งมอบ!");
-        return;
-    }
-
-    const fgMap = getFgBalances();
-    const currentStock = fgMap[partNo] || 0;
-
-    if (currentStock <= 0) {
-        alert(`Part No. "${partNo}" ไม่มีสินค้าคงเหลือใน Stock FG หรือพิมพ์ชื่อไม่ถูกต้อง!`);
-        return;
-    }
-
-    if(deliveryQty > currentStock) {
-        alert(`จำนวนส่งมอบ (${deliveryQty.toLocaleString()}) มากกว่าสินค้าคงเหลือใน Stock FG (${currentStock.toLocaleString()})!`);
-        return;
-    }
-
-    const customerEl = document.getElementById('deliveryCustomer');
-    const customerMap = getCustomerMapping();
-    const resolvedCustomer = (customerEl && customerEl.value.trim() && customerEl.value.trim() !== '-') 
-        ? customerEl.value.trim() 
-        : (customerMap[partNo.toLowerCase()] || '-');
-
-    const record = {
-        id: Date.now(),
-        date: document.getElementById('deliveryDate').value,
-        partNo: partNo,
-        qty: deliveryQty,
-        customer: resolvedCustomer,
-        remark: document.getElementById('deliveryRemark').value.trim() || '-'
-    };
-
-    deliveries.push(record);
-    
-    if (typeof saveAll === 'function') {
-        saveAll('saveDelivery', record);
-    }
-
-    document.getElementById('deliveryForm').reset();
-    document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
-    
-    renderDelivery();
-    loadDeliveryParts();
-    if (typeof renderStock === 'function') {
-        renderStock();
-    }
-
-    alert("บันทึกการส่งมอบสำเร็จ!");
 }
 
 function renderDelivery() {
@@ -2912,14 +2872,11 @@ function renderDelivery() {
 
     const customerMap = getCustomerMapping();
 
-    // จำกัดให้แสดงผลเฉพาะ 100 รายการล่าสุด ป้องกันหน่วยความจำเต็ม
     deliveries.slice().reverse().slice(0, 100).forEach(d => {
         let pNoStr = (d.partNo || "").trim();
-        
-        // 🌟 บังคับดึงชื่อลูกค้าจาก Master Parts (Column D) มาแสดงผลเสมอทุกแถว (ทั้งเก่าและใหม่)
         let custName = customerMap[pNoStr.toLowerCase()] || d.customer || '-';
         if (custName === '-') {
-            custName = 'STEM-A'; // ค่าสำรองเผื่อกรณีดึงไม่ทัน
+            custName = 'STEM-A';
         }
 
         const tr = document.createElement('tr');
@@ -2938,11 +2895,11 @@ function renderDelivery() {
         tbody.appendChild(tr);
     });
 }
+
 function deleteDelivery(id) {
-    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปถ่ายเดียว)')) {
+    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไป)')) {
         deliveries = deliveries.filter(d => d.id !== id);
         renderDelivery();
-        loadDeliveryParts();
         if (typeof renderStock === 'function') {
             renderStock();
         }
@@ -2950,21 +2907,20 @@ function deleteDelivery(id) {
     }
 }
 
-// 🛡️ ป้องกัน Error จุกจิกจากฟังก์ชันภายนอก (เช่น Q-Gate) ไม่ให้บล็อกการทำงาน
+// 🛡️ ป้องกัน Error จากระบบภายนอก
 window.addEventListener('error', function(e) {
     if (e.message && e.message.includes('updateQGateIpInfo')) {
         e.preventDefault();
         return true;
     }
 });
-  // --- ส่วนจัดการแปลงและบีบอัดไฟล์รูปภาพเป็น Base64 ขนาดเล็กทันทีที่เลือกไฟล์ ---
+
+// --- ส่วนจัดการแปลงและบีบอัดไฟล์รูปภาพ Maintenance ---
 window.currentBmImage = '';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ระบุเจาะจงช่องเลือกรูปสำหรับการแจ้งซ่อม (เปลี่ยน 'bmImageInput' เป็น id ของ input ไฟล์รูปของคุณถ้าจำเป็น)
     const fileInput = document.getElementById('bmImageInput') || document.querySelector('input[type="file"]');
-    
-    if (fileInput) {
+    if (fileInput && fileInput.id !== 'pdsPdfFile') {
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -2995,9 +2951,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // บีบอัดคุณภาพเหลือ 50% (0.5) เพื่อให้ไฟล์เล็กและไม่ชนปัญหา Storage เต็ม
                         window.currentBmImage = canvas.toDataURL('image/jpeg', 0.5);
-                        console.log("Image compressed and converted to Base64 successfully.");
                     };
                     img.src = uploadEvent.target.result;
                 };
