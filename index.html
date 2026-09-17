@@ -2752,17 +2752,16 @@ async function previewPDSSheet() {
                 for (let j = 0; j < textItems.length; j++) {
                     let text = textItems[j];
                     
-                    // 1. ถ้าเจอ Part No. ให้จำค่าไว้ใช้กับตัวเลข Total ในแถวของมัน
+                    // 1. ตรวจจับรหัส Part No.
                     if (/^\d{5}-[a-zA-Z0-9]+$/.test(text)) {
                         currentPartNo = text;
                     }
 
-                    // 2. ถ้าเรามี Part No. แล้ว และเจอตัวเลขที่เป็นช่อง Total (มักจะเป็นตัวเลขตัวสุดท้ายก่อนจะขึ้นบรรทัดใหม่หรือพาร์ทใหม่)
+                    // 2. เมื่อเจอ Part No. ให้เก็บตัวเลขทั้งหมดในละแวกแถวนี้ แล้วเลือกตัวเลขที่มีค่ามากที่สุด (หรือตัวท้ายสุดก่อนขึ้นบรรทัดใหม่) ซึ่งก็คือช่อง Total
                     if (currentPartNo) {
-                        let numbersInRow = [];
+                        let rowNumbers = [];
                         
-                        // กวาดหาตัวเลขในละแวกใกล้เคียง (ไม่เกิน 8 บล็อกถัดไป)
-                        for (let k = 1; k <= 8; k++) {
+                        for (let k = 1; k <= 10; k++) {
                             if (j + k < textItems.length) {
                                 let nextText = textItems[j + k];
                                 
@@ -2772,28 +2771,26 @@ async function previewPDSSheet() {
                                 }
 
                                 let cleanNum = parseInt(nextText.replace(/,/g, ''), 10);
-                                // คัดกรองตัวเลขที่เป็นจำนวนสั่งซื้อ (ตัดเลขล็อตหรือบาร์โค้ดยาวๆ ออก)
+                                // คัดกรองตัวเลขที่เป็นจำนวน (ตัดเลข Kanban น้อยๆ ออก เลือกเฉพาะช่อง Total ที่มักจะมีค่ามากกว่า หรือเลือกตัวเลขตัวท้ายสุดในแถว)
                                 if (!isNaN(cleanNum) && cleanNum > 0 && cleanNum < 50000) {
-                                    numbersInRow.push(cleanNum);
+                                    rowNumbers.push(cleanNum);
                                 }
                             }
                         }
 
-                        // ช่อง Total ใน PDF จะอยู่ท้ายสุดของแถวก่อนขึ้นรายการถัดไปเสมอ
-                        if (numbersInRow.length > 0) {
-                            let totalQty = numbersInRow[numbersInRow.length - 1]; // เอาตัวสุดท้ายซึ่งคือช่อง Total
+                        if (rowNumbers.length > 0) {
+                            // ในใบ PDS ช่อง Total จะอยู่ขวาสุดของแถว และมักจะมีค่ามากที่สุด (หรือใช้ตัวท้ายสุดของ array)
+                            // เพื่อความชัวร์ เลือกตัวเลขที่มากที่สุดในกลุ่มแถวนี้ (เพราะช่อง Total จะรวมยอดแล้ว มากกว่าช่อง Kanban แน่นอน)
+                            let totalQty = Math.max(...rowNumbers);
 
                             let existingItem = extractedItems.find(item => item.partNo === currentPartNo);
                             if (existingItem) {
-                                // ถ้าพาร์ทนี้เคยถูกบันทึกไปแล้ว (กรณีมีหลายบรรทัดย่อย) ให้บวกยอด Total เพิ่มเข้าไป
-                                // เช็กป้องกันการเก็บบันทึกซ้ำจากตำแหน่งเดิมซ้ำซ้อนโดยดูระยะห่าง
-                                existingItem.qty += totalQty;
+                                existingItem.qty += totalQty; // บวกรวมยอดหากมีหลายบรรทัดย่อย
                             } else {
                                 extractedItems.push({ partNo: currentPartNo, qty: totalQty });
                             }
                             
-                            // รีเซ็ตเพื่อรอจับพาร์ทถัดไป
-                            currentPartNo = null; 
+                            currentPartNo = null; // เคลียร์ค่าเพื่อรอจับพาร์ทถัดไป
                         }
                     }
                 }
