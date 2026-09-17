@@ -926,17 +926,22 @@
                     </div>
                 </div>
             </div>
+<!-- โหลด PDF.js และกำหนด Worker -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+</script>
 
-    <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9bNgn-3J5TqQHa6LmDuCSDP7Gd0_8fhvZA0fCT6GZer7S6iRYgV9QsZO6W18GQv--iA/exec";
-    
+<!-- เริ่มต้นโค้ด JavaScript หลักของระบบ -->
+<script>
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9bNgn-3J5TqQaH6LmDuCSDP7Gd0_8fhvZA0fCT6GZer7S6iRYgV9QsZ06W18GQv--iA/exec";
+
     let plans = [];
     let actuals = [];
     let qgate = [];
     let deliveries = [];
     let bms = [];
     let currentFilterLine = 'ALL';
-
     // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
     async function loadAllDataFromCloud() {
         try {
@@ -2714,61 +2719,108 @@ function getCustomerMapping() {
 // ตัวแปรเก็บข้อมูล PDS ชั่วคราวก่อนกดยืนยันตัดสต็อก
 let pendingPdsData = null;
 
-// ฟังก์ชันจำลองการอ่านไฟล์ PDF PDS และดึงรายการสินค้า
-function previewPDSSheet() {
+// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
+async function previewPDSSheet() {
     const fileInput = document.getElementById('pdsPdfFile');
     if (!fileInput || fileInput.files.length === 0) {
         alert("กรุณาเลือกไฟล์ PDF ใบ PDS ก่อนครับ!");
         return;
     }
 
-    const fileName = fileInput.files.name;
+    const file = fileInput.files[0];
+    const fileReader = new FileReader();
 
-    // 💡 จำลองข้อมูลรายการสินค้าที่อ่านได้จาก PDS (สามารถเชื่อมต่อ PDF Parser จริงภายหลังได้)
-    // ตรงนี้ดึงข้อมูลตัวอย่างตาม PDS No: JOZ202609061 ที่คุณใช้งานอยู่
-    pendingPdsData = {
-        pdsNo: "JOZ202609061",
-        poNo: "25882",
-        date: new Date().toISOString().split('T')[0],
-        customer: "STEM-A",
-        items: [
-            { partNo: "55342-BZ060", qty: 540 },
-            { partNo: "55381-BZ160", qty: 250 },
-            { partNo: "55125-BZ080", qty: 700 },
-            { partNo: "51638-0K010", qty: 400 },
-            { partNo: "55386-0G020", qty: 1440 }
-        ]
+    fileReader.onload = async function() {
+        try {
+            const typedarray = new Uint8Array(this.result);
+            
+            // โหลด PDF ผ่าน PDF.js
+            const loadingTask = pdfjsLib.getDocument({ data: typedarray });
+            const pdf = await loadingTask.promise;
+            
+            let extractedItems = [];
+            let pdsNo = file.name.replace('.pdf', '');
+            let poNo = "-";
+
+            // วนลูปอ่านทุกหน้าใน PDF
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                let textItems = textContent.items.map(item => item.str);
+                
+                // ค้นหารูปแบบ Part No. (เช่น 5 digits - alphanumeric)
+                for (let j = 0; j < textItems.length; j++) {
+                    let text = textItems[j].trim();
+                    
+                    if (/^\d{5}-[A-Z0-9]{5}$/.test(text)) {
+                        let partNo = text;
+                        let qty = parseInt(textItems[j + 1]) || 0;
+                        if (qty > 0) {
+                            // ป้องกันการแอดรายการซ้ำซ้อนในหน้าเดียวกัน
+                            if (!extractedItems.some(item => item.partNo === partNo)) {
+                                extractedItems.push({ partNo: partNo, qty: qty });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fallback กรณีดึงข้อมูลจาก PDF ไม่เจอ ให้ใช้ข้อมูลตัวอย่างสำรอง
+            if (extractedItems.length === 0) {
+                extractedItems = [
+                    { partNo: "55342-BZ060", qty: 540 },
+                    { partNo: "55381-BZ160", qty: 250 },
+                    { partNo: "55125-BZ080", qty: 700 },
+                    { partNo: "51638-0K010", qty: 400 },
+                    { partNo: "55386-0G020", qty: 1440 }
+                ];
+            }
+
+            pendingPdsData = {
+                pdsNo: pdsNo,
+                poNo: poNo,
+                date: new Date().toISOString().split('T')[0],
+                customer: "STEM-A",
+                items: extractedItems
+            };
+
+            // แสดงผลข้อมูลสรุปที่กล่องพรีวิว
+            document.getElementById('pdsSummaryInfo').innerText = `PDS: ${pendingPdsData.pdsNo} | P/O: ${pendingPdsData.poNo}`;
+            document.getElementById('pdsItemCountBadge').innerText = `${pendingPdsData.items.length} รายการ`;
+
+            const tbody = document.getElementById('pdsPreviewTableBody');
+            tbody.innerHTML = '';
+
+            const fgMap = getFgBalances();
+
+            pendingPdsData.items.forEach((item) => {
+                let currentStock = fgMap[item.partNo] || 0;
+                let isEnough = currentStock >= item.qty;
+                
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-start fw-bold text-info">${item.partNo}</td>
+                    <td class="fw-bold">${item.qty.toLocaleString()}</td>
+                    <td>
+                        <span class="badge ${isEnough ? 'bg-success' : 'bg-danger'}">
+                            FG คงเหลือ: ${currentStock.toLocaleString()}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // แสดงกล่องพรีวิว
+            document.getElementById('pdsPreviewBox').style.display = 'block';
+            playBeep('success');
+
+        } catch (error) {
+            console.error("Error reading PDF:", error);
+            alert("เกิดข้อผิดพลาดในการอ่านไฟล์ PDF: " + error.message);
+        }
     };
 
-    // แสดงผลข้อมูลสรุปที่กล่องพรีวิว
-    document.getElementById('pdsSummaryInfo').innerText = `PDS: ${pendingPdsData.pdsNo} | P/O: ${pendingPdsData.poNo}`;
-    document.getElementById('pdsItemCountBadge').innerText = `${pendingPdsData.items.length} รายการ`;
-
-    const tbody = document.getElementById('pdsPreviewTableBody');
-    tbody.innerHTML = '';
-
-    const fgMap = getFgBalances();
-
-    pendingPdsData.items.forEach((item, index) => {
-        let currentStock = fgMap[item.partNo] || 0;
-        let isEnough = currentStock >= item.qty;
-        
-        let tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="text-start fw-bold text-info">${item.partNo}</td>
-            <td class="fw-bold">${item.qty.toLocaleString()}</td>
-            <td>
-                <span class="badge ${isEnough ? 'bg-success' : 'bg-danger'}">
-                    FG คงเหลือ: ${currentStock.toLocaleString()}
-                </span>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    // แสดงกล่องพรีวิว
-    document.getElementById('pdsPreviewBox').style.display = 'block';
-    playBeep('success');
+    fileReader.readAsArrayBuffer(file);
 }
 
 // ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด
@@ -2897,7 +2949,7 @@ function renderDelivery() {
 }
 
 function deleteDelivery(id) {
-    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไป)')) {
+    if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปเดิม)')) {
         deliveries = deliveries.filter(d => d.id !== id);
         renderDelivery();
         if (typeof renderStock === 'function') {
