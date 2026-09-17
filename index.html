@@ -2719,7 +2719,6 @@ function getCustomerMapping() {
 // ตัวแปรเก็บข้อมูล PDS ชั่วคราวก่อนกดยืนยันตัดสต็อก
 let pendingPdsData = null;
 
-// ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js
 async function previewPDSSheet() {
     const fileInput = document.getElementById('pdsPdfFile');
     if (!fileInput || fileInput.files.length === 0) {
@@ -2734,7 +2733,6 @@ async function previewPDSSheet() {
         try {
             const typedarray = new Uint8Array(this.result);
             
-            // โหลด PDF ผ่าน PDF.js
             const loadingTask = pdfjsLib.getDocument({ data: typedarray });
             const pdf = await loadingTask.promise;
             
@@ -2742,21 +2740,32 @@ async function previewPDSSheet() {
             let pdsNo = file.name.replace('.pdf', '');
             let poNo = "-";
 
-            // วนลูปอ่านทุกหน้าใน PDF
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
-                let textItems = textContent.items.map(item => item.str);
+                let textItems = textContent.items.map(item => item.str.trim());
                 
-                // ค้นหารูปแบบ Part No. (เช่น 5 digits - alphanumeric)
                 for (let j = 0; j < textItems.length; j++) {
-                    let text = textItems[j].trim();
+                    let text = textItems[j];
                     
-                    if (/^\d{5}-[A-Z0-9]{5}$/.test(text)) {
+                    // ปรับ Regex ให้ยืดหยุ่นขึ้น รองรับขีดกลางและตัวอักษรผสม
+                    if (text.length >= 10 && text.includes('-')) {
                         let partNo = text;
-                        let qty = parseInt(textItems[j + 1]) || 0;
+                        
+                        // พยายามหาตัวเลขจำนวน (Qty) จากช่องถัดไป
+                        let qty = 0;
+                        for (let k = 1; k <= 3; k++) {
+                            if (j + k < textItems.length) {
+                                let nextText = textItems[j + k].replace(/,/g, '');
+                                let parsedNum = parseInt(nextText, 10);
+                                if (!isNaN(parsedNum) && parsedNum > 0 && parsedNum < 100000) {
+                                    qty = parsedNum;
+                                    break;
+                                }
+                            }
+                        }
+
                         if (qty > 0) {
-                            // ป้องกันการแอดรายการซ้ำซ้อนในหน้าเดียวกัน
                             if (!extractedItems.some(item => item.partNo === partNo)) {
                                 extractedItems.push({ partNo: partNo, qty: qty });
                             }
@@ -2765,15 +2774,10 @@ async function previewPDSSheet() {
                 }
             }
 
-            // Fallback กรณีดึงข้อมูลจาก PDF ไม่เจอ ให้ใช้ข้อมูลตัวอย่างสำรอง
+            // แจ้งเตือนหากหาไม่เจอจริงๆ แทนที่จะใส่ข้อมูลหลอก
             if (extractedItems.length === 0) {
-                extractedItems = [
-                    { partNo: "55342-BZ060", qty: 540 },
-                    { partNo: "55381-BZ160", qty: 250 },
-                    { partNo: "55125-BZ080", qty: 700 },
-                    { partNo: "51638-0K010", qty: 400 },
-                    { partNo: "55386-0G020", qty: 1440 }
-                ];
+                alert("ไม่พบรูปแบบ Part No. ในไฟล์ PDF กรุณาตรวจสอบรูปแบบไฟล์อีกครั้ง");
+                return;
             }
 
             pendingPdsData = {
@@ -2784,7 +2788,6 @@ async function previewPDSSheet() {
                 items: extractedItems
             };
 
-            // แสดงผลข้อมูลสรุปที่กล่องพรีวิว
             document.getElementById('pdsSummaryInfo').innerText = `PDS: ${pendingPdsData.pdsNo} | P/O: ${pendingPdsData.poNo}`;
             document.getElementById('pdsItemCountBadge').innerText = `${pendingPdsData.items.length} รายการ`;
 
@@ -2810,7 +2813,6 @@ async function previewPDSSheet() {
                 tbody.appendChild(tr);
             });
 
-            // แสดงกล่องพรีวิว
             document.getElementById('pdsPreviewBox').style.display = 'block';
             playBeep('success');
 
@@ -2822,7 +2824,6 @@ async function previewPDSSheet() {
 
     fileReader.readAsArrayBuffer(file);
 }
-
 // ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด
 function confirmPDSDelivery() {
     if (!pendingPdsData || !pendingPdsData.items) {
