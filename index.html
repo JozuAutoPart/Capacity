@@ -2861,6 +2861,7 @@ async function previewPDSSheet() {
 }
 
 // ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด (ปรับปรุงใหม่ รองรับข้อมูลจำนวนมากแบบทยอยบันทึก)
+// ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด (ปรับปรุงใหม่: เร็วขึ้นแบบประมวลผลคู่ขนาน Parallel)
 async function confirmPDSDelivery() {
     if (!pendingPdsData || !pendingPdsData.items || pendingPdsData.items.length === 0) {
         alert("ไม่พบข้อมูล PDS ที่พร้อมบันทึก!");
@@ -2880,7 +2881,7 @@ async function confirmPDSDelivery() {
 
     let items = pendingPdsData.items;
     let totalItems = items.length;
-    let chunkSize = 15; // แบ่งส่งทีละ 15 รายการต่อรอบ เพื่อป้องกันระบบ Timeout
+    let chunkSize = 30; // เพิ่มขนาดกลุ่มให้ใหญ่ขึ้นเพื่อความรวดเร็ว
     let successCount = 0;
 
     const badgeElement = document.getElementById('pdsItemCountBadge');
@@ -2894,8 +2895,8 @@ async function confirmPDSDelivery() {
                 badgeElement.innerText = `กำลังบันทึก (${i + 1}-${Math.min(i + chunkSize, totalItems)}/${totalItems})...`;
             }
 
-            // วนลูปบันทึกทีละชุดย่อย
-            for (let item of chunk) {
+            // ใช้ Promise.all เพื่อส่งข้อมูลในชุดนี้พร้อมๆ กัน (Parallel) ไม่ต้องรอทีละบรรทัด
+            let promises = chunk.map(async (item) => {
                 const record = {
                     id: Date.now() + Math.random(),
                     date: pendingPdsData.date,
@@ -2910,11 +2911,11 @@ async function confirmPDSDelivery() {
                 if (typeof saveAll === 'function') {
                     await saveAll('saveDelivery', record);
                 }
-                successCount++;
-            }
-            
-            // หน่วงเวลาเล็กน้อยระหว่างชุด เพื่อความเสถียร
-            await new Promise(resolve => setTimeout(resolve, 200));
+                return 1;
+            });
+
+            let results = await Promise.all(promises);
+            successCount += results.length;
         }
 
         // รีเซ็ตฟอร์มและซ่อนพรีวิว
@@ -2940,7 +2941,6 @@ async function confirmPDSDelivery() {
         }
     }
 }
-
 function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
