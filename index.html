@@ -2822,14 +2822,23 @@ async function previewPDSSheet() {
                 return;
             }
 
+           // ตรวจสอบชื่อลูกค้าจาก Master Database อัตโนมัติ (รองรับหลายลูกค้า)
+            const customerMap = typeof getCustomerMapping === 'function' ? getCustomerMapping() : {};
+            let detectedCustomer = "STEM-A"; // ค่าสำรองเผื่อไม่พบในระบบ
+            if (extractedItems.length > 0) {
+                let firstPart = (extractedItems[0].partNo || "").trim().toLowerCase();
+                if (customerMap[firstPart]) {
+                    detectedCustomer = customerMap[firstPart];
+                }
+            }
+
             pendingPdsData = {
                 pdsNo: pdsNo,
                 poNo: poNo,
                 date: new Date().toISOString().split('T')[0],
-                customer: "STEM-A",
+                customer: detectedCustomer, // ใช้ชื่อลูกค้าที่ตรวจพบจริง
                 items: extractedItems
             };
-
             document.getElementById('pdsSummaryInfo').innerText = `PDS: ${pendingPdsData.pdsNo} | P/O: ${pendingPdsData.poNo}`;
             document.getElementById('pdsItemCountBadge').innerText = `${pendingPdsData.items.length} รายการ`;
 
@@ -2888,7 +2897,7 @@ async function confirmPDSDelivery() {
 
     let items = pendingPdsData.items;
     let totalItems = items.length;
-    let chunkSize = 30; // เพิ่มขนาดกลุ่มให้ใหญ่ขึ้นเพื่อความรวดเร็ว
+    let chunkSize = 50; // เพิ่มขนาดกลุ่มให้ใหญ่ขึ้นเพื่อความรวดเร็ว
     let successCount = 0;
 
     const badgeElement = document.getElementById('pdsItemCountBadge');
