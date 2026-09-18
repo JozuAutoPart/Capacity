@@ -2824,7 +2824,7 @@ async function previewPDSSheet() {
 
             // ตรวจสอบชื่อลูกค้าจาก Master Database อัตโนมัติ (รองรับหลายลูกค้า)
             const customerMap = typeof getCustomerMapping === 'function' ? getCustomerMapping() : {};
-            let detectedCustomer = "STEM"; // ค่าสำรองเผื่อไม่พบในระบบ
+            let detectedCustomer = "STEM-A"; // ค่าสำรองเผื่อไม่พบในระบบ
             if (extractedItems.length > 0) {
                 let firstPart = (extractedItems[0].partNo || "").trim().toLowerCase();
                 if (customerMap[firstPart]) {
