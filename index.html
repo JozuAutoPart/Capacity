@@ -2787,7 +2787,7 @@ async function previewPDSSheet() {
 
                     // 1. ตรวจหารหัส Part No. ในแถว
                     rowItems.forEach(item => {
-                        if (/^\d{5}-[a-zA-Z0-9]+$/.test(item.str)) {
+                        if (/^\d{5}-[a-zA-Z0-9]+(-[a-zA-Z0-9]+)?$/.test(item.str)) {
                             currentPartNo = item.str;
                         }
                     });
