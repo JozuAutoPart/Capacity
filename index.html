@@ -2725,13 +2725,7 @@ function getCustomerMapping() {
 
 // ตัวแปรเก็บข้อมูล PDS ชั่วคราวก่อนกดยืนยันตัดสต็อก
 let pendingPdsData = null;
-// ฟังก์ชันสำหรับดึงวันที่ปัจจุบันตามเวลาประเทศไทย (YYYY-MM-DD)
-function getThaiDateString() {
-    const now = new Date();
-    // ปรับเวลาให้เป็น Timezone ของไทย (UTC+7)
-    const thaiTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-    return thaiTime.toISOString().split('T')[0];
-}
+
 // ฟังก์ชันอ่านไฟล์ PDF PDS จริงๆ ผ่าน PDF.js (กรองบรรทัดสรุปยอด Total PCS ท้ายตารางออก)
 async function previewPDSSheet() {
     const fileInput = document.getElementById('pdsPdfFile');
@@ -2828,10 +2822,10 @@ async function previewPDSSheet() {
                 return;
             }
 
-           pendingPdsData = {
+            pendingPdsData = {
                 pdsNo: pdsNo,
                 poNo: poNo,
-                date: getThaiDateString(), // <--- ใช้ฟังก์ชันดึงวันที่ตามเวลาไทย
+                date: new Date().toISOString().split('T')[0],
                 customer: "STEM-A",
                 items: extractedItems
             };
