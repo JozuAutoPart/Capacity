@@ -2822,7 +2822,7 @@ async function previewPDSSheet() {
                 return;
             }
 
-           // ตรวจสอบชื่อลูกค้าจาก Master Database อัตโนมัติ (รองรับหลายลูกค้า)
+            // ตรวจสอบชื่อลูกค้าจาก Master Database อัตโนมัติ (รองรับหลายลูกค้า)
             const customerMap = typeof getCustomerMapping === 'function' ? getCustomerMapping() : {};
             let detectedCustomer = "STEM-A"; // ค่าสำรองเผื่อไม่พบในระบบ
             if (extractedItems.length > 0) {
@@ -2876,8 +2876,7 @@ async function previewPDSSheet() {
     fileReader.readAsArrayBuffer(file);
 }
 
-// ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด (ปรับปรุงใหม่ รองรับข้อมูลจำนวนมากแบบทยอยบันทึก)
-// ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด (ปรับปรุงใหม่: เร็วขึ้นแบบประมวลผลคู่ขนาน Parallel)
+// ฟังก์ชันยืนยันตัด Stock FG จาก PDS ทั้งหมด (ปรับปรุงใหม่: ดึงชื่อลูกค้าตาม Part No. จริง ไม่ฟิกซ์ตายตัว)
 async function confirmPDSDelivery() {
     if (!pendingPdsData || !pendingPdsData.items || pendingPdsData.items.length === 0) {
         alert("ไม่พบข้อมูล PDS ที่พร้อมบันทึก!");
@@ -2897,11 +2896,13 @@ async function confirmPDSDelivery() {
 
     let items = pendingPdsData.items;
     let totalItems = items.length;
-    let chunkSize = 50; // เพิ่มขนาดกลุ่มให้ใหญ่ขึ้นเพื่อความรวดเร็ว
+    let chunkSize = 50; // ขนาดกลุ่มในการบันทึก
     let successCount = 0;
 
     const badgeElement = document.getElementById('pdsItemCountBadge');
     let originalBadgeText = badgeElement ? badgeElement.innerText : "";
+
+    const customerMap = typeof getCustomerMapping === 'function' ? getCustomerMapping() : {};
 
     try {
         for (let i = 0; i < totalItems; i += chunkSize) {
@@ -2911,14 +2912,17 @@ async function confirmPDSDelivery() {
                 badgeElement.innerText = `กำลังบันทึก (${i + 1}-${Math.min(i + chunkSize, totalItems)}/${totalItems})...`;
             }
 
-            // ใช้ Promise.all เพื่อส่งข้อมูลในชุดนี้พร้อมๆ กัน (Parallel) ไม่ต้องรอทีละบรรทัด
+            // ใช้ Promise.all เพื่อส่งข้อมูลในชุดนี้พร้อมๆ กัน
             let promises = chunk.map(async (item) => {
+                let partKey = (item.partNo || "").trim().toLowerCase();
+                let itemCustomer = customerMap[partKey] || pendingPdsData.customer || "STEM-A";
+
                 const record = {
                     id: Date.now() + Math.random(),
                     date: pendingPdsData.date,
                     partNo: item.partNo,
                     qty: item.qty,
-                    customer: pendingPdsData.customer,
+                    customer: itemCustomer, // ดึงชื่อลูกค้าตามจริงของแต่ละ Part No.
                     remark: `PDS: ${pendingPdsData.pdsNo} / PO: ${pendingPdsData.poNo}`
                 };
 
@@ -2957,6 +2961,7 @@ async function confirmPDSDelivery() {
         }
     }
 }
+
 function playBeep(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -3048,6 +3053,7 @@ function renderDelivery() {
         tbody.appendChild(tr);
     });
 }
+
 function deleteDelivery(id) {
     if(confirm('ต้องการยกเลิกการส่งมอบรายการนี้ใช่หรือไม่? (สต็อก FG จะถูกคืนกลับไปเดิม)')) {
         deliveries = deliveries.filter(d => d.id !== id);
