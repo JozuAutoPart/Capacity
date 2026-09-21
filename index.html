@@ -3573,20 +3573,59 @@ function clearAllData() {
 // 📌 ระบบจัดการ Material (รับ - จ่าย - สต็อก)
 // ==========================================
 
-document.addEventListener("DOMContentLoaded", function() {
+// ตัวแปรเก็บข้อมูล Mapping กลาง
+let partTypeMapping = {};
+
+document.addEventListener("DOMContentLoaded", async function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('matDate')) document.getElementById('matDate').value = today;
     if(document.getElementById('matIcNo')) document.getElementById('matIcNo').value = generateAutoIcNo();
     
+    // 📌 ดึงข้อมูล partTypeMapping อัตโนมัติจากไฟล์ print-tag-material.html
+    try {
+        const response = await fetch('print-tag-material.html');
+        const htmlText = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+        
+        // ค้นหาแท็ก script ที่มีคำว่า partTypeMapping
+        const scripts = doc.querySelectorAll('script');
+        scripts.forEach(script => {
+            const content = script.textContent;
+            if (content.includes('const partTypeMapping')) {
+                // แปลงข้อความ Script เป็น Object ของ JavaScript
+                const start = content.indexOf('{');
+                const end = content.lastIndexOf('}');
+                if (start !== -1 && end !== -1) {
+                    const jsonStr = content.substring(start, end + 1)
+                        .replace(/['"]/g, '"') // ปรับ quote ให้เป็นมาตรฐาน JSON
+                        .replace(/,\s*}/g, '}'); // ตัด comma ตัวสุดท้ายออกถ้ามี
+                    try {
+                        // ใช้ Function เพื่อแกะ Object ออกมาตรงๆ ปลอดภัยกว่า JSON.parse สำหรับ JS Object ทั่วไป
+                        partTypeMapping = Function('"use strict";return (' + content.substring(start, end + 1) + ');')();
+                    } catch (err) {
+                        console.error("ไม่สามารถแปลงข้อมูล partTypeMapping ได้:", err);
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error("ไม่สามารถโหลดฐานข้อมูลจากไฟล์ Tag ได้:", error);
+    }
+
     // เพิ่มระบบดึงค่า Type / Size อัตโนมัติเมื่อพิมพ์ Part No.
     const partNoInput = document.getElementById('matPartNo');
     const typeSizeInput = document.getElementById('matTypeSize');
     if (partNoInput && typeSizeInput) {
-        partNoInput.addEventListener('input', function() {
-            const val = this.value.trim();
-            if (typeof partTypeMapping !== 'undefined' && partTypeMapping[val]) {
-                typeSizeInput.value = partTypeMapping[val];
-            }
+        ['input', 'change', 'keyup'].forEach(eventType => {
+            partNoInput.addEventListener(eventType, function() {
+                const val = this.value.trim();
+                if (partTypeMapping && partTypeMapping[val]) {
+                    typeSizeInput.value = partTypeMapping[val];
+                } else {
+                    typeSizeInput.value = ''; // ถ้าไม่พบให้เคลียร์ค่า
+                }
+            });
         });
     }
 
