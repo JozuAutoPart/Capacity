@@ -3577,6 +3577,19 @@ document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('matDate')) document.getElementById('matDate').value = today;
     if(document.getElementById('matIcNo')) document.getElementById('matIcNo').value = generateAutoIcNo();
+    
+    // เพิ่มระบบดึงค่า Type / Size อัตโนมัติเมื่อพิมพ์ Part No.
+    const partNoInput = document.getElementById('matPartNo');
+    const typeSizeInput = document.getElementById('matTypeSize');
+    if (partNoInput && typeSizeInput) {
+        partNoInput.addEventListener('input', function() {
+            const val = this.value.trim();
+            if (typeof partTypeMapping !== 'undefined' && partTypeMapping[val]) {
+                typeSizeInput.value = partTypeMapping[val];
+            }
+        });
+    }
+
     loadMaterialStock();
 });
 
@@ -3678,7 +3691,6 @@ function submitMaterialTransaction(e) {
 }
 
 // ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ
-// ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ (จัดเรียงคอลัมน์ให้ตรงเป๊ะ)
 function loadMaterialStock() {
     let stockMap = {};
     
@@ -3744,7 +3756,6 @@ function loadMaterialStock() {
                 let cleanDate = rawDate ? rawDate.split('T')[0] : '';
                 let itemUnit = item.unit || 'Sheet';
                 
-                // สลับตำแหน่งตัวแปรให้ลงล็อกตรงกับหัวตาราง: Part No. -> IC No. -> Type/Size -> Qty -> Supplier
                 historyBody.innerHTML += `
                     <tr>
                         <td>${cleanDate}</td>
@@ -3768,6 +3779,7 @@ function loadMaterialStock() {
         }
     }
 }
+
 // ฟังก์ชันพิมพ์ Tag เฉพาะรายการในประวัติ
 function printSpecificMaterialTag(partNo, icNo, qty, typeSize, unit, date) {
     const url = `print-tag-material.html?partNo=${partNo}&icNo=${icNo || '-'}&qty=${qty}&type=${typeSize}&unit=${unit || 'Sheet'}&date=${date || ''}`;
