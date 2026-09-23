@@ -3573,20 +3573,19 @@ function clearAllData() {
 // 📌 ระบบจัดการ Material (รับ - จ่าย - สต็อก)
 // ==========================================
 
-// ตัวแปรเก็บข้อมูล Mapping กลาง
 let partTypeMapping = {};
 let materialHistory = [];
 
 document.addEventListener("DOMContentLoaded", async function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('matDate')) document.getElementById('matDate').value = today;
-    
-    // 📌 ดึงข้อมูลประวัติและสต็อกก่อน เพื่อให้ตัวแปร materialHistory พร้อมใช้งาน
+
+    // 📌 ดึงข้อมูล bms มาใส่ materialHistory ให้เสร็จก่อนเป็นอันดับแรก
     if (typeof bms !== 'undefined' && Array.isArray(bms)) {
         materialHistory = bms;
     }
 
-    // หลังจากข้อมูลพร้อม ค่อยสร้างเลข IC No. อัตโนมัติ เพื่อให้รันต่อจากของเดิมไม่วนกลับมาที่ 01
+    // 📌 หลังจากได้ข้อมูลประวัติแล้ว ค่อยสร้างเลข IC No. อัตโนมัติ (ตอนนี้ข้อมูลมาครบแล้ว จะรันต่อจากของเดิมถูกต้องครับ)
     if(document.getElementById('matIcNo')) {
         document.getElementById('matIcNo').value = generateAutoIcNo();
     }
@@ -3617,7 +3616,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         console.error("ไม่สามารถโหลดฐานข้อมูลจากไฟล์ Tag ได้:", error);
     }
 
-    // เพิ่มระบบดึงค่า Type / Size อัตโนมัติเมื่อพิมพ์ Part No.
+    // ระบบดึงค่า Type / Size อัตโนมัติเมื่อพิมพ์ Part No.
     const partNoInput = document.getElementById('matPartNo');
     const typeSizeInput = document.getElementById('matTypeSize');
     if (partNoInput && typeSizeInput) {
