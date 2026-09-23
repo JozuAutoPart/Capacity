@@ -3579,16 +3579,6 @@ let materialHistory = [];
 document.addEventListener("DOMContentLoaded", async function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('matDate')) document.getElementById('matDate').value = today;
-
-    // 📌 ดึงข้อมูล bms มาใส่ materialHistory ให้เสร็จก่อนเป็นอันดับแรก
-    if (typeof bms !== 'undefined' && Array.isArray(bms)) {
-        materialHistory = bms;
-    }
-
-    // 📌 หลังจากได้ข้อมูลประวัติแล้ว ค่อยสร้างเลข IC No. อัตโนมัติ (ตอนนี้ข้อมูลมาครบแล้ว จะรันต่อจากของเดิมถูกต้องครับ)
-    if(document.getElementById('matIcNo')) {
-        document.getElementById('matIcNo').value = generateAutoIcNo();
-    }
     
     // 📌 ดึงข้อมูล partTypeMapping อัตโนมัติจากไฟล์ print-tag-material.html
     try {
@@ -3736,6 +3726,12 @@ function loadMaterialStock() {
     
     if (typeof bms !== 'undefined' && Array.isArray(bms)) {
         materialHistory = bms;
+    }
+
+    // 📌 อัปเดตเลข IC No. อัตโนมัติทันทีที่ข้อมูล bms โหลดเสร็จและอยู่ในโหมดรับเข้า
+    const matType = document.getElementById('matType');
+    if (matType && matType.value === 'IN' && document.getElementById('matIcNo')) {
+        document.getElementById('matIcNo').value = generateAutoIcNo();
     }
 
     materialHistory.forEach(item => {
