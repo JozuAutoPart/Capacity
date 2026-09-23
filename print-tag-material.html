@@ -128,14 +128,7 @@
         const qty = params.get('qty') || '0';
         const unit = params.get('unit') || 'Sheet';
 
-        // เช็คว่าถ้าใน URL มีการส่ง Type มา ให้ใช้ค่านั้นก่อน แต่ถ้าไม่มี ให้ดึงจากตาราง partTypeMapping อัตโนมัติตาม Part No.
-        let type = params.get('type') || '';
-        if ((!type || type === '-') && partTypeMapping[partNo]) {
-            type = partTypeMapping[partNo];
-        } else if (!type) {
-            type = '-';
-        }
-
+       
         // แสดงผลลงในหน้า Tag
         document.getElementById('lblDate').innerText = formattedDate;
         document.getElementById('lblPartNo').innerText = partNo;
