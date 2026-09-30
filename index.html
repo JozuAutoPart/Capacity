@@ -1089,8 +1089,15 @@ function renderDashboard() {
             return aline === planLine && aPart === planPart;
         });
 
-        // รวมยอด Actual OK
+       // รวมยอด Actual OK (กรองเฉพาะพาร์ทหลักที่ไม่ใช่กระบวนการย่อย เช่น ไม่มี / ในชื่อพาร์ท)
         const actualOkSum = actForPlan.reduce((sum, a) => {
+            let aPart = String(a["Part No."] || a.partNo || '').trim();
+            
+            // ถ้าชื่อพาร์ทมีเครื่องหมาย / (แปลว่าเป็นกระบวนการย่อย) ให้ข้ามไม่นำมารวม
+            if (aPart.includes('/')) {
+                return sum;
+            }
+
             let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
             let val = Number(rawQty);
             return sum + (isNaN(val) ? 0 : val);
