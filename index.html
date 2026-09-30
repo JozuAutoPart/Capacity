@@ -3595,30 +3595,28 @@ document.addEventListener("DOMContentLoaded", async function() {
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlText, 'text/html');
         
-        // ค้นหาแท็ก script ที่มีคำว่า partTypeMapping
-        const scripts = doc.querySelectorAll('script');
-        scripts.forEach(script => {
-            const content = script.textContent;
-            if (content.includes('const partTypeMapping')) {
-                // แปลงข้อความ Script เป็น Object ของ JavaScript
-                const start = content.indexOf('{');
-                const end = content.lastIndexOf('}');
-                if (start !== -1 && end !== -1) {
-                    const jsonStr = content.substring(start, end + 1)
-                        .replace(/['"]/g, '"') // ปรับ quote ให้เป็นมาตรฐาน JSON
-                        .replace(/,\s*}/g, '}'); // ตัด comma ตัวสุดท้ายออกถ้ามี
-                    try {
-                        // ใช้ Function เพื่อแกะ Object ออกมาตรงๆ ปลอดภัยกว่า JSON.parse สำหรับ JS Object ทั่วไป
-                        partTypeMapping = Function('"use strict";return (' + content.substring(start, end + 1) + ');')();
-                    } catch (err) {
-                        console.error("ไม่สามารถแปลงข้อมูล partTypeMapping ได้:", err);
-                    }
+       // ค้นหาแท็ก script ที่มีคำว่า partTypeMapping
+    const scripts = doc.querySelectorAll('script');
+    scripts.forEach(script => {
+        const content = script.textContent;
+        if (content.includes('const partTypeMapping')) {
+            // แปลงข้อความ Script เป็น Object ของ JavaScript
+            const start = content.indexOf('{');
+            const end = content.lastIndexOf('}');
+            if (start !== -1 && end !== -1) {
+                const jsonStr = content.substring(start, end + 1);
+                try {
+                    // ใช้การประเมินค่าโดยใส่วงเล็บรอบออบเจ็กต์ เพื่อป้องกัน Error เรื่องเครื่องหมายโคลอน
+                    partTypeMapping = (new Function('"use strict"; return (' + jsonStr + ');'))();
+                } catch (err) {
+                    console.error("ไม่สามารถแปลงข้อมูล partTypeMapping ได้:", err);
                 }
             }
-        });
-    } catch (error) {
-        console.error("ไม่สามารถโหลดฐานข้อมูลจากไฟล์ Tag ได้:", error);
-    }
+        }
+    });
+} catch (error) {
+    console.error("ไม่สามารถโหลดฐานข้อมูลจากไฟล์ Tag ได้:", error);
+}
 
     // เพิ่มระบบดึงค่า Type / Size อัตโนมัติเมื่อพิมพ์ Part No.
     const partNoInput = document.getElementById('matPartNo');
