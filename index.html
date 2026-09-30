@@ -1072,7 +1072,7 @@ function renderDashboard() {
         return pline === String(currentFilterLine).trim();
     });
 
-    // 📌 กรองข้าม Part No. ที่เป็นกระบวนการย่อย (มีเครื่องหมาย /) ออกตั้งแต่ต้น
+    // กรองข้าม Part No. ที่เป็นกระบวนการย่อย (มีเครื่องหมาย /) ออกตั้งแต่ต้น
     filteredPlans = filteredPlans.filter(p => {
         const pPart = String(p["Part No."] || p.partNo || '').trim();
         return !pPart.includes('/');
@@ -1157,15 +1157,10 @@ function renderDashboard() {
     renderDashboardPpmChart(totalActual, totalNgFiltered);
 }
 
-    // คำนวณและเรนเดอร์กราฟโดนัท PPM ตามฟิลเตอร์ไลน์ผลิต
-    renderDashboardPpmChart(totalActual, totalNgFiltered);
-}
-
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
     const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
 
-    // อัปเดตข้อความสถิติ
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
