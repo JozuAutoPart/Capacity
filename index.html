@@ -3595,19 +3595,19 @@ document.addEventListener("DOMContentLoaded", async function() {
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlText, 'text/html');
         
-       // ค้นหาแท็ก script ที่มีคำว่า partTypeMapping
+     // ค้นหาแท็ก script ที่มีคำว่า partTypeMapping
     const scripts = doc.querySelectorAll('script');
     scripts.forEach(script => {
         const content = script.textContent;
         if (content.includes('const partTypeMapping')) {
-            // แปลงข้อความ Script เป็น Object ของ JavaScript
             const start = content.indexOf('{');
             const end = content.lastIndexOf('}');
             if (start !== -1 && end !== -1) {
-                const jsonStr = content.substring(start, end + 1);
+                let rawObjStr = content.substring(start, end + 1);
                 try {
-                    // ใช้การประเมินค่าโดยใส่วงเล็บรอบออบเจ็กต์ เพื่อป้องกัน Error เรื่องเครื่องหมายโคลอน
-                    partTypeMapping = (new Function('"use strict"; return (' + jsonStr + ');'))();
+                    // ใส่เครื่องหมายคำพูดให้กับ Key ที่มีขีด (-) หรือไม่ได้ใส่ quote อัตโนมัติ
+                    let fixedStr = rawObjStr.replace(/([{,]\s*)([a-zA-Z0-9\-_]+)(\s*[:])/g, '$1"$2"$3');
+                    partTypeMapping = (new Function('"use strict"; return (' + fixedStr + ');'))();
                 } catch (err) {
                     console.error("ไม่สามารถแปลงข้อมูล partTypeMapping ได้:", err);
                 }
