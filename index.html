@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
+// ฟังก์ชันกลางตัวเดียวจบ: ดึงค่าคอลัมน์ L (Minimum) เทียบกับ Stock (WIP+FG) และอัปเดตทั้งบนและล่างให้ตรงกัน 100%
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4722,51 +4722,88 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     if (container) container.style.display = 'block';
 
     const masters = window.masterPartsDatabase || [];
-
     if (masters.length === 0) {
-        container.innerHTML = `
-            <div class="card bg-dark text-white p-3 border-warning shadow">
-                <h6 class="text-warning fw-bold mb-2">
-                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
-                </h6>
-                <p class="text-muted mb-0">⚠️ ยังไม่พบข้อมูล Master Part Code (กรุณาอัปโหลดไฟล์ Master Part Code ก่อนครับ)</p>
-            </div>
-        `;
+        container.innerHTML = `<div class="card bg-dark text-white p-3 border-warning shadow"><h6 class="text-warning">⚠️ ไม่พบข้อมูล Master Parts</h6></div>`;
         return;
     }
 
-    const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
-        ? masters 
-        : masters.filter(m => {
-              const mLine = String(m.Line || m.line || m.LINE || '').trim();
-              return mLine.toUpperCase() === String(selectedLine).trim().toUpperCase();
-          });
+    let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : new Map();
 
-    // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลางชุดเดียวกันกับกราฟ
-    let activePartsSet = getActivePartsMap();
-
-    const zeroStockParts = targetMasters.filter(m => {
+    // ฟังก์ชันช่วยเช็กแต่ละพาร์ท
+    const checkIsLowStock = (m) => {
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        return !activePartsSet.has(cleanPNo);
-    });
+        // ดึงค่า Minimum จากคอลัมน์ L อย่างแม่นยำ (Index 11 หรือคีย์ Minimum)
+        const keys = Object.keys(m);
+        let minVal = '';
+        if (m['Minimum'] !== undefined) minVal = m['Minimum'];
+        else if (m['minimum'] !== undefined) minVal = m['minimum'];
+        else if (keys.length > 11) minVal = m[keys[11]];
 
-    let badgesHtml = zeroStockParts.map(m => {
+        const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
+        
+        // กรองค่าที่เป็นช่องว่าง, ขีด, หรือไม่ใช่ตัวเลขออกเด็ดขาด
+        if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
+        const minLimit = Number(cleanMinStr);
+        if (minLimit <= 0) return false; // ถ้า Minimum เป็น 0 หรือติดลบ ไม่นำมาคิด
+
+        // ดึงยอด Stock ปัจจุบัน (WIP + FG)
+        let currentStock = 0;
+        if (typeof activePartsSet.get === 'function') {
+            const val = activePartsSet.get(cleanPNo);
+            if (typeof val === 'number') currentStock = val;
+            else if (val && typeof val === 'object') currentStock = Number(val.stock || val.balance || (Number(val.wip || 0) + Number(val.fg || 0)) || 0);
+        }
+
+        if (currentStock === 0) {
+            let w = 0, f = 0;
+            if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
+                let fw = window.wipDatabase.find(x => String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
+                if (fw) w = Number(fw.balance || fw.remaining || 0);
+            }
+            if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
+                let ff = window.fgDatabase.find(x => String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
+                if (ff) f = Number(ff.balance || ff.remaining || 0);
+            }
+            currentStock = w + f;
+        }
+
+        return currentStock < minLimit;
+    };
+
+    // 1. หาข้อมูลภาพรวมทั้งหมด (สำหรับใส่การ์ดสรุปด้านล่าง)
+    const allLowStockParts = masters.filter(checkIsLowStock);
+
+    // 2. กรองตาม Line ที่ผู้ใช้เลือก (สำหรับแสดงแถบด้านบน)
+    const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
+        ? masters 
+        : masters.filter(m => String(m.Line || m.line || m.LINE || '').trim().toUpperCase() === String(selectedLine).trim().toUpperCase());
+
+    const filteredLowStockParts = targetMasters.filter(checkIsLowStock);
+
+    // อัปเดตตัวเลขในการ์ดสรุปด้านล่างให้ตรงกันเป๊ะ
+    const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
+    if (stockMinElement) {
+        stockMinElement.textContent = allLowStockParts.length;
+    }
+
+    // วาดแถบแจ้งเตือนด้านบน
+    let badgesHtml = filteredLowStockParts.map(m => {
         const pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
     }).join('');
 
-    if (zeroStockParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่ Stock เป็น 0 ในไลน์นี้</span>`;
+    if (filteredLowStockParts.length === 0) {
+        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้</span>`;
     }
 
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine}) 
-                <span class="badge bg-danger text-white ms-2">${zeroStockParts.length} รายการ</span>
+                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                <span class="badge bg-danger text-white ms-2">${filteredLowStockParts.length} รายการ</span>
             </h6>
             <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
                 ${badgesHtml}
