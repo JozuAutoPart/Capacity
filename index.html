@@ -4723,29 +4723,36 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     const masters = window.masterPartsDatabase || [];
     if (masters.length === 0) return;
 
-    // ฟังก์ชันดึงยอดสต็อกปัจจุบันของพาร์ทนั้นๆ แบบยืดหยุ่น
-    const getPartStock = (cleanPNo) => {
+    // ฟังก์ชันตรวจสอบและดึงสต็อกเฉพาะพาร์ทที่มีอยู่จริง
+    const getPartStockData = (cleanPNo) => {
         let totalStock = 0;
+        let foundInDatabase = false;
         
-        // ค้นหาใน wipDatabase
+        // เช็กใน wipDatabase
         if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
             let fw = window.wipDatabase.find(x => x && String(x['Part No.'] || x.partNo || x.PARTNO || '').trim().toUpperCase() === cleanPNo);
             if (fw) {
                 let qty = Number(fw.balance || fw.remaining || fw.stock || fw.QTY || fw.qty || 0);
-                if (!isNaN(qty)) totalStock += qty;
+                if (!isNaN(qty)) {
+                    totalStock += qty;
+                    foundInDatabase = true;
+                }
             }
         }
 
-        // ค้นหาใน fgDatabase
+        // เช็กใน fgDatabase
         if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
             let ff = window.fgDatabase.find(x => x && String(x['Part No.'] || x.partNo || x.PARTNO || '').trim().toUpperCase() === cleanPNo);
             if (ff) {
                 let qty = Number(ff.balance || ff.remaining || ff.stock || ff.QTY || ff.qty || 0);
-                if (!isNaN(qty)) totalStock += qty;
+                if (!isNaN(qty)) {
+                    totalStock += qty;
+                    foundInDatabase = true;
+                }
             }
         }
 
-        return totalStock;
+        return { found: foundInDatabase, stock: totalStock };
     };
 
     const checkIsLowStock = (m) => {
@@ -4771,11 +4778,12 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
-        // 2. เช็คยอดสต็อกรวม
-        let currentStock = getPartStock(cleanPNo);
-        
-        // ถ้าน้อยกว่า Minimum ถือว่าเข้าเงื่อนไข Low Stock (ตรงกับระบบสรุป 4 รายการ)
-        return currentStock < minLimit;
+        // 2. เช็กสต็อกเฉพาะพาร์ทที่มีการบันทึกข้อมูลแล้วเท่านั้น
+        const stockData = getPartStockData(cleanPNo);
+        if (!stockData.found) return false; // ถ้าไม่มีข้อมูลในระบบสต็อกเลย ให้ตัดทิ้ง ไม่เอามานับ
+
+        // 3. ยอดสต็อกรวมต้องน้อยกว่า Minimum
+        return stockData.stock < minLimit;
     };
 
     const allLowStockParts = masters.filter(checkIsLowStock);
