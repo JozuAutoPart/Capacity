@@ -4732,7 +4732,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // 1. ดึงค่า Minimum จากคอลัมน์ L
+        // ดึงค่า Minimum จากคอลัมน์ L
         let minVal = m['Minimum'] || m['minimum'] || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             for (let key of Object.keys(m)) {
@@ -4747,9 +4747,9 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
         
         const minLimit = Number(cleanMinStr);
-        if (minLimit <= 0) return false; // ถ้าไม่ได้กำหนด Minimum หรือเป็น 0 ไม่นำมาคิด
+        if (minLimit <= 0) return false;
 
-        // 2. ดึงยอด Stock ปัจจุบัน (WIP + FG) จากฐานข้อมูล
+        // ดึงยอด Stock ปัจจุบัน (WIP + FG)
         let wipQty = 0;
         let fgQty = 0;
 
@@ -4768,17 +4768,22 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         }
 
         let currentStock = wipQty + fgQty;
-
-        // 3. เทียบว่า Stock น้อยกว่า Minimum หรือไม่
         return currentStock < minLimit;
     };
 
+    // หารายการที่ต่ำกว่า Minimum ทั้งหมด
     const allLowStockParts = masters.filter(checkIsLowStock);
-    const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
-        ? masters 
-        : masters.filter(m => m && String(m.Line || m.line || m.LINE || '').trim().toUpperCase() === String(selectedLine).trim().toUpperCase());
+    
+    // จัดการกรองตามไลน์ที่เลือก
+    const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
 
-    const filteredLowStockParts = targetMasters.filter(checkIsLowStock);
+    const filteredLowStockParts = (currentLine === 'ALL') 
+        ? allLowStockParts 
+        : masters.filter(m => {
+            if (!m) return false;
+            const mLine = String(m.Line || m.line || m.LINE || '').trim().toUpperCase();
+            return mLine === currentLine && checkIsLowStock(m);
+        });
 
     const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
     if (stockMinElement) {
@@ -4797,7 +4802,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine || 'ALL'}) 
                 <span class="badge bg-danger text-white ms-2">${filteredLowStockParts.length} รายการ</span>
             </h6>
             <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
