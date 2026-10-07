@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum ในคอลัมน์ L (เวอร์ชันซิงค์กับระบบสรุปด้านล่าง)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum เฉพาะพาร์ทที่มีการตั้งค่า Minimum จริงๆ
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4761,9 +4761,10 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanMinStr = String(minStockVal || '').replace(/,/g, '').trim();
         const minLimit = Number(cleanMinStr) || 0;
 
+        // **เงื่อนไขสำคัญ:** ถ้าไม่ได้ใส่ค่า Minimum ไว้ หรือค่าเป็น 0/ค่าว่าง ให้ข้ามไปทันที (ไม่นำมานับเป็นต่ำกว่าสต็อก)
         if (minLimit <= 0) return false;
 
-        // ดึงยอด Stock ปัจจุบันให้ตรงกับระบบหลัก
+        // ดึงยอด Stock ปัจจุบัน
         let currentStock = 0;
         if (typeof activePartsSet.get === 'function') {
             const val = activePartsSet.get(cleanPNo);
@@ -4774,7 +4775,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             }
         }
 
-        // หากใน Map ไม่มี ให้เช็คจากฐานข้อมูล WIP และ FG ตรงๆ
         if (currentStock === 0) {
             let wipBal = 0;
             let fgBal = 0;
@@ -4789,6 +4789,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             currentStock = wipBal + fgBal;
         }
 
+        // เงื่อนไขแจ้งเตือน: เฉพาะพาร์ทที่กำหนด Minimum ไว้ และ Stock ปัจจุบันน้อยกว่า Minimum
         return currentStock < minLimit;
     });
 
@@ -4812,7 +4813,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             </div>
         </div>
     `;
-}   
+}
     function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
