@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (เชื่อมโยงกับตัวเลข 5 รายการด้านล่าง)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum แบบดึง Logic เดียวกับการ์ดสรุปด้านล่าง
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4749,24 +4749,21 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ L โดยเช็คตำแหน่ง Index 11 หรือคีย์ Minimum อย่างปลอดภัย
+        // ดึงค่าจากคอลัมน์ L (Minimum) อย่างแม่นยำจาก Object keys index ที่ 11 หรือฟิลด์ชื่อ Minimum
         const keys = Object.keys(m);
-        let minStockVal = '';
+        let minVal = 0;
         
-        if (m['Column L'] !== undefined) minStockVal = m['Column L'];
-        else if (m.colL !== undefined) minStockVal = m.colL;
-        else if (m.Minimum !== undefined) minStockVal = m.Minimum;
-        else if (m.minimum !== undefined) minStockVal = m.minimum;
+        if (m['Minimum'] !== undefined) minVal = m['Minimum'];
+        else if (m['minimum'] !== undefined) minVal = m['minimum'];
         else if (keys.length > 11) {
-            // เช็คเฉพาะคอลัมน์ L จริงๆ โดยดูชื่อคีย์หรือตำแหน่ง
-            const lKey = keys.find(k => k.toLowerCase().includes('minimum') || k.toLowerCase().includes('l'));
-            minStockVal = lKey ? m[lKey] : m[keys[11]];
+            // ดึงจากตำแหน่งคอลัมน์ L โดยตรง
+            minVal = m[keys[11]];
         }
+
+        const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
         
-        const cleanMinStr = String(minStockVal !== undefined && minStockVal !== null ? minStockVal : '').replace(/,/g, '').trim();
-        
-        // ถ้าไม่มีการใส่ค่า หรือค่าว่าง หรือแปลกปลอม ให้ตัดทิ้งทันที (ต้องมีตัวเลขมากกว่า 0 จริงๆ)
-        if (cleanMinStr === '' || isNaN(cleanMinStr)) return false;
+        // ถ้าค่าว่าง, ขีด, หรือแปลงเป็นตัวเลขไม่ได้ หรือค่าน้อยกว่าหรือเท่ากับ 0 ให้ถือว่าไม่ได้กำหนด Minimum (ไม่เอามาคำนับ)
+        if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
@@ -4795,6 +4792,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             currentStock = wipBal + fgBal;
         }
 
+        // เช็คเงื่อนไข: สต็อกปัจจุบันน้อยกว่าค่า Minimum
         return currentStock < minLimit;
     });
 
