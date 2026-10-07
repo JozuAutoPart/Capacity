@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum ในคอลัมน์ L (Piece per sheet / Minimum)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4727,7 +4727,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         container.innerHTML = `
             <div class="card bg-dark text-white p-3 border-warning shadow">
                 <h6 class="text-warning fw-bold mb-2">
-                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
+                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine})
                 </h6>
                 <p class="text-muted mb-0">⚠️ ยังไม่พบข้อมูล Master Part Code (กรุณาอัปโหลดไฟล์ Master Part Code ก่อนครับ)</p>
             </div>
@@ -4745,28 +4745,54 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลางชุดเดียวกันกับกราฟ
     let activePartsSet = getActivePartsMap();
 
-    const zeroStockParts = targetMasters.filter(m => {
+    const lowStockParts = targetMasters.filter(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        return !activePartsSet.has(cleanPNo);
+        // ดึงค่า Minimum จากคอลัมน์ L (Index 11 ใน Google Sheets: A=0 ถึง L=11)
+        const keys = Object.keys(m);
+        let minStockVal = 0;
+        
+        if (m['Column L'] !== undefined) {
+            minStockVal = m['Column L'];
+        } else if (m.colL !== undefined) {
+            minStockVal = m.colL;
+        } else if (m.min !== undefined) {
+            minStockVal = m.min;
+        } else if (keys.length > 11 && m[keys[11]] !== undefined) {
+            minStockVal = m[keys[11]]; // ดึงข้อมูลจากคอลัมน์ L โดยตรง
+        }
+        
+        const minLimit = Number(minStockVal) || 0;
+
+        // ดึงยอด Stock ปัจจุบันของพาร์ทนี้
+        let currentStock = 0;
+        if (typeof activePartsSet.get === 'function') {
+            const val = activePartsSet.get(cleanPNo);
+            currentStock = (typeof val === 'number') ? val : Number(val?.stock || val?.balance || 0);
+        } else {
+            currentStock = Number(m.stock || m.balance || 0);
+        }
+
+        // เงื่อนไข: ถ้ายอด Stock น้อยกว่าค่า Minimum ในคอลัมน์ L ถึงจะนำมาแสดง
+        return currentStock < minLimit;
     });
 
-    let badgesHtml = zeroStockParts.map(m => {
+    let badgesHtml = lowStockParts.map(m => {
         const pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
     }).join('');
 
-    if (zeroStockParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่ Stock เป็น 0 ในไลน์นี้</span>`;
+    if (lowStockParts.length === 0) {
+        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้</span>`;
     }
 
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine}) 
-                <span class="badge bg-danger text-white ms-2">${zeroStockParts.length} รายการ</span>
+                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                <span class="badge bg-danger text-white ms-2">${lowStockParts.length} รายการ</span>
             </h6>
             <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
                 ${badgesHtml}
