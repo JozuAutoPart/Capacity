@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum ในคอลัมน์ L
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum ในคอลัมน์ L (เวอร์ชันแก้ไขดึงยอดสต็อกจริงถูกต้อง)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4742,54 +4742,64 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine.toUpperCase() === String(selectedLine).trim().toUpperCase();
           });
 
-    // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลางชุดเดียวกันกับกราฟ
-    let activePartsSet = getActivePartsMap();
-
     const lowStockParts = targetMasters.filter(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ L โดยเช็คทุกช่องทางที่เป็นไปได้ (รวมถึง Index ที่ 11)
+        // 1. ดึงค่า Minimum จากคอลัมน์ L (Index 11)
         const keys = Object.keys(m);
         let minStockVal = 0;
+        if (m['Column L'] !== undefined) minStockVal = m['Column L'];
+        else if (m.colL !== undefined) minStockVal = m.colL;
+        else if (m.Minimum !== undefined) minStockVal = m.Minimum;
+        else if (m.minimum !== undefined) minStockVal = m.minimum;
+        else if (keys.length > 11) minStockVal = m[keys[11]];
         
-        if (m['Column L'] !== undefined) {
-            minStockVal = m['Column L'];
-        } else if (m.colL !== undefined) {
-            minStockVal = m.colL;
-        } else if (m.Minimum !== undefined) {
-            minStockVal = m.Minimum;
-        } else if (m.minimum !== undefined) {
-            minStockVal = m.minimum;
-        } else if (keys.length > 11) {
-            // ดึงจากตำแหน่ง index 11 (คอลัมน์ L)
-            minStockVal = m[keys[11]];
-        }
-        
-        // แปลงค่า Minimum เป็นตัวเลข (จัดการกรณีมีคอมมาหรือเว้นวรรค)
         const cleanMinStr = String(minStockVal || '').replace(/,/g, '').trim();
         const minLimit = Number(cleanMinStr) || 0;
 
-        // ถ้าไม่ได้กำหนดค่า Minimum ไว้ (เป็น 0 หรือว่าง) ให้ข้ามการเช็คตัวนี้ไปก่อน
+        // ถ้าไม่ได้กำหนดค่า Minimum ไว้ (เป็น 0 หรือว่าง) ให้ข้าม
         if (minLimit <= 0) return false;
 
-        // ดึงยอด Stock ปัจจุบันของพาร์ทนี้ (รวม WIP + FG หรือตามระบบจริง)
+        // 2. ดึงยอด Stock ปัจจุบัน (ดึงจากระบบ Wip และ FG มารวมกันให้ถูกต้อง)
         let currentStock = 0;
-        if (typeof activePartsSet.get === 'function') {
+        let wipBal = 0;
+        let fgBal = 0;
+
+        // ค้นหาจากฐานข้อมูล WIP ในระบบ
+        if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
+            const foundWip = window.wipDatabase.find(w => String(w['Part No.'] || w.partNo || '').trim().toUpperCase() === cleanPNo);
+            if (foundWip) {
+                wipBal = Number(foundWip.balance || foundWip.remaining || foundWip.wipBalance || foundWip.wipRemaining || 0);
+            }
+        }
+
+        // ค้นหาจากฐานข้อมูล FG ในระบบ
+        if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
+            const foundFg = window.fgDatabase.find(f => String(f['Part No.'] || f.partNo || '').trim().toUpperCase() === cleanPNo);
+            if (foundFg) {
+                fgBal = Number(foundFg.balance || foundFg.remaining || foundFg.fgBalance || foundFg.fgRemaining || 0);
+            }
+        }
+
+        // หากมี activePartsMap หรือฟังก์ชันกลาง ให้ดึงค่ามาใช้ร่วมด้วย
+        let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : null;
+        if (activePartsSet && typeof activePartsSet.get === 'function') {
             const val = activePartsSet.get(cleanPNo);
             if (typeof val === 'number') {
                 currentStock = val;
             } else if (val && typeof val === 'object') {
-                currentStock = Number(val.stock || val.balance || val.total || 0);
-            } else {
-                currentStock = Number(val || 0);
+                currentStock = Number(val.stock || val.balance || val.total || (Number(val.wip || 0) + Number(val.fg || 0)) || 0);
             }
-        } else {
-            currentStock = Number(m.stock || m.balance || 0);
         }
 
-        // เงื่อนไข: ถ้ายอด Stock น้อยกว่าค่า Minimum ในคอลัมน์ L
+        // ถ้ายอดจาก Map ยังเป็น 0 ให้ใช้ผลรวม WIP + FG ที่ค้นหาได้
+        if (currentStock === 0) {
+            currentStock = wipBal + fgBal;
+        }
+
+        // เงื่อนไข: จะแสดงก็ต่อเมื่อ ยอด Stock ปัจจุบัน < ค่า Minimum จริงๆ เท่านั้น
         return currentStock < minLimit;
     });
 
@@ -4813,8 +4823,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             </div>
         </div>
     `;
-}
-        function updateClock() {
+}        function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
