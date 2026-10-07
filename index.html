@@ -4720,12 +4720,8 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     
     if (container) container.style.display = 'block';
 
-    // รอให้ข้อมูลพร้อม ถ้ายังไม่มีให้ลองดึงซ้ำอัตโนมัติ
     const masters = window.masterPartsDatabase || [];
-    if (masters.length === 0) {
-        setTimeout(() => renderZeroStockPartsByLine(selectedLine), 500);
-        return;
-    }
+    if (masters.length === 0) return;
 
     const checkIsLowStock = (m) => {
         if (!m) return false;
@@ -4733,7 +4729,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ L โดยตรง
+        // 1. ดึงค่า Minimum จากคอลัมน์ L
         let minVal = m['Minimum'] || m['minimum'] || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             for (let key of Object.keys(m)) {
@@ -4750,14 +4746,15 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
-        // ดึงยอด Stock ปัจจุบัน (WIP + FG)
-        let wipQty = 0;
-        let fgQty = 0;
+        // 2. ตรวจสอบว่าพาร์ทนี้มีข้อมูล Stock (WIP หรือ FG) บันทึกอยู่ในระบบจริงๆ หรือไม่
+        let wipQty = 0, hasWip = false;
+        let fgQty = 0, hasFg = false;
 
         if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
             let fw = window.wipDatabase.find(x => x && String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
             if (fw) {
                 wipQty = Number(fw.balance || fw.remaining || fw.stock || 0);
+                hasWip = true;
             }
         }
 
@@ -4765,10 +4762,16 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             let ff = window.fgDatabase.find(x => x && String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
             if (ff) {
                 fgQty = Number(ff.balance || ff.remaining || ff.stock || 0);
+                hasFg = true;
             }
         }
 
+        // ถ้าไม่มีข้อมูลในระบบเลย (ยังไม่เคยบันทึกรับเข้า WIP/FG) ให้ข้าม ไม่นำมานับเป็นขาดสต็อก
+        if (!hasWip && !hasFg) return false;
+
         let currentStock = wipQty + fgQty;
+        
+        // ต้องมีสต็อกน้อยกว่า Minimum ถึงจะแสดงเตือน
         return currentStock < minLimit;
     };
 
