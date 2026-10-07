@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum เฉพาะพาร์ทที่มีการตั้งค่า Minimum จริงๆ
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (เชื่อมโยงกับตัวเลข 5 รายการด้านล่าง)
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4749,19 +4749,25 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ L (Index 11) หรือฟิลด์ Minimum
+        // ดึงค่า Minimum จากคอลัมน์ L โดยเช็คตำแหน่ง Index 11 หรือคีย์ Minimum อย่างปลอดภัย
         const keys = Object.keys(m);
-        let minStockVal = 0;
+        let minStockVal = '';
+        
         if (m['Column L'] !== undefined) minStockVal = m['Column L'];
         else if (m.colL !== undefined) minStockVal = m.colL;
         else if (m.Minimum !== undefined) minStockVal = m.Minimum;
         else if (m.minimum !== undefined) minStockVal = m.minimum;
-        else if (keys.length > 11) minStockVal = m[keys[11]];
+        else if (keys.length > 11) {
+            // เช็คเฉพาะคอลัมน์ L จริงๆ โดยดูชื่อคีย์หรือตำแหน่ง
+            const lKey = keys.find(k => k.toLowerCase().includes('minimum') || k.toLowerCase().includes('l'));
+            minStockVal = lKey ? m[lKey] : m[keys[11]];
+        }
         
-        const cleanMinStr = String(minStockVal || '').replace(/,/g, '').trim();
-        const minLimit = Number(cleanMinStr) || 0;
-
-        // **เงื่อนไขสำคัญ:** ถ้าไม่ได้ใส่ค่า Minimum ไว้ หรือค่าเป็น 0/ค่าว่าง ให้ข้ามไปทันที (ไม่นำมานับเป็นต่ำกว่าสต็อก)
+        const cleanMinStr = String(minStockVal !== undefined && minStockVal !== null ? minStockVal : '').replace(/,/g, '').trim();
+        
+        // ถ้าไม่มีการใส่ค่า หรือค่าว่าง หรือแปลกปลอม ให้ตัดทิ้งทันที (ต้องมีตัวเลขมากกว่า 0 จริงๆ)
+        if (cleanMinStr === '' || isNaN(cleanMinStr)) return false;
+        const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
         // ดึงยอด Stock ปัจจุบัน
@@ -4789,7 +4795,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             currentStock = wipBal + fgBal;
         }
 
-        // เงื่อนไขแจ้งเตือน: เฉพาะพาร์ทที่กำหนด Minimum ไว้ และ Stock ปัจจุบันน้อยกว่า Minimum
         return currentStock < minLimit;
     });
 
