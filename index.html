@@ -4767,6 +4767,23 @@ function getLowStockPartsList(selectedLine = 'ALL') {
         return currentStock < minLimit;
     });
 }
+    // ฟังก์ชันเรียกสั่งให้แสดงแถบเตือนด้านบนพร้อมกับอัปเดตการ์ดสรุปด้านล่าง
+function refreshLowStockAlerts(selectedLine = 'ALL') {
+    // 1. เรียกฟังก์ชันแสดงแถบเตือนสีแดงด้านบน
+    renderZeroStockPartsByLine(selectedLine);
+    
+    // 2. อัปเดตตัวเลขในการ์ดสรุปด้านล่าง (Stock หมด Minimum)
+    const lowStockAll = getLowStockPartsList('ALL');
+    const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
+    if (stockMinElement) {
+        stockMinElement.textContent = lowStockAll.length;
+    }
+}
+
+// สั่งให้ระบบทำงานทันทีหลังโหลดข้อมูลหน้าเว็บเสร็จ
+document.addEventListener("DOMContentLoaded", () => {
+    refreshLowStockAlerts('ALL');
+});
     function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
