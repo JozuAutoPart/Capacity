@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum จากคอลัมน์ L
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4727,7 +4727,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         container.innerHTML = `
             <div class="card bg-dark text-white p-3 border-warning shadow">
                 <h6 class="text-warning fw-bold mb-2">
-                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
+                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine})
                 </h6>
                 <p class="text-muted mb-0">⚠️ ยังไม่พบข้อมูล Master Part Code (กรุณาอัปโหลดไฟล์ Master Part Code ก่อนครับ)</p>
             </div>
@@ -4735,6 +4735,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
+    // กรองตามไลน์ที่เลือก
     const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
         ? masters 
         : masters.filter(m => {
@@ -4742,95 +4743,116 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
               return mLine.toUpperCase() === String(selectedLine).trim().toUpperCase();
           });
 
-    // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลางชุดเดียวกันกับกราฟ
-    let activePartsSet = getActivePartsMap();
+    let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : new Map();
 
-    const zeroStockParts = targetMasters.filter(m => {
+    // กรองหาพาร์ทที่มี Stock น้อยกว่า Minimum (คอลัมน์ L)
+    const lowStockParts = targetMasters.filter(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        return !activePartsSet.has(cleanPNo);
+        // ดึงค่า Minimum จากคอลัมน์ L (รองรับทั้งชื่อคีย์และตำแหน่ง index ที่ 11)
+        const keys = Object.keys(m);
+        let minVal = '';
+        
+        if (m['Minimum'] !== undefined) minVal = m['Minimum'];
+        else if (m['minimum'] !== undefined) minVal = m['minimum'];
+        else if (m['MINIMUM'] !== undefined) minVal = m['MINIMUM'];
+        else if (keys.length > 11) minVal = m[keys[11]]; // คอลัมน์ L คือตำแหน่งที่ 11
+
+        const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
+        
+        // ถ้าช่อง Minimum ใน Google Sheets ว่าง, ขีด (-), หรือไม่ใช่ตัวเลข ให้ข้ามทันที
+        if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
+        const minLimit = Number(cleanMinStr);
+        if (minLimit <= 0) return false; // ถ้าค่า Minimum เป็น 0 หรือติดลบ ไม่เอามาคิด
+
+        // ดึงยอด Stock ปัจจุบัน (WIP + FG)
+        let currentStock = 0;
+        if (typeof activePartsSet.get === 'function') {
+            const val = activePartsSet.get(cleanPNo);
+            if (typeof val === 'number') {
+                currentStock = val;
+            } else if (val && typeof val === 'object') {
+                currentStock = Number(val.stock || val.balance || val.total || (Number(val.wip || 0) + Number(val.fg || 0)) || 0);
+            }
+        }
+
+        if (currentStock === 0) {
+            let wipBal = 0;
+            let fgBal = 0;
+            if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
+                const foundWip = window.wipDatabase.find(w => String(w['Part No.'] || w.partNo || '').trim().toUpperCase() === cleanPNo);
+                if (foundWip) wipBal = Number(foundWip.balance || foundWip.remaining || foundWip.wipBalance || 0);
+            }
+            if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
+                const foundFg = window.fgDatabase.find(f => String(f['Part No.'] || f.partNo || '').trim().toUpperCase() === cleanPNo);
+                if (foundFg) fgBal = Number(foundFg.balance || foundFg.remaining || foundFg.fgBalance || 0);
+            }
+            currentStock = wipBal + fgBal;
+        }
+
+        // เงื่อนไข: สต็อกปัจจุบันน้อยกว่าค่า Minimum ในคอลัมน์ L
+        return currentStock < minLimit;
     });
 
-    let badgesHtml = zeroStockParts.map(m => {
+    // สร้าง HTML แสดงรายชื่อพาร์ทที่ต่ำกว่า Minimum
+    let badgesHtml = lowStockParts.map(m => {
         const pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
     }).join('');
 
-    if (zeroStockParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่ Stock เป็น 0 ในไลน์นี้</span>`;
+    if (lowStockParts.length === 0) {
+        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้</span>`;
     }
 
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine}) 
-                <span class="badge bg-danger text-white ms-2">${zeroStockParts.length} รายการ</span>
+                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                <span class="badge bg-danger text-white ms-2">${lowStockParts.length} รายการ</span>
             </h6>
             <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
                 ${badgesHtml}
             </div>
         </div>
     `;
-}
-        function updateClock() {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
     
-    const clockElement = document.getElementById('liveClockDisplay');
-    if (clockElement) {
-        clockElement.textContent = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+    // อัปเดตตัวเลขสรุปในการ์ดด้านล่างให้ตรงกันอัตโนมัติ
+    const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
+    if (stockMinElement) {
+        // คำนวณภาพรวมทั้งหมด (ALL) เพื่อใส่ในการ์ดสรุปด้านล่าง
+        const allLowStock = masters.filter(m => {
+            const rawPNo = String(m['Part No.'] || m.partNo || '').trim().toUpperCase();
+            if (!rawPNo) return false;
+            const keys = Object.keys(m);
+            let minVal = m['Minimum'] !== undefined ? m['Minimum'] : (keys.length > 11 ? m[keys[11]] : 0);
+            const cleanMin = Number(String(minVal).replace(/,/g, '').trim());
+            if (isNaN(cleanMin) || cleanMin <= 0) return false;
+            
+            let curStock = 0;
+            if (typeof activePartsSet.get === 'function') {
+                const val = activePartsSet.get(rawPNo);
+                if (typeof val === 'number') curStock = val;
+                else if (val) curStock = Number(val.stock || val.balance || (Number(val.wip||0)+Number(val.fg||0)) || 0);
+            }
+            if (curStock === 0) {
+                let w = 0, f = 0;
+                if (window.wipDatabase) {
+                    let fw = window.wipDatabase.find(x => String(x['Part No.']||x.partNo||'').trim().toUpperCase() === rawPNo);
+                    if (fw) w = Number(fw.balance || 0);
+                }
+                if (window.fgDatabase) {
+                    let ff = window.fgDatabase.find(x => String(x['Part No.']||x.partNo||'').trim().toUpperCase() === rawPNo);
+                    if (ff) f = Number(ff.balance || 0);
+                }
+                curStock = w + f;
+            }
+            return curStock < cleanMin;
+        });
+        stockMinElement.textContent = allLowStock.length;
     }
 }
-setInterval(updateClock, 1000);
-updateClock();
-        function adjustStock(partNo, type) {
-            const key = `stock_adjust_${type}_${partNo}`;
-            const currentVal = localStorage.getItem(key) || 0;
-            const input = prompt(`[${type}] ปรับยอดสั้นสั้นของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
-
-            if (input !== null) {
-                const val = parseInt(input);
-                if (!isNaN(val)) {
-                    // แสดงแจ้งเตือนกำลังบันทึก
-                    alert("กำลังบันทึกข้อมูลลงระบบส่วนกลาง...");
-
-                    // ส่งข้อมูลไปบันทึกที่ Google Apps Script
-                    fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ 
-                            action: 'adjustStock', 
-                            partNo: partNo, 
-                            type: type, 
-                            value: val 
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status === "success") {
-                            localStorage.setItem(key, val);
-                            alert("บันทึกสำเร็จ!");
-                            location.reload(); // รีเฟรชหน้าจอเพื่อดึงค่าล่าสุดมาแสดงทุกเครื่อง
-                        } else {
-                            alert("เกิดข้อผิดพลาด: " + result.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Error:", error);
-                        alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
-                    });
-
-                } else {
-                    alert("กรุณากรอกตัวเลขให้ถูกต้องครับ");
-                }
-            }
-        }
       function syncStockData() {
     fetch(`${GOOGLE_SCRIPT_URL}?action=getStockAdjustments`)
     .then(response => response.json())
