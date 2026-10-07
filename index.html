@@ -4704,36 +4704,10 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ให้ลิงก์ตรงกับ 5 รายการด้านล่างเป๊ะๆ)
-function renderZeroStockPartsByLine(selectedLine = 'ALL') {
-    let container = document.getElementById('zeroStockListContainer');
-    
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'zeroStockListContainer';
-        container.className = 'col-12 mt-3 mb-4';
-
-        const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
-        if (mainContent) {
-            mainContent.appendChild(container);
-        }
-    }
-    
-    if (container) container.style.display = 'block';
-
+// ฟังก์ชันดึงและตรวจสอบค่า Minimum จากคอลัมน์ L (Index 11) ให้ตรงกับ Google Sheets เป๊ะๆ
+function getLowStockPartsList(selectedLine = 'ALL') {
     const masters = window.masterPartsDatabase || [];
-
-    if (masters.length === 0) {
-        container.innerHTML = `
-            <div class="card bg-dark text-white p-3 border-warning shadow">
-                <h6 class="text-warning fw-bold mb-2">
-                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine})
-                </h6>
-                <p class="text-muted mb-0">⚠️ ยังไม่พบข้อมูล Master Part Code (กรุณาอัปโหลดไฟล์ Master Part Code ก่อนครับ)</p>
-            </div>
-        `;
-        return;
-    }
+    if (masters.length === 0) return [];
 
     const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
         ? masters 
@@ -4744,27 +4718,27 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
 
     let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : new Map();
 
-    const lowStockParts = targetMasters.filter(m => {
+    return targetMasters.filter(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ L ให้สอดคล้องกับระบบสรุปด้านล่าง
+        // ดึงค่าจากคอลัมน์ L (Minimum) โดยเช็คจากคีย์ชื่อ Minimum หรือตำแหน่ง index ที่ 11
         const keys = Object.keys(m);
-        let minVal = 0;
+        let minVal = '';
         
         if (m['Minimum'] !== undefined) minVal = m['Minimum'];
         else if (m['minimum'] !== undefined) minVal = m['minimum'];
-        else if (keys.length > 11) {
-            minVal = m[keys[11]];
-        }
+        else if (keys.length > 11) minVal = m[keys[11]]; // คอลัมน์ L คือตำแหน่งที่ 11 ในอาเรย์
 
         const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
+        
+        // ถ้าช่อง Minimum ใน Google Sheets เป็นค่าว่าง, ขีด, หรือไม่ใช่ตัวเลข ให้ข้ามทันที (ถือว่าไม่ได้กำหนดค่า)
         if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
         const minLimit = Number(cleanMinStr);
-        if (minLimit <= 0) return false;
+        if (minLimit <= 0) return false; // ถ้าค่า Minimum เป็น 0 หรือติดลบ ไม่นำมาคำนวณ
 
-        // ดึงยอด Stock ปัจจุบัน (WIP + FG)
+        // ดึงยอด Stock ปัจจุบันของพาร์ทนั้นๆ
         let currentStock = 0;
         if (typeof activePartsSet.get === 'function') {
             const val = activePartsSet.get(cleanPNo);
@@ -4789,30 +4763,9 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             currentStock = wipBal + fgBal;
         }
 
-        // เงื่อนไขเดียวกันกับการ์ดสรุปด้านล่าง: ถ้ายอดสต็อกน้อยกว่าค่า Minimum
+        // เงื่อนไข: สต็อกปัจจุบันน้อยกว่าค่า Minimum ในคอลัมน์ L
         return currentStock < minLimit;
     });
-
-    let badgesHtml = lowStockParts.map(m => {
-        const pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-        return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
-    }).join('');
-
-    if (lowStockParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้</span>`;
-    }
-
-    container.innerHTML = `
-        <div class="card bg-dark text-white p-3 border-danger shadow">
-            <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
-                <span class="badge bg-danger text-white ms-2">${lowStockParts.length} รายการ</span>
-            </h6>
-            <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
-                ${badgesHtml}
-            </div>
-        </div>
-    `;
 }
     function updateClock() {
     const now = new Date();
