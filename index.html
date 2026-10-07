@@ -4723,13 +4723,38 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     const masters = window.masterPartsDatabase || [];
     if (masters.length === 0) return;
 
+    // ฟังก์ชันดึงยอดสต็อกปัจจุบันของพาร์ทนั้นๆ แบบยืดหยุ่น
+    const getPartStock = (cleanPNo) => {
+        let totalStock = 0;
+        
+        // ค้นหาใน wipDatabase
+        if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
+            let fw = window.wipDatabase.find(x => x && String(x['Part No.'] || x.partNo || x.PARTNO || '').trim().toUpperCase() === cleanPNo);
+            if (fw) {
+                let qty = Number(fw.balance || fw.remaining || fw.stock || fw.QTY || fw.qty || 0);
+                if (!isNaN(qty)) totalStock += qty;
+            }
+        }
+
+        // ค้นหาใน fgDatabase
+        if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
+            let ff = window.fgDatabase.find(x => x && String(x['Part No.'] || x.partNo || x.PARTNO || '').trim().toUpperCase() === cleanPNo);
+            if (ff) {
+                let qty = Number(ff.balance || ff.remaining || ff.stock || ff.QTY || ff.qty || 0);
+                if (!isNaN(qty)) totalStock += qty;
+            }
+        }
+
+        return totalStock;
+    };
+
     const checkIsLowStock = (m) => {
         if (!m) return false;
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // 1. ดึงค่า Minimum จากคอลัมน์ L
+        // 1. ดึงค่า Minimum จาก Master
         let minVal = m['Minimum'] || m['minimum'] || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             for (let key of Object.keys(m)) {
@@ -4746,32 +4771,10 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
-        // 2. ตรวจสอบว่าพาร์ทนี้มีข้อมูล Stock (WIP หรือ FG) บันทึกอยู่ในระบบจริงๆ หรือไม่
-        let wipQty = 0, hasWip = false;
-        let fgQty = 0, hasFg = false;
-
-        if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
-            let fw = window.wipDatabase.find(x => x && String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
-            if (fw) {
-                wipQty = Number(fw.balance || fw.remaining || fw.stock || 0);
-                hasWip = true;
-            }
-        }
-
-        if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
-            let ff = window.fgDatabase.find(x => x && String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
-            if (ff) {
-                fgQty = Number(ff.balance || ff.remaining || ff.stock || 0);
-                hasFg = true;
-            }
-        }
-
-        // ถ้าไม่มีข้อมูลในระบบเลย (ยังไม่เคยบันทึกรับเข้า WIP/FG) ให้ข้าม ไม่นำมานับเป็นขาดสต็อก
-        if (!hasWip && !hasFg) return false;
-
-        let currentStock = wipQty + fgQty;
+        // 2. เช็คยอดสต็อกรวม
+        let currentStock = getPartStock(cleanPNo);
         
-        // ต้องมีสต็อกน้อยกว่า Minimum ถึงจะแสดงเตือน
+        // ถ้าน้อยกว่า Minimum ถือว่าเข้าเงื่อนไข Low Stock (ตรงกับระบบสรุป 4 รายการ)
         return currentStock < minLimit;
     };
 
@@ -4797,7 +4800,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     }).join('');
 
     if (filteredLowStockParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้</span>`;
+        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine || 'ALL'})</span>`;
     }
 
     container.innerHTML = `
