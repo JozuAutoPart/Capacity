@@ -4726,15 +4726,13 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
-    let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : new Map();
-
     const checkIsLowStock = (m) => {
         if (!m) return false;
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // 1. ดึงค่า Minimum จากคอลัมน์ L อย่างแม่นยำ
+        // 1. ดึงค่า Minimum จากคอลัมน์ L
         let minVal = m['Minimum'] || m['minimum'] || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             for (let key of Object.keys(m)) {
@@ -4749,45 +4747,29 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
         
         const minLimit = Number(cleanMinStr);
-        if (minLimit <= 0) return false; // ถ้าไม่ได้กำหนด Minimum ไว้ (<= 0) ไม่นำมาคิด
+        if (minLimit <= 0) return false; // ถ้าไม่ได้กำหนด Minimum หรือเป็น 0 ไม่นำมาคิด
 
-        // 2. ดึงยอด Stock ปัจจุบัน (WIP + FG) พร้อมเช็กว่ามีข้อมูลสต็อกอยู่จริงไหม
-        let currentStock = 0;
-        let hasStockData = false;
+        // 2. ดึงยอด Stock ปัจจุบัน (WIP + FG) จากฐานข้อมูล
+        let wipQty = 0;
+        let fgQty = 0;
 
-        if (activePartsSet && typeof activePartsSet.get === 'function' && activePartsSet.has(cleanPNo)) {
-            const val = activePartsSet.get(cleanPNo);
-            hasStockData = true;
-            if (typeof val === 'number') currentStock = val;
-            else if (val && typeof val === 'object') currentStock = Number(val.stock || val.balance || (Number(val.wip || 0) + Number(val.fg || 0)) || 0);
-        }
-
-        // ตรวจสอบจากฐานข้อมูล WIP / FG เพิ่มเติม
-        let w = 0, f = 0, foundInWipFg = false;
         if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
             let fw = window.wipDatabase.find(x => x && String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
             if (fw) {
-                w = Number(fw.balance || fw.remaining || fw.stock || 0);
-                foundInWipFg = true;
+                wipQty = Number(fw.balance || fw.remaining || fw.stock || 0);
             }
         }
+
         if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
             let ff = window.fgDatabase.find(x => x && String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
             if (ff) {
-                f = Number(ff.balance || ff.remaining || ff.stock || 0);
-                foundInWipFg = true;
+                fgQty = Number(ff.balance || ff.remaining || ff.stock || 0);
             }
         }
 
-        if (foundInWipFg) {
-            hasStockData = true;
-            currentStock = w + f;
-        }
+        let currentStock = wipQty + fgQty;
 
-        // ถ้าพาร์ทนี้ไม่มีข้อมูล Stock บันทึกไว้เลย (ถือว่ายังไม่เริ่มกระบวนการสต็อก) ให้ข้ามไปก่อน ไม่เอามาตีเป็นแดง
-        if (!hasStockData) return false;
-
-        // 3. เทียบกับ Minimum (ถ้าสต็อกน้อยกว่า Minimum ถึงจะแสดงแถบแดง)
+        // 3. เทียบว่า Stock น้อยกว่า Minimum หรือไม่
         return currentStock < minLimit;
     };
 
