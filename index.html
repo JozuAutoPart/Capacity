@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum ในคอลัมน์ L (Piece per sheet / Minimum)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum ในคอลัมน์ L
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4750,7 +4750,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ L (Index 11 ใน Google Sheets: A=0 ถึง L=11)
+        // ดึงค่า Minimum จากคอลัมน์ L โดยเช็คทุกช่องทางที่เป็นไปได้ (รวมถึง Index ที่ 11)
         const keys = Object.keys(m);
         let minStockVal = 0;
         
@@ -4758,24 +4758,38 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             minStockVal = m['Column L'];
         } else if (m.colL !== undefined) {
             minStockVal = m.colL;
-        } else if (m.min !== undefined) {
-            minStockVal = m.min;
-        } else if (keys.length > 11 && m[keys[11]] !== undefined) {
-            minStockVal = m[keys[11]]; // ดึงข้อมูลจากคอลัมน์ L โดยตรง
+        } else if (m.Minimum !== undefined) {
+            minStockVal = m.Minimum;
+        } else if (m.minimum !== undefined) {
+            minStockVal = m.minimum;
+        } else if (keys.length > 11) {
+            // ดึงจากตำแหน่ง index 11 (คอลัมน์ L)
+            minStockVal = m[keys[11]];
         }
         
-        const minLimit = Number(minStockVal) || 0;
+        // แปลงค่า Minimum เป็นตัวเลข (จัดการกรณีมีคอมมาหรือเว้นวรรค)
+        const cleanMinStr = String(minStockVal || '').replace(/,/g, '').trim();
+        const minLimit = Number(cleanMinStr) || 0;
 
-        // ดึงยอด Stock ปัจจุบันของพาร์ทนี้
+        // ถ้าไม่ได้กำหนดค่า Minimum ไว้ (เป็น 0 หรือว่าง) ให้ข้ามการเช็คตัวนี้ไปก่อน
+        if (minLimit <= 0) return false;
+
+        // ดึงยอด Stock ปัจจุบันของพาร์ทนี้ (รวม WIP + FG หรือตามระบบจริง)
         let currentStock = 0;
         if (typeof activePartsSet.get === 'function') {
             const val = activePartsSet.get(cleanPNo);
-            currentStock = (typeof val === 'number') ? val : Number(val?.stock || val?.balance || 0);
+            if (typeof val === 'number') {
+                currentStock = val;
+            } else if (val && typeof val === 'object') {
+                currentStock = Number(val.stock || val.balance || val.total || 0);
+            } else {
+                currentStock = Number(val || 0);
+            }
         } else {
             currentStock = Number(m.stock || m.balance || 0);
         }
 
-        // เงื่อนไข: ถ้ายอด Stock น้อยกว่าค่า Minimum ในคอลัมน์ L ถึงจะนำมาแสดง
+        // เงื่อนไข: ถ้ายอด Stock น้อยกว่าค่า Minimum ในคอลัมน์ L
         return currentStock < minLimit;
     });
 
