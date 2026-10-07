@@ -4726,29 +4726,24 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
-    // ดึงคีย์ทั้งหมดของข้อมูลแถวแรกมาแสดงเพื่อตรวจสอบ
-    const sampleKeys = Object.keys(masters[0] || {});
-
     let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : new Map();
 
     const checkIsLowStock = (m) => {
-        const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
+        if (!m) return false;
+        const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || m['partNo'] || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ค้นหาคีย์ที่มีคำว่า min หรือช่องเกือบสุดท้าย
-        let minVal = '';
-        for (let key of Object.keys(m)) {
-            if (key.toLowerCase().includes('min') || key.toLowerCase().includes('minimum')) {
-                minVal = m[key];
-                break;
+        // ดึงค่า Minimum จากคีย์ที่เป็นไปได้ทั้งหมดอย่างครอบคลุม
+        let minVal = m['Minimum'] || m['minimum'] || m['MINIMUM'] || m['min'] || '';
+        
+        if (minVal === '' || minVal === undefined || minVal === null) {
+            for (let key of Object.keys(m)) {
+                if (key && key.toLowerCase().includes('min')) {
+                    minVal = m[key];
+                    break;
+                }
             }
-        }
-
-        // ถ้ายังไม่ได้ ให้ลองดึงจากช่อง index ที่ 11 หรือ 12
-        if (minVal === '' || minVal === undefined) {
-            const keys = Object.keys(m);
-            if (keys.length > 11) minVal = m[keys[11]];
         }
 
         const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
@@ -4757,8 +4752,9 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
+        // ดึงยอด Stock ปัจจุบัน (WIP + FG)
         let currentStock = 0;
-        if (typeof activePartsSet.get === 'function') {
+        if (activePartsSet && typeof activePartsSet.get === 'function') {
             const val = activePartsSet.get(cleanPNo);
             if (typeof val === 'number') currentStock = val;
             else if (val && typeof val === 'object') currentStock = Number(val.stock || val.balance || (Number(val.wip || 0) + Number(val.fg || 0)) || 0);
@@ -4767,11 +4763,11 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         if (currentStock === 0) {
             let w = 0, f = 0;
             if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
-                let fw = window.wipDatabase.find(x => String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
+                let fw = window.wipDatabase.find(x => x && String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
                 if (fw) w = Number(fw.balance || fw.remaining || 0);
             }
             if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
-                let ff = window.fgDatabase.find(x => String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
+                let ff = window.fgDatabase.find(x => x && String(x['Part No.'] || x.partNo || '').trim().toUpperCase() === cleanPNo);
                 if (ff) f = Number(ff.balance || ff.remaining || 0);
             }
             currentStock = w + f;
@@ -4783,12 +4779,12 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     const allLowStockParts = masters.filter(checkIsLowStock);
     const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
         ? masters 
-        : masters.filter(m => String(m.Line || m.line || m.LINE || '').trim().toUpperCase() === String(selectedLine).trim().toUpperCase());
+        : masters.filter(m => m && String(m.Line || m.line || m.LINE || '').trim().toUpperCase() === String(selectedLine).trim().toUpperCase());
 
     const filteredLowStockParts = targetMasters.filter(checkIsLowStock);
 
     const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
-   if (stockMinElement) {
+    if (stockMinElement) {
         stockMinElement.textContent = allLowStockParts.length;
     }
 
@@ -4797,18 +4793,18 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
     }).join('');
 
-    // แสดงผลบนแถบเตือน พร้อมโชว์รายชื่อคีย์ทั้งหมดในระบบให้เห็นชัดๆ
+    if (filteredLowStockParts.length === 0) {
+        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้</span>`;
+    }
+
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
                 <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                 <span class="badge bg-danger text-white ms-2">${filteredLowStockParts.length} รายการ</span>
             </h6>
-            <div class="mb-2 text-warning" style="font-size: 11px;">
-                🔍 <strong>ชื่อคีย์จริงในระบบที่อ่านได้:</strong> [ ${sampleKeys.join(', ')} ]
-            </div>
             <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
-                ${badgesHtml || '<span class="text-muted small">ไม่มีรายการที่ตรงเงื่อนไข</span>'}
+                ${badgesHtml}
             </div>
         </div>
     `;
