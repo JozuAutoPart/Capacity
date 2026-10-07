@@ -4704,7 +4704,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันกลางตัวเดียวจบ: ดึงค่าคอลัมน์ L (Minimum) เทียบกับ Stock (WIP+FG) และอัปเดตทั้งบนและล่างให้ตรงกัน 100%
+// ฟังก์ชันดึงค่าจากคอลัมน์ L (Minimum) อย่างแม่นยำที่สุด
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4729,23 +4729,29 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
 
     let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : new Map();
 
-    // ฟังก์ชันช่วยเช็กแต่ละพาร์ท
     const checkIsLowStock = (m) => {
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ L อย่างแม่นยำ (Index 11 หรือคีย์ Minimum)
-        const keys = Object.keys(m);
+        // ดึงค่าจากคอลัมน์ L (Minimum) โดยเช็กทุกรูปแบบชื่อคีย์ที่เป็นไปได้
         let minVal = '';
         if (m['Minimum'] !== undefined) minVal = m['Minimum'];
         else if (m['minimum'] !== undefined) minVal = m['minimum'];
-        else if (keys.length > 11) minVal = m[keys[11]];
+        else if (m['MINIMUM'] !== undefined) minVal = m['MINIMUM'];
+        else {
+            // เผื่อกรณีที่ชื่อคีย์ติดช่องว่างหรืออักษรพิเศษ ให้ดึงจาก Index ตำแหน่งที่ 11 (ซึ่งคือคอลัมน์ L) ตรงๆ
+            const keys = Object.keys(m);
+            if (keys.length > 11) {
+                minVal = m[keys[11]];
+            }
+        }
 
         const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
         
-        // กรองค่าที่เป็นช่องว่าง, ขีด, หรือไม่ใช่ตัวเลขออกเด็ดขาด
+        // ถ้าช่อง Minimum ว่าง, เป็นขีด (-), หรือไม่ใช่ตัวเลข ให้ข้ามทันที
         if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
+        
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false; // ถ้า Minimum เป็น 0 หรือติดลบ ไม่นำมาคิด
 
@@ -4773,23 +4779,19 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return currentStock < minLimit;
     };
 
-    // 1. หาข้อมูลภาพรวมทั้งหมด (สำหรับใส่การ์ดสรุปด้านล่าง)
     const allLowStockParts = masters.filter(checkIsLowStock);
 
-    // 2. กรองตาม Line ที่ผู้ใช้เลือก (สำหรับแสดงแถบด้านบน)
     const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
         ? masters 
         : masters.filter(m => String(m.Line || m.line || m.LINE || '').trim().toUpperCase() === String(selectedLine).trim().toUpperCase());
 
     const filteredLowStockParts = targetMasters.filter(checkIsLowStock);
 
-    // อัปเดตตัวเลขในการ์ดสรุปด้านล่างให้ตรงกันเป๊ะ
     const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
     if (stockMinElement) {
         stockMinElement.textContent = allLowStockParts.length;
     }
 
-    // วาดแถบแจ้งเตือนด้านบน
     let badgesHtml = filteredLowStockParts.map(m => {
         const pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
