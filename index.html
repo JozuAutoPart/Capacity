@@ -4704,7 +4704,6 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันดึงค่าจากคอลัมน์ L (Minimum) อย่างแม่นยำที่สุด
 function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     let container = document.getElementById('zeroStockListContainer');
     
@@ -4727,6 +4726,9 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
+    // ดึงคีย์ทั้งหมดของข้อมูลแถวแรกมาแสดงเพื่อตรวจสอบ
+    const sampleKeys = Object.keys(masters[0] || {});
+
     let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : new Map();
 
     const checkIsLowStock = (m) => {
@@ -4734,28 +4736,27 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่าจากคอลัมน์ L (Minimum) โดยเช็กทุกรูปแบบชื่อคีย์ที่เป็นไปได้
+        // ค้นหาคีย์ที่มีคำว่า min หรือช่องเกือบสุดท้าย
         let minVal = '';
-        if (m['Minimum'] !== undefined) minVal = m['Minimum'];
-        else if (m['minimum'] !== undefined) minVal = m['minimum'];
-        else if (m['MINIMUM'] !== undefined) minVal = m['MINIMUM'];
-        else {
-            // เผื่อกรณีที่ชื่อคีย์ติดช่องว่างหรืออักษรพิเศษ ให้ดึงจาก Index ตำแหน่งที่ 11 (ซึ่งคือคอลัมน์ L) ตรงๆ
-            const keys = Object.keys(m);
-            if (keys.length > 11) {
-                minVal = m[keys[11]];
+        for (let key of Object.keys(m)) {
+            if (key.toLowerCase().includes('min') || key.toLowerCase().includes('minimum')) {
+                minVal = m[key];
+                break;
             }
         }
 
+        // ถ้ายังไม่ได้ ให้ลองดึงจากช่อง index ที่ 11 หรือ 12
+        if (minVal === '' || minVal === undefined) {
+            const keys = Object.keys(m);
+            if (keys.length > 11) minVal = m[keys[11]];
+        }
+
         const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
-        
-        // ถ้าช่อง Minimum ว่าง, เป็นขีด (-), หรือไม่ใช่ตัวเลข ให้ข้ามทันที
         if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
         
         const minLimit = Number(cleanMinStr);
-        if (minLimit <= 0) return false; // ถ้า Minimum เป็น 0 หรือติดลบ ไม่นำมาคิด
+        if (minLimit <= 0) return false;
 
-        // ดึงยอด Stock ปัจจุบัน (WIP + FG)
         let currentStock = 0;
         if (typeof activePartsSet.get === 'function') {
             const val = activePartsSet.get(cleanPNo);
@@ -4780,7 +4781,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     };
 
     const allLowStockParts = masters.filter(checkIsLowStock);
-
     const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
         ? masters 
         : masters.filter(m => String(m.Line || m.line || m.LINE || '').trim().toUpperCase() === String(selectedLine).trim().toUpperCase());
@@ -4788,7 +4788,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     const filteredLowStockParts = targetMasters.filter(checkIsLowStock);
 
     const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
-    if (stockMinElement) {
+   if (stockMinElement) {
         stockMinElement.textContent = allLowStockParts.length;
     }
 
@@ -4797,18 +4797,18 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
     }).join('');
 
-    if (filteredLowStockParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้</span>`;
-    }
-
+    // แสดงผลบนแถบเตือน พร้อมโชว์รายชื่อคีย์ทั้งหมดในระบบให้เห็นชัดๆ
     container.innerHTML = `
         <div class="card bg-dark text-white p-3 border-danger shadow">
             <h6 class="text-danger fw-bold mb-2">
                 <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                 <span class="badge bg-danger text-white ms-2">${filteredLowStockParts.length} รายการ</span>
             </h6>
+            <div class="mb-2 text-warning" style="font-size: 11px;">
+                🔍 <strong>ชื่อคีย์จริงในระบบที่อ่านได้:</strong> [ ${sampleKeys.join(', ')} ]
+            </div>
             <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
-                ${badgesHtml}
+                ${badgesHtml || '<span class="text-muted small">ไม่มีรายการที่ตรงเงื่อนไข</span>'}
             </div>
         </div>
     `;
