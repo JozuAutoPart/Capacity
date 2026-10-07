@@ -4704,10 +4704,36 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันดึงและตรวจสอบค่า Minimum จากคอลัมน์ L (Index 11) ให้ตรงกับ Google Sheets เป๊ะๆ
-function getLowStockPartsList(selectedLine = 'ALL') {
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum เฉพาะพาร์ทที่มีการตั้งค่า Minimum จริงๆ
+function renderZeroStockPartsByLine(selectedLine = 'ALL') {
+    let container = document.getElementById('zeroStockListContainer');
+    
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'zeroStockListContainer';
+        container.className = 'col-12 mt-3 mb-4';
+
+        const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
+        if (mainContent) {
+            mainContent.appendChild(container);
+        }
+    }
+    
+    if (container) container.style.display = 'block';
+
     const masters = window.masterPartsDatabase || [];
-    if (masters.length === 0) return [];
+
+    if (masters.length === 0) {
+        container.innerHTML = `
+            <div class="card bg-dark text-white p-3 border-warning shadow">
+                <h6 class="text-warning fw-bold mb-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine})
+                </h6>
+                <p class="text-muted mb-0">⚠️ ยังไม่พบข้อมูล Master Part Code (กรุณาอัปโหลดไฟล์ Master Part Code ก่อนครับ)</p>
+            </div>
+        `;
+        return;
+    }
 
     const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
         ? masters 
@@ -4718,27 +4744,27 @@ function getLowStockPartsList(selectedLine = 'ALL') {
 
     let activePartsSet = typeof getActivePartsMap === 'function' ? getActivePartsMap() : new Map();
 
-    return targetMasters.filter(m => {
+    const lowStockParts = targetMasters.filter(m => {
         const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่าจากคอลัมน์ L (Minimum) โดยเช็คจากคีย์ชื่อ Minimum หรือตำแหน่ง index ที่ 11
+        // ดึงค่า Minimum จากคอลัมน์ L (Index 11) หรือฟิลด์ Minimum
         const keys = Object.keys(m);
-        let minVal = '';
+        let minStockVal = 0;
+        if (m['Column L'] !== undefined) minStockVal = m['Column L'];
+        else if (m.colL !== undefined) minStockVal = m.colL;
+        else if (m.Minimum !== undefined) minStockVal = m.Minimum;
+        else if (m.minimum !== undefined) minStockVal = m.minimum;
+        else if (keys.length > 11) minStockVal = m[keys[11]];
         
-        if (m['Minimum'] !== undefined) minVal = m['Minimum'];
-        else if (m['minimum'] !== undefined) minVal = m['minimum'];
-        else if (keys.length > 11) minVal = m[keys[11]]; // คอลัมน์ L คือตำแหน่งที่ 11 ในอาเรย์
+        const cleanMinStr = String(minStockVal || '').replace(/,/g, '').trim();
+        const minLimit = Number(cleanMinStr) || 0;
 
-        const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
-        
-        // ถ้าช่อง Minimum ใน Google Sheets เป็นค่าว่าง, ขีด, หรือไม่ใช่ตัวเลข ให้ข้ามทันที (ถือว่าไม่ได้กำหนดค่า)
-        if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
-        const minLimit = Number(cleanMinStr);
-        if (minLimit <= 0) return false; // ถ้าค่า Minimum เป็น 0 หรือติดลบ ไม่นำมาคำนวณ
+        // **เงื่อนไขสำคัญ:** ถ้าไม่ได้ใส่ค่า Minimum ไว้ หรือค่าเป็น 0/ค่าว่าง ให้ข้ามไปทันที (ไม่นำมานับเป็นต่ำกว่าสต็อก)
+        if (minLimit <= 0) return false;
 
-        // ดึงยอด Stock ปัจจุบันของพาร์ทนั้นๆ
+        // ดึงยอด Stock ปัจจุบัน
         let currentStock = 0;
         if (typeof activePartsSet.get === 'function') {
             const val = activePartsSet.get(cleanPNo);
@@ -4763,27 +4789,31 @@ function getLowStockPartsList(selectedLine = 'ALL') {
             currentStock = wipBal + fgBal;
         }
 
-        // เงื่อนไข: สต็อกปัจจุบันน้อยกว่าค่า Minimum ในคอลัมน์ L
+        // เงื่อนไขแจ้งเตือน: เฉพาะพาร์ทที่กำหนด Minimum ไว้ และ Stock ปัจจุบันน้อยกว่า Minimum
         return currentStock < minLimit;
     });
-}
-    // ฟังก์ชันเรียกสั่งให้แสดงแถบเตือนด้านบนพร้อมกับอัปเดตการ์ดสรุปด้านล่าง
-function refreshLowStockAlerts(selectedLine = 'ALL') {
-    // 1. เรียกฟังก์ชันแสดงแถบเตือนสีแดงด้านบน
-    renderZeroStockPartsByLine(selectedLine);
-    
-    // 2. อัปเดตตัวเลขในการ์ดสรุปด้านล่าง (Stock หมด Minimum)
-    const lowStockAll = getLowStockPartsList('ALL');
-    const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
-    if (stockMinElement) {
-        stockMinElement.textContent = lowStockAll.length;
-    }
-}
 
-// สั่งให้ระบบทำงานทันทีหลังโหลดข้อมูลหน้าเว็บเสร็จ
-document.addEventListener("DOMContentLoaded", () => {
-    refreshLowStockAlerts('ALL');
-});
+    let badgesHtml = lowStockParts.map(m => {
+        const pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
+        return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
+    }).join('');
+
+    if (lowStockParts.length === 0) {
+        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้</span>`;
+    }
+
+    container.innerHTML = `
+        <div class="card bg-dark text-white p-3 border-danger shadow">
+            <h6 class="text-danger fw-bold mb-2">
+                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                <span class="badge bg-danger text-white ms-2">${lowStockParts.length} รายการ</span>
+            </h6>
+            <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
+                ${badgesHtml}
+            </div>
+        </div>
+    `;
+}
     function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
