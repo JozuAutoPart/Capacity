@@ -4720,9 +4720,10 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     
     if (container) container.style.display = 'block';
 
+    // รอให้ข้อมูลพร้อม ถ้ายังไม่มีให้ลองดึงซ้ำอัตโนมัติ
     const masters = window.masterPartsDatabase || [];
     if (masters.length === 0) {
-        container.innerHTML = `<div class="card bg-dark text-white p-3 border-warning shadow"><h6 class="text-warning">⚠️ ไม่พบข้อมูล Master Parts</h6></div>`;
+        setTimeout(() => renderZeroStockPartsByLine(selectedLine), 500);
         return;
     }
 
@@ -4732,7 +4733,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ L
+        // ดึงค่า Minimum จากคอลัมน์ L โดยตรง
         let minVal = m['Minimum'] || m['minimum'] || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             for (let key of Object.keys(m)) {
@@ -4771,10 +4772,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return currentStock < minLimit;
     };
 
-    // หารายการที่ต่ำกว่า Minimum ทั้งหมด
     const allLowStockParts = masters.filter(checkIsLowStock);
-    
-    // จัดการกรองตามไลน์ที่เลือก
     const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
 
     const filteredLowStockParts = (currentLine === 'ALL') 
