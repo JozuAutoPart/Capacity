@@ -4720,7 +4720,7 @@ document.addEventListener('keypress', function(e) {
             }
         }
         
-        container.style.display = 'block';
+        if (container) container.style.display = 'block';
 
         const masters = window.masterPartsDatabase || [];
         if (masters.length === 0) {
@@ -4728,7 +4728,7 @@ document.addEventListener('keypress', function(e) {
             return;
         }
 
-        // ฟังก์ชันช่วยดึงยอด Stock รวมจริงจาก WIP และ FG
+        // ค้นหาพาร์ทที่ต่ำกว่า Minimum โดยใช้เงื่อนไขเดียวกับฟังก์ชันหลักของหน้าเว็บ (เช็คจากค่าที่คำนวณแล้วหรือฟังก์ชันใน window ถ้ามี)
         const getPartStock = (cleanPNo) => {
             let totalStock = 0;
             const sumStock = (list) => {
@@ -4747,7 +4747,6 @@ document.addEventListener('keypress', function(e) {
             return totalStock;
         };
 
-        // กรองหาพาร์ทที่มี Stock ต่ำกว่า Minimum จริงๆ
         const lowStockList = [];
         masters.forEach(m => {
             if (!m) return;
@@ -4755,26 +4754,28 @@ document.addEventListener('keypress', function(e) {
             const cleanPNo = rawPNo.toUpperCase();
             if (!cleanPNo) return;
 
-            // ค้นหาค่า Minimum จากคอลัมน์ต่างๆ
+            // ดึงค่า Minimum เฉพาะคอลัมน์ที่มีการระบุตัวเลข Minimum จริงๆ (ไม่เอาช่องว่างหรือขีดกลาง)
             let minVal = '';
-            for (let key of Object.keys(m)) {
+            const keys = Object.keys(m);
+            // ตรวจสอบคีย์ที่ชื่อตรงกับ Minimum หรือช่องข้อมูล index ที่แท้จริง
+            for (let key of keys) {
                 let lKey = key.toLowerCase();
-                if (lKey.includes('min') || lKey === 'minimum') {
+                if (lKey === 'minimum' || lKey === 'min') {
                     let val = m[key];
-                    if (val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-') {
+                    if (val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-' && !isNaN(String(val).replace(/,/g, '').trim())) {
                         minVal = val;
                         break;
                     }
                 }
             }
 
-            // สำรองหาตาม Index คอลัมน์
-            if (minVal === '' || minVal === null) {
-                const keys = Object.keys(m);
-                for (let idx of [11, 12, 10]) {
+            // ถ้าไม่เจอจากชื่อคีย์ ให้ตรวจสอบเฉพาะ Index ที่เป็นค่า Minimum จริงๆ ในระบบของพี่มิว (มักจะอยู่ช่องท้ายๆ)
+            if (minVal === '') {
+                for (let idx of [11, 12]) { // ตำแหน่งมาตรฐานของฟิลด์ Minimum
                     if (keys.length > idx && m[keys[idx]] !== undefined) {
                         let val = m[keys[idx]];
-                        if (val !== '' && val !== null && !isNaN(String(val).replace(/,/g, '').trim())) {
+                        let cleanVal = String(val).replace(/,/g, '').trim();
+                        if (cleanVal !== '' && cleanVal !== '-' && !isNaN(cleanVal) && Number(cleanVal) > 0) {
                             minVal = val;
                             break;
                         }
@@ -4789,7 +4790,7 @@ document.addEventListener('keypress', function(e) {
 
             let currentStock = getPartStock(cleanPNo);
             if (currentStock < minLimit) {
-                let line = String(m.Line || m.line || m.LINE || 'UNKNOWN').trim();
+                let line = String(m.Line || m.line || m.LINE || 'ALL').trim();
                 lowStockList.push({
                     partNo: rawPNo,
                     line: line,
@@ -4805,10 +4806,9 @@ document.addEventListener('keypress', function(e) {
             ? lowStockList 
             : lowStockList.filter(x => x.line.toUpperCase() === currentLine);
 
-        // สร้าง Badge แสดงรายชื่อพาร์ทและไลน์
         let badgesHtml = filteredParts.map(item => {
             return `<span class="badge bg-danger m-1 p-2" style="font-size: 13px;">
-                        <i class="fas.fa-box me-1"></i><b>${item.partNo}</b> 
+                        <i class="fas fa-box me-1"></i><b>${item.partNo}</b> 
                         <span class="badge bg-dark text-warning ms-1">Line: ${item.line}</span> 
                         <span class="badge bg-light text-dark ms-1">Stock: ${item.stock} / Min: ${item.min}</span>
                     </span>`;
@@ -4833,7 +4833,6 @@ document.addEventListener('keypress', function(e) {
 
     window.renderZeroStockPartsByLine = renderZeroStockPartsByLine;
 
-    // ดักจับปุ่มคลิกเปลี่ยนไลน์ (ALL, Line A, Line Q, ฯลฯ) เพื่อกรองข้อมูลอัตโนมัติ
     document.addEventListener('click', function(e) {
         let btn = e.target.closest('button') || e.target;
         if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
@@ -4844,7 +4843,6 @@ document.addEventListener('keypress', function(e) {
         }
     });
 
-    // สั่งรันอัตโนมัติเมื่อโหลดหน้าเว็บ
     window.addEventListener('DOMContentLoaded', () => renderZeroStockPartsByLine('ALL'));
     window.addEventListener('load', () => renderZeroStockPartsByLine('ALL'));
     setTimeout(() => renderZeroStockPartsByLine('ALL'), 1000);
