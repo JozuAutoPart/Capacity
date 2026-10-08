@@ -4731,7 +4731,6 @@ document.addEventListener('keypress', function(e) {
                 return;
             }
 
-            // รวบรวมรายชื่อพาร์ททั้งหมดจากตารางระบบ
             const partsSet = new Set([
                 ...actuals.map(a => a.partNo || a['Part No.'] || ''),
                 ...qgate.map(q => q.partNo || q['Part No.'] || ''),
@@ -4747,7 +4746,6 @@ document.addEventListener('keypress', function(e) {
                 const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
                 if (hasProcessSuffix) return;
 
-                // ค้นหาข้อมูลพาร์ทใน Master Parts
                 let masterInfo = masters.find(m => {
                     if (!m) return false;
                     for (let k of Object.keys(m)) {
@@ -4771,7 +4769,6 @@ document.addEventListener('keypress', function(e) {
                             if (masterInfo[k]) line = masterInfo[k];
                         }
                         
-                        // ดึงค่า Minimum จากคีย์ชื่อ หรือบังคับดึงจากตำแหน่งคอลัมน์ L (Index 11) โดยตรง
                         if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
                             let v = Number(val);
                             if (!isNaN(v) && v > 0) {
@@ -4781,10 +4778,8 @@ document.addEventListener('keypress', function(e) {
                     }
                 }
 
-                // ถ้าไม่มีค่า Minimum หรือค่าเป็น 0 ให้ข้าม
                 if (minVal <= 0) return;
 
-                // คำนวณยอด Stock WIP ตามสูตรจริงของระบบพี่มิว
                 const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
                     let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     return sum + (isNaN(val) ? 0 : val);
@@ -4798,7 +4793,6 @@ document.addEventListener('keypress', function(e) {
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
 
-                // เงื่อนไข: ถ้ายอด Stock WIP น้อยกว่า Minimum (คอลัมน์ L)
                 if (currentwip < minVal) {
                     lowStockList.push({
                         partNo: partNo,
@@ -4815,9 +4809,9 @@ document.addEventListener('keypress', function(e) {
                 : lowStockList.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
-                return `<span class="badge bg-danger m-1 p-2" style="font-size: 13px;">
-                            <i class="fas fa-box me-1"></i><b>${item.partNo}</b> 
-                            <span class="badge bg-dark text-warning ms-1">Line: ${item.line}</span> 
+                return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
+                            <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
+                            <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
                             <span class="badge bg-light text-dark ms-1">Stock(WIP): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
                         </span>`;
             }).join('');
