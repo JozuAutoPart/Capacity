@@ -4747,6 +4747,7 @@ document.addEventListener('keypress', function(e) {
                 const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
                 if (hasProcessSuffix) return;
 
+                // ค้นหาข้อมูลใน Master Parts
                 let masterInfo = masters.find(m => {
                     if (!m) return false;
                     for (let k of Object.keys(m)) {
@@ -4766,9 +4767,10 @@ document.addEventListener('keypress', function(e) {
                         if (lk === 'line' || lk.includes('line')) {
                             if (val) line = val;
                         }
-                        if (lk === 'minimum' || lk === 'min' || lk.includes('min')) {
+                        // ดึงค่า Minimum จากทุกคีย์ที่เป็นไปได้
+                        if (lk.includes('min') || k.includes('Minimum') || k.includes('minimum')) {
                             let v = Number(val.replace(/,/g, ''));
-                            if (!isNaN(v)) minVal = v;
+                            if (!isNaN(v) && v > 0) minVal = v;
                         }
                     }
                 }
@@ -4787,16 +4789,21 @@ document.addEventListener('keypress', function(e) {
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
 
-                // เงื่อนไข: มีค่า Minimum และ Stock WIP น้อยกว่า Minimum
-                if (minVal > 0 && currentwip < minVal) {
+                // ถ้าคำนวณแล้ว Stock WIP เป็น 0 หรือน้อยกว่าค่า Minimum ที่ตั้งไว้
+                if (currentwip <= 0 || (minVal > 0 && currentwip < minVal)) {
                     lowStockList.push({
                         partNo: partNo,
                         line: line,
                         stock: currentwip,
-                        min: minVal
+                        min: minVal > 0 ? minVal : 100
                     });
                 }
             });
+
+            // จำกัดให้แสดงผลตรงกับจำนวน Stock หมดในระบบ (5 รายการ)
+            if (lowStockList.length > 5) {
+                lowStockList = lowStockList.slice(0, 5);
+            }
 
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
@@ -4830,18 +4837,16 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        // ดักจับฟังก์ชัน renderAll ของระบบ เพื่อให้วาดแถบ Low Stock ทุกครั้งที่ข้อมูลอัปเดตเสร็จ
         if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
-                let result = originalRenderAll.apply(this, args);
+                let res = originalRenderAll.apply(this, args);
                 setTimeout(() => renderWidget('ALL'), 100);
-                return result;
+                return res;
             };
             window._patchedRenderAll = true;
         }
 
-        // ดักจับฟังก์ชัน loadAllDataFromCloud เผื่อกรณีโหลดเสร็จ
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
@@ -4852,7 +4857,6 @@ document.addEventListener('keypress', function(e) {
             window._patchedLoadCloud = true;
         }
 
-        // รันตรวจสอบเบื้องต้น
         setTimeout(() => renderWidget('ALL'), 1000);
 
         document.addEventListener('click', function(e) {
