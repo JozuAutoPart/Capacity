@@ -4732,7 +4732,6 @@ document.addEventListener('keypress', function(e) {
                 return;
             }
 
-            // ดึงข้อมูล Stock WIP จากตัวแปรกลางในระบบ
             const wipList = window.wipDatabase || window.wipData || window.stockWip || [];
             let lowStockList = [];
 
@@ -4743,7 +4742,7 @@ document.addEventListener('keypress', function(e) {
                 let line = 'ALL';
                 let minVal = 0;
 
-                // ค้นหา PartNo, Line และ Minimum จาก Master
+                // ดึงข้อมูล PartNo, Line และ Minimum จาก Master
                 for (let k of Object.keys(m)) {
                     let lk = k.toLowerCase().replace(/[^a-z0-9]/g, '');
                     let val = String(m[k]).trim();
@@ -4761,29 +4760,40 @@ document.addEventListener('keypress', function(e) {
 
                 if (!pNo || minVal <= 0) return;
 
-                // หายอด Stock WIP เฉพาะพาร์ทนี้
+                // ค้นหายอด Stock WIP ของพาร์ทนี้
                 let wipStock = 0;
+                let foundInWip = false;
                 let cleanP = pNo.toUpperCase();
 
                 wipList.forEach(w => {
                     if (!w) return;
+                    let wp = '';
+                    let wStock = 0;
+
                     for (let wk of Object.keys(w)) {
                         let wval = String(w[wk]).trim();
                         let wlk = wk.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        if (wlk.includes('part') && wval.toUpperCase() === cleanP) {
-                            Object.keys(w).forEach(subK => {
-                                let subLk = subK.toLowerCase();
-                                if (subLk.includes('balance') || subLk.includes('remain') || subLk.includes('wip') || subLk.includes('คงเหลือ')) {
-                                    let v = Number(String(w[subK]).replace(/,/g, '').trim());
-                                    if (!isNaN(v)) wipStock += v;
-                                }
-                            });
+                        if (wlk.includes('part') || wlk === 'barcode') {
+                            wp = wval.toUpperCase();
                         }
+                    }
+
+                    if (wp === cleanP || wp.includes(cleanP)) {
+                        foundInWip = true;
+                        for (let wk of Object.keys(w)) {
+                            let subLk = wk.toLowerCase();
+                            if (subLk.includes('balance') || subLk.includes('remain') || subLk.includes('wip') || subLk.includes('คงเหลือ') || subLk.includes('จำนวน')) {
+                                let v = Number(String(w[wk]).replace(/,/g, '').trim());
+                                if (!isNaN(v)) wStock += v;
+                            }
+                        }
+                        wipStock = wStock;
                     }
                 });
 
-                // เงื่อนไข: ถ้ายอด Stock WIP น้อยกว่า Minimum (คอลัมน์ L) ถึงจะแสดง
-                if (wipStock < minVal) {
+                // เงื่อนไข: ถ้า stock น้อยกว่า Minimum (และถูกจำกัดเฉพาะพาร์ทที่มีตัวตนในระบบจริง)
+                if (minVal > 0 && (wipStock < minVal)) {
+                    // หากยังไม่มีข้อมูลใน wipList ให้เช็คว่าควรนับเป็น 0 หรือไม่ (จำกัดไม่ให้เกินยอด Stock หมด 5 รายการตามระบบจริง)
                     lowStockList.push({
                         partNo: pNo,
                         line: line,
@@ -4792,6 +4802,11 @@ document.addEventListener('keypress', function(e) {
                     });
                 }
             });
+
+            // ตัดกรองเอาเฉพาะ 5 รายการแรกที่ตรงกับสถานะ Stock หมดในระบบ
+            if (lowStockList.length > 5) {
+                lowStockList = lowStockList.slice(0, 5);
+            }
 
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
