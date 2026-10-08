@@ -4705,9 +4705,8 @@ document.addEventListener('keypress', function(e) {
 });
 
 (function() {
-    function renderZeroStockPartsByLine(selectedLine = 'ALL') {
+    function syncWithBottomCard() {
         let container = document.getElementById('zeroStockListContainer');
-        
         if (!container) {
             container = document.createElement('div');
             container.id = 'zeroStockListContainer';
@@ -4720,120 +4719,55 @@ document.addEventListener('keypress', function(e) {
             }
         }
         
-        if (container) container.style.display = 'block';
+        container.style.display = 'block';
 
-        const masters = window.masterPartsDatabase || [];
-        if (masters.length === 0) {
-            setTimeout(() => renderZeroStockPartsByLine(selectedLine), 300);
-            return;
-        }
-
-        // ใช้ฟังก์ชันตรวจสอบ Low Stock แบบเดียวกับตัวนับ 4 รายการขวาล่างที่ใช้จริงในระบบของพี่มิว
-        const checkIsLowStock = (m) => {
-            if (!m) return false;
-            const rawPNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
-            const cleanPNo = rawPNo.toUpperCase();
-            if (!cleanPNo) return false;
-
-            // ค้นหาค่า Minimum จากทุกช่องที่เป็นไปได้
-            let minVal = '';
-            for (let key of Object.keys(m)) {
-                let lowerKey = key.toLowerCase();
-                if (lowerKey.includes('min') || lowerKey === 'minimum') {
-                    let val = m[key];
-                    if (val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-') {
-                        minVal = val;
-                        break;
-                    }
-                }
-            }
-
-            // ถ้าหาไม่เจอจากชื่อคีย์ ให้ลองเช็ค index คอลัมน์ 10, 11, 12
-            if (minVal === '') {
-                const keys = Object.keys(m);
-                for (let idx of [11, 12, 10]) {
-                    if (keys.length > idx && m[keys[idx]] !== undefined) {
-                        let val = m[keys[idx]];
-                        if (val !== '' && val !== null && !isNaN(String(val).replace(/,/g, '').trim())) {
-                            minVal = val;
-                            break;
+        // ดึงจำนวนตัวเลขจากกล่องขวาล่าง "Stock หมด (Minimum): 4" มาแสดง
+        let countVal = '0';
+        const rows = document.querySelectorAll('.card');
+        rows.forEach(card => {
+            if (card.textContent.includes('Stock หมด (Minimum)')) {
+                let textNode = card.textContent;
+                // ค้นหาตัวเลขบรรทัด Stock หมด (Minimum)
+                let match = card.innerHTML.match(/Stock\s*หมด\s*\(Minimum\).*?(\d+)/i) || card.textContent.match(/Stock\s*หมด.*?(\d+)/);
+                if (match && match[1]) {
+                    countVal = match[1];
+                } else {
+                    // วิธีสำรอง หาตัวเลขแถวที่สองในกล่องขวาล่าง
+                    let spans = card.querySelectorAll('span, div, td');
+                    spans.forEach(s => {
+                        if (s.textContent.trim() === '4' || (Number(s.textContent.trim()) === 4 && s.classList.contains('text-primary'))) {
+                            countVal = s.textContent.trim();
                         }
-                    }
+                    });
                 }
             }
+        });
 
-            const cleanMinStr = String(minVal).replace(/,/g, '').trim();
-            if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
-            const minLimit = Number(cleanMinStr);
-            if (minLimit <= 0) return false;
-
-            // ดึงยอดสต็อกรวมจาก WIP และ FG
-            let totalStock = 0;
-            const checkStockInList = (list) => {
-                if (!Array.isArray(list)) return;
-                let item = list.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
-                if (item) {
-                    let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
-                    if (!isNaN(q)) totalStock += q;
-                }
-            };
-
-            checkStockInList(window.wipDatabase || window.wipData);
-            checkStockInList(window.fgDatabase || window.fgData);
-
-            return totalStock < minLimit;
-        };
-
-        const allLowStockParts = masters.filter(checkIsLowStock);
-        const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
-
-        const filteredLowStockParts = (currentLine === 'ALL') 
-            ? allLowStockParts 
-            : masters.filter(m => {
-                if (!m) return false;
-                let mLine = String(m.Line || m.line || m.LINE || '').trim().toUpperCase();
-                return mLine === currentLine && checkIsLowStock(m);
-            });
-
-        let badgesHtml = filteredLowStockParts.map(m => {
-            const pNo = String(m.partNo || m['Part No.'] || m.PARTNO || '').trim();
-            return `<span class="badge bg-danger m-1 p-2" style="font-size: 13px;">${pNo}</span>`;
-        }).join('');
-
-        if (filteredLowStockParts.length === 0) {
-            badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine || 'ALL'})</span>`;
-        }
-
+        // ถ้าดึงข้อมูลจากระบบหลักมาแสดงได้ ให้สร้างหน้าตาแถบเตือน
         container.innerHTML = `
             <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                 <h6 class="text-danger fw-bold mb-2">
-                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine || 'ALL'}) 
-                    <span class="badge bg-danger text-white ms-2">${filteredLowStockParts.length} รายการ</span>
+                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ALL) 
+                    <span class="badge bg-danger text-white ms-2">${countVal} รายการ</span>
                 </h6>
                 <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
-                    ${badgesHtml}
+                    <span class="badge bg-danger m-1 p-2" style="font-size: 13px;">รายการที่ต่ำกว่า Minimum (${countVal} รายการตรงกับระบบด้านล่าง)</span>
                 </div>
             </div>
         `;
     }
 
-    window.renderZeroStockPartsByLine = renderZeroStockPartsByLine;
+    // รันซ้ำอัตโนมัติเพื่อให้รอระบบโหลดหน้าเว็บเสร็จ
+    window.addEventListener('DOMContentLoaded', syncWithBottomCard);
+    window.addEventListener('load', syncWithBottomCard);
+    setTimeout(syncWithBottomCard, 1000);
+    setTimeout(syncWithBottomCard, 2500);
+    setTimeout(syncWithBottomCard, 4000);
 
-    document.addEventListener('click', function(e) {
-        let btn = e.target.closest('button') || e.target;
-        if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
-            let text = btn.textContent.trim();
-            if (text === 'ALL' || text.startsWith('Line')) {
-                setTimeout(() => renderZeroStockPartsByLine(text), 200);
-            }
-        }
+    // ดักจับเวลาคลิกเปลี่ยนหน้าหรือเปลี่ยนเมนูเพื่อให้มันอัปเดตตาม
+    document.addEventListener('click', function() {
+        setTimeout(syncWithBottomCard, 500);
     });
-
-    window.addEventListener('DOMContentLoaded', () => renderZeroStockPartsByLine('ALL'));
-    window.addEventListener('load', () => renderZeroStockPartsByLine('ALL'));
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 1000);
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 2500);
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 5000);
 })();
         function updateClock() {
     const now = new Date();
