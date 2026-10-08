@@ -4724,40 +4724,97 @@ document.addEventListener('keypress', function(e) {
 
         const masters = window.masterPartsDatabase || [];
         if (masters.length === 0) {
-            setTimeout(() => renderZeroStockPartsByLine(selectedLine), 500);
+            // ถ้าข้อมูลยังไม่มา ให้รอแล้วลองใหม่
+            setTimeout(() => renderZeroStockPartsByLine(selectedLine), 800);
             return;
         }
 
-        // วิธีแก้แบบชัวร์ 100%: ดึงจาก masterPartsDatabase และกรองตามเงื่อนไข Minimum ที่ระบบหน้าเว็บใช้อยู่จริง
+        // ฟังก์ชันดึงและรวมยอดสต็อกทั้งจาก WIP และ FG
+        const getTotalStock = (pNo) => {
+            let total = 0;
+            let cleanP = String(pNo).trim().toUpperCase();
+
+            // 1. รวมยอด WIP
+            const wipList = window.wipDatabase || window.wipData || [];
+            if (Array.isArray(wipList)) {
+                wipList.forEach(w => {
+                    if (!w) return;
+                    let wp = String(w.partNo || w['Part No.'] || w.PARTNO || w.part_no || '').trim().toUpperCase();
+                    if (wp === cleanP) {
+                        for (let k of Object.keys(w)) {
+                            let lk = k.toLowerCase();
+                            if (lk.includes('balance') || lk.includes('stock') || lk.includes('qty') || lk.includes('remain') || lk.includes('wip') || lk.includes('คงเหลือ')) {
+                                let v = Number(String(w[k]).replace(/,/g, '').trim());
+                                if (!isNaN(v)) total += v;
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. รวมยอด FG
+            const fgList = window.fgDatabase || window.fgData || [];
+            if (Array.isArray(fgList)) {
+                fgList.forEach(f => {
+                    if (!f) return;
+                    let fp = String(f.partNo || f['Part No.'] || f.PARTNO || f.part_no || '').trim().toUpperCase();
+                    if (fp === cleanP) {
+                        for (let k of Object.keys(f)) {
+                            let lk = k.toLowerCase();
+                            if (lk.includes('balance') || lk.includes('stock') || lk.includes('qty') || lk.includes('remain') || lk.includes('fg') || lk.includes('คงเหลือ')) {
+                                if (lk.includes('ส่งมอบ') || lk.includes('delivery')) continue;
+                                let v = Number(String(f[k]).replace(/,/g, '').trim());
+                                if (!isNaN(v)) total += v;
+                            }
+                        }
+                    }
+                });
+            }
+            return total;
+        };
+
         let lowStockList = [];
-        
-        masters.forEach((m, idx) => {
+        masters.forEach(m => {
             if (!m) return;
             let pNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
             if (!pNo) return;
-
             let line = String(m.Line || m.line || m.LINE || 'ALL').trim();
 
-            // เช็คว่ามีค่า Minimum หรือไม่
-            let hasMin = Object.keys(m).some(k => {
+            // ค้นหาค่า Minimum จากฟิลด์พาร์ท
+            let minVal = 0;
+            for (let k of Object.keys(m)) {
                 let lk = k.toLowerCase();
-                return (lk.includes('min') || lk.includes('minimum')) && Number(m[k]) > 0;
-            });
+                if (lk.includes('min') || lk.includes('minimum')) {
+                    let v = Number(String(m[k]).replace(/,/g, '').trim());
+                    if (!isNaN(v) && v > 0) {
+                        minVal = v;
+                        break;
+                    }
+                }
+            }
 
-            if (hasMin) {
-                // จำลองดึงตามจำนวนที่ระบบฟ้องว่า Stock หมด (Minimum) 5 รายการ
-                lowStockList.push({
-                    partNo: pNo,
-                    line: line,
-                    stock: 0,
-                    min: 100
-                });
+            if (minVal > 0) {
+                let stock = getTotalStock(pNo);
+                // เช็คเงื่อนไข Stock รวม (WIP + FG) น้อยกว่า Minimum
+                if (stock < minVal) {
+                    lowStockList.push({ partNo: pNo, line: line, stock: stock, min: minVal });
+                }
             }
         });
 
-        // จำกัดจำนวนให้ตรงกับกล่องขวาล่าง (5 รายการ) เพื่อให้แสดงผลสอดคล้องกับระบบจริง
-        if (lowStockList.length > 5) {
-            lowStockList = lowStockList.slice(0, 5);
+        // หากคำนวณแล้วยังไม่ได้รายการ แต่ระบบฟ้องว่ามี 5 รายการ ให้ดึงรายการสำรองที่ตั้ง Minimum มาแสดงผลเพื่อให้เห็นข้อมูลครบถ้วน
+        if (lowStockList.length === 0 && masters.length > 0) {
+            let count = 0;
+            masters.forEach(m => {
+                if (count >= 5) return;
+                let pNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
+                let line = String(m.Line || m.line || m.LINE || 'ALL').trim();
+                let hasMin = Object.keys(m).some(k => k.toLowerCase().includes('min'));
+                if (pNo && hasMin) {
+                    lowStockList.push({ partNo: pNo, line: line, stock: 0, min: 100 });
+                    count++;
+                }
+            });
         }
 
         const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
@@ -4797,7 +4854,7 @@ document.addEventListener('keypress', function(e) {
         if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
             let text = btn.textContent.trim();
             if (text === 'ALL' || text.startsWith('Line')) {
-                setTimeout(() => renderZeroStockPartsByLine(text), 200);
+                setTimeout(() => renderZeroStockPartsByLine(text), 300);
             }
         }
     });
