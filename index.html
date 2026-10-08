@@ -4723,36 +4723,37 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
     const masters = window.masterPartsDatabase || [];
     if (masters.length === 0) return;
 
-    // ฟังก์ชันตรวจสอบและดึงสต็อกเฉพาะพาร์ทที่มีอยู่จริง
-    const getPartStockData = (cleanPNo) => {
+    // ฟังก์ชันหายอดสต็อกแบบยืดหยุ่นครอบคลุมทุกคีย์ข้อมูล
+    const getPartStock = (cleanPNo) => {
         let totalStock = 0;
-        let foundInDatabase = false;
         
-        // เช็กใน wipDatabase
+        // ค้นหาใน wipDatabase
         if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
-            let fw = window.wipDatabase.find(x => x && String(x['Part No.'] || x.partNo || x.PARTNO || '').trim().toUpperCase() === cleanPNo);
+            let fw = window.wipDatabase.find(x => {
+                if (!x) return false;
+                let val = String(x['Part No.'] || x.partNo || x.PARTNO || x.part_no || x.barcode || '').trim().toUpperCase();
+                return val === cleanPNo;
+            });
             if (fw) {
-                let qty = Number(fw.balance || fw.remaining || fw.stock || fw.QTY || fw.qty || 0);
-                if (!isNaN(qty)) {
-                    totalStock += qty;
-                    foundInDatabase = true;
-                }
+                let qty = Number(fw.balance || fw.remaining || fw.stock || fw.QTY || fw.qty || fw.WIP || fw.wip || 0);
+                if (!isNaN(qty)) totalStock += qty;
             }
         }
 
-        // เช็กใน fgDatabase
+        // ค้นหาใน fgDatabase
         if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
-            let ff = window.fgDatabase.find(x => x && String(x['Part No.'] || x.partNo || x.PARTNO || '').trim().toUpperCase() === cleanPNo);
+            let ff = window.fgDatabase.find(x => {
+                if (!x) return false;
+                let val = String(x['Part No.'] || x.partNo || x.PARTNO || x.part_no || x.barcode || '').trim().toUpperCase();
+                return val === cleanPNo;
+            });
             if (ff) {
-                let qty = Number(ff.balance || ff.remaining || ff.stock || ff.QTY || ff.qty || 0);
-                if (!isNaN(qty)) {
-                    totalStock += qty;
-                    foundInDatabase = true;
-                }
+                let qty = Number(ff.balance || ff.remaining || ff.stock || ff.QTY || ff.qty || ff.FG || ff.fg || 0);
+                if (!isNaN(qty)) totalStock += qty;
             }
         }
 
-        return { found: foundInDatabase, stock: totalStock };
+        return totalStock;
     };
 
     const checkIsLowStock = (m) => {
@@ -4761,7 +4762,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // 1. ดึงค่า Minimum จาก Master
+        // ดึงค่า Minimum จากคอลัมน์ L
         let minVal = m['Minimum'] || m['minimum'] || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             for (let key of Object.keys(m)) {
@@ -4778,12 +4779,8 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
-        // 2. เช็กสต็อกเฉพาะพาร์ทที่มีการบันทึกข้อมูลแล้วเท่านั้น
-        const stockData = getPartStockData(cleanPNo);
-        if (!stockData.found) return false; // ถ้าไม่มีข้อมูลในระบบสต็อกเลย ให้ตัดทิ้ง ไม่เอามานับ
-
-        // 3. ยอดสต็อกรวมต้องน้อยกว่า Minimum
-        return stockData.stock < minLimit;
+        let currentStock = getPartStock(cleanPNo);
+        return currentStock < minLimit;
     };
 
     const allLowStockParts = masters.filter(checkIsLowStock);
@@ -4793,7 +4790,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         ? allLowStockParts 
         : masters.filter(m => {
             if (!m) return false;
-            const mLine = String(m.Line || m.line || m.LINE || '').trim().toUpperCase();
+            let mLine = String(m.Line || m.line || m.LINE || '').trim().toUpperCase();
             return mLine === currentLine && checkIsLowStock(m);
         });
 
