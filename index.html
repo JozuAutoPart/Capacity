@@ -4728,22 +4728,59 @@ document.addEventListener('keypress', function(e) {
             return;
         }
 
-        // ค้นหาพาร์ทที่ต่ำกว่า Minimum โดยใช้เงื่อนไขเดียวกับฟังก์ชันหลักของหน้าเว็บ (เช็คจากค่าที่คำนวณแล้วหรือฟังก์ชันใน window ถ้ามี)
+        // ฟังก์ชันดึงยอด Stock จริงจาก WIP และ FG โดยเช็คทุกคีย์ที่เป็นไปได้แบบครอบคลุม
         const getPartStock = (cleanPNo) => {
             let totalStock = 0;
-            const sumStock = (list) => {
+            
+            const extractStock = (list) => {
                 if (!Array.isArray(list)) return;
                 list.forEach(x => {
                     if (!x) return;
-                    let pNo = String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase();
+                    let pNo = String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || x[Object.keys(x)[0]] || '').trim().toUpperCase();
                     if (pNo === cleanPNo) {
-                        let q = Number(x.balance || x.remaining || x.stock || x.QTY || x.qty || 0);
-                        if (!isNaN(q)) totalStock += q;
+                        // กวาดหาตัวเลขสต็อกจากทุกคีย์ที่มีคำว่า balance, stock, qty, remain หรือยอดคงเหลือ
+                        let foundVal = 0;
+                        for (let k of Object.keys(x)) {
+                            let lk = k.toLowerCase();
+                            if (lk.includes('balance') || lk.includes('stock') || lk.includes('qty') || lk.includes('remain') || lk.includes('คงเหลือ') || lk.includes('จำนวน')) {
+                                let v = Number(String(x[k]).replace(/,/g, '').trim());
+                                if (!isNaN(v) && v > 0) {
+                                    foundVal += v;
+                                }
+                            }
+                        }
+                        if (foundVal === 0) {
+                            // ถ้าไม่เจอจากคีย์ชื่อ ให้ลองเช็คค่าที่เป็นตัวเลขในอ็อบเจกต์
+                            for (let k of Object.keys(x)) {
+                                let v = Number(String(x[k]).replace(/,/g, '').trim());
+                                if (!isNaN(v) && v > 0 && k !== 'id') {
+                                    // เอาค่าที่เป็นตัวเลขตัวแรกๆ ที่ไม่ใช่รหัส
+                                    // totalStock += v; break; 
+                                }
+                            }
+                        }
+                        totalStock += foundVal;
                     }
                 });
             };
-            sumStock(window.wipDatabase || window.wipData);
-            sumStock(window.fgDatabase || window.fgData);
+
+            // ตรวจสอบฐานข้อมูล WIP และ FG ทุกตัวแปรที่เป็นไปได้ในระบบ
+            extractStock(window.wipDatabase || window.wipData);
+            extractStock(window.fgDatabase || window.fgData);
+            extractStock(window.stockDatabase || window.stockData);
+
+            // ถ้ามีฟังก์ชัน Active Parts Map ของระบบเดิม ให้ดึงมาใช้ร่วมด้วย
+            if (typeof window.getActivePartsMap === 'function') {
+                try {
+                    let map = window.getActivePartsMap();
+                    if (map instanceof Map && map.has(cleanPNo)) {
+                        let val = map.get(cleanPNo);
+                        let s = typeof val === 'object' ? Number(val.balance || val.stock || val.qty || 0) : Number(val || 0);
+                        if (!isNaN(s)) totalStock = Math.max(totalStock, s);
+                    }
+                } catch(e) {}
+            }
+
             return totalStock;
         };
 
@@ -4754,10 +4791,9 @@ document.addEventListener('keypress', function(e) {
             const cleanPNo = rawPNo.toUpperCase();
             if (!cleanPNo) return;
 
-            // ดึงค่า Minimum เฉพาะคอลัมน์ที่มีการระบุตัวเลข Minimum จริงๆ (ไม่เอาช่องว่างหรือขีดกลาง)
+            // ค้นหาค่า Minimum จากคอลัมน์
             let minVal = '';
             const keys = Object.keys(m);
-            // ตรวจสอบคีย์ที่ชื่อตรงกับ Minimum หรือช่องข้อมูล index ที่แท้จริง
             for (let key of keys) {
                 let lKey = key.toLowerCase();
                 if (lKey === 'minimum' || lKey === 'min') {
@@ -4769,9 +4805,8 @@ document.addEventListener('keypress', function(e) {
                 }
             }
 
-            // ถ้าไม่เจอจากชื่อคีย์ ให้ตรวจสอบเฉพาะ Index ที่เป็นค่า Minimum จริงๆ ในระบบของพี่มิว (มักจะอยู่ช่องท้ายๆ)
             if (minVal === '') {
-                for (let idx of [11, 12]) { // ตำแหน่งมาตรฐานของฟิลด์ Minimum
+                for (let idx of [11, 12, 10]) {
                     if (keys.length > idx && m[keys[idx]] !== undefined) {
                         let val = m[keys[idx]];
                         let cleanVal = String(val).replace(/,/g, '').trim();
@@ -4789,6 +4824,8 @@ document.addEventListener('keypress', function(e) {
             if (minLimit <= 0) return;
 
             let currentStock = getPartStock(cleanPNo);
+            
+            // เงื่อนไข Low Stock: สต็อกน้อยกว่า Minimum
             if (currentStock < minLimit) {
                 let line = String(m.Line || m.line || m.LINE || 'ALL').trim();
                 lowStockList.push({
@@ -4800,7 +4837,7 @@ document.addEventListener('keypress', function(e) {
             }
         });
 
-        // กรองตามไลน์ที่เลือก (ALL หรือระบุไลน์)
+        // กรองตามไลน์ที่เลือก
         const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
         const filteredParts = (currentLine === 'ALL') 
             ? lowStockList 
