@@ -4704,123 +4704,137 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-function renderZeroStockPartsByLine(selectedLine = 'ALL') {
-    let container = document.getElementById('zeroStockListContainer');
-    
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'zeroStockListContainer';
-        container.className = 'col-12 mt-3 mb-4';
-
-        const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
-        if (mainContent) {
-            mainContent.appendChild(container);
-        }
-    }
-    
-    if (container) container.style.display = 'block';
-
-    const masters = window.masterPartsDatabase || [];
-    if (masters.length === 0) {
-        // ถ้าระบบยังไม่โหลดข้อมูล Master ให้ลองรอแล้วเรียกซ้ำอัตโนมัติ
-        setTimeout(() => renderZeroStockPartsByLine(selectedLine), 300);
-        return;
-    }
-
-    const checkIsLowStock = (m) => {
-        if (!m) return false;
+(function() {
+    function renderZeroStockPartsByLine(selectedLine = 'ALL') {
+        let container = document.getElementById('zeroStockListContainer');
         
-        const rawPNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
-        const cleanPNo = rawPNo.toUpperCase();
-        if (!cleanPNo) return false;
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'zeroStockListContainer';
+            container.className = 'col-12 mt-3 mb-4';
 
-        let minVal = m.Minimum || m.minimum || m['MINIMUM'] || '';
-        if (minVal === '' || minVal === undefined || minVal === null) {
-            const keys = Object.keys(m);
-            for (let idx of [11, 12]) {
-                if (keys.length > idx && m[keys[idx]] !== undefined) {
-                    let val = m[keys[idx]];
-                    if (val !== '' && !isNaN(String(val).replace(/,/g, '').trim())) {
-                        minVal = val;
-                        break;
+            // แทรกไว้บนสุดของคอนเทนต์หลักหรือใต้แถบเมนูด้านบน
+            const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
+            if (mainContent) {
+                mainContent.insertBefore(container, mainContent.firstChild);
+            }
+        }
+        
+        if (container) container.style.display = 'block';
+
+        const masters = window.masterPartsDatabase || [];
+        if (masters.length === 0) {
+            setTimeout(() => renderZeroStockPartsByLine(selectedLine), 300);
+            return;
+        }
+
+        const checkIsLowStock = (m) => {
+            if (!m) return false;
+            
+            const rawPNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
+            const cleanPNo = rawPNo.toUpperCase();
+            if (!cleanPNo) return false;
+
+            let minVal = m.Minimum || m.minimum || m['MINIMUM'] || '';
+            if (minVal === '' || minVal === undefined || minVal === null) {
+                const keys = Object.keys(m);
+                for (let idx of [11, 12]) {
+                    if (keys.length > idx && m[keys[idx]] !== undefined) {
+                        let val = m[keys[idx]];
+                        if (val !== '' && !isNaN(String(val).replace(/,/g, '').trim())) {
+                            minVal = val;
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
-        if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
-        
-        const minLimit = Number(cleanMinStr);
-        if (minLimit <= 0) return false;
+            const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
+            if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
+            
+            const minLimit = Number(cleanMinStr);
+            if (minLimit <= 0) return false;
 
-        let totalStock = 0;
-        
-        const wipList = window.wipDatabase || window.wipData || [];
-        if (Array.isArray(wipList)) {
-            let item = wipList.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
-            if (item) {
-                let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
-                if (!isNaN(q)) totalStock += q;
+            let totalStock = 0;
+            
+            const wipList = window.wipDatabase || window.wipData || [];
+            if (Array.isArray(wipList)) {
+                let item = wipList.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
+                if (item) {
+                    let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
+                    if (!isNaN(q)) totalStock += q;
+                }
             }
-        }
 
-        const fgList = window.fgDatabase || window.fgData || [];
-        if (Array.isArray(fgList)) {
-            let item = fgList.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
-            if (item) {
-                let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
-                if (!isNaN(q)) totalStock += q;
+            const fgList = window.fgDatabase || window.fgData || [];
+            if (Array.isArray(fgList)) {
+                let item = fgList.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
+                if (item) {
+                    let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
+                    if (!isNaN(q)) totalStock += q;
+                }
             }
+
+            return totalStock < minLimit;
+        };
+
+        const allLowStockParts = masters.filter(checkIsLowStock);
+        const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
+
+        const filteredLowStockParts = (currentLine === 'ALL') 
+            ? allLowStockParts 
+            : masters.filter(m => {
+                if (!m) return false;
+                let mLine = String(m.Line || m.line || m.LINE || '').trim().toUpperCase();
+                return mLine === currentLine && checkIsLowStock(m);
+            });
+
+        const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
+        if (stockMinElement) {
+            stockMinElement.textContent = allLowStockParts.length;
         }
 
-        return totalStock < minLimit;
-    };
+        let badgesHtml = filteredLowStockParts.map(m => {
+            const pNo = String(m.partNo || m['Part No.'] || m.PARTNO || '').trim();
+            return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
+        }).join('');
 
-    const allLowStockParts = masters.filter(checkIsLowStock);
-    const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
+        if (filteredLowStockParts.length === 0) {
+            badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine || 'ALL'})</span>`;
+        }
 
-    const filteredLowStockParts = (currentLine === 'ALL') 
-        ? allLowStockParts 
-        : masters.filter(m => {
-            if (!m) return false;
-            let mLine = String(m.Line || m.line || m.LINE || '').trim().toUpperCase();
-            return mLine === currentLine && checkIsLowStock(m);
-        });
-
-    const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
-    if (stockMinElement) {
-        stockMinElement.textContent = allLowStockParts.length;
-    }
-
-    let badgesHtml = filteredLowStockParts.map(m => {
-        const pNo = String(m.partNo || m['Part No.'] || m.PARTNO || '').trim();
-        return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
-    }).join('');
-
-    if (filteredLowStockParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine || 'ALL'})</span>`;
-    }
-
-    container.innerHTML = `
-        <div class="card bg-dark text-white p-3 border-danger shadow">
-            <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine || 'ALL'}) 
-                <span class="badge bg-danger text-white ms-2">${filteredLowStockParts.length} รายการ</span>
-            </h6>
-            <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
-                ${badgesHtml}
+        container.innerHTML = `
+            <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                <h6 class="text-danger fw-bold mb-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (ไลน์: ${selectedLine || 'ALL'}) 
+                    <span class="badge bg-danger text-white ms-2">${filteredLowStockParts.length} รายการ</span>
+                </h6>
+                <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
+                    ${badgesHtml}
+                </div>
             </div>
-        </div>
-    `;
-}
+        `;
+    }
 
-// สั่งให้เรียกทำงานทันทีเมื่อโหลดสคริปต์นี้
-if (document.readyState === 'complete') {
-    renderZeroStockPartsByLine('ALL');
-} else {
+    // ผูกเข้ากับ Global scope เผื่อปุ่มอื่นเรียกใช้งาน
+    window.renderZeroStockPartsByLine = renderZeroStockPartsByLine;
+
+    // ดักจับปุ่มคลิกเลือกไลน์ (ALL, Line A, Line Q, ฯลฯ) เพื่อให้เวลาคลิกเปลี่ยนไลน์แล้วแถบแดงเปลี่ยนตามทันที
+    document.addEventListener('click', function(e) {
+        if (e.target && (e.target.tagName === 'BUTTON' || e.target.classList.contains('btn') || e.target.parentElement.tagName === 'BUTTON')) {
+            let text = e.target.textContent.trim();
+            if (text === 'ALL' || text.startsWith('Line')) {
+                setTimeout(() => renderZeroStockPartsByLine(text), 300);
+            }
+        }
+    });
+
+    // เริ่มทำงานทันทีเมื่อโหลดหน้าเว็บเสร็จ
+    window.addEventListener('DOMContentLoaded', () => renderZeroStockPartsByLine('ALL'));
     window.addEventListener('load', () => renderZeroStockPartsByLine('ALL'));
-}
+    setTimeout(() => renderZeroStockPartsByLine('ALL'), 1000);
+    setTimeout(() => renderZeroStockPartsByLine('ALL'), 2500);
+})();
         function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
