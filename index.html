@@ -4722,11 +4722,11 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
 
     const masters = window.masterPartsDatabase || [];
     if (masters.length === 0) {
-        setTimeout(() => renderZeroStockPartsByLine(selectedLine), 500);
+        // ถ้าระบบยังไม่โหลดข้อมูล Master ให้ลองรอแล้วเรียกซ้ำอัตโนมัติ
+        setTimeout(() => renderZeroStockPartsByLine(selectedLine), 300);
         return;
     }
 
-    // ใช้ฟังก์ชันดึงสต็อกและเช็คเงื่อนไขเดียวกับตัวนับ 4 รายการขวาล่าง
     const checkIsLowStock = (m) => {
         if (!m) return false;
         
@@ -4734,7 +4734,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากฟิลด์ Minimum หรือคอลัมน์ L (index 11, 12)
         let minVal = m.Minimum || m.minimum || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             const keys = Object.keys(m);
@@ -4755,7 +4754,6 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
-        // คำนวณสต็อกรวมจาก WIP และ FG โดยเช็คจากชื่อคีย์มาตรฐานในระบบ
         let totalStock = 0;
         
         const wipList = window.wipDatabase || window.wipData || [];
@@ -4815,6 +4813,13 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             </div>
         </div>
     `;
+}
+
+// สั่งให้เรียกทำงานทันทีเมื่อโหลดสคริปต์นี้
+if (document.readyState === 'complete') {
+    renderZeroStockPartsByLine('ALL');
+} else {
+    window.addEventListener('load', () => renderZeroStockPartsByLine('ALL'));
 }
         function updateClock() {
     const now = new Date();
