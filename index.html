@@ -4726,38 +4726,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
-    const getPartStock = (cleanPNo) => {
-        let totalStock = 0;
-        
-        const wipList = window.wipDatabase || window.wipData || [];
-        if (Array.isArray(wipList)) {
-            let item = wipList.find(x => {
-                if (!x) return false;
-                let p = String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || x.barcode || '').trim().toUpperCase();
-                return p === cleanPNo;
-            });
-            if (item) {
-                let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || item.WIP || 0);
-                if (!isNaN(q)) totalStock += q;
-            }
-        }
-
-        const fgList = window.fgDatabase || window.fgData || [];
-        if (Array.isArray(fgList)) {
-            let item = fgList.find(x => {
-                if (!x) return false;
-                let p = String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || x.barcode || '').trim().toUpperCase();
-                return p === cleanPNo;
-            });
-            if (item) {
-                let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || item.FG || 0);
-                if (!isNaN(q)) totalStock += q;
-            }
-        }
-
-        return totalStock;
-    };
-
+    // ใช้ฟังก์ชันดึงสต็อกและเช็คเงื่อนไขเดียวกับตัวนับ 4 รายการขวาล่าง
     const checkIsLowStock = (m) => {
         if (!m) return false;
         
@@ -4765,6 +4734,7 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
+        // ดึงค่า Minimum จากฟิลด์ Minimum หรือคอลัมน์ L (index 11, 12)
         let minVal = m.Minimum || m.minimum || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             const keys = Object.keys(m);
@@ -4785,9 +4755,28 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
-        // ดึงยอดสต็อกปัจจุบัน ถ้ายอดน้อยกว่า Minimum ถือว่าต่ำกว่ากำหนด
-        const currentStock = getPartStock(cleanPNo);
-        return currentStock < minLimit;
+        // คำนวณสต็อกรวมจาก WIP และ FG โดยเช็คจากชื่อคีย์มาตรฐานในระบบ
+        let totalStock = 0;
+        
+        const wipList = window.wipDatabase || window.wipData || [];
+        if (Array.isArray(wipList)) {
+            let item = wipList.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
+            if (item) {
+                let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
+                if (!isNaN(q)) totalStock += q;
+            }
+        }
+
+        const fgList = window.fgDatabase || window.fgData || [];
+        if (Array.isArray(fgList)) {
+            let item = fgList.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
+            if (item) {
+                let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
+                if (!isNaN(q)) totalStock += q;
+            }
+        }
+
+        return totalStock < minLimit;
     };
 
     const allLowStockParts = masters.filter(checkIsLowStock);
