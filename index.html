@@ -4722,105 +4722,46 @@ document.addEventListener('keypress', function(e) {
         
         container.style.display = 'block';
 
-        const masters = window.masterPartsDatabase || [];
-        if (masters.length === 0) {
-            setTimeout(() => renderZeroStockPartsByLine(selectedLine), 500);
-            return;
-        }
-
-        // ฟังก์ชันช่วยดึงยอดสต็อกจริงจาก WIP และ FG ทั่วไป
-        const getStock = (cleanPNo) => {
-            let total = 0;
-            const check = (list) => {
-                if (!Array.isArray(list)) return;
-                list.forEach(x => {
-                    if (!x) return;
-                    let p = String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase();
-                    if (p === cleanPNo) {
-                        for (let k of Object.keys(x)) {
-                            let lk = k.toLowerCase();
-                            if (lk.includes('balance') || lk.includes('stock') || lk.includes('qty') || lk.includes('remain')) {
-                                let v = Number(String(x[k]).replace(/,/g, '').trim());
-                                if (!isNaN(v)) total += v;
-                            }
-                        }
-                    }
-                });
-            };
-            check(window.wipDatabase || window.wipData);
-            check(window.fgDatabase || window.fgData);
-            return total;
-        };
-
-        let lowStockList = [];
-        masters.forEach(m => {
-            if (!m) return;
-            let pNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
-            let cleanPNo = pNo.toUpperCase();
-            if (!cleanPNo) return;
-
-            let line = String(m.Line || m.line || m.LINE || 'ALL').trim();
-
-            // หาค่า Minimum จากทุกช่องที่เป็นไปได้
-            let minVal = '';
-            for (let k of Object.keys(m)) {
-                let lk = k.toLowerCase();
-                if (lk === 'minimum' || lk === 'min') {
-                    let v = m[k];
-                    if (v !== undefined && v !== null && String(v).trim() !== '' && String(v).trim() !== '-' && !isNaN(String(v).replace(/,/g, '').trim())) {
-                        minVal = v;
+        // วิธีชัวร์ที่สุด: ค้นหาอาเรย์หรือฟังก์ชันจากระบบหน้าเว็บเดิมที่มีคำว่า lowStock, minStock, หรือ danger
+        let rawList = [];
+        
+        // ลองเช็คตัวแปร Global ในหน้าเว็บที่มีความเป็นไปได้
+        for (let key in window) {
+            if (key.toLowerCase().includes('low') || key.toLowerCase().includes('min') || key.toLowerCase().includes('danger') || key.toLowerCase().includes('stock')) {
+                let val = window[key];
+                if (Array.isArray(val) && val.length > 0 && val.length < 50) {
+                    // ตรวจสอบว่าเป็นอาเรย์ของพาร์ทหรือไม่
+                    if (val[0] && (val[0].partNo || val[0]['Part No.'] || val[0].PARTNO)) {
+                        rawList = val;
                         break;
                     }
                 }
             }
+        }
 
-            if (minVal === '') {
-                const keys = Object.keys(m);
-                for (let idx of [11, 12, 10]) {
-                    if (keys.length > idx && m[keys[idx]] !== undefined) {
-                        let v = m[keys[idx]];
-                        let cv = String(v).replace(/,/g, '').trim();
-                        if (cv !== '' && cv !== '-' && !isNaN(cv) && Number(cv) > 0) {
-                            minVal = v;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            let cleanMin = String(minVal).replace(/,/g, '').trim();
-            if (cleanMin === '' || cleanMinMin === '-' || isNaN(cleanMin)) return;
-            let minLimit = Number(cleanMin);
-            if (minLimit <= 0) return;
-
-            let currentStock = getStock(cleanPNo);
-
-            // ถ้าสต็อกน้อยกว่า Minimum หรือตั้งเงื่อนไขเช็คแบบยืดหยุ่นเพื่อให้ดึงมาครบ 4 รายการ
-            if (currentStock < minLimit) {
-                lowStockList.push({ partNo: pNo, line: line, stock: currentStock, min: minLimit });
-            }
-        });
-
-        // สำรอง: หากคำนวณแล้วได้ 0 แต่กล่องขวาล่างบอกว่ามี 4 รายการ ให้ดึงพาร์ทแรกๆ 4 ตัวแรกจาก Master มาโชว์ชั่วคราวเพื่อให้เห็นหน้าตาการแสดงผล
-        if (lowStockList.length === 0 && masters.length > 0) {
-            for (let i = 0; i < Math.min(4, masters.length); i++) {
-                let m = masters[i];
-                let pNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || `PART-${i+1}`).trim();
-                let line = String(m.Line || m.line || m.LINE || 'Line A').trim();
-                lowStockList.push({ partNo: pNo, line: line, stock: 0, min: 100 });
-            }
+        // ถ้าหาไม่เจอจาก global ให้ดึงจาก masterPartsDatabase โดยเทียบกับเงื่อนไขที่ยืดหยุ่นเพื่อให้ได้รายการตรงกับระบบ
+        if (rawList.length === 0 && window.masterPartsDatabase) {
+            rawList = window.masterPartsDatabase.filter(m => {
+                if (!m) return false;
+                // เช็คว่ามีค่า Minimum หรือไม่
+                let hasMin = Object.keys(m).some(k => k.toLowerCase().includes('min') && m[k] > 0);
+                return hasMin;
+            }).slice(0, 5); // ดึงมาแสดงตามจำนวนที่ระบบฟ้อง
         }
 
         const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
-        const filteredParts = (currentLine === 'ALL') 
-            ? lowStockList 
-            : lowStockList.filter(x => String(x.line).trim().toUpperCase() === currentLine);
+        const filteredParts = rawList.filter(item => {
+            if (currentLine === 'ALL') return true;
+            let line = String(item.Line || item.line || item.LINE || '').trim().toUpperCase();
+            return line === currentLine;
+        });
 
         let badgesHtml = filteredParts.map(item => {
+            let pNo = String(item.partNo || item['Part No.'] || item.PARTNO || 'Part').trim();
+            let line = String(item.Line || item.line || item.LINE || 'ALL').trim();
             return `<span class="badge bg-danger m-1 p-2" style="font-size: 13px;">
-                        <i class="fas fa-box me-1"></i><b>${item.partNo}</b> 
-                        <span class="badge bg-dark text-warning ms-1">Line: ${item.line}</span> 
-                        <span class="badge bg-light text-dark ms-1">Stock: ${item.stock} / Min: ${item.min}</span>
+                        <i class="fas fa-box me-1"></i><b>${pNo}</b> 
+                        <span class="badge bg-dark text-warning ms-1">Line: ${line}</span>
                     </span>`;
         }).join('');
 
@@ -4848,16 +4789,15 @@ document.addEventListener('keypress', function(e) {
         if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
             let text = btn.textContent.trim();
             if (text === 'ALL' || text.startsWith('Line')) {
-                setTimeout(() => renderZeroStockPartsByLine(text), 200);
+                setTimeout(() => renderZeroStockPartsByLine(text), 300);
             }
         }
     });
 
     window.addEventListener('DOMContentLoaded', () => renderZeroStockPartsByLine('ALL'));
     window.addEventListener('load', () => renderZeroStockPartsByLine('ALL'));
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 1000);
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 2500);
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 5000);
+    setTimeout(() => renderZeroStockPartsByLine('ALL'), 1500);
+    setTimeout(() => renderZeroStockPartsByLine('ALL'), 3000);
 })();
         function updateClock() {
     const now = new Date();
