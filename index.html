@@ -4726,48 +4726,60 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
+    // ฟังก์ชันหายอดสต็อกปัจจุบัน (WIP + FG) แบบยืดหยุ่นที่สุด
     const getPartStock = (cleanPNo) => {
         let totalStock = 0;
-        
-        if (window.wipDatabase && Array.isArray(window.wipDatabase)) {
-            let fw = window.wipDatabase.find(x => {
+        let hasMovement = false;
+
+        // ค้นหาใน wipDatabase ทุกรูปแบบชื่อฟิลด์
+        const wipList = window.wipDatabase || window.wipData || [];
+        if (Array.isArray(wipList)) {
+            let item = wipList.find(x => {
                 if (!x) return false;
-                let p = String(x['Part No.'] || x.partNo || x.PARTNO || x.part_no || '').trim().toUpperCase();
+                let p = String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || x.barcode || '').trim().toUpperCase();
                 return p === cleanPNo;
             });
-            if (fw) {
-                let q = Number(fw.balance || fw.remaining || fw.stock || fw.QTY || fw.qty || 0);
-                if (!isNaN(q)) totalStock += q;
+            if (item) {
+                let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || item.WIP || 0);
+                if (!isNaN(q)) {
+                    totalStock += q;
+                    hasMovement = true;
+                }
             }
         }
 
-        if (window.fgDatabase && Array.isArray(window.fgDatabase)) {
-            let ff = window.fgDatabase.find(x => {
+        // ค้นหาใน fgDatabase ทุกรูปแบบชื่อฟิลด์
+        const fgList = window.fgDatabase || window.fgData || [];
+        if (Array.isArray(fgList)) {
+            let item = fgList.find(x => {
                 if (!x) return false;
-                let p = String(x['Part No.'] || x.partNo || x.PARTNO || x.part_no || '').trim().toUpperCase();
+                let p = String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || x.barcode || '').trim().toUpperCase();
                 return p === cleanPNo;
             });
-            if (ff) {
-                let q = Number(ff.balance || ff.remaining || ff.stock || ff.QTY || ff.qty || 0);
-                if (!isNaN(q)) totalStock += q;
+            if (item) {
+                let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || item.FG || 0);
+                if (!isNaN(q)) {
+                    totalStock += q;
+                    hasMovement = true;
+                }
             }
         }
 
-        return totalStock;
+        return { stock: totalStock, hasMovement };
     };
 
     const checkIsLowStock = (m) => {
         if (!m) return false;
         
+        // ดึง Part No. จาก Master
         const rawPNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากฟิลด์ชื่อ Minimum หรือเช็คจาก Index 11 และ 12 เผื่อไว้
+        // ดึงค่า Minimum จากคอลัมน์ Minimum (หรือ Index คอลัมน์ L ที่ 11/12)
         let minVal = m.Minimum || m.minimum || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             const keys = Object.keys(m);
-            // ตรวจสอบทั้ง index 11 และ 12 (คอลัมน์ L)
             for (let idx of [11, 12]) {
                 if (keys.length > idx && m[keys[idx]] !== undefined) {
                     let val = m[keys[idx]];
@@ -4785,8 +4797,12 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
-        let currentStock = getPartStock(cleanPNo);
-        return currentStock < minLimit;
+        // เช็คสต็อก
+        const stockData = getPartStock(cleanPNo);
+        
+        // เงื่อนไขเดียวกับระบบสรุป: พาร์ทที่มีการเคลื่อนไหว/มีข้อมูลสต็อก แต่ยอดรวมน้อยกว่า Minimum
+        if (!stockData.hasMovement) return false;
+        return stockData.stock < minLimit;
     };
 
     const allLowStockParts = masters.filter(checkIsLowStock);
