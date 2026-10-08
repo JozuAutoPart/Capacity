@@ -4725,7 +4725,7 @@ document.addEventListener('keypress', function(e) {
         const masters = window.masterPartsDatabase || [];
         let lowStockList = [];
 
-        // ดึงพาร์ทที่มีอยู่ในระบบมาแสดง 5 รายการแรกให้ตรงกับยอด 5 รายการในกล่องขวาล่าง
+        // ค้นหาพาร์ทและดึงค่า Minimum จริงจาก masterPartsDatabase ให้ตรงกับ Google Sheets
         if (masters.length > 0) {
             let count = 0;
             masters.forEach(m => {
@@ -4735,12 +4735,25 @@ document.addEventListener('keypress', function(e) {
                 let pNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
                 let line = String(m.Line || m.line || m.LINE || 'ALL').trim();
 
+                // ดึงค่า Minimum จากคอลัมน์จริงในระบบ
+                let minVal = 0;
+                for (let k of Object.keys(m)) {
+                    let lk = k.toLowerCase();
+                    if (lk === 'minimum' || lk === 'min') {
+                        let v = Number(String(m[k]).replace(/,/g, '').trim());
+                        if (!isNaN(v) && v > 0) {
+                            minVal = v;
+                            break;
+                        }
+                    }
+                }
+
                 if (pNo) {
                     lowStockList.push({
                         partNo: pNo,
                         line: line,
                         stock: 0,
-                        min: 100
+                        min: minVal > 0 ? minVal : '-'
                     });
                     count++;
                 }
