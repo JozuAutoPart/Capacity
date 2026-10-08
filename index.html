@@ -4726,7 +4726,7 @@ document.addEventListener('keypress', function(e) {
             if (!masters.length || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูลระบบ...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอข้อมูลจากระบบ...</h6>
                     </div>`;
                 return;
             }
@@ -4830,17 +4830,29 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        // ดักจับและผูกเข้ากับฟังก์ชัน render หลักของระบบ เพื่อให้ข้อมูลอัปเดตตรงกันตลอดเวลา
-        if (typeof window.renderCapacity === 'function' && !window._patchedRenderCapacity) {
-            let originalRender = window.renderCapacity;
-            window.renderCapacity = function(...args) {
-                originalRender.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 200);
+        // ดักจับฟังก์ชัน renderAll ของระบบ เพื่อให้วาดแถบ Low Stock ทุกครั้งที่ข้อมูลอัปเดตเสร็จ
+        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
+            let originalRenderAll = window.renderAll;
+            window.renderAll = function(...args) {
+                let result = originalRenderAll.apply(this, args);
+                setTimeout(() => renderWidget('ALL'), 100);
+                return result;
             };
-            window._patchedRenderCapacity = true;
+            window._patchedRenderAll = true;
         }
 
-        // รันครั้งแรกทันที
+        // ดักจับฟังก์ชัน loadAllDataFromCloud เผื่อกรณีโหลดเสร็จ
+        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
+            let originalLoad = window.loadAllDataFromCloud;
+            window.loadAllDataFromCloud = async function(...args) {
+                let res = await originalLoad.apply(this, args);
+                setTimeout(() => renderWidget('ALL'), 200);
+                return res;
+            };
+            window._patchedLoadCloud = true;
+        }
+
+        // รันตรวจสอบเบื้องต้น
         setTimeout(() => renderWidget('ALL'), 1000);
 
         document.addEventListener('click', function(e) {
