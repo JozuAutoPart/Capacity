@@ -4726,12 +4726,9 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         return;
     }
 
-    // ฟังก์ชันหายอดสต็อกปัจจุบัน (WIP + FG) แบบยืดหยุ่นที่สุด
     const getPartStock = (cleanPNo) => {
         let totalStock = 0;
-        let hasMovement = false;
-
-        // ค้นหาใน wipDatabase ทุกรูปแบบชื่อฟิลด์
+        
         const wipList = window.wipDatabase || window.wipData || [];
         if (Array.isArray(wipList)) {
             let item = wipList.find(x => {
@@ -4741,14 +4738,10 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             });
             if (item) {
                 let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || item.WIP || 0);
-                if (!isNaN(q)) {
-                    totalStock += q;
-                    hasMovement = true;
-                }
+                if (!isNaN(q)) totalStock += q;
             }
         }
 
-        // ค้นหาใน fgDatabase ทุกรูปแบบชื่อฟิลด์
         const fgList = window.fgDatabase || window.fgData || [];
         if (Array.isArray(fgList)) {
             let item = fgList.find(x => {
@@ -4758,25 +4751,20 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
             });
             if (item) {
                 let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || item.FG || 0);
-                if (!isNaN(q)) {
-                    totalStock += q;
-                    hasMovement = true;
-                }
+                if (!isNaN(q)) totalStock += q;
             }
         }
 
-        return { stock: totalStock, hasMovement };
+        return totalStock;
     };
 
     const checkIsLowStock = (m) => {
         if (!m) return false;
         
-        // ดึง Part No. จาก Master
         const rawPNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
         const cleanPNo = rawPNo.toUpperCase();
         if (!cleanPNo) return false;
 
-        // ดึงค่า Minimum จากคอลัมน์ Minimum (หรือ Index คอลัมน์ L ที่ 11/12)
         let minVal = m.Minimum || m.minimum || m['MINIMUM'] || '';
         if (minVal === '' || minVal === undefined || minVal === null) {
             const keys = Object.keys(m);
@@ -4797,12 +4785,9 @@ function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         const minLimit = Number(cleanMinStr);
         if (minLimit <= 0) return false;
 
-        // เช็คสต็อก
-        const stockData = getPartStock(cleanPNo);
-        
-        // เงื่อนไขเดียวกับระบบสรุป: พาร์ทที่มีการเคลื่อนไหว/มีข้อมูลสต็อก แต่ยอดรวมน้อยกว่า Minimum
-        if (!stockData.hasMovement) return false;
-        return stockData.stock < minLimit;
+        // ดึงยอดสต็อกปัจจุบัน ถ้ายอดน้อยกว่า Minimum ถือว่าต่ำกว่ากำหนด
+        const currentStock = getPartStock(cleanPNo);
+        return currentStock < minLimit;
     };
 
     const allLowStockParts = masters.filter(checkIsLowStock);
