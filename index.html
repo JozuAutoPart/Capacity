@@ -4723,42 +4723,75 @@ document.addEventListener('keypress', function(e) {
         container.style.display = 'block';
 
         const masters = window.masterPartsDatabase || [];
+        const wipList = window.wipDatabase || window.wipData || [];
+        const fgList = window.fgDatabase || window.fgData || [];
+
         let lowStockList = [];
 
-        // ค้นหาพาร์ทและดึงค่า Minimum จริงจาก masterPartsDatabase ให้ตรงกับ Google Sheets
-        if (masters.length > 0) {
-            let count = 0;
-            masters.forEach(m => {
-                if (count >= 5) return;
-                if (!m) return;
+        masters.forEach(m => {
+            if (!m) return;
+            let pNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
+            if (!pNo) return;
+            let line = String(m.Line || m.line || m.LINE || 'ALL').trim();
 
-                let pNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
-                let line = String(m.Line || m.line || m.LINE || 'ALL').trim();
-
-                // ดึงค่า Minimum จากคอลัมน์จริงในระบบ
-                let minVal = 0;
-                for (let k of Object.keys(m)) {
-                    let lk = k.toLowerCase();
-                    if (lk === 'minimum' || lk === 'min') {
-                        let v = Number(String(m[k]).replace(/,/g, '').trim());
-                        if (!isNaN(v) && v > 0) {
-                            minVal = v;
-                            break;
-                        }
+            // 1. ดึงค่า Minimum จาก Column L (คีย์ 'Minimum' หรือ 'min') ใน Masterparts
+            let minVal = 0;
+            for (let k of Object.keys(m)) {
+                let lk = k.toLowerCase();
+                if (lk === 'minimum' || lk === 'min') {
+                    let v = Number(String(m[k]).replace(/,/g, '').trim());
+                    if (!isNaN(v)) {
+                        minVal = v;
+                        break;
                     }
                 }
+            }
 
-                if (pNo) {
-                    lowStockList.push({
-                        partNo: pNo,
-                        line: line,
-                        stock: 0,
-                        min: minVal > 0 ? minVal : '-'
+            // ถ้าไม่มีการกำหนดค่า Minimum ข้ามไป
+            if (minVal <= 0) return;
+
+            // 2. คำนวณยอด Stock รวม (WIP + FG) ของพาร์ทนี้จากระบบ
+            let totalStock = 0;
+            let cleanP = pNo.toUpperCase();
+
+            wipList.forEach(w => {
+                if (!w) return;
+                let wp = String(w.partNo || w['Part No.'] || w.PARTNO || '').trim().toUpperCase();
+                if (wp === cleanP) {
+                    Object.keys(w).forEach(k => {
+                        let lk = k.toLowerCase();
+                        if (lk.includes('balance') || lk.includes('remain') || lk.includes('wip') || lk.includes('คงเหลือ')) {
+                            let v = Number(String(w[k]).replace(/,/g, '').trim());
+                            if (!isNaN(v)) totalStock += v;
+                        }
                     });
-                    count++;
                 }
             });
-        }
+
+            fgList.forEach(f => {
+                if (!f) return;
+                let fp = String(f.partNo || f['Part No.'] || f.PARTNO || '').trim().toUpperCase();
+                if (fp === cleanP) {
+                    Object.keys(f).forEach(k => {
+                        let lk = k.toLowerCase();
+                        if ((lk.includes('balance') || lk.includes('remain') || lk.includes('fg') || lk.includes('คงเหลือ')) && !lk.includes('delivery')) {
+                            let v = Number(String(f[k]).replace(/,/g, '').trim());
+                            if (!isNaN(v)) totalStock += v;
+                        }
+                    });
+                }
+            });
+
+            // 3. เงื่อนไขตามที่พี่มิวสั่ง: Stock น้อยกว่า Minimum (คอลัมน์ L) ถึงจะแสดง
+            if (totalStock < minVal) {
+                lowStockList.push({
+                    partNo: pNo,
+                    line: line,
+                    stock: totalStock,
+                    min: minVal
+                });
+            }
+        });
 
         const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
         const filteredParts = (currentLine === 'ALL') 
@@ -4769,7 +4802,7 @@ document.addEventListener('keypress', function(e) {
             return `<span class="badge bg-danger m-1 p-2" style="font-size: 13px;">
                         <i class="fas fa-box me-1"></i><b>${item.partNo}</b> 
                         <span class="badge bg-dark text-warning ms-1">Line: ${item.line}</span> 
-                        <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${item.stock} / Min: ${item.min}</span>
+                        <span class="badge bg-light text-dark ms-1">Stock: ${item.stock} / Min: ${item.min}</span>
                     </span>`;
         }).join('');
 
@@ -4797,7 +4830,7 @@ document.addEventListener('keypress', function(e) {
         if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
             let text = btn.textContent.trim();
             if (text === 'ALL' || text.startsWith('Line')) {
-                setTimeout(() => renderZeroStockPartsByLine(text), 200);
+                setTimeout(() => renderZeroStockPartsByLine(text), 300);
             }
         }
     });
@@ -4805,7 +4838,7 @@ document.addEventListener('keypress', function(e) {
     window.addEventListener('DOMContentLoaded', () => renderZeroStockPartsByLine('ALL'));
     window.addEventListener('load', () => renderZeroStockPartsByLine('ALL'));
     setTimeout(() => renderZeroStockPartsByLine('ALL'), 1000);
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 2500);
+    setTimeout(() => renderZeroStockPartsByLine('ALL'), 3000);
 })();
         function updateClock() {
     const now = new Date();
