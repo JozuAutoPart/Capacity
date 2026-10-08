@@ -4726,12 +4726,12 @@ document.addEventListener('keypress', function(e) {
             if (!masters.length || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอข้อมูลจากระบบ...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูลระบบ...</h6>
                     </div>`;
                 return;
             }
 
-            // รวบรวมรายชื่อพาร์ททั้งหมดจากตารางระบบ
+            // รวบรวมรายชื่อ Part No. ทั้งหมดจากตารางระบบ
             const partsSet = new Set([
                 ...actuals.map(a => a.partNo || a['Part No.'] || ''),
                 ...qgate.map(q => q.partNo || q['Part No.'] || ''),
@@ -4747,7 +4747,7 @@ document.addEventListener('keypress', function(e) {
                 const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
                 if (hasProcessSuffix) return;
 
-                // ค้นหาข้อมูลใน Master Parts
+                // ค้นหาข้อมูลพาร์ทนี้ใน Master Parts
                 let masterInfo = masters.find(m => {
                     if (!m) return false;
                     for (let k of Object.keys(m)) {
@@ -4762,20 +4762,26 @@ document.addEventListener('keypress', function(e) {
 
                 if (masterInfo) {
                     for (let k of Object.keys(masterInfo)) {
-                        let lk = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        let val = String(masterInfo[k]).trim();
+                        let lk = k.toLowerCase().trim();
+                        let val = String(masterInfo[k]).replace(/,/g, '').trim();
+
                         if (lk === 'line' || lk.includes('line')) {
-                            if (val) line = val;
+                            if (masterInfo[k]) line = masterInfo[k];
                         }
-                        // ดึงค่า Minimum จากทุกคีย์ที่เป็นไปได้
-                        if (lk.includes('min') || k.includes('Minimum') || k.includes('minimum')) {
-                            let v = Number(val.replace(/,/g, ''));
-                            if (!isNaN(v) && v > 0) minVal = v;
+                        // เช็คคอลัมน์ Minimum (Column L) จากทุกรูปแบบคีย์ที่เป็นไปได้
+                        if (lk === 'minimum' || lk === 'min' || lk.includes('minimum')) {
+                            let v = Number(val);
+                            if (!isNaN(v)) {
+                                minVal = v;
+                            }
                         }
                     }
                 }
 
-                // คำนวณยอด Stock WIP ตามสูตรระบบจริง
+                // ถ้าไม่มีการกำหนดค่า Minimum ใน Master หรือค่าเป็น 0 ให้ข้าม
+                if (minVal <= 0) return;
+
+                // คำนวณยอด Stock WIP ตามสูตรจริงของระบบพี่มิว
                 const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
                     let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     return sum + (isNaN(val) ? 0 : val);
@@ -4789,21 +4795,16 @@ document.addEventListener('keypress', function(e) {
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
 
-                // ถ้าคำนวณแล้ว Stock WIP เป็น 0 หรือน้อยกว่าค่า Minimum ที่ตั้งไว้
-                if (currentwip <= 0 || (minVal > 0 && currentwip < minVal)) {
+                // เงื่อนไขหลัก: ยอด Stock WIP น้อยกว่า Minimum (คอลัมน์ L) ตามข้อมูลจริง
+                if (currentwip < minVal) {
                     lowStockList.push({
                         partNo: partNo,
                         line: line,
                         stock: currentwip,
-                        min: minVal > 0 ? minVal : 100
+                        min: minVal
                     });
                 }
             });
-
-            // จำกัดให้แสดงผลตรงกับจำนวน Stock หมดในระบบ (5 รายการ)
-            if (lowStockList.length > 5) {
-                lowStockList = lowStockList.slice(0, 5);
-            }
 
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
