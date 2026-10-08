@@ -4728,40 +4728,28 @@ document.addEventListener('keypress', function(e) {
             return;
         }
 
-        const getPartStock = (cleanPNo) => {
-            let totalStock = 0;
-            
-            const wipList = window.wipDatabase || window.wipData || [];
-            if (Array.isArray(wipList)) {
-                let item = wipList.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
-                if (item) {
-                    let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
-                    if (!isNaN(q)) totalStock += q;
-                }
-            }
-
-            const fgList = window.fgDatabase || window.fgData || [];
-            if (Array.isArray(fgList)) {
-                let item = fgList.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
-                if (item) {
-                    let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
-                    if (!isNaN(q)) totalStock += q;
-                }
-            }
-            return totalStock;
-        };
-
+        // ใช้ฟังก์ชันตรวจสอบ Low Stock แบบเดียวกับตัวนับ 4 รายการขวาล่างที่ใช้จริงในระบบของพี่มิว
         const checkIsLowStock = (m) => {
             if (!m) return false;
-            
             const rawPNo = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
             const cleanPNo = rawPNo.toUpperCase();
             if (!cleanPNo) return false;
 
-            // ค้นหาค่า Minimum จากฟิลด์ต่างๆ อย่างแม่นยำ
-            let minVal = m.Minimum || m.minimum || m['MINIMUM'] || m['Min'] || m['min'] || '';
-            
-            if (minVal === '' || minVal === undefined || minVal === null) {
+            // ค้นหาค่า Minimum จากทุกช่องที่เป็นไปได้
+            let minVal = '';
+            for (let key of Object.keys(m)) {
+                let lowerKey = key.toLowerCase();
+                if (lowerKey.includes('min') || lowerKey === 'minimum') {
+                    let val = m[key];
+                    if (val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-') {
+                        minVal = val;
+                        break;
+                    }
+                }
+            }
+
+            // ถ้าหาไม่เจอจากชื่อคีย์ ให้ลองเช็ค index คอลัมน์ 10, 11, 12
+            if (minVal === '') {
                 const keys = Object.keys(m);
                 for (let idx of [11, 12, 10]) {
                     if (keys.length > idx && m[keys[idx]] !== undefined) {
@@ -4774,14 +4762,26 @@ document.addEventListener('keypress', function(e) {
                 }
             }
 
-            const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
-            // ถ้าไม่มีค่า Minimum, เป็นขีด, หรือไม่ใช่ตัวเลข ให้ตัดทิ้งทันที (ป้องการพาร์ทที่ไม่ได้กำหนด Minimum)
+            const cleanMinStr = String(minVal).replace(/,/g, '').trim();
             if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
-            
             const minLimit = Number(cleanMinStr);
             if (minLimit <= 0) return false;
 
-            return getPartStock(cleanPNo) < minLimit;
+            // ดึงยอดสต็อกรวมจาก WIP และ FG
+            let totalStock = 0;
+            const checkStockInList = (list) => {
+                if (!Array.isArray(list)) return;
+                let item = list.find(x => x && String(x.partNo || x['Part No.'] || x.PARTNO || x.part_no || '').trim().toUpperCase() === cleanPNo);
+                if (item) {
+                    let q = Number(item.balance || item.remaining || item.stock || item.QTY || item.qty || 0);
+                    if (!isNaN(q)) totalStock += q;
+                }
+            };
+
+            checkStockInList(window.wipDatabase || window.wipData);
+            checkStockInList(window.fgDatabase || window.fgData);
+
+            return totalStock < minLimit;
         };
 
         const allLowStockParts = masters.filter(checkIsLowStock);
@@ -4794,11 +4794,6 @@ document.addEventListener('keypress', function(e) {
                 let mLine = String(m.Line || m.line || m.LINE || '').trim().toUpperCase();
                 return mLine === currentLine && checkIsLowStock(m);
             });
-
-        const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
-        if (stockMinElement) {
-            stockMinElement.textContent = allLowStockParts.length;
-        }
 
         let badgesHtml = filteredLowStockParts.map(m => {
             const pNo = String(m.partNo || m['Part No.'] || m.PARTNO || '').trim();
@@ -4836,9 +4831,9 @@ document.addEventListener('keypress', function(e) {
 
     window.addEventListener('DOMContentLoaded', () => renderZeroStockPartsByLine('ALL'));
     window.addEventListener('load', () => renderZeroStockPartsByLine('ALL'));
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 800);
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 2000);
-    setTimeout(() => renderZeroStockPartsByLine('ALL'), 4000);
+    setTimeout(() => renderZeroStockPartsByLine('ALL'), 1000);
+    setTimeout(() => renderZeroStockPartsByLine('ALL'), 2500);
+    setTimeout(() => renderZeroStockPartsByLine('ALL'), 5000);
 })();
         function updateClock() {
     const now = new Date();
