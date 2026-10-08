@@ -4704,8 +4704,6 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (เชื่อมโยงกับระบบและฟังก์ชันกลางของพี่มิว)
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (แบบจบในตัว ตรงกับกล่องขวาล่าง 100%)
 (function() {
     function renderZeroStockPartsByLine(selectedLine = 'ALL') {
         let container = document.getElementById('zeroStockListContainer');
@@ -4715,7 +4713,6 @@ document.addEventListener('keypress', function(e) {
             container.id = 'zeroStockListContainer';
             container.className = 'col-12 mt-3 mb-4';
 
-            // แทรกไว้บริเวณส่วนหัวของ Dashboard ให้เด่นชัด
             const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
             if (mainContent) {
                 const firstRow = mainContent.querySelector('.row') || mainContent.firstChild;
@@ -4727,12 +4724,10 @@ document.addEventListener('keypress', function(e) {
 
         const masters = window.masterPartsDatabase || [];
         if (masters.length === 0) {
-            // ถ้าระบบยังโหลดข้อมูลไม่เสร็จ ให้รอแล้วลองใหม่
             setTimeout(() => renderZeroStockPartsByLine(selectedLine), 300);
             return;
         }
 
-        // ฟังก์ชันคำนวณสต็อกจริงจาก WIP และ FG
         const getPartStock = (cleanPNo) => {
             let totalStock = 0;
             
@@ -4756,7 +4751,6 @@ document.addEventListener('keypress', function(e) {
             return totalStock;
         };
 
-        // เงื่อนไขเช็คว่าต่ำกว่า Minimum หรือไม่
         const checkIsLowStock = (m) => {
             if (!m) return false;
             
@@ -4764,13 +4758,15 @@ document.addEventListener('keypress', function(e) {
             const cleanPNo = rawPNo.toUpperCase();
             if (!cleanPNo) return false;
 
-            let minVal = m.Minimum || m.minimum || m['MINIMUM'] || '';
+            // ค้นหาค่า Minimum จากฟิลด์ต่างๆ อย่างแม่นยำ
+            let minVal = m.Minimum || m.minimum || m['MINIMUM'] || m['Min'] || m['min'] || '';
+            
             if (minVal === '' || minVal === undefined || minVal === null) {
                 const keys = Object.keys(m);
-                for (let idx of [11, 12]) {
+                for (let idx of [11, 12, 10]) {
                     if (keys.length > idx && m[keys[idx]] !== undefined) {
                         let val = m[keys[idx]];
-                        if (val !== '' && !isNaN(String(val).replace(/,/g, '').trim())) {
+                        if (val !== '' && val !== null && !isNaN(String(val).replace(/,/g, '').trim())) {
                             minVal = val;
                             break;
                         }
@@ -4779,6 +4775,7 @@ document.addEventListener('keypress', function(e) {
             }
 
             const cleanMinStr = String(minVal !== undefined && minVal !== null ? minVal : '').replace(/,/g, '').trim();
+            // ถ้าไม่มีค่า Minimum, เป็นขีด, หรือไม่ใช่ตัวเลข ให้ตัดทิ้งทันที (ป้องการพาร์ทที่ไม่ได้กำหนด Minimum)
             if (cleanMinStr === '' || cleanMinStr === '-' || isNaN(cleanMinStr)) return false;
             
             const minLimit = Number(cleanMinStr);
@@ -4798,7 +4795,6 @@ document.addEventListener('keypress', function(e) {
                 return mLine === currentLine && checkIsLowStock(m);
             });
 
-        // อัปเดตตัวเลขที่กล่องขวาล่าง (ถ้ามี)
         const stockMinElement = document.querySelector('.stock-min-count') || document.querySelector('#stockMinCount');
         if (stockMinElement) {
             stockMinElement.textContent = allLowStockParts.length;
@@ -4826,10 +4822,8 @@ document.addEventListener('keypress', function(e) {
         `;
     }
 
-    // ผูกฟังก์ชันเข้า Global Scope เพื่อให้ระบบเรียกใช้ได้
     window.renderZeroStockPartsByLine = renderZeroStockPartsByLine;
 
-    // ดักจับการคลิกปุ่มเปลี่ยนไลน์อัตโนมัติ
     document.addEventListener('click', function(e) {
         let btn = e.target.closest('button') || e.target;
         if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
@@ -4840,7 +4834,6 @@ document.addEventListener('keypress', function(e) {
         }
     });
 
-    // สั่งรันอัตโนมัติหลายช่วงเวลาเพื่อให้แน่ใจว่าดึงข้อมูลที่โหลดเสร็จแล้วมาแสดงผลแน่นอน
     window.addEventListener('DOMContentLoaded', () => renderZeroStockPartsByLine('ALL'));
     window.addEventListener('load', () => renderZeroStockPartsByLine('ALL'));
     setTimeout(() => renderZeroStockPartsByLine('ALL'), 800);
