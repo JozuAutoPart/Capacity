@@ -4723,90 +4723,82 @@ document.addEventListener('keypress', function(e) {
         function render(selectedLine = 'ALL') {
             const masters = window.masterPartsDatabase || window.masterParts || [];
             
-            if (!masters.length) {
+            if (!masters.length || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Master Parts จากระบบ...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูลระบบ (Master / Actuals / Q-Gate)...</h6>
                     </div>`;
                 setTimeout(() => render(selectedLine), 500);
                 return;
             }
 
-            const wipList = window.wipDatabase || window.wipData || window.stockWip || [];
+            // รวบรวมรายชื่อพาร์ททั้งหมดแบบเดียวกับฟังก์ชัน renderStock() ของพี่มิว
+            const partsSet = new Set([
+                ...(typeof actuals !== 'undefined' ? actuals.map(a => a.partNo || a['Part No.'] || '') : []),
+                ...(typeof qgate !== 'undefined' ? qgate.map(q => q.partNo || q['Part No.'] || '') : []),
+                ...(typeof deliveries !== 'undefined' ? deliveries.map(d => d.partNo || d['Part No.'] || '') : []),
+                ...masters.map(m => m.partNo || m['Part No.'] || m.PARTNO || '')
+            ]);
+
             let lowStockList = [];
 
-            masters.forEach(m => {
-                if (!m) return;
-                
-                let pNo = '';
+            partsSet.forEach(partNo => {
+                if (!partNo) return;
+
+                const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
+                if (hasProcessSuffix) return;
+
+                // ค้นหาข้อมูล Line และ Minimum (คอลัมน์ L) จาก Master Parts
+                let masterInfo = masters.find(m => {
+                    if (!m) return false;
+                    let p = String(m.partNo || m['Part No.'] || m.PARTNO || m.part_no || '').trim();
+                    return p.toUpperCase() === String(partNo).trim().toUpperCase();
+                });
+
                 let line = 'ALL';
                 let minVal = 0;
 
-                // ดึงข้อมูล PartNo, Line และ Minimum จาก Master
-                for (let k of Object.keys(m)) {
-                    let lk = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    let val = String(m[k]).trim();
-                    if (lk.includes('partno') || lk === 'part' || lk === 'code') {
-                        if (val) pNo = val;
-                    }
-                    if (lk === 'line') {
-                        if (val) line = val;
-                    }
-                    if (lk === 'minimum' || lk === 'min') {
-                        let v = Number(val.replace(/,/g, ''));
-                        if (!isNaN(v)) minVal = v;
+                if (masterInfo) {
+                    for (let k of Object.keys(masterInfo)) {
+                        let lk = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        let val = String(masterInfo[k]).trim();
+                        if (lk === 'line') {
+                            if (val) line = val;
+                        }
+                        if (lk === 'minimum' || lk === 'min') {
+                            let v = Number(val.replace(/,/g, ''));
+                            if (!isNaN(v)) minVal = v;
+                        }
                     }
                 }
 
-                if (!pNo || minVal <= 0) return;
+                // ถ้าไม่มีการกำหนดค่า Minimum ข้ามไป
+                if (minVal <= 0) return;
 
-                // ค้นหายอด Stock WIP ของพาร์ทนี้
-                let wipStock = 0;
-                let foundInWip = false;
-                let cleanP = pNo.toUpperCase();
+                // คำนวณยอด Stock WIP ตามสูตรเป๊ะๆ ของพี่มิว
+                const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
-                wipList.forEach(w => {
-                    if (!w) return;
-                    let wp = '';
-                    let wStock = 0;
+                const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
-                    for (let wk of Object.keys(w)) {
-                        let wval = String(w[wk]).trim();
-                        let wlk = wk.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        if (wlk.includes('part') || wlk === 'barcode') {
-                            wp = wval.toUpperCase();
-                        }
-                    }
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+                const currentwip = (totalIn - totalTransferred) + adjustWip;
 
-                    if (wp === cleanP || wp.includes(cleanP)) {
-                        foundInWip = true;
-                        for (let wk of Object.keys(w)) {
-                            let subLk = wk.toLowerCase();
-                            if (subLk.includes('balance') || subLk.includes('remain') || subLk.includes('wip') || subLk.includes('คงเหลือ') || subLk.includes('จำนวน')) {
-                                let v = Number(String(w[wk]).replace(/,/g, '').trim());
-                                if (!isNaN(v)) wStock += v;
-                            }
-                        }
-                        wipStock = wStock;
-                    }
-                });
-
-                // เงื่อนไข: ถ้า stock น้อยกว่า Minimum (และถูกจำกัดเฉพาะพาร์ทที่มีตัวตนในระบบจริง)
-                if (minVal > 0 && (wipStock < minVal)) {
-                    // หากยังไม่มีข้อมูลใน wipList ให้เช็คว่าควรนับเป็น 0 หรือไม่ (จำกัดไม่ให้เกินยอด Stock หมด 5 รายการตามระบบจริง)
+                // เงื่อนไข: ถ้ายอด Stock WIP น้อยกว่า Minimum (คอลัมน์ L) ให้แสดงผล
+                if (currentwip < minVal) {
                     lowStockList.push({
-                        partNo: pNo,
+                        partNo: partNo,
                         line: line,
-                        stock: wipStock,
+                        stock: currentwip,
                         min: minVal
                     });
                 }
             });
-
-            // ตัดกรองเอาเฉพาะ 5 รายการแรกที่ตรงกับสถานะ Stock หมดในระบบ
-            if (lowStockList.length > 5) {
-                lowStockList = lowStockList.slice(0, 5);
-            }
 
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
@@ -4817,7 +4809,7 @@ document.addEventListener('keypress', function(e) {
                 return `<span class="badge bg-danger m-1 p-2" style="font-size: 13px;">
                             <i class="fas fa-box me-1"></i><b>${item.partNo}</b> 
                             <span class="badge bg-dark text-warning ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP): ${item.stock} / Min: ${item.min}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock(WIP): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
                         </span>`;
             }).join('');
 
