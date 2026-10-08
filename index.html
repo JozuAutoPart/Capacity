@@ -4723,7 +4723,6 @@ document.addEventListener('keypress', function(e) {
         function render(selectedLine = 'ALL') {
             const masters = window.masterPartsDatabase || window.masterParts || [];
             
-            // ถ้าข้อมูลยังไม่มา ให้แสดงสถานะกำลังโหลดและลองใหม่ใน 0.5 วินาที
             if (!masters.length) {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
@@ -4733,9 +4732,8 @@ document.addEventListener('keypress', function(e) {
                 return;
             }
 
+            // ดึงข้อมูล Stock WIP จากตัวแปรกลางในระบบ
             const wipList = window.wipDatabase || window.wipData || window.stockWip || [];
-            const fgList = window.fgDatabase || window.fgData || window.stockFg || [];
-
             let lowStockList = [];
 
             masters.forEach(m => {
@@ -4745,7 +4743,7 @@ document.addEventListener('keypress', function(e) {
                 let line = 'ALL';
                 let minVal = 0;
 
-                // ค้นหาคีย์ PartNo, Line และ Minimum แบบยืดหยุ่น
+                // ค้นหา PartNo, Line และ Minimum จาก Master
                 for (let k of Object.keys(m)) {
                     let lk = k.toLowerCase().replace(/[^a-z0-9]/g, '');
                     let val = String(m[k]).trim();
@@ -4763,8 +4761,8 @@ document.addEventListener('keypress', function(e) {
 
                 if (!pNo || minVal <= 0) return;
 
-                // คำนวณยอด Stock รวม (WIP + FG) ของพาร์ทนี้
-                let totalStock = 0;
+                // หายอด Stock WIP เฉพาะพาร์ทนี้
+                let wipStock = 0;
                 let cleanP = pNo.toUpperCase();
 
                 wipList.forEach(w => {
@@ -4777,36 +4775,19 @@ document.addEventListener('keypress', function(e) {
                                 let subLk = subK.toLowerCase();
                                 if (subLk.includes('balance') || subLk.includes('remain') || subLk.includes('wip') || subLk.includes('คงเหลือ')) {
                                     let v = Number(String(w[subK]).replace(/,/g, '').trim());
-                                    if (!isNaN(v)) totalStock += v;
+                                    if (!isNaN(v)) wipStock += v;
                                 }
                             });
                         }
                     }
                 });
 
-                fgList.forEach(f => {
-                    if (!f) return;
-                    for (let fk of Object.keys(f)) {
-                        let fval = String(f[fk]).trim();
-                        let flk = fk.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        if (flk.includes('part') && fval.toUpperCase() === cleanP) {
-                            Object.keys(f).forEach(subK => {
-                                let subLk = subK.toLowerCase();
-                                if ((subLk.includes('balance') || subLk.includes('remain') || subLk.includes('fg') || subLk.includes('คงเหลือ')) && !subLk.includes('delivery')) {
-                                    let v = Number(String(f[subK]).replace(/,/g, '').trim());
-                                    if (!isNaN(v)) totalStock += v;
-                                }
-                            });
-                        }
-                    }
-                });
-
-                // เงื่อนไข: ถ้ายอด Stock (WIP + FG) น้อยกว่า Minimum ถึงจะแสดง
-                if (totalStock < minVal) {
+                // เงื่อนไข: ถ้ายอด Stock WIP น้อยกว่า Minimum (คอลัมน์ L) ถึงจะแสดง
+                if (wipStock < minVal) {
                     lowStockList.push({
                         partNo: pNo,
                         line: line,
-                        stock: totalStock,
+                        stock: wipStock,
                         min: minVal
                     });
                 }
@@ -4821,18 +4802,18 @@ document.addEventListener('keypress', function(e) {
                 return `<span class="badge bg-danger m-1 p-2" style="font-size: 13px;">
                             <i class="fas fa-box me-1"></i><b>${item.partNo}</b> 
                             <span class="badge bg-dark text-warning ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${item.stock} / Min: ${item.min}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock(WIP): ${item.stock} / Min: ${item.min}</span>
                         </span>`;
             }).join('');
 
             if (filteredParts.length === 0) {
-                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
+                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock WIP ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
             }
 
             container.innerHTML = `
                 <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                     <h6 class="text-danger fw-bold mb-2">
-                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum (WIP + FG) (ไลน์: ${selectedLine}) 
+                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock WIP ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                         <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
