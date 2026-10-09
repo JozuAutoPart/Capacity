@@ -5077,18 +5077,17 @@ window.addEventListener('DOMContentLoaded', () => {
         .then(result => {
             if (result && result.status === "success" && result.data && result.data.length > 0) {
                 // แปลงชื่อคีย์ให้เป็นตัวพิมพ์เล็ก/ใหญ่รองรับระบบเดิม
-                const formattedData = result.data.map(item => ({
-                    barcode: String(item.barcode || item['barcode'] || '').trim(),
-                    partNo: String(item.partNo || item['partNo'] || '').trim(),
-                    qty: item.จำนวน || item['จำนวน'] || 0,
-                    customer: item.ที่ลูกค้า || item['ที่ลูกค้า'] || '',
-                    line: item.Line || item['Line'] || '',
-                    image: item.รูปภาพ || item['รูปภาพ'] || '',
-                    forecast: item.Forecast || item['Forecast'] || 0,
-                    safetyStock: item['Safety Stock'] || item.safetyStock || 0
-                    minimum: Number(String(item.Minimum || item['Minimum'] || item.minimum || item[Object.keys(item)[11]] || 0).replace(/,/g, '')) || 0
-                }));
-
+               const formattedData = result.data.map(item => ({
+                barcode: String(item.barcode || item['barcode'] || '').trim(),
+                partNo: String(item.partNo || item['Part No.'] || '').trim(),
+                qty: item.จำนวน || item['จำนวน'] || 0,
+                customer: item.ที่ลูกค้า || item['ที่ลูกค้า'] || '',
+                line: item.Line || item['Line'] || '',
+                image: item.รูปภาพ || item['รูปภาพ'] || '',
+                forecast: item.Forecast || item['Forecast'] || 0,
+                safetyStock: item['Safety Stock'] || item.safetyStock || 0,
+                minimum: Number(String(item.Minimum || item['Minimum'] || item.minimum || item[Object.keys(item)[11]] || 0).replace(/,/g, '')) || 0
+            }));
                 localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedData));
                 window.masterPartsDatabase = formattedData;
                 console.log("☁️ โหลด Master Parts จาก Cloud สำเร็จ:", formattedData.length, "รายการ");
