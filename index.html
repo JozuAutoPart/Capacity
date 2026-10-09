@@ -4724,11 +4724,13 @@ document.addEventListener('keypress', function(e) {
         function renderWidget(selectedLine = 'ALL') {
             const masters = window.masterPartsDatabase || window.masterParts || [];
             
+            // รอจนกว่าข้อมูลจะถูกโหลดเข้ามาครบถ้วนจริงๆ (ป้องกันจังหวะข้อมูลกำลัง sync)
             if (!masters.length || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูลระบบ...</h6>
-                    </div>`;
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูลจาก Cloud...</h6>
+                    `;
+                setTimeout(() => renderWidget(selectedLine), 500);
                 return;
             }
 
@@ -4836,34 +4838,38 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
+        // ดักจับฟังก์ชัน renderAll เพื่อให้เรนเดอร์ซ้ำหลังข้อมูลทุกอย่างนิ่งแล้ว
         if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
                 let res = originalRenderAll.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 100);
+                setTimeout(() => renderWidget('ALL'), 300);
                 return res;
             };
             window._patchedRenderAll = true;
         }
 
+        // ดักจับฟังก์ชันโหลดข้อมูลจาก Cloud แบบหน่วงเวลาให้ข้อมูลชุดใหม่เข้ามาครบก่อน
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 200);
+                setTimeout(() => renderWidget('ALL'), 600);
                 return res;
             };
             window._patchedLoadCloud = true;
         }
 
-        setTimeout(() => renderWidget('ALL'), 1000);
+        // ตรวจสอบและเรนเดอร์ซ้ำเผื่อกรณีโหลดเสร็จช้า
+        setTimeout(() => renderWidget('ALL'), 1500);
+        setTimeout(() => renderWidget('ALL'), 3000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 300);
+                    setTimeout(() => renderWidget(text), 400);
                 }
             }
         });
