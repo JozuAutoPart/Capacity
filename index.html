@@ -4706,6 +4706,9 @@ document.addEventListener('keypress', function(e) {
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
 (function() {
+    let cachedLowStockList = [];
+    let isInitialized = false;
+
     function initLowStockWidget() {
         let container = document.getElementById('zeroStockListContainer');
         if (!container) {
@@ -4724,12 +4727,16 @@ document.addEventListener('keypress', function(e) {
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
+            // ถ้าข้อมูลยังไม่พร้อม แต่มี Cache เก่า ให้ใช้ Cache เก่าแสดงผลประคองไว้ก่อนทันที
             if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
-                container.innerHTML = `
-                    <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูลจากระบบ...</h6>
-                    </div>`;
-                setTimeout(() => renderWidget(selectedLine), 500);
+                if (cachedLowStockList.length > 0) {
+                    displayWidget(cachedLowStockList, selectedLine);
+                } else {
+                    container.innerHTML = `
+                        <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock...</h6>
+                        </div>`;
+                }
                 return;
             }
 
@@ -4764,7 +4771,6 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // คำนวณยอด Stock WIP ตามสูตรระบบจริง
                 const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
                     let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     return sum + (isNaN(val) ? 0 : val);
@@ -4788,10 +4794,20 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
+            // อัปเดตเก็บเข้า Cache เสมอเมื่อประมวลผลสำเร็จและมีข้อมูลมากกว่า 0 หรือเป็นการโหลดที่สมบูรณ์
+            if (lowStockList.length > 0 || isInitialized) {
+                cachedLowStockList = lowStockList;
+                isInitialized = true;
+            }
+
+            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, selectedLine);
+        }
+
+        function displayWidget(list, selectedLine) {
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
-                ? lowStockList 
-                : lowStockList.filter(x => String(x.line).trim().toUpperCase() === currentLine);
+                ? list 
+                : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
@@ -4820,30 +4836,32 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        // ดักจับฟังก์ชันโหลดข้อมูลหลักทั้งหมด เพื่อให้เรนเดอร์ซ้ำอัตโนมัติหลังดึงข้อมูลเสร็จ
-        if (typeof window.renderStockZeroPieChart === 'function' && !window._patchedPieChart) {
-            let originalPie = window.renderStockZeroPieChart;
-            window.renderStockZeroPieChart = function(...args) {
-                let res = originalPie.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 200);
-                return res;
-            };
-            window._patchedPieChart = true;
-        }
-
+        // ดักจับฟังก์ชัน Cloud และ Render ทั้งหมด เพื่อสั่งประมวลผลซ้ำอัตโนมัติทันทีที่โหลดเสร็จ
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 600);
+                setTimeout(() => renderWidget('ALL'), 500);
                 setTimeout(() => renderWidget('ALL'), 1500);
                 return res;
             };
             window._patchedLoadCloud = true;
         }
 
-        setTimeout(() => renderWidget('ALL'), 1500);
-        setTimeout(() => renderWidget('ALL'), 3500);
+        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
+            let originalRenderAll = window.renderAll;
+            window.renderAll = function(...args) {
+                let res = originalRenderAll.apply(this, args);
+                setTimeout(() => renderWidget('ALL'), 300);
+                return res;
+            };
+            window._patchedRenderAll = true;
+        }
+
+        // รันตรวจสอบเป็นระยะเพื่อความเสถียรสูงสุด
+        setTimeout(() => renderWidget('ALL'), 1000);
+        setTimeout(() => renderWidget('ALL'), 3000);
+        setTimeout(() => renderWidget('ALL'), 5000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
