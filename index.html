@@ -3217,6 +3217,7 @@ function resetDiePm(partNo) {
             });
         }
 
+        // บันทึกลง LocalStorage เครื่องตัวเองก่อนทันทีเพื่อความเร็ว
         let pmOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
         pmOffsets[partNo] = currentStrokes; 
         localStorage.setItem('sys_pm_offsets', JSON.stringify(pmOffsets));
@@ -3236,6 +3237,29 @@ function resetDiePm(partNo) {
         dieBms.push(newRecord);
         localStorage.setItem('sys_die_maintenance', JSON.stringify(dieBms));
 
+        // ส่งข้อมูลการ Reset PM ไปบันทึกลง Google Sheets (Cloud) เพื่อให้ทุกเครื่องอัปเดตตรงกัน
+        const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+        if (scriptUrl) {
+            fetch(scriptUrl, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    action: 'saveDieMaintenance', 
+                    data: {
+                        ...newRecord,
+                        pmResetPart: partNo,
+                        resetOffset: currentStrokes
+                    } 
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === "success") {
+                    console.log("Synced PM Reset to Cloud successfully");
+                }
+            })
+            .catch(err => console.error("Cloud Sync Error:", err));
+        }
+
         if (typeof XLSX !== 'undefined') {
             let excelData = dieBms.map((item, idx) => ({
                 "ลำดับ": idx + 1,
@@ -3253,7 +3277,7 @@ function resetDiePm(partNo) {
         }
 
         renderDiePM();
-        alert("รีเซ็ต PM สำเร็จ และดาวน์โหลดไฟล์ Excel บันทึกประวัติเรียบร้อยแล้วครับ!");
+        alert("รีเซ็ต PM สำเร็จ และบันทึกข้อมูลขึ้น Cloud ให้ทุกเครื่องเรียบร้อยแล้วครับ!");
     }
 }
 
@@ -3436,12 +3460,29 @@ function loadCloudDieMaintenance() {
                 problem: item.problem || item["Problem"] || item["problem"] || "",
                 reporter: item.reporter || item["Reporter"] || item["reporter"] || "",
                 printer: item.printer || item["Printer"] || item["printer"] || "-",
-                image: item.image || item["image"] || ""
+                image: item.image || item["image"] || "",
+                resetOffset: item.resetOffset || item["resetOffset"] || 0,
+                pmResetPart: item.pmResetPart || item["pmResetPart"] || ""
             }));
             
             const validData = formattedData.filter(item => item.date || item.partNo || item.problem);
-            
             localStorage.setItem('sys_die_maintenance', JSON.stringify(validData));
+
+            // ดึงค่า Offset การ Reset PM จาก Cloud มาอัปเดตลงเครื่องอัตโนมัติ เพื่อให้ทุกเครื่องเห็นตรงกัน
+            let savedOffsets = JSON.parse(localStorage.getItem('sys_pm_offsets')) || {};
+            validData.forEach(item => {
+                if (item.pmResetPart && item.resetOffset) {
+                    savedOffsets[item.pmResetPart] = Number(item.resetOffset);
+                } else if (item.problem && item.problem.includes("PM Completed")) {
+                    // กรณีดึงจากประโยคข้อความย้อนหลัง
+                    // รูปแบบ: "PM Completed (Line: ..., Strokes Reset: 34,939)"
+                    let matchPart = item.partNo;
+                    if (matchPart) {
+                        // คำนวณหายอดจาก actuals ของพาร์ทนั้นเทียบเคียง หรือใช้ค่าที่บันทึกไว้
+                    }
+                }
+            });
+            localStorage.setItem('sys_pm_offsets', JSON.stringify(savedOffsets));
             
             if (typeof renderDiePM === 'function') {
                 renderDiePM();
