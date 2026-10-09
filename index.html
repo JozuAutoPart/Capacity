@@ -5086,6 +5086,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     image: item.รูปภาพ || item['รูปภาพ'] || '',
                     forecast: item.Forecast || item['Forecast'] || 0,
                     safetyStock: item['Safety Stock'] || item.safetyStock || 0
+                    minimum: Number(String(item.Minimum || item['Minimum'] || item.minimum || item[Object.keys(item)[11]] || 0).replace(/,/g, '')) || 0
                 }));
 
                 localStorage.setItem('masterPartsDatabase', JSON.stringify(formattedData));
