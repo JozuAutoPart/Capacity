@@ -4705,75 +4705,177 @@ document.addEventListener('keypress', function(e) {
 });
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
-function renderZeroStockPartsByLine(selectedLine = 'ALL') {
-    let container = document.getElementById('zeroStockListContainer');
-    
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'zeroStockListContainer';
-        container.className = 'col-12 mt-3 mb-4';
+(function() {
+    function initLowStockWidget() {
+        let container = document.getElementById('zeroStockListContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'zeroStockListContainer';
+            container.className = 'col-12 mt-3 mb-4';
 
-        const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
-        if (mainContent) {
-            mainContent.appendChild(container);
+            const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
+            if (mainContent) {
+                const firstRow = mainContent.querySelector('.row') || mainContent.firstChild;
+                mainContent.insertBefore(container, firstRow);
+            }
         }
+        container.style.display = 'block';
+
+        function renderWidget(selectedLine = 'ALL') {
+            const masters = window.masterPartsDatabase || window.masterParts || [];
+            
+            if (!masters.length || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
+                container.innerHTML = `
+                    <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูลระบบ...</h6>
+                    </div>`;
+                return;
+            }
+
+            const partsSet = new Set([
+                ...actuals.map(a => a.partNo || a['Part No.'] || ''),
+                ...qgate.map(q => q.partNo || q['Part No.'] || ''),
+                ...(typeof deliveries !== 'undefined' ? deliveries.map(d => d.partNo || d['Part No.'] || '') : []),
+                ...masters.map(m => m.partNo || m['Part No.'] || m.PARTNO || m['PartNo'] || '')
+            ]);
+
+            let lowStockList = [];
+
+            partsSet.forEach(partNo => {
+                if (!partNo) return;
+
+                const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
+                if (hasProcessSuffix) return;
+
+                let masterInfo = masters.find(m => {
+                    if (!m) return false;
+                    for (let k of Object.keys(m)) {
+                        let val = String(m[k]).trim();
+                        if (val.toUpperCase() === String(partNo).trim().toUpperCase()) return true;
+                    }
+                    return false;
+                });
+
+                let line = 'ALL';
+                let minVal = 0;
+
+                if (masterInfo) {
+                    const keys = Object.keys(masterInfo);
+                    for (let i = 0; i < keys.length; i++) {
+                        let k = keys[i];
+                        let lk = k.toLowerCase().trim();
+                        let val = String(masterInfo[k]).replace(/,/g, '').trim();
+
+                        if (lk === 'line' || lk.includes('line')) {
+                            if (masterInfo[k]) line = masterInfo[k];
+                        }
+                        
+                        if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
+                            let v = Number(val);
+                            if (!isNaN(v) && v > 0) {
+                                minVal = v;
+                            }
+                        }
+                    }
+                }
+
+                if (minVal <= 0) return;
+
+                const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+                const currentwip = (totalIn - totalTransferred) + adjustWip;
+
+                if (currentwip < minVal) {
+                    lowStockList.push({
+                        partNo: partNo,
+                        line: line,
+                        stock: currentwip,
+                        min: minVal
+                    });
+                }
+            });
+
+            const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
+            const filteredParts = (currentLine === 'ALL') 
+                ? lowStockList 
+                : lowStockList.filter(x => String(x.line).trim().toUpperCase() === currentLine);
+
+            let badgesHtml = filteredParts.map(item => {
+                return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
+                            <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
+                            <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
+                            <span class="badge bg-light text-dark ms-1">Stock(WIP): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
+                        </span>`;
+            }).join('');
+
+            if (filteredParts.length === 0) {
+                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock WIP ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
+            }
+
+            container.innerHTML = `
+                <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                    <h6 class="text-danger fw-bold mb-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock WIP ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                        <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
+                    </h6>
+                    <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
+                        ${badgesHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        window.renderZeroStockPartsByLine = renderWidget;
+
+        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
+            let originalRenderAll = window.renderAll;
+            window.renderAll = function(...args) {
+                let res = originalRenderAll.apply(this, args);
+                setTimeout(() => renderWidget('ALL'), 100);
+                return res;
+            };
+            window._patchedRenderAll = true;
+        }
+
+        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
+            let originalLoad = window.loadAllDataFromCloud;
+            window.loadAllDataFromCloud = async function(...args) {
+                let res = await originalLoad.apply(this, args);
+                setTimeout(() => renderWidget('ALL'), 200);
+                return res;
+            };
+            window._patchedLoadCloud = true;
+        }
+
+        setTimeout(() => renderWidget('ALL'), 1000);
+
+        document.addEventListener('click', function(e) {
+            let btn = e.target.closest('button') || e.target;
+            if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
+                let text = btn.textContent.trim();
+                if (text === 'ALL' || text.startsWith('Line')) {
+                    setTimeout(() => renderWidget(text), 300);
+                }
+            }
+        });
     }
-    
-    if (container) container.style.display = 'block';
 
-    const masters = window.masterPartsDatabase || [];
-
-    if (masters.length === 0) {
-        container.innerHTML = `
-            <div class="card bg-dark text-white p-3 border-warning shadow">
-                <h6 class="text-warning fw-bold mb-2">
-                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine})
-                </h6>
-                <p class="text-muted mb-0">⚠️ ยังไม่พบข้อมูล Master Part Code (กรุณาอัปโหลดไฟล์ Master Part Code ก่อนครับ)</p>
-            </div>
-        `;
-        return;
+    if (document.readyState === 'complete') {
+        initLowStockWidget();
+    } else {
+        window.addEventListener('load', initLowStockWidget);
+        setTimeout(initLowStockWidget, 1000);
     }
-
-    const targetMasters = (selectedLine === 'ALL' || !selectedLine) 
-        ? masters 
-        : masters.filter(m => {
-              const mLine = String(m.Line || m.line || m.LINE || '').trim();
-              return mLine.toUpperCase() === String(selectedLine).trim().toUpperCase();
-          });
-
-    // ดึงชุดข้อมูลพาร์ทที่มี Stock จริงๆ จากฟังก์ชันกลางชุดเดียวกันกับกราฟ
-    let activePartsSet = getActivePartsMap();
-
-    const zeroStockParts = targetMasters.filter(m => {
-        const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-        const cleanPNo = rawPNo.toUpperCase();
-        if (!cleanPNo) return false;
-
-        return !activePartsSet.has(cleanPNo);
-    });
-
-    let badgesHtml = zeroStockParts.map(m => {
-        const pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-        return `<span class="badge bg-danger m-1 p-2" style="font-size: 12px;">${pNo}</span>`;
-    }).join('');
-
-    if (zeroStockParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่ Stock เป็น 0 ในไลน์นี้</span>`;
-    }
-
-    container.innerHTML = `
-        <div class="card bg-dark text-white p-3 border-danger shadow">
-            <h6 class="text-danger fw-bold mb-2">
-                <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่ Stock เป็น 0 (ไลน์: ${selectedLine}) 
-                <span class="badge bg-danger text-white ms-2">${zeroStockParts.length} รายการ</span>
-            </h6>
-            <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
-                ${badgesHtml}
-            </div>
-        </div>
-    `;
-}
+})();
         function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
