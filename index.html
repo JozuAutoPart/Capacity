@@ -4706,6 +4706,8 @@ document.addEventListener('keypress', function(e) {
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
 (function() {
+    let cachedLowStockList = [];
+
     function initLowStockWidget() {
         let container = document.getElementById('zeroStockListContainer');
         if (!container) {
@@ -4724,13 +4726,17 @@ document.addEventListener('keypress', function(e) {
         function renderWidget(selectedLine = 'ALL') {
             const masters = window.masterPartsDatabase || window.masterParts || [];
             
-            // รอจนกว่าข้อมูลจะถูกโหลดเข้ามาครบถ้วนจริงๆ (ป้องกันจังหวะข้อมูลกำลัง sync)
+            // ถ้าข้อมูลยังไม่มา ให้ใช้ข้อมูลงวดก่อนหน้าแสดงค้างไว้ก่อน ป้องกันกระพริบเป็น 0
             if (!masters.length || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
-                container.innerHTML = `
-                    <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูลจาก Cloud...</h6>
-                    `;
-                setTimeout(() => renderWidget(selectedLine), 500);
+                if (cachedLowStockList.length > 0) {
+                    displayWidget(cachedLowStockList, selectedLine);
+                } else {
+                    container.innerHTML = `
+                        <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Master Parts...</h6>
+                        </div>`;
+                }
+                setTimeout(() => renderWidget(selectedLine), 400);
                 return;
             }
 
@@ -4806,10 +4812,16 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
+            // อัปเดตข้อมูล Cache เก็บไว้
+            cachedLowStockList = lowStockList;
+            displayWidget(lowStockList, selectedLine);
+        }
+
+        function displayWidget(list, selectedLine) {
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
-                ? lowStockList 
-                : lowStockList.filter(x => String(x.line).trim().toUpperCase() === currentLine);
+                ? list 
+                : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
@@ -4838,31 +4850,32 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        // ดักจับฟังก์ชัน renderAll เพื่อให้เรนเดอร์ซ้ำหลังข้อมูลทุกอย่างนิ่งแล้ว
+        // ดักจับฟังก์ชัน renderAll และ loadAllDataFromCloud พร้อมหน่วงเวลาให้ข้อมูลนิ่ง
         if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
                 let res = originalRenderAll.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 300);
+                setTimeout(() => renderWidget('ALL'), 200);
                 return res;
             };
             window._patchedRenderAll = true;
         }
 
-        // ดักจับฟังก์ชันโหลดข้อมูลจาก Cloud แบบหน่วงเวลาให้ข้อมูลชุดใหม่เข้ามาครบก่อน
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 600);
+                setTimeout(() => renderWidget('ALL'), 500);
+                setTimeout(() => renderWidget('ALL'), 1500);
                 return res;
             };
             window._patchedLoadCloud = true;
         }
 
-        // ตรวจสอบและเรนเดอร์ซ้ำเผื่อกรณีโหลดเสร็จช้า
-        setTimeout(() => renderWidget('ALL'), 1500);
-        setTimeout(() => renderWidget('ALL'), 3000);
+        // รันตรวจสอบเป็นระยะหลังโหลดหน้าเว็บ
+        setTimeout(() => renderWidget('ALL'), 1000);
+        setTimeout(() => renderWidget('ALL'), 2500);
+        setTimeout(() => renderWidget('ALL'), 4000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
