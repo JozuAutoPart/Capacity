@@ -1906,7 +1906,7 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    timework: item.timework || item.TimeWork || item.timeWork || item['TimeWork'] || item['timeWork'] || item['Time work'] || item['เวลาทำงาน'] || item['Time'] || item['time'] || '-',
+                    timework: item.timeRange || item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeWork || item['TimeWork'] || item['timeWork'] || item['Time work'] || item['Time'] || item['time'] || '-',
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
