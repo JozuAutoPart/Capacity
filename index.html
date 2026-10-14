@@ -1964,7 +1964,7 @@ function renderActuals() {
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
         // เพิ่ม a.timeRange ไว้ตัวแรกสุด เพื่อดึงเวลาขึ้นมาแสดงผลเหมือนหน้า Q-Gate
-      const timeorkval = a['เวลาทำงาน'] || a['TimeWork'] || a.timeRange || a.timework || a.TimeWork || a.timeWork || '-';
+      const timeworkval = a['เวลาทำงาน'] || a['TimeWork'] || a.timeRange || a.timework || a.TimeWork || '-';
         
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
@@ -1973,7 +1973,7 @@ function renderActuals() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${displayDate}</td>
-            <td class="text-warning small fw-bold">${timeorkval}</td>
+            <td class="text-warning small fw-bold">${timeworkval}</td>
             <td>${opval}</td>
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
             <td class="fw-bold text-info">${partval}</td>
