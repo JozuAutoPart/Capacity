@@ -4775,7 +4775,7 @@ document.addEventListener('keypress', function(e) {
                 } else {
                     container.innerHTML = `
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock...</h6>
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
                         </div>`;
                 }
                 return;
@@ -4812,30 +4812,44 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
+                // 1. คำนวณยอดผลิตเข้า (Actuals)
                 const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
                     let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
+                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
                 const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
                     let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
-                const currentwip = (totalIn - totalTransferred) + adjustWip;
+                // 3. คำนวณยอดส่งมอบ (Deliveries / FG ที่ออกไปแล้ว)
+                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
+                    let val = Number(d.qty || d['Qty'] || 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
-                if (currentwip < minVal) {
+                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment (ถ้ามี)
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
+
+                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกัน
+                const currentwip = (totalIn - totalTransferred) + adjustWip;
+                const currentFg = (totalTransferred - totalDelivered) + adjustFg;
+                const totalStock = currentwip + currentFg;
+
+                if (totalStock < minVal) {
                     lowStockList.push({
                         partNo: partNo,
                         line: line,
-                        stock: currentwip,
+                        stock: totalStock,
                         min: minVal
                     });
                 }
             });
 
-            // อัปเดตเก็บเข้า Cache เสมอเมื่อประมวลผลสำเร็จและมีข้อมูลมากกว่า 0 หรือเป็นการโหลดที่สมบูรณ์
+            // อัปเดตเก็บเข้า Cache เสมอเมื่อประมวลผลสำเร็จ
             if (lowStockList.length > 0 || isInitialized) {
                 cachedLowStockList = lowStockList;
                 isInitialized = true;
@@ -4854,18 +4868,18 @@ document.addEventListener('keypress', function(e) {
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
                             <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
                         </span>`;
             }).join('');
 
             if (filteredParts.length === 0) {
-                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock WIP ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
+                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
             }
 
             container.innerHTML = `
                 <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                     <h6 class="text-danger fw-bold mb-2">
-                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock WIP ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                         <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
