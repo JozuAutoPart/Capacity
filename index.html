@@ -2567,67 +2567,94 @@ function renderStock() {
     wipbody.innerHTML = '';
     fgtbody.innerHTML = ''; 
 
-    const partsSet = new Set([
-        ...actuals.map(a => a.partNo || a['Part No.'] || ''),
-        ...qgate.map(q => q.partNo || q['Part No.'] || ''),
-        ...deliveries.map(d => d.partNo || d['Part No.'] || '')
-    ]);
+    // 1. รวบรวม Part No. ทั้งหมดและแปลงเป็นตัวพิมพ์ใหญ่ เพื่อจัดกลุ่มให้เป็นตัวเดียวกัน
+    const partsMap = new Map();
 
-    partsSet.forEach(partNo => {
-        if(!partNo) return;
+    const allRecords = [
+        ...(typeof actuals !== 'undefined' ? actuals : []),
+        ...(typeof qgate !== 'undefined' ? qgate : []),
+        ...(typeof deliveries !== 'undefined' ? deliveries : [])
+    ];
 
-        const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
-        if (hasProcessSuffix) return; 
+    allRecords.forEach(item => {
+        let rawPart = String(item.partNo || item['Part No.'] || '').trim();
+        if (!rawPart) return;
 
-        const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+        const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPart);
+        if (hasProcessSuffix) return;
+
+        let upperPart = rawPart.toUpperCase();
+        if (!partsMap.has(upperPart)) {
+            // ใช้ชื่อพาร์ทตัวแรกที่เจอ หรือเลือกรูปแบบมาตรฐาน
+            partsMap.set(upperPart, rawPart);
+        }
+    });
+
+    partsMap.forEach((displayPartNo, partNoKey) => {
+        // 2. คำนวณยอดผลิตเข้า (Actuals) โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
+        const totalIn = (typeof actuals !== 'undefined' ? actuals : []).filter(a => {
+            let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
+            return p === partNoKey;
+        }).reduce((sum, a) => {
             let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+        // 3. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
+        const totalTransferred = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
+            let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
+            return p === partNoKey;
+        }).reduce((sum, q) => {
             let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${displayPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNoKey}`) || 0);
         const currentwip = (totalIn - totalTransferred) + adjustWip;
 
         const trwip = document.createElement('tr');
         trwip.innerHTML = `
-            <td class="fw-bold text-info">${partNo}</td>
+            <td class="fw-bold text-info">${displayPartNo}</td>
             <td>${totalIn.toLocaleString()}</td>
             <td>${totalTransferred.toLocaleString()}</td>
             <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
+                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${displayPartNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
                     <i class="fas fa-edit"></i> ปรับ
                 </button>
             </td>
         `;
         wipbody.appendChild(trwip);
 
-        const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+        // 4. คำนวณยอด FG ผ่านคลังและส่งมอบ โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
+        const fgPass = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
+            let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
+            return p === partNoKey;
+        }).reduce((sum, q) => {
             let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
+        const fgDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
+            let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
+            return p === partNoKey;
+        }).reduce((sum, d) => {
             let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['จำนวนส่งมอบ'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
+        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${displayPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
         const currentFg = (fgPass - fgDelivered) + adjustFg;
 
         const trfg = document.createElement('tr');
         trfg.innerHTML = `
-            <td class="fw-bold text-info">${partNo}</td>
+            <td class="fw-bold text-info">${displayPartNo}</td>
             <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
             <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
             <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()} ${adjustFg !== 0 ? `<span class="badge bg-warning text-dark">(${adjustFg > 0 ? '+' : ''}${adjustFg})</span>` : ''}</td>
             <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'FG')" title="ปรับสต็อกสิ้นเดือน">
+                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${displayPartNo}', 'FG')" title="ปรับสต็อกสิ้นเดือน">
                     <i class="fas fa-edit"></i> ปรับ
                 </button>
             </td>
@@ -2635,7 +2662,6 @@ function renderStock() {
         fgtbody.appendChild(trfg);
     });
 }
-
 function adjustStock(partNo, type) {
     const key = `stock_adjust_${type}_${partNo}`;
     const currentVal = localStorage.getItem(key) || 0;
