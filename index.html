@@ -4834,7 +4834,7 @@ document.addEventListener('keypress', function(e) {
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกัน
+                // 5. คำนวณยอดคงเหลือ WIP และ FG แล้วนำมาบวกตรงๆ ตามช่องที่แสดงผล
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
                 const currentFg = (totalTransferred - totalDelivered) + adjustFg;
                 const totalStock = currentwip + currentFg;
