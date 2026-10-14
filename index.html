@@ -4746,6 +4746,7 @@ document.addEventListener('keypress', function(e) {
 });
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -4768,7 +4769,6 @@ document.addEventListener('keypress', function(e) {
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
-            // ถ้าข้อมูลยังไม่พร้อม แต่มี Cache เก่า ให้ใช้ Cache เก่าแสดงผลประคองไว้ก่อนทันที
             if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 if (cachedLowStockList.length > 0) {
                     displayWidget(cachedLowStockList, selectedLine);
@@ -4784,11 +4784,14 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let partNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-                if (!partNo) return;
+                let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
+                if (!rawPartNo) return;
 
-                const hasProcessSuffix = /\s\d+\/\d+$/.test(partNo);
+                const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
                 if (hasProcessSuffix) return;
+
+                // แปลง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อใช้เป็นมาตรฐานกลางในการเทียบ
+                let partNo = rawPartNo.toUpperCase();
 
                 let line = 'ALL';
                 let minVal = 0;
@@ -4812,36 +4815,45 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals)
-                const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
+                // 1. คำนวณยอดผลิตเข้า (Actuals) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                const totalIn = actuals.filter(a => {
+                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, a) => {
                     let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
-                const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
+                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                const totalTransferred = qgate.filter(q => {
+                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, q) => {
                     let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries / FG ที่ออกไปแล้ว)
-                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
+                // 3. คำนวณยอดส่งมอบ (Deliveries) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
+                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, d) => {
                     let val = Number(d.qty || d['Qty'] || 0);
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment (ถ้ามี)
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
-                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
+                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment - ใช้ uppercase ควบคุม
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG แล้วนำมาบวกตรงๆ ตามช่องที่แสดงผล
+                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกันแบบบวกตรงๆ
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
                 const currentFg = (totalTransferred - totalDelivered) + adjustFg;
                 const totalStock = currentwip + currentFg;
 
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: partNo,
+                        partNo: rawPartNo, // แสดงผลตามชื่อต้นฉบับ
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -4849,7 +4861,6 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
-            // อัปเดตเก็บเข้า Cache เสมอเมื่อประมวลผลสำเร็จ
             if (lowStockList.length > 0 || isInitialized) {
                 cachedLowStockList = lowStockList;
                 isInitialized = true;
@@ -4891,7 +4902,6 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        // ดักจับฟังก์ชัน Cloud และ Render ทั้งหมด เพื่อสั่งประมวลผลซ้ำอัตโนมัติทันทีที่โหลดเสร็จ
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
@@ -4913,7 +4923,6 @@ document.addEventListener('keypress', function(e) {
             window._patchedRenderAll = true;
         }
 
-        // รันตรวจสอบเป็นระยะเพื่อความเสถียรสูงสุด
         setTimeout(() => renderWidget('ALL'), 1000);
         setTimeout(() => renderWidget('ALL'), 3000);
         setTimeout(() => renderWidget('ALL'), 5000);
