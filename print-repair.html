@@ -312,7 +312,22 @@
     const recordId = urlParams.get('id') || 'default';
     const problemText = urlParams.get('problem') || '';
     const partNoParam = urlParams.get('partNo') || '';
-    const dateParam = urlParams.get('date') || '';
+    const rawDateParam = urlParams.get('date') || '';
+
+    // จัดรูปแบบวันที่ให้แสดงเฉพาะ วัน-เดือน-ปี (YYYY-MM-DD)
+    let formattedDate = '-';
+    if (rawDateParam) {
+        let dateObj = new Date(rawDateParam);
+        if (!isNaN(dateObj.getTime())) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            formattedDate = `${year}-${month}-${day}`;
+        } else {
+            // ถ้าพาร์สเป็น Date object ไม่ได้ ให้ตัดเอาเฉพาะส่วนหน้าก่อนตัว T หรือ Space
+            formattedDate = rawDateParam.split('T')[0].split(' ')[0];
+        }
+    }
 
     // --- ระบบรันเลข No. ตาม วัน-เดือน-ปี และลำดับ (YYYYMMDD-XXX) ---
     function generateDocumentNo(dateStr, recId) {
@@ -343,14 +358,14 @@
         return runningStorage[recId];
     }
 
-    const docNo = generateDocumentNo(dateParam, recordId);
+    const docNo = generateDocumentNo(rawDateParam, recordId);
     document.getElementById('lblId').innerText = docNo;
 
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
     document.getElementById('lblPartNo').innerText = partNoParam;
     document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
     document.getElementById('lblLine').innerText = urlParams.get('line') || '-';
-    document.getElementById('lblDate').innerText = dateParam || '-';
+    document.getElementById('lblDate').innerText = formattedDate;
     document.getElementById('lblProblem').innerText = problemText;
 
     let imgSrc = '';
