@@ -2555,7 +2555,7 @@ document.addEventListener('DOMContentLoaded', () => {
         partSelectEl.addEventListener('change', updateQGateWipInfo);
     }
 });
-// 📌 ฟังก์ชันเรนเดอร์รายการ Part No. ที่มี Stock FG ต่ำกว่า Safety Stock FG พร้อมดึงชื่อ Inspector จากคอลัมน์ P ของ Master Parts
+// 📌 ฟังก์ชันดึงและเรนเดอร์ข้อมูลเข้าตาราง Safety Stock FG หน้า Q-Gate ฝั่งขวา
 function renderQGateSafetyStockList() {
     const tableBody = document.getElementById('qgateSafetyStockTableBody');
     if (!tableBody) return;
@@ -2564,7 +2564,7 @@ function renderQGateSafetyStockList() {
 
     const masterDb = window.masterPartsDatabase || window.masterParts || [];
     if (masterDb.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="2" class="text-center text-muted small">กำลังโหลด Master Parts...</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="2" class="text-center text-muted small py-2">กำลังโหลด Master Parts...</td></tr>`;
         return;
     }
 
@@ -2581,51 +2581,49 @@ function renderQGateSafetyStockList() {
         let safetyStockVal = 0;
         let inspectorName = '-';
 
-        const keys = Object.keys(m);
-        for (let i = 0; i < keys.length; i++) {
-            let k = keys[i];
-            let lk = k.toLowerCase().trim();
+        // 1. อ่านค่าจากชื่อคอลัมน์โดยตรง (Safety Stock FG และ Inspector / P)
+        Object.keys(m).forEach(k => {
+            let lk = String(k).toLowerCase().trim();
             let val = String(m[k]).replace(/,/g, '').trim();
 
-            // ดึงค่า Safety Stock FG จากคอลัมน์ O (index 14)
-            if (lk.includes('safety stock fg') || lk.includes('safetystockfg') || i === 14) {
+            if (lk.includes('safety stock fg') || lk === 'safetystockfg' || lk.includes('safety')) {
                 let v = Number(val);
-                if (!isNaN(v) && v > 0) {
-                    safetyStockVal = v;
-                }
+                if (!isNaN(v) && v > 0) safetyStockVal = v;
             }
 
-            // ดึงชื่อผู้ตรวจสอบจากคอลัมน์ P (Inspector / index 15)
-            if (lk === 'inspector' || lk.includes('inspector') || i === 15) {
-                if (val) {
-                    inspectorName = m[k];
-                }
+            if (lk.includes('inspector') || lk === 'ผู้ตรวจสอบ' || lk === 'p') {
+                if (val && val !== 'undefined') inspectorName = m[k];
+            }
+        });
+
+        // 2. สำรองกรณีอ่านตามตำแหน่งคอลัมน์ Index (O = 14, P = 15)
+        if (safetyStockVal <= 0) {
+            const values = Object.values(m);
+            if (values.length > 14 && Number(values[14]) > 0) {
+                safetyStockVal = Number(String(values[14]).replace(/,/g, ''));
+            }
+            if (values.length > 15 && values[15]) {
+                inspectorName = values[15];
             }
         }
 
         if (safetyStockVal <= 0) return;
 
-        // คำนวณยอด FG Pass
+        // คำนวณยอด FG Pass และ Delivery จริง
         const fgPass = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
             let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
             return p === partNoKey;
-        }).reduce((sum, q) => {
-            let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
-            return sum + (isNaN(val) ? 0 : val);
-        }, 0);
+        }).reduce((sum, q) => sum + Number(q.passQty || q['Pass Qty'] || 0), 0);
 
-        // คำนวณยอด Delivery
         const fgDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
             let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
             return p === partNoKey;
-        }).reduce((sum, d) => {
-            let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['จำนวนส่งมอบ'] || 0));
-            return sum + (isNaN(val) ? 0 : val);
-        }, 0);
+        }).reduce((sum, d) => sum + Number(d.qty || d['Delivery Qty'] || 0), 0);
 
         const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
         const currentFg = (fgPass - fgDelivered) + adjustFg;
 
+        // ถ้ายอดคงเหลือ FG น้อยกว่า Safety Stock FG ให้นำมาแสดง
         if (currentFg < safetyStockVal) {
             lowSafetyList.push({
                 partNo: rawPartNo,
@@ -2657,7 +2655,54 @@ function renderQGateSafetyStockList() {
         `;
         tableBody.appendChild(tr);
     });
+}
+
+// ฟังก์ชันเลือกพาร์ทจากตารางขวาไปใส่ในฟอร์มตรวจอัตโนมัติ
+window.selectPartForQGate = function(partNo) {
+    const partSelectEl = document.getElementById('qgatePartNo');
+    if (!partSelectEl) return;
+
+    let found = false;
+    for (let i = 0; i < partSelectEl.options.length; i++) {
+        if (partSelectEl.options[i].value.trim().toUpperCase() === partNo.trim().toUpperCase()) {
+            partSelectEl.selectedIndex = i;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        const newOpt = document.createElement('option');
+        newOpt.value = partNo;
+        newOpt.text = `${partNo} (Safety Stock Alert)`;
+        partSelectEl.appendChild(newOpt);
+        partSelectEl.value = partNo;
+    }
+
+    partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    
+    const qgateTotalQtyInput = document.getElementById('qgateTotalQty');
+    if (qgateTotalQtyInput) {
+        qgateTotalQtyInput.focus();
+        qgateTotalQtyInput.select();
+    }
 };
+
+// ผูกเข้ากับระบบเรนเดอร์หน้า Q-Gate เดิม
+if (typeof window.originalRenderQGate === 'undefined') {
+    window.originalRenderQGate = window.renderQGate;
+    window.renderQGate = function(...args) {
+        if (typeof window.originalRenderQGate === 'function') {
+            window.originalRenderQGate.apply(this, args);
+        }
+        renderQGateSafetyStockList();
+    };
+}
+
+// เรียกใช้งานทันทีเมื่อโหลดหน้า
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(renderQGateSafetyStockList, 1000);
+});
 // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
