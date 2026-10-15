@@ -188,10 +188,10 @@
                         </tr>
                     </table>
                 </td>
-                <td style="width: 30%; border: 1px solid #000; padding: 8px; vertical-align: top; font-size: 9pt; line-height: 1.5;">
-                    <div>Die Life .............................. Stroke</div>
-                    <div>Die Regrider ....................... Stroke</div>
-                    <div>Die PM ............................... Stroke</div>
+                <td style="width: 30%; border: 1px solid #000; padding: 8px; vertical-align: top; font-size: 8.5pt; line-height: 1.5;">
+                    <div>Die Life : <span class="fw-bold">1,000,000</span> Stroke</div>
+                    <div>Die Regrider : <span class="fw-bold">100,000</span> Stroke</div>
+                    <div>Die PM : <span class="fw-bold">40,000</span> Stroke</div>
                 </td>
             </tr>
         </table>
@@ -324,20 +324,17 @@
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const day = String(dateObj.getDate()).padStart(2, '0');
-        const dateKey = `${year}${month}${day}`; // เช่น 20261015
+        const dateKey = `${year}${month}${day}`;
 
         let runningStorage = JSON.parse(localStorage.getItem('sys_repair_running')) || {};
         
-        // ตรวจสอบว่า recordId นี้เคยถูกสร้างเลข No. ไปแล้วหรือยัง (ถ้าเปิดเอกสารเดิมซ้ำจะได้เลขเดิม)
         if (runningStorage[recId]) {
             return runningStorage[recId];
         }
 
-        // ตรวจสอบลำดับของวันนี้
         let todayData = runningStorage.dateKey === dateKey ? runningStorage.counter : 0;
         todayData += 1;
 
-        // บันทึกกลับลง localStorage
         runningStorage.dateKey = dateKey;
         runningStorage.counter = todayData;
         runningStorage[recId] = `${dateKey}-${String(todayData).padStart(3, '0')}`;
