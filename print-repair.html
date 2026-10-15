@@ -219,15 +219,15 @@
     </table>
 
     <div>
-        <!-- Stock Part Table (ดึงข้อมูล Stock FG และ WIP อัตโนมัติ) -->
+        <!-- Stock Part Table (รูปแบบเดิม พร้อมแสดงค่า FG และ Wip ต่อท้าย P/No.) -->
         <table>
             <tr>
                 <td style="width: 15%; font-size: 12pt; height: 25px;" rowspan="2" class="text-center fw-bold">Stock Part</td>
-                <td style="width: 35%; font-size: 11pt;">FG: <span id="lblStockFg" class="fw-bold">-</span> Pcs.</td>
-                <td style="width: 50%; font-size: 12pt;">ส่งลูกค้าได้ ................................................... วัน</td>
+                <td style="width: 38%; font-size: 11pt;">P/No. FG=<span id="lblStockFg" class="fw-bold">-</span> Pcs.</td>
+                <td style="width: 47%; font-size: 12pt;">ส่งลูกค้าได้ ................................................... วัน</td>
             </tr>
             <tr>
-                <td style="font-size: 11pt; height: 25px;">WIP: <span id="lblStockWip" class="fw-bold">-</span> Pcs.</td>
+                <td style="font-size: 11pt; height: 25px;">P/No. Wip=<span id="lblStockWip" class="fw-bold">-</span> Pcs.</td>
                 <td style="font-size: 12pt;">ส่งลูกค้าได้ .....................................................วัน</td>
             </tr>
         </table>
@@ -396,14 +396,13 @@
             }
         }
 
-        // --- คำนวณสต็อก FG และ WIP ตามฟังก์ชันระบบหลักของคุณ ---
+        // คำนวณสต็อก FG และ WIP
         const actuals = JSON.parse(localStorage.getItem('actuals')) || [];
         const qgate = JSON.parse(localStorage.getItem('qgate')) || [];
         const deliveries = JSON.parse(localStorage.getItem('deliveries')) || [];
 
         const partKeyUpper = partNoParam.toUpperCase();
 
-        // คำนวณ WIP
         const totalIn = actuals.filter(a => String(a.partNo || a['Part No.'] || '').trim().toUpperCase() === partKeyUpper)
             .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
 
@@ -413,7 +412,6 @@
         const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNoParam}`) || localStorage.getItem(`stock_adjust_WIP_${partKeyUpper}`) || 0);
         calculatedWip = (totalIn - totalTransferred) + adjustWip;
 
-        // คำนวณ FG
         const fgPass = qgate.filter(q => String(q.partNo || q['Part No.'] || '').trim().toUpperCase() === partKeyUpper)
             .reduce((sum, q) => sum + Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0)), 0);
 
@@ -431,7 +429,6 @@
     document.getElementById('lblLastCycleStroke').innerText = lastCycleStrokeVal + (lastCycleStrokeVal !== '-' ? ' Stroke' : '');
     document.getElementById('lblTotalStroke').innerText = totalStrokeVal + (totalStrokeVal !== '-' ? ' Stroke' : '');
     
-    // แสดงผล Stock FG และ WIP ที่คำนวณได้
     document.getElementById('lblStockFg').innerText = calculatedFg.toLocaleString();
     document.getElementById('lblStockWip').innerText = calculatedWip.toLocaleString();
 
