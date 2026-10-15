@@ -4772,7 +4772,7 @@ document.addEventListener('keypress', function(e) {
 });
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่มี Stock FG ต่ำกว่า Safety Stock FG
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -4801,7 +4801,7 @@ document.addEventListener('keypress', function(e) {
                 } else {
                     container.innerHTML = `
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Safety Stock FG...</h6>
                         </div>`;
                 }
                 return;
@@ -4820,7 +4820,7 @@ document.addEventListener('keypress', function(e) {
                 let partNo = rawPartNo.toUpperCase();
 
                 let line = 'ALL';
-                let minVal = 0;
+                let safetyStockFgVal = 0;
 
                 const keys = Object.keys(m);
                 for (let i = 0; i < keys.length; i++) {
@@ -4831,58 +4831,48 @@ document.addEventListener('keypress', function(e) {
                     if (lk === 'line' || lk.includes('line')) {
                         if (m[k]) line = m[k];
                     }
-                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
+                    // ดึงค่าจากคอลัมน์ Safety Stock FG (หรือคอลัมน์ index ที่ 14 / คอลัมน์ O)
+                    if (lk.includes('safety stock fg') || lk.includes('safetystockfg') || i === 14) {
                         let v = Number(val);
                         if (!isNaN(v) && v > 0) {
-                            minVal = v;
+                            safetyStockFgVal = v;
                         }
                     }
                 }
 
-                if (minVal <= 0) return;
+                if (safetyStockFgVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalIn = actuals.filter(a => {
-                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, a) => {
-                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
-
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalTransferred = qgate.filter(q => {
+                // 1. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) สำหรับ FG
+                const fgPass = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, q) => {
-                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                    let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
+                // 2. คำนวณยอดส่งมอบ (Deliveries)
+                const fgDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, d) => {
-                    let val = Number(d.qty || d['Qty'] || 0);
+                    let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['จำนวนส่งมอบ'] || 0));
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment - ใช้ uppercase ควบคุม
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+                // 3. การปรับสต็อกผ่านระบบ Manual Adjustment ของ FG
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
+                
+                // 4. คำนวณยอดคงเหลือ FG จริง (Current FG)
+                const currentFg = (fgPass - fgDelivered) + adjustFg;
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกันแบบบวกตรงๆ
-                const currentwip = (totalIn - totalTransferred) + adjustWip;
-                const currentFg = (totalTransferred - totalDelivered) + adjustFg;
-                const totalStock = currentwip + currentFg;
-
-                if (totalStock < minVal) {
+                // 5. เทียบว่าถ้าคงเหลือ FG น้อยกว่า Safety Stock FG ให้แจ้งเตือน
+                if (currentFg < safetyStockFgVal) {
                     lowStockList.push({
-                        partNo: rawPartNo, // แสดงผลตามชื่อต้นฉบับ
+                        partNo: rawPartNo,
                         line: line,
-                        stock: totalStock,
-                        min: minVal
+                        stock: currentFg,
+                        safetyStock: safetyStockFgVal
                     });
                 }
             });
@@ -4905,18 +4895,18 @@ document.addEventListener('keypress', function(e) {
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
                             <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock FG: ${item.stock.toLocaleString()} / Safety Stock FG: ${item.safetyStock.toLocaleString()}</span>
                         </span>`;
             }).join('');
 
             if (filteredParts.length === 0) {
-                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
+                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock FG ต่ำกว่า Safety Stock ในไลน์นี้ (${selectedLine})</span>`;
             }
 
             container.innerHTML = `
                 <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                     <h6 class="text-danger fw-bold mb-2">
-                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock FG ต่ำกว่า Safety Stock FG (ไลน์: ${selectedLine}) 
                         <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
