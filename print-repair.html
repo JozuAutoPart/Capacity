@@ -69,6 +69,22 @@
         .print-btn:hover {
             background-color: #0056b3;
         }
+
+        /* สไตล์สำหรับช่องพิมพ์วิเคราะห์ปัญหาเบื้องต้น */
+        .editable-analysis {
+            width: 100%;
+            height: 100%;
+            min-height: 175px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'Sarabun', 'Tahoma', Arial, sans-serif;
+            font-size: 9.5pt;
+            background: transparent;
+            padding: 4px;
+            line-height: 1.5;
+        }
+
         @media print {
           table th {
             font-size: 10px;
@@ -80,6 +96,10 @@
           }
           .print-btn-container {
             display: none;
+          }
+          .editable-analysis {
+            border: none;
+            background: transparent;
           }
         }
     </style>
@@ -187,15 +207,9 @@
                     <img id="lblImage" src="" style="max-width: 100%; max-height: 155px; width: auto; height: auto; object-fit: contain; display: none; position: relative; z-index: 2;" />
                 </div>
             </td>
-            <td style="vertical-align: top; font-size: 9.5pt; padding: 0; height: 100%;">
-                <table style="width: 100%; height: 100%; border: none;">
-                    <script>
-                        for(let i=0; i<13; i++) {
-                            let isLast = (i === 12);
-                            document.write(`<tr><td style="border: none; ${!isLast ? 'border-bottom: 1px solid #000;' : ''} height: ${100/13}%;"></td></tr>`);
-                        }
-                    </script>
-                </table>
+            <!-- เปลี่ยนช่องวิเคราะห์ปัญหาเบื้องต้นให้สามารถพิมพ์ข้อความได้ -->
+            <td style="vertical-align: top; font-size: 9.5pt; padding: 4px; height: 100%;">
+                <textarea class="editable-analysis" placeholder="คลิกเพื่อพิมพ์ผลวิเคราะห์ปัญหาเบื้องต้น..."></textarea>
             </td>
         </tr>
     </table>
@@ -302,13 +316,11 @@
     document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
     document.getElementById('lblProblem').innerText = problemText;
 
-    let dieNoValue = '-';
     let imgSrc = '';
     let lastCycleStrokeVal = '-';
     let totalStrokeVal = '-';
 
     try {
-        // 1. ดึงข้อมูลจากระบบ Die Maintenance & PM หลัก (ถ้ามีบันทึกเก็บไว้)
         const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
         const found = dieBms.find(item => String(item.id) === String(recordId));
         if (found) {
@@ -317,13 +329,10 @@
             }
         }
 
-        // 2. ดึงข้อมูลจากตารางสะสม Die PM (ที่เก็บข้อมูล Stroke สะสมและรอบปัจจุบัน)
-        // โดยปกติระบบหลักจะบันทึกข้อมูลตาราง PM ไว้ใน LocalStorage ตัวอย่างเช่นคีย์ 'diePmData' หรือคีย์ที่เก็บรายการ Part
         const diePmList = JSON.parse(localStorage.getItem('diePmData')) || JSON.parse(localStorage.getItem('sys_die_pm')) || [];
         const foundPmItem = diePmList.find(item => item.partNo === partNoParam);
 
         if (foundPmItem) {
-            // จุดที่ 1: จำนวน Stroke ที่ใช้ครั้งหลังสุด (นับจากรอบปัจจุบัน / หรือส่วนต่างจากรอบ PM ก่อนหน้า)
             if (typeof foundPmItem.currentStroke !== 'undefined') {
                 lastCycleStrokeVal = Number(foundPmItem.currentStroke).toLocaleString();
             } else if (typeof foundPmItem.stroke !== 'undefined' && typeof foundPmItem.lastPmStroke !== 'undefined') {
@@ -332,14 +341,12 @@
                 lastCycleStrokeVal = Number(foundPmItem.stroke).toLocaleString();
             }
 
-            // จุดที่ 2: Stroke สะสม (ยอดรวมสะสมทั้งหมด)
             if (typeof foundPmItem.totalStroke !== 'undefined') {
                 totalStrokeVal = Number(foundPmItem.totalStroke).toLocaleString();
             } else if (typeof foundPmItem.stroke !== 'undefined') {
                 totalStrokeVal = Number(foundPmItem.stroke).toLocaleString();
             }
         } else {
-            // กรณีดึงจาก URL ส่งต่อมาตรงๆ
             if (urlParams.get('stroke')) {
                 totalStrokeVal = Number(urlParams.get('stroke')).toLocaleString();
                 lastCycleStrokeVal = totalStrokeVal;
@@ -349,12 +356,10 @@
         console.error("Error reading localStorage:", e);
     }
 
-    // แสดงผลลงในหน้า HTML ใบแจ้งซ่อม
     document.getElementById('lblDieNo').innerText = '-';
     document.getElementById('lblLastCycleStroke').innerText = lastCycleStrokeVal + (lastCycleStrokeVal !== '-' ? ' Stroke' : '');
     document.getElementById('lblTotalStroke').innerText = totalStrokeVal + (totalStrokeVal !== '-' ? ' Stroke' : '');
 
-    // ตรวจสอบประเภทการซ่อม (PM หรือ BM)
     const chkPm = document.getElementById('chkPm');
     const chkBm = document.getElementById('chkBm');
     if (problemText.includes('PM Completed') || problemText.includes('PM')) {
