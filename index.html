@@ -2558,7 +2558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         partSelectEl.addEventListener('change', updateQGateWipInfo);
     }
 });
-   // 📌 ฟังก์ชันเรนเดอร์รายการ Part No. ที่มี Stock FG ต่ำกว่า Safety Stock FG พร้อมแสดงชื่อผู้ตรวจสอบล่าสุด
+// 📌 ฟังก์ชันเรนเดอร์รายการ Part No. ที่มี Stock FG ต่ำกว่า Safety Stock FG (คอลัมน์ O) สำหรับแสดงที่หน้า Q-Gate ฝั่งขวา
 function renderQGateSafetyStockList() {
     const tableBody = document.getElementById('qgateSafetyStockTableBody');
     if (!tableBody) return;
@@ -2589,6 +2589,7 @@ function renderQGateSafetyStockList() {
             let lk = k.toLowerCase().trim();
             let val = String(m[k]).replace(/,/g, '').trim();
 
+            // ดึงค่าจากคอลัมน์ Safety Stock FG (หรือคอลัมน์ index ที่ 14 / คอลัมน์ O)
             if (lk.includes('safety stock fg') || lk.includes('safetystockfg') || i === 14) {
                 let v = Number(val);
                 if (!isNaN(v) && v > 0) {
@@ -2617,25 +2618,18 @@ function renderQGateSafetyStockList() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
+        // Manual Adjustment ของ FG
         const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
+        
+        // ยอดคงเหลือ FG จริง
         const currentFg = (fgPass - fgDelivered) + adjustFg;
 
-        // ค้นหาชื่อคนตรวจล่าสุดจากประวัติ Q-Gate ของพาร์ทนี้
-        let lastInspector = '-';
-        if (typeof qgate !== 'undefined' && qgate.length > 0) {
-            // ค้นหาจากประวัติล่าสุด (เนื่องจาก push/unshift อันใหม่ไว้บนสุด)
-            let foundRecord = qgate.find(q => String(q.partNo || '').trim().toUpperCase() === partNoKey);
-            if (foundRecord && foundRecord.inspector) {
-                lastInspector = foundRecord.inspector;
-            }
-        }
-
+        // ตรวจสอบว่าต่ำกว่า Safety Stock FG หรือไม่
         if (currentFg < safetyStockVal) {
             lowSafetyList.push({
                 partNo: rawPartNo,
                 stock: currentFg,
-                safetyStock: safetyStockVal,
-                inspector: lastInspector
+                safetyStock: safetyStockVal
             });
         }
     });
@@ -2651,9 +2645,8 @@ function renderQGateSafetyStockList() {
             <td>
                 <div class="fw-bold text-warning" style="font-size: 11px;">${item.partNo}</div>
                 <div class="text-muted" style="font-size: 10px;">Stock: <span class="text-danger fw-bold">${item.stock.toLocaleString()}</span> / Min: ${item.safetyStock.toLocaleString()}</div>
-                <div class="text-info" style="font-size: 10px;"><i class="fas fa-user-check me-1"></i>ผู้ตรวจล่าสุด: <span class="text-white">${item.inspector}</span></div>
             </td>
-            <td class="text-end align-middle">
+            <td class="text-end">
                 <button class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size: 10px;" onclick="selectPartForQGate('${item.partNo}')" title="เลือกพาร์ทนี้ไปตรวจ">
                     <i class="fas fa-arrow-left"></i> เลือก
                 </button>
@@ -2661,7 +2654,55 @@ function renderQGateSafetyStockList() {
         `;
         tableBody.appendChild(tr);
     });
+}
+
+// ฟังก์ชันช่วยคลิกเลือกพาร์ทจากตารางขวาไปใส่ในฟอร์ม Q-Gate อัตโนมัติ
+window.selectPartForQGate = function(partNo) {
+    const partSelectEl = document.getElementById('qgatePartNo');
+    if (!partSelectEl) return;
+
+    let found = false;
+    for (let i = 0; i < partSelectEl.options.length; i++) {
+        if (partSelectEl.options[i].value.trim().toUpperCase() === partNo.trim().toUpperCase()) {
+            partSelectEl.selectedIndex = i;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        const newOpt = document.createElement('option');
+        newOpt.value = partNo;
+        newOpt.text = `${partNo} (Safety Stock Alert)`;
+        partSelectEl.appendChild(newOpt);
+        partSelectEl.value = partNo;
+    }
+
+    partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    
+    // โฟกัสไปที่ช่องจำนวนตรวจสอบทันที
+    const qgateTotalQtyInput = document.getElementById('qgateTotalQty');
+    if (qgateTotalQtyInput) {
+        qgateTotalQtyInput.focus();
+        qgateTotalQtyInput.select();
+    }
 };
+
+// ผูกให้ทำงานร่วมกับการโหลดข้อมูลและเรนเดอร์หน้า Q-Gate
+if (typeof window.originalRenderQGate === 'undefined') {
+    window.originalRenderQGate = window.renderQGate;
+    window.renderQGate = function(...args) {
+        if (typeof window.originalRenderQGate === 'function') {
+            window.originalRenderQGate.apply(this, args);
+        }
+        renderQGateSafetyStockList();
+    };
+}
+
+// เรียกใช้งานเมื่อเปิดหน้าเว็บ
+setTimeout(() => {
+    renderQGateSafetyStockList();
+}, 1000);
 // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
