@@ -212,7 +212,6 @@
                     <img id="lblImage" src="" style="max-width: 100%; max-height: 155px; width: auto; height: auto; object-fit: contain; display: none; position: relative; z-index: 2;" />
                 </div>
             </td>
-            <!-- ช่องพิมพ์วิเคราะห์ปัญหาพร้อมเส้นตารางบรรทัดเดิม -->
             <td style="vertical-align: top; font-size: 9.5pt; padding: 0; height: 100%;">
                 <textarea class="editable-analysis" placeholder="คลิกเพื่อพิมพ์ข้อความวิเคราะห์ปัญหาเบื้องต้น..."></textarea>
             </td>
@@ -220,15 +219,15 @@
     </table>
 
     <div>
-        <!-- Stock Part Table -->
+        <!-- Stock Part Table (ดึงข้อมูล Stock FG และ WIP อัตโนมัติ) -->
         <table>
             <tr>
                 <td style="width: 15%; font-size: 12pt; height: 25px;" rowspan="2" class="text-center fw-bold">Stock Part</td>
-                <td style="width: 35%; font-size: 12pt;">P/No. .................................. Pcs.</td>
+                <td style="width: 35%; font-size: 11pt;">FG: <span id="lblStockFg" class="fw-bold">-</span> Pcs.</td>
                 <td style="width: 50%; font-size: 12pt;">ส่งลูกค้าได้ ................................................... วัน</td>
             </tr>
             <tr>
-                <td style="font-size: 12pt; height: 25px;">P/No. ................................... Pcs.</td>
+                <td style="font-size: 11pt; height: 25px;">WIP: <span id="lblStockWip" class="fw-bold">-</span> Pcs.</td>
                 <td style="font-size: 12pt;">ส่งลูกค้าได้ .....................................................วัน</td>
             </tr>
         </table>
@@ -311,10 +310,10 @@
     const urlParams = new URLSearchParams(window.location.search);
     const recordId = urlParams.get('id') || 'default';
     const problemText = urlParams.get('problem') || '';
-    const partNoParam = urlParams.get('partNo') || '';
+    const partNoParam = (urlParams.get('partNo') || '').trim();
     const rawDateParam = urlParams.get('date') || '';
 
-    // จัดรูปแบบวันที่ให้แสดงเฉพาะ วัน-เดือน-ปี (YYYY-MM-DD)
+    // จัดรูปแบบวันที่ (YYYY-MM-DD)
     let formattedDate = '-';
     if (rawDateParam) {
         let dateObj = new Date(rawDateParam);
@@ -324,17 +323,14 @@
             const day = String(dateObj.getDate()).padStart(2, '0');
             formattedDate = `${year}-${month}-${day}`;
         } else {
-            // ถ้าพาร์สเป็น Date object ไม่ได้ ให้ตัดเอาเฉพาะส่วนหน้าก่อนตัว T หรือ Space
             formattedDate = rawDateParam.split('T')[0].split(' ')[0];
         }
     }
 
-    // --- ระบบรันเลข No. ตาม วัน-เดือน-ปี และลำดับ (YYYYMMDD-XXX) ---
+    // ระบบรันเลข No. ตาม วัน-เดือน-ปี และลำดับ (YYYYMMDD-XXX)
     function generateDocumentNo(dateStr, recId) {
         let dateObj = dateStr ? new Date(dateStr) : new Date();
-        if (isNaN(dateObj.getTime())) {
-            dateObj = new Date();
-        }
+        if (isNaN(dateObj.getTime())) dateObj = new Date();
 
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -342,10 +338,7 @@
         const dateKey = `${year}${month}${day}`;
 
         let runningStorage = JSON.parse(localStorage.getItem('sys_repair_running')) || {};
-        
-        if (runningStorage[recId]) {
-            return runningStorage[recId];
-        }
+        if (runningStorage[recId]) return runningStorage[recId];
 
         let todayData = runningStorage.dateKey === dateKey ? runningStorage.counter : 0;
         todayData += 1;
@@ -358,9 +351,7 @@
         return runningStorage[recId];
     }
 
-    const docNo = generateDocumentNo(rawDateParam, recordId);
-    document.getElementById('lblId').innerText = docNo;
-
+    document.getElementById('lblId').innerText = generateDocumentNo(rawDateParam, recordId);
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
     document.getElementById('lblPartNo').innerText = partNoParam;
     document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
@@ -371,14 +362,14 @@
     let imgSrc = '';
     let lastCycleStrokeVal = '-';
     let totalStrokeVal = '-';
+    let calculatedFg = 0;
+    let calculatedWip = 0;
 
     try {
         const dieBms = JSON.parse(localStorage.getItem('sys_die_maintenance')) || [];
         const found = dieBms.find(item => String(item.id) === String(recordId));
-        if (found) {
-            if (found.image && found.image.trim() !== '') {
-                imgSrc = found.image;
-            }
+        if (found && found.image && found.image.trim() !== '') {
+            imgSrc = found.image;
         }
 
         const diePmList = JSON.parse(localStorage.getItem('diePmData')) || JSON.parse(localStorage.getItem('sys_die_pm')) || [];
@@ -404,6 +395,34 @@
                 lastCycleStrokeVal = totalStrokeVal;
             }
         }
+
+        // --- คำนวณสต็อก FG และ WIP ตามฟังก์ชันระบบหลักของคุณ ---
+        const actuals = JSON.parse(localStorage.getItem('actuals')) || [];
+        const qgate = JSON.parse(localStorage.getItem('qgate')) || [];
+        const deliveries = JSON.parse(localStorage.getItem('deliveries')) || [];
+
+        const partKeyUpper = partNoParam.toUpperCase();
+
+        // คำนวณ WIP
+        const totalIn = actuals.filter(a => String(a.partNo || a['Part No.'] || '').trim().toUpperCase() === partKeyUpper)
+            .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
+
+        const totalTransferred = qgate.filter(q => String(q.partNo || q['Part No.'] || '').trim().toUpperCase() === partKeyUpper)
+            .reduce((sum, q) => sum + Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0)))), 0);
+
+        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNoParam}`) || localStorage.getItem(`stock_adjust_WIP_${partKeyUpper}`) || 0);
+        calculatedWip = (totalIn - totalTransferred) + adjustWip;
+
+        // คำนวณ FG
+        const fgPass = qgate.filter(q => String(q.partNo || q['Part No.'] || '').trim().toUpperCase() === partKeyUpper)
+            .reduce((sum, q) => sum + Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0)), 0);
+
+        const fgDelivered = deliveries.filter(d => String(d.partNo || d['Part No.'] || '').trim().toUpperCase() === partKeyUpper)
+            .reduce((sum, d) => sum + Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['จำนวนส่งมอบ'] || 0)), 0);
+
+        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNoParam}`) || localStorage.getItem(`stock_adjust_FG_${partKeyUpper}`) || 0);
+        calculatedFg = (fgPass - fgDelivered) + adjustFg;
+
     } catch (e) {
         console.error("Error reading localStorage:", e);
     }
@@ -411,6 +430,10 @@
     document.getElementById('lblDieNo').innerText = '-';
     document.getElementById('lblLastCycleStroke').innerText = lastCycleStrokeVal + (lastCycleStrokeVal !== '-' ? ' Stroke' : '');
     document.getElementById('lblTotalStroke').innerText = totalStrokeVal + (totalStrokeVal !== '-' ? ' Stroke' : '');
+    
+    // แสดงผล Stock FG และ WIP ที่คำนวณได้
+    document.getElementById('lblStockFg').innerText = calculatedFg.toLocaleString();
+    document.getElementById('lblStockWip').innerText = calculatedWip.toLocaleString();
 
     const chkPm = document.getElementById('chkPm');
     const chkBm = document.getElementById('chkBm');
