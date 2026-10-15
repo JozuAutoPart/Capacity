@@ -82,7 +82,6 @@
             font-size: 9.5pt;
             padding: 0 4px;
             line-height: 18px;
-            /* สร้างเส้นบรรทัดตารางระยะเท่ากัน */
             background: repeating-linear-gradient(
                 transparent,
                 transparent 17px,
@@ -128,7 +127,7 @@
                     <div style="font-size: 15pt; font-weight: bold;">ใบแจ้งซ่อมแม่พิมพ์</div>
                     <div style="font-size: 11.5pt; font-weight: bold;">Die Repair Report</div>
                 </td>
-                <td style="width: 20%; font-size: 12pt;">
+                <td style="width: 20%; font-size: 11pt;">
                     No. <span id="lblId" class="fw-bold"></span>
                 </td>
             </tr>
@@ -313,13 +312,48 @@
     const recordId = urlParams.get('id') || 'default';
     const problemText = urlParams.get('problem') || '';
     const partNoParam = urlParams.get('partNo') || '';
-    
-    document.getElementById('lblId').innerText = recordId;
+    const dateParam = urlParams.get('date') || '';
+
+    // --- ระบบรันเลข No. ตาม วัน-เดือน-ปี และลำดับ (YYYYMMDD-XXX) ---
+    function generateDocumentNo(dateStr, recId) {
+        let dateObj = dateStr ? new Date(dateStr) : new Date();
+        if (isNaN(dateObj.getTime())) {
+            dateObj = new Date();
+        }
+
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const dateKey = `${year}${month}${day}`; // เช่น 20261015
+
+        let runningStorage = JSON.parse(localStorage.getItem('sys_repair_running')) || {};
+        
+        // ตรวจสอบว่า recordId นี้เคยถูกสร้างเลข No. ไปแล้วหรือยัง (ถ้าเปิดเอกสารเดิมซ้ำจะได้เลขเดิม)
+        if (runningStorage[recId]) {
+            return runningStorage[recId];
+        }
+
+        // ตรวจสอบลำดับของวันนี้
+        let todayData = runningStorage.dateKey === dateKey ? runningStorage.counter : 0;
+        todayData += 1;
+
+        // บันทึกกลับลง localStorage
+        runningStorage.dateKey = dateKey;
+        runningStorage.counter = todayData;
+        runningStorage[recId] = `${dateKey}-${String(todayData).padStart(3, '0')}`;
+        
+        localStorage.setItem('sys_repair_running', JSON.stringify(runningStorage));
+        return runningStorage[recId];
+    }
+
+    const docNo = generateDocumentNo(dateParam, recordId);
+    document.getElementById('lblId').innerText = docNo;
+
     document.getElementById('lblModel').innerText = urlParams.get('model') || '-';
     document.getElementById('lblPartNo').innerText = partNoParam;
     document.getElementById('lblPartName').innerText = urlParams.get('partName') || '-';
     document.getElementById('lblLine').innerText = urlParams.get('line') || '-';
-    document.getElementById('lblDate').innerText = urlParams.get('date') || '-';
+    document.getElementById('lblDate').innerText = dateParam || '-';
     document.getElementById('lblProblem').innerText = problemText;
 
     let imgSrc = '';
