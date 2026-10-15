@@ -70,7 +70,7 @@
             background-color: #0056b3;
         }
 
-        /* สไตล์สำหรับช่องพิมพ์วิเคราะห์ปัญหาเบื้องต้น */
+        /* ช่องพิมพ์พร้อมเส้นบรรทัดตารางแบบเดิม */
         .editable-analysis {
             width: 100%;
             height: 100%;
@@ -80,9 +80,16 @@
             resize: none;
             font-family: 'Sarabun', 'Tahoma', Arial, sans-serif;
             font-size: 9.5pt;
-            background: transparent;
-            padding: 4px;
-            line-height: 1.5;
+            padding: 0 4px;
+            line-height: 18px;
+            /* สร้างเส้นบรรทัดตารางระยะเท่ากัน */
+            background: repeating-linear-gradient(
+                transparent,
+                transparent 17px,
+                #000 17px,
+                #000 18px
+            );
+            background-attachment: local;
         }
 
         @media print {
@@ -99,7 +106,6 @@
           }
           .editable-analysis {
             border: none;
-            background: transparent;
           }
         }
     </style>
@@ -207,9 +213,9 @@
                     <img id="lblImage" src="" style="max-width: 100%; max-height: 155px; width: auto; height: auto; object-fit: contain; display: none; position: relative; z-index: 2;" />
                 </div>
             </td>
-            <!-- เปลี่ยนช่องวิเคราะห์ปัญหาเบื้องต้นให้สามารถพิมพ์ข้อความได้ -->
-            <td style="vertical-align: top; font-size: 9.5pt; padding: 4px; height: 100%;">
-                <textarea class="editable-analysis" placeholder="คลิกเพื่อพิมพ์ผลวิเคราะห์ปัญหาเบื้องต้น..."></textarea>
+            <!-- ช่องพิมพ์วิเคราะห์ปัญหาพร้อมเส้นตารางบรรทัดเดิม -->
+            <td style="vertical-align: top; font-size: 9.5pt; padding: 0; height: 100%;">
+                <textarea class="editable-analysis" placeholder="คลิกเพื่อพิมพ์ข้อความวิเคราะห์ปัญหาเบื้องต้น..."></textarea>
             </td>
         </tr>
     </table>
