@@ -219,15 +219,17 @@
     </table>
 
     <div>
-        <!-- Stock Part Table (รูปแบบเดิม พร้อมแสดงค่า FG และ Wip ต่อท้าย P/No.) -->
+        <!-- Stock Part Table (แถวบนใส่ FG และ Wip รวมกัน / แถวล่างคงเดิม) -->
         <table>
             <tr>
                 <td style="width: 15%; font-size: 12pt; height: 25px;" rowspan="2" class="text-center fw-bold">Stock Part</td>
-                <td style="width: 38%; font-size: 11pt;">P/No. FG=<span id="lblStockFg" class="fw-bold">-</span> Pcs.</td>
-                <td style="width: 47%; font-size: 12pt;">ส่งลูกค้าได้ ................................................... วัน</td>
+                <td style="width: 45%; font-size: 10pt; white-space: nowrap;">
+                    P/No. FG=<span id="lblStockFg" class="fw-bold">-</span> Pcs. Wip=<span id="lblStockWip" class="fw-bold">-</span> Pcs.
+                </td>
+                <td style="width: 40%; font-size: 12pt;">ส่งลูกค้าได้ ................................................... วัน</td>
             </tr>
             <tr>
-                <td style="font-size: 11pt; height: 25px;">P/No. Wip=<span id="lblStockWip" class="fw-bold">-</span> Pcs.</td>
+                <td style="font-size: 12pt; height: 25px;">P/No. ................................... Pcs.</td>
                 <td style="font-size: 12pt;">ส่งลูกค้าได้ .....................................................วัน</td>
             </tr>
         </table>
