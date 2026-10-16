@@ -8,9 +8,10 @@
         body { font-family: 'Sarabun', sans-serif; background: #fff; color: #000; font-size: 12px; }
         .report-container { width: 100%; max-width: 1200px; margin: 20px auto; padding: 15px; background: #fff; }
         .header-table, .main-table, .footer-table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
-        .header-table td, .main-table th, .main-table td, .footer-table td { border: 1px solid #000; padding: 4px; text-align: center; vertical-align: middle; }
+        .header-table td, .main-table th, .main-table td, .footer-table td { border: 1px solid #000; padding: 5px; text-align: center; vertical-align: middle; }
         .main-table th { background-color: #f8f9fa; font-weight: bold; font-size: 11px; }
-        .approval-box { width: 100px; height: 50px; }
+        .approval-box { width: 90px; height: 45px; }
+        .section-title { text-align: left; font-weight: bold; background-color: #f1f3f5 !important; padding: 6px 10px; border: 1px solid #000; font-size: 12px; }
         .print-btn-container { text-align: center; margin: 20px 0; }
         @media print {
             .print-btn-container { display: none; }
@@ -36,94 +37,147 @@
             <td style="width: 35%; padding: 0;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <tr>
-                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">ผู้จัดการ</td>
-                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">หัวหน้างาน</td>
-                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">ผู้ปฏิบัติงาน</td>
-                        <td style="border-bottom: 1px solid #000; font-size: 10px;">วันที่</td>
+                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Mgr. / Sup.</td>
+                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Leader</td>
+                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Operate</td>
+                        <td style="border-bottom: 1px solid #000; font-size: 10px;">วันที่ (Date)</td>
                     </tr>
                     <tr>
                         <td class="approval-box border-right"></td>
                         <td class="approval-box border-right"></td>
                         <td class="approval-box border-right" id="operator-sign"></td>
-                        <td class="approval-box" id="report-date"></td>
+                        <td class="approval-box" id="report-date">2026-10-16</td>
                     </tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    <div class="mb-2">
-        <strong>ผู้ปฏิบัติงาน:</strong> <span id="lbl-operator">--</span> &nbsp;&nbsp;&nbsp;&nbsp; 
-        <strong>วันที่:</strong> <span id="lbl-date">--</span>
-    </div>
-
-    <!-- Main Table -->
-    <table class="main-table">
+    <!-- ส่วนที่ 1: สรุปภาพรวมการผลิต -->
+    <div class="section-title">1. สรุปภาพรวมการผลิต (PRODUCTION SUMMARY)</div>
+    <table class="main-table mb-3">
         <thead>
             <tr>
-                <th rowspan="2">เวลาเริ่มต้น<br>(Start Time)</th>
-                <th rowspan="2">เวลาสิ้นสุด<br>(End Time)</th>
-                <th rowspan="2">Lot No.<br>หมายเลขการผลิต</th>
-                <th rowspan="2">Part No.<br>หมายเลขชิ้นงาน</th>
-                <th rowspan="2">Process<br>ขั้นตอนการผลิต</th>
-                <th rowspan="2">Material IC.<br>หมายเลขวัตถุดิบ</th>
-                <th rowspan="2">น้ำหนักวัตถุดิบ</th>
-                <th rowspan="2">Machine No.<br>หมายเลขเครื่องจักร</th>
-                <th colspan="2">จำนวนผลิต</th>
-                <th rowspan="2">สาเหตุ NG</th>
-                <th colspan="4">เวลาที่เสียในการผลิต(นาที)</th>
-                <th rowspan="2">QC Line Appearance Check</th>
-                <th rowspan="2">ปัญหาการผลิตประจำวัน</th>
-            </tr>
-            <tr>
-                <th>แผนผลิต</th>
-                <th>ผลิตจริง</th>
-                <th>เปลี่ยนแม่พิมพ์</th>
-                <th>รอกำหนดตรวจ</th>
-                <th>เปลี่ยนวัสดุจาก QC</th>
-                <th>งานจาก Line Appearance</th>
+                <th>ลำดับ<br>(No.)</th>
+                <th>เวลาเริ่มต้น<br>(Start Time)</th>
+                <th>เวลาสิ้นสุด<br>(End Time)</th>
+                <th>หมายเลขชิ้นส่วน<br>(Part No.)</th>
+                <th>เป้าหมาย<br>(Target Pcs)</th>
+                <th>ผลิตได้จริง<br>(Actual Pcs)</th>
+                <th>งานดี<br>(OK Pcs)</th>
+                <th>งานเสีย<br>(NG Pcs)</th>
+                <th>อัตราความสำเร็จ<br>(% Achievement)</th>
             </tr>
         </thead>
-        <tbody id="reportTableBody">
-            <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
+        <tbody id="summaryTableBody">
+            <tr>
+                <td>1</td>
+                <td>16:30</td>
+                <td>17:00</td>
+                <td>55365-0G030 1/7</td>
+                <td>250</td>
+                <td>240</td>
+                <td>240</td>
+                <td>0</td>
+                <td>96.0%</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>08:00</td>
+                <td>16:00</td>
+                <td>55328-BZ220 2/3</td>
+                <td>3,000</td>
+                <td>2,995</td>
+                <td>2,995</td>
+                <td>0</td>
+                <td>99.8%</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr style="font-weight: bold; background-color: #f8f9fa;">
+                <td colspan="4" style="text-align: right;">รวมทั้งสิ้น (TOTAL)</td>
+                <td>3,250</td>
+                <td>3,235</td>
+                <td>3,235</td>
+                <td>0</td>
+                <td>99.5%</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- ส่วนที่ 2: บันทึกเวลาเครื่องจักรหยุดทำงาน / ขัดข้อง -->
+    <div class="section-title">2. บันทึกเวลาเครื่องจักรหยุดทำงาน / ขัดข้อง (DOWNTIME RECORD)</div>
+    <table class="main-table mb-3">
+        <thead>
+            <tr>
+                <th style="width: 15%;">เวลาเริ่ม (From)</th>
+                <th style="width: 15%;">เวลาจบ (To)</th>
+                <th style="width: 15%;">รวมเวลา (นาที)</th>
+                <th style="width: 15%;">รหัสสาเหตุ (Code)</th>
+                <th style="width: 25%;">รายละเอียดปัญหา / เหตุการณ์</th>
+                <th style="width: 15%;">การแก้ไขเบื้องต้น</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr style="font-weight: bold; background-color: #f8f9fa;">
+                <td colspan="2" style="text-align: right;">รวมเวลาหยุดทำงานทั้งหมด (นาที)</td>
+                <td colspan="4" style="text-align: left; padding-left: 10px;">0 นาที</td>
+            </tr>
+        </tfoot>
+    </table>
+    <div style="font-size: 10px; margin-bottom: 10px;">* หมายเหตุ รหัส Downtime: M/C = เครื่องจักรเสีย | SET = ตั้งเครื่อง/เปลี่ยนพิมพ์ | MAT = วัตถุดิบ | QUAL = คุณภาพ</div>
+
+    <!-- ส่วนที่ 3: รายละเอียดงานเสียและงานแก้ไข -->
+    <div class="section-title">3. รายละเอียดงานเสียและงานแก้ไข (DEFECT & SCRAP ANALYSIS)</div>
+    <table class="main-table mb-3">
+        <thead>
+            <tr>
+                <th style="width: 20%;">รหัสชิ้นส่วน (Part No.)</th>
+                <th style="width: 15%;">จำนวน (Pcs)</th>
+                <th style="width: 25%;">ลักษณะงานเสีย (Defect Type)</th>
+                <th style="width: 25%;">สาเหตุหลัก (Root Cause)</th>
+                <th style="width: 15%;">ผู้รับผิดชอบ (Owner)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
         </tbody>
     </table>
 
-    <!-- Footer Section -->
-    <table class="footer-table mt-2">
+    <!-- ข้อปฏิบัติ / หมายเหตุท้ายฟอร์ม -->
+    <table class="footer-table mt-3" style="border: 1px solid #000; font-size: 11px;">
         <tr>
-            <td style="width: 65%; text-align: left; padding: 8px; font-size: 11px;">
-                <strong>หมายเหตุ</strong><br>
-                สาเหตุชิ้นงานเสีย A รอยขีดข่วน B รอยทับเสพ C เสียรูป D แหว่ง E หลุดลอกแม่พิมพ์ F เชื่อม G ทั่วCoil H ท้ายCoil<br>
-                รายละเอียดหมายเลขการผลิต: &nbsp;&nbsp;&nbsp;&nbsp; [ XX ] - [ XXX ] - [ XX ]<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <sub>เลือนในลังผลิต</sub> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <sub>มิ. เว้นไป-Part List</sub> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <sub>วันเดีย.ชิ้น</sub>
-            </td>
-            <td style="width: 35%; text-align: center; padding: 8px; font-size: 11px;">
-                <strong>ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้น ให้ดำเนินการ</strong><br>
-                <div class="d-flex justify-content-around align-items-center mt-2">
-                    <div>🛑 <br><small>หยุด</small></div>
-                    <div>🚶‍♂️ <br><small>เรียก</small></div>
-                    <div>🕵️‍♂️ <br><small>รอ</small></div>
-                </div>
+            <td style="padding: 10px; text-align: left;">
+                <strong>ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้น ให้ดำเนินการ "หยุด - เรียก - รอ" (Stop, Call, Wait)</strong><br>
+                🛑 <strong>หยุด (STOP):</strong> เมื่อพบเห็นสิ่งผิดปกติ หรือเกิดข้อสงสัย ให้ "หยุด" การทำงานหรือหยุดเครื่องจักรทันที<br>
+                🚶‍♂️ <strong>เรียก (CALL):</strong> "เรียก" ผู้รับผิดชอบ เช่น หัวหน้างาน (Leader), ช่างซ่อมบำรุง (Maintenance) หรือ QC ทันที<br>
+                🕵️‍♂️ <strong>รอ (WAIT):</strong> "รอ" อยู่ที่จุดเกิดเหตุจนกว่าหัวหน้างานหรือผู้เกี่ยวข้องจะมาถึง และปฏิบัติตามคำสั่งอย่างเคร่งครัด
             </td>
         </tr>
     </table>
-    <div style="text-align: right; font-size: 10px; margin-top: 5px;">J-F-PR-005 Rev.07 Ref. 04 Jan. 16</div>
+    <div style="text-align: right; font-size: 10px; margin-top: 5px;">J-F-PR-005 Rev.06 Ref. 2 Nov. 26</div>
 
     <!-- Print Button -->
     <div class="print-btn-container">
         <button class="btn btn-success btn-lg px-5 shadow" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
     </div>
 </div>
-
-<script>
-    // โค้ดดึงข้อมูลมาแสดงผลในตารางรายงาน
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        // ดึงข้อมูลหรือเรนเดอร์แถวตาม actuals ที่บันทึกไว้
-        // สามารถดึงข้อมูลจาก localStorage หรือยิง API มาแสดงผลที่นี่ได้ทันที
-    });
-</script>
 
 </body>
 </html>
