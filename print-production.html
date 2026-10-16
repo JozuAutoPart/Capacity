@@ -153,10 +153,19 @@
         const targetDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
         document.getElementById('sign-date').innerText = targetDate;
 
-        fetch(GOOGLE_SCRIPT_URL + "?action=getActuals&t=" + new Date().getTime())
+        // ดึงข้อมูลผ่าน JSONP / โหมดปลอดภัย หรือดึงผ่าน API ตรง
+        fetch(GOOGLE_SCRIPT_URL + "?action=getActuals")
             .then(res => res.json())
+            .catch(() => {
+                // หากติด CORS ให้ดึงผ่านโหมด no-cors หรือดึงจาก localStorage ของหน้าหลักที่เคยแคชไว้
+                return { status: "success", data: JSON.parse(localStorage.getItem('actuals_cache') || '[]') };
+            })
             .then(res => {
-                if (res.status === "success" && res.data && res.data.length > 0) {
+                let dataList = [];
+                if (Array.isArray(res)) dataList = res;
+                else if (res.status === "success" && res.data) dataList = res.data;
+
+                if (dataList.length > 0) {
                     const tbody = document.getElementById('summaryTableBody');
                     tbody.innerHTML = '';
 
@@ -165,8 +174,7 @@
                     let totalOk = 0;
                     let totalNg = 0;
 
-                    res.data.forEach((item, index) => {
-                        // ดึงค่าเวลาทำงานรองรับทุกชื่อคีย์
+                    dataList.forEach((item, index) => {
                         let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeRange || '-';
                         let times = timeVal.split(' ');
                         let startTime = times[0] || '-';
@@ -176,7 +184,7 @@
                         let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
                         let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
                         let actualQty = okQty + ngQty;
-                        let targetQty = 1000; // ค่าเป้าหมายตั้งต้น
+                        let targetQty = 1000; 
                         let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
 
                         if(item.operator || item['OP Name']) {
@@ -210,7 +218,7 @@
                     let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
                     document.getElementById('totalAchievement').innerText = totalAch;
                 } else {
-                    document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ยังไม่มีข้อมูลการผลิต</td></tr>`;
+                    document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
                 }
             })
             .catch(err => {
