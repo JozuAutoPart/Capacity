@@ -971,42 +971,47 @@
     let bms = [];
     let currentFilterLine = 'ALL';
     // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
-  async function loadAllDataFromCloud() {
-        try {
-            let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
-            let jsonPlans = await resPlans.json();
-            if (jsonPlans.status === "success") plans = jsonPlans.data || [];
+ async function loadAllDataFromCloud() {
+    try {
+        let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
+        let jsonPlans = await resPlans.json();
+        if (jsonPlans.status === "success") plans = jsonPlans.data || [];
 
-            let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
-            let jsonActuals = await resActuals.json();
-            if (jsonActuals.status === "success" && jsonActuals.data) {
-                actuals = jsonActuals.data.map(item => {
-                    const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || '-';
-                    return {
-                        ...item,
-                        "เวลาทำงาน": timeVal,
-                        timework: timeVal,
-                        TimeWork: timeVal,
-                        timeRange: timeVal
-                    };
-                });
-            } else {
-                actuals = [];
-            }
+        let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
+        let jsonActuals = await resActuals.json();
+        
+        // --- เพิ่มบรรทัดเช็กดูข้อมูลดิบแถวแรกใน Console ---
+        if (jsonActuals.status === "success" && jsonActuals.data) {
+            console.log("=== ข้อมูลดิบแถวแรกที่ได้จาก Cloud ===", jsonActuals.data[0]);
+            
+            actuals = jsonActuals.data.map(item => {
+                // ดึงทุกคีย์ที่เป็นไปได้มาเช็ก
+                const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || item['Start'] || item['start'] || '-';
+                return {
+                    ...item,
+                    "เวลาทำงาน": timeVal,
+                    timework: timeVal,
+                    TimeWork: timeVal,
+                    timeRange: timeVal
+                };
+            });
+        } else {
+            actuals = [];
+        }
 
-            let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
-            let jsonQgate = await resQgate.json();
-            if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
+        let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
+        let jsonQgate = await resQgate.json();
+        if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
 
-            let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
-            let jsonDeliveries = await resDeliveries.json();
-            if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
+        let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
+        let jsonDeliveries = await resDeliveries.json();
+        if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
 
-            let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
-            let jsonBms = await resBms.json();
-            if (jsonBms.status === "success") bms = jsonBms.data || [];
+        let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
+        let jsonBms = await resBms.json();
+        if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-            if (typeof renderAll === 'function') {
+        if (typeof renderAll === 'function') {
             renderAll();
         }
         if (typeof renderDiePM === 'function') {
@@ -1016,7 +1021,6 @@
         console.error("Error loading data from cloud:", error);
     }
 }
-
         const PM_LIMIT = 40000;
         const MC_MAX_CAPACITY = 50000;
 
