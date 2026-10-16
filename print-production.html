@@ -45,8 +45,8 @@
                     <tr>
                         <td class="approval-box border-right"></td>
                         <td class="approval-box border-right"></td>
-                        <td class="approval-box border-right" id="operator-sign"></td>
-                        <td class="approval-box" id="report-date">2026-10-16</td>
+                        <td class="approval-box border-right" id="sign-operator">-</td>
+                        <td class="approval-box" id="sign-date">-</td>
                     </tr>
                 </table>
             </td>
@@ -58,49 +58,28 @@
     <table class="main-table mb-3">
         <thead>
             <tr>
-                <th>ลำดับ<br>(No.)</th>
-                <th>เวลาเริ่มต้น<br>(Start Time)</th>
-                <th>เวลาสิ้นสุด<br>(End Time)</th>
-                <th>หมายเลขชิ้นส่วน<br>(Part No.)</th>
-                <th>เป้าหมาย<br>(Target Pcs)</th>
-                <th>ผลิตได้จริง<br>(Actual Pcs)</th>
-                <th>งานดี<br>(OK Pcs)</th>
-                <th>งานเสีย<br>(NG Pcs)</th>
-                <th>อัตราความสำเร็จ<br>(% Achievement)</th>
+                <th style="width: 6%;">ลำดับ<br>(No.)</th>
+                <th style="width: 12%;">เวลาเริ่มต้น<br>(Start Time)</th>
+                <th style="width: 12%;">เวลาสิ้นสุด<br>(End Time)</th>
+                <th style="width: 22%;">หมายเลขชิ้นส่วน<br>(Part No.)</th>
+                <th style="width: 10%;">เป้าหมาย<br>(Target Pcs)</th>
+                <th style="width: 10%;">ผลิตได้จริง<br>(Actual Pcs)</th>
+                <th style="width: 10%;">งานดี<br>(OK Pcs)</th>
+                <th style="width: 8%;">งานเสีย<br>(NG Pcs)</th>
+                <th style="width: 10%;">อัตราความสำเร็จ<br>(% Achievement)</th>
             </tr>
         </thead>
         <tbody id="summaryTableBody">
-            <tr>
-                <td>1</td>
-                <td>16:30</td>
-                <td>17:00</td>
-                <td>55365-0G030 1/7</td>
-                <td>250</td>
-                <td>240</td>
-                <td>240</td>
-                <td>0</td>
-                <td>96.0%</td>
-            </tr>
-            <tr>
-                <td>2</td>
-                <td>08:00</td>
-                <td>16:00</td>
-                <td>55328-BZ220 2/3</td>
-                <td>3,000</td>
-                <td>2,995</td>
-                <td>2,995</td>
-                <td>0</td>
-                <td>99.8%</td>
-            </tr>
+            <!-- ข้อมูลจริงจะถูกโหลดมาใส่ที่นี่ -->
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
                 <td colspan="4" style="text-align: right;">รวมทั้งสิ้น (TOTAL)</td>
-                <td>3,250</td>
-                <td>3,235</td>
-                <td>3,235</td>
-                <td>0</td>
-                <td>99.5%</td>
+                <td id="totalTarget">0</td>
+                <td id="totalActual">0</td>
+                <td id="totalOk">0</td>
+                <td id="totalNg">0</td>
+                <td id="totalAchievement">0%</td>
             </tr>
         </tfoot>
     </table>
@@ -120,12 +99,7 @@
         </thead>
         <tbody>
             <tr>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
             </tr>
         </tbody>
         <tfoot>
@@ -149,18 +123,14 @@
                 <th style="width: 15%;">ผู้รับผิดชอบ (Owner)</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="ngTableBody">
             <tr>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
             </tr>
         </tbody>
     </table>
 
-    <!-- ข้อปฏิบัติ / หมายเหตุท้ายฟอร์ม -->
+    <!-- ข้อปฏิบัติท้ายฟอร์ม -->
     <table class="footer-table mt-3" style="border: 1px solid #000; font-size: 11px;">
         <tr>
             <td style="padding: 10px; text-align: left;">
@@ -178,6 +148,77 @@
         <button class="btn btn-success btn-lg px-5 shadow" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
     </div>
 </div>
+
+<script>
+    // ดึง URL Script จากหน้าหลักหรือค่าคอนฟิก
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHwVvVqZYGrRFGw5fIEy_IhhPv0SuBpPyCrJqq9nVM_VefXCQqdIt5MDdjr0zZA/exec";
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
+        document.getElementById('sign-date').innerText = targetDate;
+
+        // ดึงข้อมูล Actuals จาก Cloud มาแสดงในตารางรายงาน
+        fetch(GOOGLE_SCRIPT_URL + "?action=getActuals")
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === "success" && res.data) {
+                    const tbody = document.getElementById('summaryTableBody');
+                    tbody.innerHTML = '';
+
+                    let totalTarget = 0;
+                    let totalActual = 0;
+                    let totalOk = 0;
+                    let totalNg = 0;
+
+                    res.data.forEach((item, index) => {
+                        let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || '-';
+                        let times = timeVal.split(' ');
+                        let startTime = times[0] || '-';
+                        let endTime = times[1] || '-';
+
+                        let partNo = item.partNo || item['Part No.'] || '-';
+                        let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
+                        let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
+                        let actualQty = okQty + ngQty;
+                        let targetQty = 1000; // ค่าเป้าหมายตั้งต้น สามารถปรับตามฟิลด์จริงได้
+                        let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
+
+                        if(item.operator) {
+                            document.getElementById('sign-operator').innerText = item.operator;
+                        }
+
+                        totalTarget += targetQty;
+                        totalActual += actualQty;
+                        totalOk += okQty;
+                        totalNg += ngQty;
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${startTime}</td>
+                            <td>${endTime}</td>
+                            <td style="text-align: left; padding-left: 8px;">${partNo}</td>
+                            <td>${targetQty.toLocaleString()}</td>
+                            <td>${actualQty.toLocaleString()}</td>
+                            <td>${okQty.toLocaleString()}</td>
+                            <td>${ngQty.toLocaleString()}</td>
+                            <td>${achievement}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
+                    document.getElementById('totalActual').innerText = totalActual.toLocaleString();
+                    document.getElementById('totalOk').innerText = totalOk.toLocaleString();
+                    document.getElementById('totalNg').innerText = totalNg.toLocaleString();
+                    let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
+                    document.getElementById('totalAchievement').innerText = totalAch;
+                }
+            })
+            .catch(err => console.error("Error loading report data:", err));
+    });
+</script>
 
 </body>
 </html>
