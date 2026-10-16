@@ -2053,7 +2053,22 @@ function loadAllData() {
         .then(res => res.json())
         .then(data => {
             if (data.plans) plans = data.plans;
-            if (data.actuals) actuals = data.actuals;
+            
+            // --- จุดที่แก้ไข: แม็ปแปลงข้อมูล actuals ให้ดึงคีย์เวลาติดมาด้วยทุกครั้ง ---
+            if (data.actuals && Array.isArray(data.actuals)) {
+                actuals = data.actuals.map(item => {
+                    const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || '-';
+                    return {
+                        ...item, // คงค่าฟิลด์อื่นๆ ไว้ทั้งหมด
+                        "เวลาทำงาน": timeVal,
+                        timework: timeVal,
+                        TimeWork: timeVal,
+                        timeRange: timeVal
+                    };
+                });
+            } else {
+                actuals = [];
+            }
             
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
