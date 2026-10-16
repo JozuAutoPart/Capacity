@@ -971,7 +971,7 @@
     let bms = [];
     let currentFilterLine = 'ALL';
     // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
-    async function loadAllDataFromCloud() {
+  async function loadAllDataFromCloud() {
         try {
             let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
             let jsonPlans = await resPlans.json();
@@ -979,7 +979,20 @@
 
             let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
             let jsonActuals = await resActuals.json();
-            if (jsonActuals.status === "success") actuals = jsonActuals.data || [];
+            if (jsonActuals.status === "success" && jsonActuals.data) {
+                actuals = jsonActuals.data.map(item => {
+                    const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || '-';
+                    return {
+                        ...item,
+                        "เวลาทำงาน": timeVal,
+                        timework: timeVal,
+                        TimeWork: timeVal,
+                        timeRange: timeVal
+                    };
+                });
+            } else {
+                actuals = [];
+            }
 
             let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
             let jsonQgate = await resQgate.json();
