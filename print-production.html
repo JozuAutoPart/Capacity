@@ -27,7 +27,7 @@
     <table class="header-table mb-2">
         <tr>
             <td style="width: 20%; font-weight: bold; font-size: 12px; text-align: center; padding: 5px;">
-                <!-- โลโก้ Jozu.png -->
+                <!-- ดึงรูปภาพโลโก้ Jozu.png -->
                 <img src="Jozu.png" alt="Jozu Logo" style="max-height: 40px; max-width: 100%; object-fit: contain; margin-bottom: 2px;"><br>
                 <span>Jozu Auto Part Co.,ltd.</span>
             </td>
@@ -71,7 +71,7 @@
             </tr>
         </thead>
         <tbody id="summaryTableBody">
-            <tr><td colspan="9" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
+            <tr><td colspan="9" class="text-muted">กำลังโหลดข้อมูลจาก Google Sheet...</td></tr>
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
@@ -99,7 +99,9 @@
             </tr>
         </thead>
         <tbody>
-            <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+            </tr>
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
@@ -123,7 +125,9 @@
             </tr>
         </thead>
         <tbody id="ngTableBody">
-            <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+            </tr>
         </tbody>
     </table>
 
@@ -147,109 +151,83 @@
 </div>
 
 <script>
-    // แปลงเวลา "HH:MM" เป็นนาที
-    function timeToMinutes(timeStr) {
-        if (!timeStr || !timeStr.includes(':')) return 0;
-        let parts = timeStr.trim().split(':');
-        return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-    }
+    // URL ของ Google Apps Script ที่เชื่อมต่อ Google Sheet
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHwVvVqZYGrRFGw5fIEy_IhhPv0SuBpPyCrJqq9nVM_VefXCQqdIt5MDdjr0zZA/exec";
 
     window.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const targetDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
         document.getElementById('sign-date').innerText = targetDate;
 
-        // ตารางค่า CT (วินาทีต่อชิ้น) จับคู่กับ Part หลัก (ตัด 1/7 ออกอัตโนมัติ)
-        const masterCT = {
-            "55365-0G030": 3,
-            "55328-BZ220": 3,
-            "JA114": 3,
-            "JA118": 6,
-            "JA183": 6
-            // ค่าเริ่มต้นถ้าไม่พบคือ 3 วินาที
-        };
+        // ดึงข้อมูลผ่าน Google Apps Script โดยใช้ fetch
+        fetch(GOOGLE_SCRIPT_URL + "?action=getActuals")
+            .then(res => res.json())
+            .then(res => {
+                let dataList = [];
+                if (Array.isArray(res)) dataList = res;
+                else if (res.status === "success" && res.data) dataList = res.data;
 
-        // ดึงข้อมูลจาก localStorage ที่หน้าหลักแคชไว้ (แก้ปัญหา CORS ได้ 100%)
-        let cachedData = [];
-        try {
-            cachedData = JSON.parse(localStorage.getItem('actuals_cache') || '[]');
-        } catch(e) {
-            cachedData = [];
-        }
+                if (dataList && dataList.length > 0) {
+                    const tbody = document.getElementById('summaryTableBody');
+                    tbody.innerHTML = '';
 
-        // หากไม่มีในแคช ให้ลองดึงจาก window.opener หรือใช้ข้อมูลจำลองล่าสุด
-        if (cachedData.length === 0 && window.opener && window.opener.actuals) {
-            cachedData = window.opener.actuals;
-        }
+                    let totalTarget = 0;
+                    let totalActual = 0;
+                    let totalOk = 0;
+                    let totalNg = 0;
 
-        if (cachedData.length > 0) {
-            const tbody = document.getElementById('summaryTableBody');
-            tbody.innerHTML = '';
+                    dataList.forEach((item, index) => {
+                        let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeRange || '-';
+                        let times = String(timeVal).split(' ');
+                        let startTime = times[0] || '-';
+                        let endTime = times[1] || '-';
 
-            let totalTarget = 0;
-            let totalActual = 0;
-            let totalOk = 0;
-            let totalNg = 0;
+                        let partNo = item.partNo || item['Part No.'] || '-';
+                        let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
+                        let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
+                        let actualQty = okQty + ngQty;
+                        let targetQty = 1000; 
+                        let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
 
-            cachedData.forEach((item, index) => {
-                let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeRange || '-';
-                let times = String(timeVal).split(' ');
-                let startTime = times[0] || '-';
-                let endTime = times[1] || '-';
+                        let opName = item.operator || item['OP Name'] || item.opName || '';
+                        if (opName) {
+                            document.getElementById('sign-operator').innerText = opName;
+                        }
 
-                // คำนวณระยะเวลาทำงานเป็นวินาที
-                let startMin = timeToMinutes(startTime);
-                let endMin = timeToMinutes(endTime);
-                let durationMinutes = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
-                let durationSeconds = durationMinutes * 60;
+                        totalTarget += targetQty;
+                        totalActual += actualQty;
+                        totalOk += okQty;
+                        totalNg += ngQty;
 
-                let rawPartNo = item.partNo || item['Part No.'] || '-';
-                // ตัด Process ด้านหลังออก (เช่น " 1/7") เพื่อให้เหลือเฉพาะ Part Code หลัก
-                let cleanPartNo = String(rawPartNo).split(' ')[0].trim();
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${startTime}</td>
+                            <td>${endTime}</td>
+                            <td style="text-align: left; padding-left: 8px;">${partNo}</td>
+                            <td>${targetQty.toLocaleString()}</td>
+                            <td>${actualQty.toLocaleString()}</td>
+                            <td>${okQty.toLocaleString()}</td>
+                            <td>${ngQty.toLocaleString()}</td>
+                            <td>${achievement}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
 
-                // ดึงค่า CT วินาทีมาคำนวณเป้าหมาย (Target)
-                let ctSeconds = masterCT[cleanPartNo] || 3;
-                let targetQty = durationSeconds > 0 && ctSeconds > 0 ? Math.round(durationSeconds / ctSeconds) : 1000;
-
-                let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
-                let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
-                let actualQty = okQty + ngQty;
-                let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
-
-                let opName = item.operator || item['OP Name'] || item.opName || '';
-                if (opName) {
-                    document.getElementById('sign-operator').innerText = opName;
+                    document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
+                    document.getElementById('totalActual').innerText = totalActual.toLocaleString();
+                    document.getElementById('totalOk').innerText = totalOk.toLocaleString();
+                    document.getElementById('totalNg').innerText = totalNg.toLocaleString();
+                    let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
+                    document.getElementById('totalAchievement').innerText = totalAch;
+                } else {
+                    document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ไม่มีข้อมูลจาก Google Sheet</td></tr>`;
                 }
-
-                totalTarget += targetQty;
-                totalActual += actualQty;
-                totalOk += okQty;
-                totalNg += ngQty;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${startTime}</td>
-                    <td>${endTime}</td>
-                    <td style="text-align: left; padding-left: 8px;">${rawPartNo}</td>
-                    <td>${targetQty.toLocaleString()}</td>
-                    <td>${actualQty.toLocaleString()}</td>
-                    <td>${okQty.toLocaleString()}</td>
-                    <td>${ngQty.toLocaleString()}</td>
-                    <td>${achievement}</td>
-                `;
-                tbody.appendChild(tr);
+            })
+            .catch(err => {
+                console.error("Error loading report data:", err);
+                document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-danger">ไม่สามารถเชื่อมต่อ Google Sheet ได้</td></tr>`;
             });
-
-            document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
-            document.getElementById('totalActual').innerText = totalActual.toLocaleString();
-            document.getElementById('totalOk').innerText = totalOk.toLocaleString();
-            document.getElementById('totalNg').innerText = totalNg.toLocaleString();
-            let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
-            document.getElementById('totalAchievement').innerText = totalAch;
-        } else {
-            document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">กรุณาเปิดใช้งานจากหน้าหลักของระบบเพื่อโหลดข้อมูล</td></tr>`;
-        }
     });
 </script>
 
