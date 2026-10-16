@@ -26,9 +26,9 @@
     <!-- Header Section -->
     <table class="header-table mb-2">
         <tr>
-            <td style="width: 20%; font-weight: bold; font-size: 12px; text-align: center; padding: 5px;">
-                <img src="Jozu.png" alt="Jozu Logo" style="max-height: 45px; max-width: 100%; object-fit: contain; margin-bottom: 2px;"><br>
-                <span style="font-size: 10px;">Jozu Auto Part Co.,ltd.</span>
+            <td style="width: 20%; font-weight: bold; font-size: 14px;">
+                <div style="color: green; font-size: 18px;">🌿 OZU</div>
+                Jozu Auto Part Co.,ltd.
             </td>
             <td style="width: 45%;">
                 <h5 style="margin: 0; font-weight: bold;">Production Daily Report</h5>
@@ -70,7 +70,7 @@
             </tr>
         </thead>
         <tbody id="summaryTableBody">
-            <tr><td colspan="9" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
+            <!-- ข้อมูลจริงจะถูกโหลดมาใส่ที่นี่ -->
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
@@ -98,7 +98,9 @@
             </tr>
         </thead>
         <tbody>
-            <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+            </tr>
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
@@ -122,7 +124,9 @@
             </tr>
         </thead>
         <tbody id="ngTableBody">
-            <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+            <tr>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+            </tr>
         </tbody>
     </table>
 
@@ -146,6 +150,7 @@
 </div>
 
 <script>
+    // ดึง URL Script จากหน้าหลักหรือค่าคอนฟิก
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHwVvVqZYGrRFGw5fIEy_IhhPv0SuBpPyCrJqq9nVM_VefXCQqdIt5MDdjr0zZA/exec";
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -153,19 +158,11 @@
         const targetDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
         document.getElementById('sign-date').innerText = targetDate;
 
-        // ดึงข้อมูลผ่าน JSONP / โหมดปลอดภัย หรือดึงผ่าน API ตรง
+        // ดึงข้อมูล Actuals จาก Cloud มาแสดงในตารางรายงาน
         fetch(GOOGLE_SCRIPT_URL + "?action=getActuals")
             .then(res => res.json())
-            .catch(() => {
-                // หากติด CORS ให้ดึงผ่านโหมด no-cors หรือดึงจาก localStorage ของหน้าหลักที่เคยแคชไว้
-                return { status: "success", data: JSON.parse(localStorage.getItem('actuals_cache') || '[]') };
-            })
             .then(res => {
-                let dataList = [];
-                if (Array.isArray(res)) dataList = res;
-                else if (res.status === "success" && res.data) dataList = res.data;
-
-                if (dataList.length > 0) {
+                if (res.status === "success" && res.data) {
                     const tbody = document.getElementById('summaryTableBody');
                     tbody.innerHTML = '';
 
@@ -174,8 +171,8 @@
                     let totalOk = 0;
                     let totalNg = 0;
 
-                    dataList.forEach((item, index) => {
-                        let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeRange || '-';
+                    res.data.forEach((item, index) => {
+                        let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || '-';
                         let times = timeVal.split(' ');
                         let startTime = times[0] || '-';
                         let endTime = times[1] || '-';
@@ -184,11 +181,11 @@
                         let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
                         let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
                         let actualQty = okQty + ngQty;
-                        let targetQty = 1000; 
+                        let targetQty = 1000; // ค่าเป้าหมายตั้งต้น สามารถปรับตามฟิลด์จริงได้
                         let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
 
-                        if(item.operator || item['OP Name']) {
-                            document.getElementById('sign-operator').innerText = item.operator || item['OP Name'];
+                        if(item.operator) {
+                            document.getElementById('sign-operator').innerText = item.operator;
                         }
 
                         totalTarget += targetQty;
@@ -217,14 +214,9 @@
                     document.getElementById('totalNg').innerText = totalNg.toLocaleString();
                     let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
                     document.getElementById('totalAchievement').innerText = totalAch;
-                } else {
-                    document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
                 }
             })
-            .catch(err => {
-                console.error("Error loading report data:", err);
-                document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-danger">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
-            });
+            .catch(err => console.error("Error loading report data:", err));
     });
 </script>
 
