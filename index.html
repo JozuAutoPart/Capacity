@@ -2036,6 +2036,7 @@ function parseDateString(dateStr) {
 }
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ (เพิ่มตัวกัน Cache ป้องกันข้อมูลเก่าค้าง)
+// ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ (เพิ่มตัวแมปเวลาทำงานและกัน Cache ป้องกันข้อมูลเก่าค้าง)
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -2045,7 +2046,14 @@ function loadAllData() {
         .then(res => res.json())
         .then(data => {
             if (data.plans) plans = data.plans;
-            if (data.actuals) actuals = data.actuals;
+            
+            if (data.actuals) {
+                // แปลงและดึงค่า "เวลาทำงาน" จาก Google Sheets ให้ครบถ้วนทุกรูปแบบตั้งแต่โหลดครั้งแรก
+                actuals = data.actuals.map(item => ({
+                    ...item,
+                    timework: item['เวลาทำงาน'] || item['เวลาทำงาน '] || item['TimeWork'] || item['timework'] || item['timeWork'] || item['Time'] || item['timeRange'] || item[1] || item.timework || item.TimeWork || item.timeRange || '-'
+                }));
+            }
             
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
