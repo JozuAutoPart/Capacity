@@ -1818,21 +1818,21 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
-    const startTimeEl = document.getElementById('workStartTime') || document.getElementById('actualStartTime') || document.querySelector('input[id*="Start"]');
-    const endTimeEl = document.getElementById('workEndTime') || document.getElementById('actualEndTime') || document.querySelector('input[id*="End"]');
-    
-    const startTime = startTimeEl ? startTimeEl.value : '';
-    const endTime = endTimeEl ? endTimeEl.value : '';
-    
-    let timeRange = '-';
-    if (startTime && endTime) {
-        timeRange = `${startTime} - ${endTime}`;
-    } else if (startTime) {
-        timeRange = startTime;
-    } else if (endTime) {
-        timeRange = endTime;
-    }
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม (แก้ไขให้ตรงกับ ID จริงในหน้าจอ)
+const startTimeEl = document.getElementById('actualStartTime');
+const endTimeEl = document.getElementById('actualEndTime');
+  
+const startTime = startTimeEl ? startTimeEl.value : '';
+const endTime = endTimeEl ? endTimeEl.value : '';
+  
+let timeRange = '-';
+if (startTime && endTime) {
+    timeRange = `${startTime} - ${endTime}`;
+} else if (startTime) {
+    timeRange = startTime;
+} else if (endTime) {
+    timeRange = endTime;
+}
     
     // 🗓️ ดึงวันที่ตามเวลาท้องถิ่นประเทศไทย (แก้ปัญหาวันที่เพี้ยนถอยหลังเป็นวันที่ 14)
     const now = new Date();
@@ -1840,20 +1840,21 @@ function submitActual(e) {
     const formDateVal = document.getElementById('actualDate').value;
     const finalDate = formDateVal ? formDateVal : localDateStr;
     
-   const actual = {
-        date: finalDate,
-        operator: document.getElementById('actualOperator').value.trim(),
-        line: document.getElementById('actualLine').value,
-        mcNo: document.getElementById('actualMcNo').value.trim(),
-        partNo: finalPartNo, 
-        lotNo: document.getElementById('actualLotNo').value,
-        qty: Number(document.getElementById('actualQty').value),
-        ngQty: Number(document.getElementById('actualNgQty').value || 0),
-        timeWork: timeRange,
-        TimeWork: timeRange,
-        timeRange: timeRange,
-        remark: document.getElementById('actualRemark').value.trim()
-    };
+  const actual = {
+    date: finalDate,
+    operator: document.getElementById('actualOperator').value.trim(),
+    line: document.getElementById('actualLine').value,
+    mcNo: document.getElementById('actualMcNo').value.trim(),
+    partNo: finalPartNo, 
+    lotNo: document.getElementById('actualLotNo').value,
+    qty: Number(document.getElementById('actualQty').value),
+    ngQty: Number(document.getElementById('actualNgQty').value || 0),
+    "เวลาทำงาน": timeRange, // <--- เพิ่มคีย์นี้ให้ตรงกับที่ดึงในตาราง
+    timeWork: timeRange,
+    TimeWork: timeRange,
+    timeRange: timeRange,
+    remark: document.getElementById('actualRemark').value.trim()
+};
 
     // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
@@ -1917,19 +1918,19 @@ function loadActualsFromCloud() {
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                actuals = res.data.map(item => ({
-                    id: item.id || Date.now(),
-                    date: item.date || item['Date'] || '',
-                    operator: item.operator || item['OP Name'] || '',
-                    line: item.line || item['Line/MC'] || '',
-                    mcNo: item.mcNo || item['Machine No.'] || '',
-                    partNo: item.partNo || item['Part No.'] || '',
-                    lotNo: item.lotNo || item['Lot No.'] || '',
-                    qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
-                    ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    timework: item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeWork || item.timeRange || '-',
-                    remark: item.remark || item['Remark'] || '-'
-                }));
+               actuals = res.data.map(item => ({
+    id: item.id || Date.now(),
+    date: item.date || item['Date'] || '',
+    operator: item.operator || item['OP Name'] || '',
+    line: item.line || item['Line/MC'] || '',
+    mcNo: item.mcNo || item['Machine No.'] || '',
+    partNo: item.partNo || item['Part No.'] || '',
+    lotNo: item.lotNo || item['Lot No.'] || '',
+    qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
+    ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+    timework: item['เวลาทำงาน'] || item['TimeWork'] || item['timeWork'] || item['timeRange'] || '-',
+    remark: item.remark || item['Remark'] || '-'
+}));
                 
                 renderActuals();
                 if (typeof renderCapacity === 'function') renderCapacity();
@@ -1985,7 +1986,8 @@ function renderActuals() {
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
         // เพิ่ม a.timeRange ไว้ตัวแรกสุด เพื่อดึงเวลาขึ้นมาแสดงผลเหมือนหน้า Q-Gate
-      const timeworkval = a['เวลาทำงาน'] || a['TimeWork'] || a.timeRange || a.timework || a.TimeWork || '-';
+      // ดึงค่าเวลาทำงานมาแสดง
+const timeworkval = a['เวลาทำงาน'] || a['TimeWork'] || a.timework || a.timeRange || '-';
         
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
