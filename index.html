@@ -1923,9 +1923,9 @@ function loadActualsFromCloud() {
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
                     
-                    // --- จุดที่แก้ไข: ดึงคีย์ "เวลาทำงาน" จาก Google Sheet ให้ตรงเป๊ะ ---
-                    "เวลาทำงาน": item['เวลาทำงาน'] || item.timeWork || item.TimeWork || item.timework || item.timeRange || '-',
-                    timework: item['เวลาทำงาน'] || item.timeWork || item.TimeWork || item.timework || item.timeRange || '-',
+                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้ทั้งหมด
+                    "เวลาทำงาน": item['เวลาทำงาน'] || item['TimeWork'] || item.timework || item.timeWork || item.timeRange || item.Start || item['Start'] || '-',
+                    timework: item['เวลาทำงาน'] || item['TimeWork'] || item.timework || item.timeWork || item.timeRange || item.Start || item['Start'] || '-',
                     
                     remark: item.remark || item['Remark'] || '-'
                 }));
