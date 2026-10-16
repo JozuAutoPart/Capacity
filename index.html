@@ -1917,7 +1917,7 @@ function loadActualsFromCloud() {
                 actuals = res.data.map(item => ({
                     id: item.id || Date.now(),
                     date: item.date || item['Date'] || '',
-                    timework: item['เวลาทำงาน'] || item['เวลา'] || item['Time'] || item['Working Time'] || item['timework'] || item['TimeWork'] || item['timeRange'] || item.timework || item.TimeWork || item.timeRange || '-',
+                   timework: item['เวลาทำงาน'] || item['เวลาทำงาน '] || item['TimeWork'] || item['timework'] || item['timeWork'] || item['Time'] || item['ช่วงเวลา'] || item['timeRange'] || item[1] || item.timework || item.TimeWork || item.timeRange || '-',
                     operator: item.operator || item['OP Name'] || '',
                     line: item.line || item['Line/MC'] || '',
                     mcNo: item.mcNo || item['Machine No.'] || '',
