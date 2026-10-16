@@ -1,224 +1,224 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <title>Production Daily Report - ใบรายงานการผลิตประจำวัน</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { font-family: 'Sarabun', sans-serif; background: #fff; color: #000; font-size: 12px; }
-        .report-container { width: 100%; max-width: 1200px; margin: 20px auto; padding: 15px; background: #fff; }
-        .header-table, .main-table, .footer-table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
-        .header-table td, .main-table th, .main-table td, .footer-table td { border: 1px solid #000; padding: 5px; text-align: center; vertical-align: middle; }
-        .main-table th { background-color: #f8f9fa; font-weight: bold; font-size: 11px; }
-        .approval-box { width: 90px; height: 45px; }
-        .section-title { text-align: left; font-weight: bold; background-color: #f1f3f5 !important; padding: 6px 10px; border: 1px solid #000; font-size: 12px; }
-        .print-btn-container { text-align: center; margin: 20px 0; }
-        @media print {
-            .print-btn-container { display: none; }
-            body { padding: 0; }
-            .report-container { margin: 0; width: 100%; max-width: none; }
-        }
-    </style>
+    <meta charset="UTF-8">
+    <title>Production Daily Report - ใบรายงานการผลิตประจำวัน</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background: #fff; color: #000; font-size: 12px; }
+        .report-container { width: 100%; max-width: 1200px; margin: 20px auto; padding: 15px; background: #fff; }
+        .header-table, .main-table, .footer-table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
+        .header-table td, .main-table th, .main-table td, .footer-table td { border: 1px solid #000; padding: 5px; text-align: center; vertical-align: middle; }
+        .main-table th { background-color: #f8f9fa; font-weight: bold; font-size: 11px; }
+        .approval-box { width: 90px; height: 45px; }
+        .section-title { text-align: left; font-weight: bold; background-color: #f1f3f5 !important; padding: 6px 10px; border: 1px solid #000; font-size: 12px; }
+        .print-btn-container { text-align: center; margin: 20px 0; }
+        @media print {
+            .print-btn-container { display: none; }
+            body { padding: 0; }
+            .report-container { margin: 0; width: 100%; max-width: none; }
+        }
+    </style>
 </head>
 <body>
 
 <div class="report-container">
-    <!-- Header Section -->
-    <table class="header-table mb-2">
-        <tr>
-            <td style="width: 20%; font-weight: bold; font-size: 14px;">
-                <div style="color: green; font-size: 18px;">🌿 OZU</div>
-                Jozu Auto Part Co.,ltd.
-            </td>
-            <td style="width: 45%;">
-                <h5 style="margin: 0; font-weight: bold;">Production Daily Report</h5>
-                <h6 style="margin: 0; font-weight: bold;">(ใบรายงานการผลิตประจำวัน)</h6>
-            </td>
-            <td style="width: 35%; padding: 0;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Mgr. / Sup.</td>
-                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Leader</td>
-                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Operate</td>
-                        <td style="border-bottom: 1px solid #000; font-size: 10px;">วันที่ (Date)</td>
-                    </tr>
-                    <tr>
-                        <td class="approval-box border-right"></td>
-                        <td class="approval-box border-right"></td>
-                        <td class="approval-box border-right" id="sign-operator">-</td>
-                        <td class="approval-box" id="sign-date">-</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+    <!-- Header Section -->
+    <table class="header-table mb-2">
+        <tr>
+            <td style="width: 20%; font-weight: bold; font-size: 14px;">
+                <div style="color: green; font-size: 18px;">🌿 OZU</div>
+                Jozu Auto Part Co.,ltd.
+            </td>
+            <td style="width: 45%;">
+                <h5 style="margin: 0; font-weight: bold;">Production Daily Report</h5>
+                <h6 style="margin: 0; font-weight: bold;">(ใบรายงานการผลิตประจำวัน)</h6>
+            </td>
+            <td style="width: 35%; padding: 0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Mgr. / Sup.</td>
+                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Leader</td>
+                        <td style="border-bottom: 1px solid #000; border-right: 1px solid #000; font-size: 10px;">Operate</td>
+                        <td style="border-bottom: 1px solid #000; font-size: 10px;">วันที่ (Date)</td>
+                    </tr>
+                    <tr>
+                        <td class="approval-box border-right"></td>
+                        <td class="approval-box border-right"></td>
+                        <td class="approval-box border-right" id="sign-operator">-</td>
+                        <td class="approval-box" id="sign-date">-</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-    <!-- ส่วนที่ 1: สรุปภาพรวมการผลิต -->
-    <div class="section-title">1. สรุปภาพรวมการผลิต (PRODUCTION SUMMARY)</div>
-    <table class="main-table mb-3">
-        <thead>
-            <tr>
-                <th style="width: 6%;">ลำดับ<br>(No.)</th>
-                <th style="width: 12%;">เวลาเริ่มต้น<br>(Start Time)</th>
-                <th style="width: 12%;">เวลาสิ้นสุด<br>(End Time)</th>
-                <th style="width: 22%;">หมายเลขชิ้นส่วน<br>(Part No.)</th>
-                <th style="width: 10%;">เป้าหมาย<br>(Target Pcs)</th>
-                <th style="width: 10%;">ผลิตได้จริง<br>(Actual Pcs)</th>
-                <th style="width: 10%;">งานดี<br>(OK Pcs)</th>
-                <th style="width: 8%;">งานเสีย<br>(NG Pcs)</th>
-                <th style="width: 10%;">อัตราความสำเร็จ<br>(% Achievement)</th>
-            </tr>
-        </thead>
-        <tbody id="summaryTableBody">
-            <!-- ข้อมูลจริงจะถูกโหลดมาใส่ที่นี่ -->
-        </tbody>
-        <tfoot>
-            <tr style="font-weight: bold; background-color: #f8f9fa;">
-                <td colspan="4" style="text-align: right;">รวมทั้งสิ้น (TOTAL)</td>
-                <td id="totalTarget">0</td>
-                <td id="totalActual">0</td>
-                <td id="totalOk">0</td>
-                <td id="totalNg">0</td>
-                <td id="totalAchievement">0%</td>
-            </tr>
-        </tfoot>
-    </table>
+    <!-- ส่วนที่ 1: สรุปภาพรวมการผลิต -->
+    <div class="section-title">1. สรุปภาพรวมการผลิต (PRODUCTION SUMMARY)</div>
+    <table class="main-table mb-3">
+        <thead>
+            <tr>
+                <th style="width: 6%;">ลำดับ<br>(No.)</th>
+                <th style="width: 12%;">เวลาเริ่มต้น<br>(Start Time)</th>
+                <th style="width: 12%;">เวลาสิ้นสุด<br>(End Time)</th>
+                <th style="width: 22%;">หมายเลขชิ้นส่วน<br>(Part No.)</th>
+                <th style="width: 10%;">เป้าหมาย<br>(Target Pcs)</th>
+                <th style="width: 10%;">ผลิตได้จริง<br>(Actual Pcs)</th>
+                <th style="width: 10%;">งานดี<br>(OK Pcs)</th>
+                <th style="width: 8%;">งานเสีย<br>(NG Pcs)</th>
+                <th style="width: 10%;">อัตราความสำเร็จ<br>(% Achievement)</th>
+            </tr>
+        </thead>
+        <tbody id="summaryTableBody">
+            <!-- ข้อมูลจริงจะถูกโหลดมาใส่ที่นี่ -->
+        </tbody>
+        <tfoot>
+            <tr style="font-weight: bold; background-color: #f8f9fa;">
+                <td colspan="4" style="text-align: right;">รวมทั้งสิ้น (TOTAL)</td>
+                <td id="totalTarget">0</td>
+                <td id="totalActual">0</td>
+                <td id="totalOk">0</td>
+                <td id="totalNg">0</td>
+                <td id="totalAchievement">0%</td>
+            </tr>
+        </tfoot>
+    </table>
 
-    <!-- ส่วนที่ 2: บันทึกเวลาเครื่องจักรหยุดทำงาน / ขัดข้อง -->
-    <div class="section-title">2. บันทึกเวลาเครื่องจักรหยุดทำงาน / ขัดข้อง (DOWNTIME RECORD)</div>
-    <table class="main-table mb-3">
-        <thead>
-            <tr>
-                <th style="width: 15%;">เวลาเริ่ม (From)</th>
-                <th style="width: 15%;">เวลาจบ (To)</th>
-                <th style="width: 15%;">รวมเวลา (นาที)</th>
-                <th style="width: 15%;">รหัสสาเหตุ (Code)</th>
-                <th style="width: 25%;">รายละเอียดปัญหา / เหตุการณ์</th>
-                <th style="width: 15%;">การแก้ไขเบื้องต้น</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-            </tr>
-        </tbody>
-        <tfoot>
-            <tr style="font-weight: bold; background-color: #f8f9fa;">
-                <td colspan="2" style="text-align: right;">รวมเวลาหยุดทำงานทั้งหมด (นาที)</td>
-                <td colspan="4" style="text-align: left; padding-left: 10px;">0 นาที</td>
-            </tr>
-        </tfoot>
-    </table>
-    <div style="font-size: 10px; margin-bottom: 10px;">* หมายเหตุ รหัส Downtime: M/C = เครื่องจักรเสีย | SET = ตั้งเครื่อง/เปลี่ยนพิมพ์ | MAT = วัตถุดิบ | QUAL = คุณภาพ</div>
+    <!-- ส่วนที่ 2: บันทึกเวลาเครื่องจักรหยุดทำงาน / ขัดข้อง -->
+    <div class="section-title">2. บันทึกเวลาเครื่องจักรหยุดทำงาน / ขัดข้อง (DOWNTIME RECORD)</div>
+    <table class="main-table mb-3">
+        <thead>
+            <tr>
+                <th style="width: 15%;">เวลาเริ่ม (From)</th>
+                <th style="width: 15%;">เวลาจบ (To)</th>
+                <th style="width: 15%;">รวมเวลา (นาที)</th>
+                <th style="width: 15%;">รหัสสาเหตุ (Code)</th>
+                <th style="width: 25%;">รายละเอียดปัญหา / เหตุการณ์</th>
+                <th style="width: 15%;">การแก้ไขเบื้องต้น</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr style="font-weight: bold; background-color: #f8f9fa;">
+                <td colspan="2" style="text-align: right;">รวมเวลาหยุดทำงานทั้งหมด (นาที)</td>
+                <td colspan="4" style="text-align: left; padding-left: 10px;">0 นาที</td>
+            </tr>
+        </tfoot>
+    </table>
+    <div style="font-size: 10px; margin-bottom: 10px;">* หมายเหตุ รหัส Downtime: M/C = เครื่องจักรเสีย | SET = ตั้งเครื่อง/เปลี่ยนพิมพ์ | MAT = วัตถุดิบ | QUAL = คุณภาพ</div>
 
-    <!-- ส่วนที่ 3: รายละเอียดงานเสียและงานแก้ไข -->
-    <div class="section-title">3. รายละเอียดงานเสียและงานแก้ไข (DEFECT & SCRAP ANALYSIS)</div>
-    <table class="main-table mb-3">
-        <thead>
-            <tr>
-                <th style="width: 20%;">รหัสชิ้นส่วน (Part No.)</th>
-                <th style="width: 15%;">จำนวน (Pcs)</th>
-                <th style="width: 25%;">ลักษณะงานเสีย (Defect Type)</th>
-                <th style="width: 25%;">สาเหตุหลัก (Root Cause)</th>
-                <th style="width: 15%;">ผู้รับผิดชอบ (Owner)</th>
-            </tr>
-        </thead>
-        <tbody id="ngTableBody">
-            <tr>
-                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-            </tr>
-        </tbody>
-    </table>
+    <!-- ส่วนที่ 3: รายละเอียดงานเสียและงานแก้ไข -->
+    <div class="section-title">3. รายละเอียดงานเสียและงานแก้ไข (DEFECT & SCRAP ANALYSIS)</div>
+    <table class="main-table mb-3">
+        <thead>
+            <tr>
+                <th style="width: 20%;">รหัสชิ้นส่วน (Part No.)</th>
+                <th style="width: 15%;">จำนวน (Pcs)</th>
+                <th style="width: 25%;">ลักษณะงานเสีย (Defect Type)</th>
+                <th style="width: 25%;">สาเหตุหลัก (Root Cause)</th>
+                <th style="width: 15%;">ผู้รับผิดชอบ (Owner)</th>
+            </tr>
+        </thead>
+        <tbody id="ngTableBody">
+            <tr>
+                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+            </tr>
+        </tbody>
+    </table>
 
-    <!-- ข้อปฏิบัติท้ายฟอร์ม -->
-    <table class="footer-table mt-3" style="border: 1px solid #000; font-size: 11px;">
-        <tr>
-            <td style="padding: 10px; text-align: left;">
-                <strong>ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้น ให้ดำเนินการ "หยุด - เรียก - รอ" (Stop, Call, Wait)</strong><br>
-                🛑 <strong>หยุด (STOP):</strong> เมื่อพบเห็นสิ่งผิดปกติ หรือเกิดข้อสงสัย ให้ "หยุด" การทำงานหรือหยุดเครื่องจักรทันที<br>
-                🚶‍♂️ <strong>เรียก (CALL):</strong> "เรียก" ผู้รับผิดชอบ เช่น หัวหน้างาน (Leader), ช่างซ่อมบำรุง (Maintenance) หรือ QC ทันที<br>
-                🕵️‍♂️ <strong>รอ (WAIT):</strong> "รอ" อยู่ที่จุดเกิดเหตุจนกว่าหัวหน้างานหรือผู้เกี่ยวข้องจะมาถึง และปฏิบัติตามคำสั่งอย่างเคร่งครัด
-            </td>
-        </tr>
-    </table>
-    <div style="text-align: right; font-size: 10px; margin-top: 5px;">J-F-PR-005 Rev.06 Ref. 2 Nov. 26</div>
+    <!-- ข้อปฏิบัติท้ายฟอร์ม -->
+    <table class="footer-table mt-3" style="border: 1px solid #000; font-size: 11px;">
+        <tr>
+            <td style="padding: 10px; text-align: left;">
+                <strong>ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้น ให้ดำเนินการ "หยุด - เรียก - รอ" (Stop, Call, Wait)</strong><br>
+                🛑 <strong>หยุด (STOP):</strong> เมื่อพบเห็นสิ่งผิดปกติ หรือเกิดข้อสงสัย ให้ "หยุด" การทำงานหรือหยุดเครื่องจักรทันที<br>
+                🚶‍♂️ <strong>เรียก (CALL):</strong> "เรียก" ผู้รับผิดชอบ เช่น หัวหน้างาน (Leader), ช่างซ่อมบำรุง (Maintenance) หรือ QC ทันที<br>
+                🕵️‍♂️ <strong>รอ (WAIT):</strong> "รอ" อยู่ที่จุดเกิดเหตุจนกว่าหัวหน้างานหรือผู้เกี่ยวข้องจะมาถึง และปฏิบัติตามคำสั่งอย่างเคร่งครัด
+            </td>
+        </tr>
+    </table>
+    <div style="text-align: right; font-size: 10px; margin-top: 5px;">J-F-PR-005 Rev.06 Ref. 2 Nov. 26</div>
 
-    <!-- Print Button -->
-    <div class="print-btn-container">
-        <button class="btn btn-success btn-lg px-5 shadow" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
-    </div>
+    <!-- Print Button -->
+    <div class="print-btn-container">
+        <button class="btn btn-success btn-lg px-5 shadow" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+    </div>
 </div>
 
 <script>
-    // ดึง URL Script จากหน้าหลักหรือค่าคอนฟิก
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHwVvVqZYGrRFGw5fIEy_IhhPv0SuBpPyCrJqq9nVM_VefXCQqdIt5MDdjr0zZA/exec";
+    // ดึง URL Script จากหน้าหลักหรือค่าคอนฟิก
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHwVvVqZYGrRFGw5fIEy_IhhPv0SuBpPyCrJqq9nVM_VefXCQqdIt5MDdjr0zZA/exec";
 
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
-        document.getElementById('sign-date').innerText = targetDate;
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
+        document.getElementById('sign-date').innerText = targetDate;
 
-        // ดึงข้อมูล Actuals จาก Cloud มาแสดงในตารางรายงาน
-        fetch(GOOGLE_SCRIPT_URL + "?action=getActuals")
-            .then(res => res.json())
-            .then(res => {
-                if (res.status === "success" && res.data) {
-                    const tbody = document.getElementById('summaryTableBody');
-                    tbody.innerHTML = '';
+        // ดึงข้อมูล Actuals จาก Cloud มาแสดงในตารางรายงาน
+        fetch(GOOGLE_SCRIPT_URL + "?action=getActuals")
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === "success" && res.data) {
+                    const tbody = document.getElementById('summaryTableBody');
+                    tbody.innerHTML = '';
 
-                    let totalTarget = 0;
-                    let totalActual = 0;
-                    let totalOk = 0;
-                    let totalNg = 0;
+                    let totalTarget = 0;
+                    let totalActual = 0;
+                    let totalOk = 0;
+                    let totalNg = 0;
 
-                    res.data.forEach((item, index) => {
-                        let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || '-';
-                        let times = timeVal.split(' ');
-                        let startTime = times[0] || '-';
-                        let endTime = times[1] || '-';
+                    res.data.forEach((item, index) => {
+                        let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || '-';
+                        let times = timeVal.split(' ');
+                        let startTime = times[0] || '-';
+                        let endTime = times[1] || '-';
 
-                        let partNo = item.partNo || item['Part No.'] || '-';
-                        let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
-                        let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
-                        let actualQty = okQty + ngQty;
-                        let targetQty = 1000; // ค่าเป้าหมายตั้งต้น สามารถปรับตามฟิลด์จริงได้
-                        let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
+                        let partNo = item.partNo || item['Part No.'] || '-';
+                        let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
+                        let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
+                        let actualQty = okQty + ngQty;
+                        let targetQty = 1000; // ค่าเป้าหมายตั้งต้น สามารถปรับตามฟิลด์จริงได้
+                        let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
 
-                        if(item.operator) {
-                            document.getElementById('sign-operator').innerText = item.operator;
-                        }
+                        if(item.operator) {
+                            document.getElementById('sign-operator').innerText = item.operator;
+                        }
 
-                        totalTarget += targetQty;
-                        totalActual += actualQty;
-                        totalOk += okQty;
-                        totalNg += ngQty;
+                        totalTarget += targetQty;
+                        totalActual += actualQty;
+                        totalOk += okQty;
+                        totalNg += ngQty;
 
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${index + 1}</td>
-                            <td>${startTime}</td>
-                            <td>${endTime}</td>
-                            <td style="text-align: left; padding-left: 8px;">${partNo}</td>
-                            <td>${targetQty.toLocaleString()}</td>
-                            <td>${actualQty.toLocaleString()}</td>
-                            <td>${okQty.toLocaleString()}</td>
-                            <td>${ngQty.toLocaleString()}</td>
-                            <td>${achievement}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${startTime}</td>
+                            <td>${endTime}</td>
+                            <td style="text-align: left; padding-left: 8px;">${partNo}</td>
+                            <td>${targetQty.toLocaleString()}</td>
+                            <td>${actualQty.toLocaleString()}</td>
+                            <td>${okQty.toLocaleString()}</td>
+                            <td>${ngQty.toLocaleString()}</td>
+                            <td>${achievement}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
 
-                    document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
-                    document.getElementById('totalActual').innerText = totalActual.toLocaleString();
-                    document.getElementById('totalOk').innerText = totalOk.toLocaleString();
-                    document.getElementById('totalNg').innerText = totalNg.toLocaleString();
-                    let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
-                    document.getElementById('totalAchievement').innerText = totalAch;
-                }
-            })
-            .catch(err => console.error("Error loading report data:", err));
-    });
+                    document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
+                    document.getElementById('totalActual').innerText = totalActual.toLocaleString();
+                    document.getElementById('totalOk').innerText = totalOk.toLocaleString();
+                    document.getElementById('totalNg').innerText = totalNg.toLocaleString();
+                    let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
+                    document.getElementById('totalAchievement').innerText = totalAch;
+                }
+            })
+            .catch(err => console.error("Error loading report data:", err));
+    });
 </script>
 
 </body>
-</html>
+</html> โค้ดนี้ Ok  แต่แค่ใส Logo มา แค่นั้นเอง
