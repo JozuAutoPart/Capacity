@@ -1922,8 +1922,9 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    "เวลาทำงาน": item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeWork || item.timeRange || '-',
-                    timework: item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeWork || item.timeRange || '-',
+                    // ดึงค่าเวลาจากทุกชื่อที่เป็นไปได้ ทั้งภาษาไทยและอังกฤษ
+                    "เวลาทำงาน": item['เวลาทำงาน'] || item.timeWork || item.TimeWork || item.timework || item.timeRange || '-',
+                    timework: item['เวลาทำงาน'] || item.timeWork || item.TimeWork || item.timework || item.timeRange || '-',
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
@@ -1978,9 +1979,9 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        // ดึงเวลาทำงาน ตรวจสอบทั้งคีย์ภาษาไทยและภาษาอังกฤษ
-        let rawTime = a['เวลาทำงาน'] || a.timeWork || a.TimeWork || a.timework || a.timeRange;
-        const timeworkval = (rawTime && String(rawTime).trim() !== '' && String(rawTime).trim() !== 'undefined') ? String(rawTime).trim() : '-';
+        // เช็กค่าเวลาให้แสดงผลขึ้นมา (รวมถึงจัดรูปแบบไม่ให้ตกบรรทัด)
+        let rawTime = a['เวลาทำงาน'] || a.timework || a.timeWork || a.TimeWork || a.timeRange;
+        const timeworkval = (rawTime && String(rawTime).trim() !== '' && String(rawTime).trim() !== 'undefined' && String(rawTime).trim() !== '-') ? String(rawTime).trim() : '-';
 
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
@@ -1989,7 +1990,7 @@ function renderActuals() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${displayDate}</td>
-            <td class="text-warning small fw-bold">${timeworkval}</td>
+            <td class="text-warning small fw-bold" style="white-space: nowrap;">${timeworkval}</td>
             <td>${opval}</td>
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
             <td class="fw-bold text-info">${partval}</td>
