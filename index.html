@@ -4154,22 +4154,33 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-    // 2. ดึง Actuals
+   // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                actuals = res.data.map(a => ({
-                    date: a.date || a.Date || '',
-                    operator: a.operator || a['OP Name'] || a.opName || '',
-                    line: a.line || a.Line || a['Line/MC'] || '',
-                    mcNo: a.mcNo || a['Machine No.'] || '',
-                    partNo: a.partNo || a['Part No.'] || '',
-                    lotNo: a.lotNo || a['Lot No.'] || '',
-                    qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
-                    ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
-                    remark: a.remark || a.Remark || ''
-                }));
+                actuals = res.data.map(a => {
+                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
+                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || '-';
+                    
+                    return {
+                        date: a.date || a.Date || '',
+                        operator: a.operator || a['OP Name'] || a.opName || '',
+                        line: a.line || a.Line || a['Line/MC'] || '',
+                        mcNo: a.mcNo || a['Machine No.'] || '',
+                        partNo: a.partNo || a['Part No.'] || '',
+                        lotNo: a.lotNo || a['Lot No.'] || '',
+                        qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                        ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
+                        
+                        // เพิ่มฟิลด์เวลาทำงานตรงนี้เพื่อให้เรนเดอร์ขึ้นตาราง
+                        "เวลาทำงาน": timeVal,
+                        timework: timeVal,
+                        TimeWork: timeVal,
+                        
+                        remark: a.remark || a.Remark || ''
+                    };
+                });
 
                 renderActuals();
                 renderDashboard();
@@ -4177,11 +4188,9 @@ function loadAllDataFromCloud() {
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
                 if (typeof renderDiePM === 'function') renderDiePM();
-               
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
-
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
         .then(res => res.json())
