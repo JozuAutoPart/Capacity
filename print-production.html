@@ -27,7 +27,6 @@
     <table class="header-table mb-2">
         <tr>
             <td style="width: 20%; font-weight: bold; font-size: 12px; text-align: center; padding: 5px;">
-                <!-- ดึงรูปโลโก้ Jozu.png จากที่เก็บใน GitHub มาแสดง -->
                 <img src="Jozu.png" alt="Jozu Logo" style="max-height: 45px; max-width: 100%; object-fit: contain; margin-bottom: 2px;"><br>
                 <span style="font-size: 10px;">Jozu Auto Part Co.,ltd.</span>
             </td>
@@ -71,7 +70,7 @@
             </tr>
         </thead>
         <tbody id="summaryTableBody">
-            <!-- ข้อมูลจริงดึงจาก Apps Script -->
+            <tr><td colspan="9" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
@@ -99,9 +98,7 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-            </tr>
+            <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
@@ -125,9 +122,7 @@
             </tr>
         </thead>
         <tbody id="ngTableBody">
-            <tr>
-                <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
-            </tr>
+            <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
         </tbody>
     </table>
 
@@ -158,10 +153,10 @@
         const targetDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
         document.getElementById('sign-date').innerText = targetDate;
 
-        fetch(GOOGLE_SCRIPT_URL + "?action=getActuals")
+        fetch(GOOGLE_SCRIPT_URL + "?action=getActuals&t=" + new Date().getTime())
             .then(res => res.json())
             .then(res => {
-                if (res.status === "success" && res.data) {
+                if (res.status === "success" && res.data && res.data.length > 0) {
                     const tbody = document.getElementById('summaryTableBody');
                     tbody.innerHTML = '';
 
@@ -171,7 +166,8 @@
                     let totalNg = 0;
 
                     res.data.forEach((item, index) => {
-                        let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || '-';
+                        // ดึงค่าเวลาทำงานรองรับทุกชื่อคีย์
+                        let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeRange || '-';
                         let times = timeVal.split(' ');
                         let startTime = times[0] || '-';
                         let endTime = times[1] || '-';
@@ -180,11 +176,11 @@
                         let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
                         let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
                         let actualQty = okQty + ngQty;
-                        let targetQty = 1000; 
+                        let targetQty = 1000; // ค่าเป้าหมายตั้งต้น
                         let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
 
-                        if(item.operator) {
-                            document.getElementById('sign-operator').innerText = item.operator;
+                        if(item.operator || item['OP Name']) {
+                            document.getElementById('sign-operator').innerText = item.operator || item['OP Name'];
                         }
 
                         totalTarget += targetQty;
@@ -213,9 +209,14 @@
                     document.getElementById('totalNg').innerText = totalNg.toLocaleString();
                     let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
                     document.getElementById('totalAchievement').innerText = totalAch;
+                } else {
+                    document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ยังไม่มีข้อมูลการผลิต</td></tr>`;
                 }
             })
-            .catch(err => console.error("Error loading report data:", err));
+            .catch(err => {
+                console.error("Error loading report data:", err);
+                document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-danger">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
+            });
     });
 </script>
 
