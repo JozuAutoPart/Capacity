@@ -5066,14 +5066,14 @@ document.addEventListener('keypress', function(e) {
         }
 
         function renderWidget(selectedLine = 'ALL') {
-            // ระบบสแกนหาอาเรย์ข้อมูล Master ในหน้าเว็บแบบอัตโนมัติ
-            let masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || window.masterData || window.master || [];
+            // ค้นหาฐานข้อมูล Master จากตัวแปรกลางในระบบ
+            let masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || window.masterData || [];
             if (!Array.isArray(masterDb) || masterDb.length === 0) {
                 for (let key in window) {
                     try {
                         if (Array.isArray(window[key]) && window[key].length > 0) {
                             let sample = window[key][0];
-                            if (sample && (sample.partNo || sample['Part No.'] || sample.minimum || sample['Minimum'] || Object.values(sample).length > 10)) {
+                            if (sample && (sample.partNo || sample['Part No.'] || sample.minimum || sample['Minimum'])) {
                                 masterDb = window[key];
                                 break;
                             }
@@ -5081,17 +5081,18 @@ document.addEventListener('keypress', function(e) {
                     } catch(e) {}
                 }
             }
-            
+
             if (!Array.isArray(masterDb) || masterDb.length === 0) {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Master Parts จากระบบ...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Master Parts...</h6>
                     </div>`;
                 setTimeout(() => renderWidget(selectedLine), 2000);
                 return;
             }
 
             let lowStockList = [];
+            console.log("=== DEBUG LOW STOCK WIDGET ===");
 
             masterDb.forEach((m) => {
                 const vals = Object.values(m);
@@ -5100,10 +5101,10 @@ document.addEventListener('keypress', function(e) {
                 let partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || vals[1] || '').trim();
                 if (!partNo) return;
 
-                // 2. ดึง Line จาก Column E (หรือฟิลด์ line)[cite: 10]
-                let line = String(m.line || m['Line'] || vals[4] || 'ALL').trim();
+                // 2. ดึง Line จาก Column E (คีย์ line หรือ Index 4)[cite: 10]
+                let line = String(m.line || m['Line'] || m['LINE'] || vals[4] || 'ALL').trim();
                 
-                // 3. ดึงค่า Minimum จาก Column L (Index 11) หรือฟิลด์ minimum[cite: 10]
+                // 3. ดึงค่า Minimum จาก Column L (คีย์ minimum / Minimum หรือ Index 11)[cite: 10]
                 let minVal = 0;
                 let rawMin = m.minimum !== undefined ? m.minimum : (m['Minimum'] !== undefined ? m['Minimum'] : (m['minimum'] !== undefined ? m['minimum'] : vals[11]));
                 if (rawMin !== undefined && rawMin !== null && rawMin !== '') {
@@ -5112,7 +5113,7 @@ document.addEventListener('keypress', function(e) {
 
                 if (isNaN(minVal) || minVal <= 0) return;
 
-                // 4. คำนวณยอด Stock (WIP + FG)
+                // 4. คำนวณ Stock (WIP + FG)
                 let targetKey = cleanStr(partNo);
                 const match = (p) => {
                     let cp = cleanStr(p);
@@ -5131,7 +5132,9 @@ document.addEventListener('keypress', function(e) {
                 let fg = qgQty - delQty;
                 let totalStock = wip + fg;
 
-                // 5. เงื่อนไข: ถ้ายอด Stock (WIP + FG) น้อยกว่า Minimum ให้เก็บมาแสดงผล
+                console.log(`Part: ${partNo} | Min(Col L): ${minVal} | Stock(WIP+FG): ${totalStock}`);
+
+                // 5. เงื่อนไข: ถ้ายอด Stock น้อยกว่า Minimum ให้นำมาแสดง
                 if (totalStock < minVal) {
                     lowStockList.push({
                         partNo: partNo,
@@ -5142,6 +5145,7 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
+            console.log("Total Low Stock Found:", lowStockList.length);
             cachedLowStockList = lowStockList;
             displayWidget(lowStockList, selectedLine);
         }
@@ -5195,7 +5199,7 @@ document.addEventListener('keypress', function(e) {
     if (document.readyState === 'complete') {
         initLowStockWidget();
     } else {
-        window.addEventListener('load', initLowStockWidget);
+        window.addEventListener('load', initLowStatsWidget = initLowStockWidget);
         setTimeout(initLowStockWidget, 1500);
     }
 })();
