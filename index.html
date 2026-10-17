@@ -2327,12 +2327,17 @@ function updateOperatorDropdown() {
 
 function exportFilteredProductionReport() {
     let selectedOperator = document.getElementById('filterOperator')?.value || '';
+    let selectedDate = document.getElementById('filterReportDate')?.value || '';
     let reportData = [];
 
     if (typeof actuals !== 'undefined' && Array.isArray(actuals) && actuals.length > 0) {
         actuals.forEach(item => {
             let opName = String(item.operator || item['OP Name'] || '');
+            let itemDate = parseDateString(item.date || item['Date'] || '');
+
+            // 🔍 เงื่อนไขกรอง: ถ้าเลือกพนักงานต้องตรง และถ้าเลือกวันที่ต้องตรง
             if (selectedOperator && !opName.includes(selectedOperator)) return;
+            if (selectedDate && itemDate !== selectedDate) return;
 
             let timeVal = String(item['เวลาทำงาน'] || item.timeWork || item.timeRange || '-');
             let startTime = "";
@@ -2386,12 +2391,13 @@ function exportFilteredProductionReport() {
     }
 
     if (reportData.length === 0) {
-        alert('ไม่พบข้อมูลตามเงื่อนไขที่เลือกสำหรับพิมพ์รายงาน');
+        alert('ไม่พบข้อมูลการผลิตของวันที่ ' + (selectedDate || 'ทั้งหมด') + (selectedOperator ? ' (พนักงาน: ' + selectedOperator + ')' : '') + ' สำหรับพิมพ์รายงาน');
         return;
     }
 
     localStorage.setItem('productionReportData', JSON.stringify(reportData));
-    localStorage.setItem('productionReportOperator', selectedOperator || 'ทั้งหมด');
+    localStorage.setItem('productionReportOperator', selectedOperator || 'ทุกพนักงาน');
+    localStorage.setItem('productionReportDate', selectedDate || '-');
 
     window.open('print-production.html', '_blank');
 }
