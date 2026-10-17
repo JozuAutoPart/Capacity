@@ -482,7 +482,7 @@
         </div>
     </div>
 </div>
-          <!-- TAB 4: ACTUAL PRODUCTION -->
+        <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -537,6 +537,11 @@
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
                             <option value="">-- เลือก Part No. จากแผน --</option>
                         </select>
+                    </div>
+                    <!-- ช่องแสดงค่า CT (วินาที) แบบ Auto -->
+                    <div class="mb-2">
+                        <label class="form-label small text-warning fw-bold"><i class="fas fa-stopwatch me-1"></i> Cycle Time (CT วินาทีต่อชิ้น)</label>
+                        <input type="text" id="actualCt" class="form-control form-control-sm bg-dark text-warning fw-bold" readonly placeholder="ดึงอัตโนมัติ">
                     </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
@@ -677,10 +682,13 @@
                     <table class="table table-dark table-hover align-middle m-0" style="font-size: 12px;">
                         <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
                             <tr>
-                                <th>วันที่/เวลา</th>
+                                <th>วันที่ตรวจ</th>
+                                <th>เวลา</th>
+                                 <th>พนักงานตรวจ</th>
                                 <th>Part No.</th>
                                 <th>ยอดตรวจ</th>
-                                <th>ผ่าน FG</th>
+                                 <th>ของเสีย (NG)</th>
+                                  <th>ผ่านเข้า FG (Pass)</th>
                                 <th class="text-center">จัดการ</th>
                             </tr>
                         </thead>
@@ -968,29 +976,47 @@
     let bms = [];
     let currentFilterLine = 'ALL';
     // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมดจาก Google Sheets เมื่อเปิดเว็บ
-    async function loadAllDataFromCloud() {
-        try {
-            let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
-            let jsonPlans = await resPlans.json();
-            if (jsonPlans.status === "success") plans = jsonPlans.data || [];
+ async function loadAllDataFromCloud() {
+    try {
+        let resPlans = await fetch(`${GOOGLE_SCRIPT_URL}?action=getPlans`);
+        let jsonPlans = await resPlans.json();
+        if (jsonPlans.status === "success") plans = jsonPlans.data || [];
 
-            let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
-            let jsonActuals = await resActuals.json();
-            if (jsonActuals.status === "success") actuals = jsonActuals.data || [];
+        let resActuals = await fetch(`${GOOGLE_SCRIPT_URL}?action=getActuals`);
+        let jsonActuals = await resActuals.json();
+        
+        // --- เพิ่มบรรทัดเช็กดูข้อมูลดิบแถวแรกใน Console ---
+        if (jsonActuals.status === "success" && jsonActuals.data) {
+            console.log("=== ข้อมูลดิบแถวแรกที่ได้จาก Cloud ===", jsonActuals.data[0]);
+            
+            actuals = jsonActuals.data.map(item => {
+                // ดึงทุกคีย์ที่เป็นไปได้มาเช็ก
+                const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || item['Start'] || item['start'] || '-';
+                return {
+                    ...item,
+                    "เวลาทำงาน": timeVal,
+                    timework: timeVal,
+                    TimeWork: timeVal,
+                    timeRange: timeVal
+                };
+            });
+        } else {
+            actuals = [];
+        }
 
-            let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
-            let jsonQgate = await resQgate.json();
-            if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
+        let resQgate = await fetch(`${GOOGLE_SCRIPT_URL}?action=getQgate`);
+        let jsonQgate = await resQgate.json();
+        if (jsonQgate.status === "success") qgate = jsonQgate.data || [];
 
-            let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
-            let jsonDeliveries = await resDeliveries.json();
-            if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
+        let resDeliveries = await fetch(`${GOOGLE_SCRIPT_URL}?action=getDeliveries`);
+        let jsonDeliveries = await resDeliveries.json();
+        if (jsonDeliveries.status === "success") deliveries = jsonDeliveries.data || [];
 
-            let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
-            let jsonBms = await resBms.json();
-            if (jsonBms.status === "success") bms = jsonBms.data || [];
+        let resBms = await fetch(`${GOOGLE_SCRIPT_URL}?action=getBms`);
+        let jsonBms = await resBms.json();
+        if (jsonBms.status === "success") bms = jsonBms.data || [];
 
-            if (typeof renderAll === 'function') {
+        if (typeof renderAll === 'function') {
             renderAll();
         }
         if (typeof renderDiePM === 'function') {
@@ -1000,7 +1026,6 @@
         console.error("Error loading data from cloud:", error);
     }
 }
-
         const PM_LIMIT = 40000;
         const MC_MAX_CAPACITY = 50000;
 
@@ -1796,10 +1821,59 @@ function checkAndLoadPlans() {
     }
 }
 
+// ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก MasterParts ใน Google Sheet มาแสดงอัตโนมัติ
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
+    if (!select || select.selectedIndex < 0) return;
+    
     const selectedOpt = select.options[select.selectedIndex];
-    document.getElementById('actualLotNo').value = selectedOpt.dataset.lot || '';
+    const lotInput = document.getElementById('actualLotNo');
+    if (lotInput) {
+        lotInput.value = selectedOpt.dataset.lot || '';
+    }
+
+    const basePartNo = select.value.trim();
+    if (!basePartNo) return;
+
+    // เงื่อนไข: ตัด Process ด้านหลังออก เช่น "55333-0D020 1/7" ตัดเหลือ "55333-0D020" เพื่อนำไปเทียบหาค่า CT
+    const cleanPartNo = basePartNo.split(' ')[0].trim().toUpperCase();
+
+    let ctVal = 0;
+
+    // 1. ค้นหาค่า CT จาก masterBarcodes (ที่ดึงมาจากชีต MasterParts คอลัมน์ Q)
+    if (typeof masterBarcodes !== 'undefined' && Array.isArray(masterBarcodes) && masterBarcodes.length > 0) {
+        let found = masterBarcodes.find(item => {
+            let pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
+            let pCode = String(item.partCode || item['Part Code'] || item['barcode'] || '').trim().toUpperCase();
+            return pNo === cleanPartNo || pCode === cleanPartNo;
+        });
+        if (found && (found.ct !== undefined || found['CT'] !== undefined)) {
+            ctVal = Number(found.ct !== undefined ? found.ct : found['CT']);
+        }
+    }
+
+    // 2. ถ้ายังไม่เจอ ให้ค้นหาจาก masterPartsData หรือ masterParts
+    if (!ctVal && typeof masterPartsData !== 'undefined' && masterPartsData) {
+        if (Array.isArray(masterPartsData)) {
+            let found = masterPartsData.find(item => {
+                let pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
+                let pCode = String(item.partCode || item['Part Code'] || item['barcode'] || '').trim().toUpperCase();
+                return pNo === cleanPartNo || pCode === cleanPartNo;
+            });
+            if (found && (found.ct !== undefined || found['CT'] !== undefined)) {
+                ctVal = Number(found.ct !== undefined ? found.ct : found['CT']);
+            }
+        } else if (masterPartsData[cleanPartNo]) {
+            ctVal = Number(masterPartsData[cleanPartNo].ct || masterPartsData[cleanPartNo]);
+        }
+    }
+
+    // แสดงค่า CT (วินาที) ในช่อง input อัตโนมัติ (ถ้าไม่พบใน Sheet ให้ใช้ค่า Default 3 วินาที)
+    const finalCt = ctVal > 0 ? ctVal : 3;
+    const ctInput = document.getElementById('actualCt');
+    if (ctInput) {
+        ctInput.value = finalCt + " วินาที";
+    }
 }
 
 function submitActual(e) {
@@ -1807,7 +1881,7 @@ function submitActual(e) {
     
     // 1. ดึงค่า Part No. หลัก และ Process ที่พนักงานพิมพ์เพิ่ม
     const basePartNo = document.getElementById('actualPartNo').value;
-    const processSuffix = document.getElementById('actualProcess').value.trim();
+    const processSuffix = document.getElementById('actualProcess') ? document.getElementById('actualProcess').value.trim() : '';
 
     // 2. รวมร่าง Part No. กับ Process (เช่น "17154-0T040 1/3")
     let finalPartNo = basePartNo;
@@ -1815,9 +1889,9 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
-    const startTimeEl = document.getElementById('workStartTime') || document.getElementById('actualStartTime') || document.querySelector('input[id*="Start"]');
-    const endTimeEl = document.getElementById('workEndTime') || document.getElementById('actualEndTime') || document.querySelector('input[id*="End"]');
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม (อ้างอิง ID จริงหน้าเว็บ)
+    const startTimeEl = document.getElementById('actualStartTime') || document.getElementById('workStartTime');
+    const endTimeEl = document.getElementById('actualEndTime') || document.getElementById('workEndTime');
     
     const startTime = startTimeEl ? startTimeEl.value : '';
     const endTime = endTimeEl ? endTimeEl.value : '';
@@ -1831,25 +1905,27 @@ function submitActual(e) {
         timeRange = endTime;
     }
     
-    // 🗓️ ดึงวันที่ตามเวลาท้องถิ่นประเทศไทย (แก้ปัญหาวันที่เพี้ยนถอยหลังเป็นวันที่ 14)
+    // 🗓️ ดึงวันที่ตามเวลาท้องถิ่นประเทศไทย
     const now = new Date();
     const localDateStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    const formDateVal = document.getElementById('actualDate').value;
+    const formDateVal = document.getElementById('actualDate') ? document.getElementById('actualDate').value : '';
     const finalDate = formDateVal ? formDateVal : localDateStr;
     
-   const actual = {
+    const actual = {
         date: finalDate,
         operator: document.getElementById('actualOperator').value.trim(),
         line: document.getElementById('actualLine').value,
-        mcNo: document.getElementById('actualMcNo').value.trim(),
+        mcNo: document.getElementById('actualMcNo') ? document.getElementById('actualMcNo').value.trim() : '',
         partNo: finalPartNo, 
         lotNo: document.getElementById('actualLotNo').value,
         qty: Number(document.getElementById('actualQty').value),
-        ngQty: Number(document.getElementById('actualNgQty').value || 0),
+        ngQty: Number(document.getElementById('actualNgQty') ? document.getElementById('actualNgQty').value : 0),
+        "เวลาทำงาน": timeRange,
         timeWork: timeRange,
         TimeWork: timeRange,
         timeRange: timeRange,
-        remark: document.getElementById('actualRemark').value.trim()
+        timework: timeRange,
+        remark: document.getElementById('actualRemark') ? document.getElementById('actualRemark').value.trim() : ''
     };
 
     // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
@@ -1862,9 +1938,6 @@ function submitActual(e) {
         if (result.status === "success") {
             actuals.unshift(actual); // เพิ่มข้อมูลใหม่ไว้ด้านบนสุดทันที
 
-            // ---------------------------------------------------------
-            // เงื่อนไข: ถ้าระบุ Process จะ "ไม่นำเข้า Stock WIP" จะเข้าเฉพาะขั้นตอนสุดท้าย
-            // ---------------------------------------------------------
             if (processSuffix === '' && typeof wipStock !== 'undefined') {
                 const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
                 if (existingWip) {
@@ -1880,15 +1953,13 @@ function submitActual(e) {
                 }
                 if (typeof renderWipStock === 'function') renderWipStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-            } else {
-                console.log("ข้ามการเข้า Stock WIP เนื่องจากเป็นกระบวนการย่อย:", processSuffix);
             }
-            // ---------------------------------------------------------
 
             document.getElementById('actualForm').reset();
-            // เซ็ตค่าช่องวันที่กลับเป็นวันปัจจุบันตามเวลาไทยหลังกดบันทึก
             const resetNow = new Date();
-            document.getElementById('actualDate').value = new Date(resetNow.getTime() - (resetNow.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            if (document.getElementById('actualDate')) {
+                document.getElementById('actualDate').value = new Date(resetNow.getTime() - (resetNow.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            }
             
             checkAndLoadPlans();
             renderActuals();
@@ -1903,30 +1974,39 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
-
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
     
-    // เติม &t=timestamp ป้องกันเบราว์เซอร์จำค่าแคชเก่า
     fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                actuals = res.data.map(item => ({
-                    id: item.id || Date.now(),
-                    date: item.date || item['Date'] || '',
-                    operator: item.operator || item['OP Name'] || '',
-                    line: item.line || item['Line/MC'] || '',
-                    mcNo: item.mcNo || item['Machine No.'] || '',
-                    partNo: item.partNo || item['Part No.'] || '',
-                    lotNo: item.lotNo || item['Lot No.'] || '',
-                    qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
-                    ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    timework: item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeWork || item.timeRange || '-',
-                    remark: item.remark || item['Remark'] || '-'
-                }));
+                actuals = res.data.map(item => {
+                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้ทั้งหมด ทั้งไทยและอังกฤษ
+                    const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || item['Start'] || '-';
+                    
+                    return {
+                        id: item.id || Date.now(),
+                        date: item.date || item['Date'] || '',
+                        operator: item.operator || item['OP Name'] || '',
+                        line: item.line || item['Line/MC'] || '',
+                        mcNo: item.mcNo || item['Machine No.'] || '',
+                        partNo: item.partNo || item['Part No.'] || '',
+                        lotNo: item.lotNo || item['Lot No.'] || '',
+                        qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
+                        ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+                        
+                        // กำหนดค่าคีย์เวลาให้ครอบคลุมทุกชื่อ เพื่อให้ฟังก์ชัน renderActuals อ่านเจอแน่นอน
+                        "เวลาทำงาน": timeVal,
+                        timework: timeVal,
+                        TimeWork: timeVal,
+                        timeRange: timeVal,
+                        
+                        remark: item.remark || item['Remark'] || '-'
+                    };
+                });
                 
                 renderActuals();
                 if (typeof renderCapacity === 'function') renderCapacity();
@@ -1934,7 +2014,6 @@ function loadActualsFromCloud() {
         })
         .catch(err => console.error("Error loading Actuals:", err));
 }
-
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
@@ -1943,7 +2022,7 @@ function renderActuals() {
 
     if (!actuals || actuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
-        updateOperatorDropdown();
+        if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
         return;
     }
 
@@ -1962,7 +2041,6 @@ function renderActuals() {
     displayActuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
 
-        // ระบบแปลงวันที่แบบหน้า Q-Gate ป้องกัน Timezone เพี้ยน (วันที่ไม่ตรง)
         let displayDate = '';
         let rawDate = a.date || a['Date'] || '';
         if (rawDate) {
@@ -1981,9 +2059,10 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        // เพิ่ม a.timeRange ไว้ตัวแรกสุด เพื่อดึงเวลาขึ้นมาแสดงผลเหมือนหน้า Q-Gate
-      const timeworkval = a['เวลาทำงาน'] || a['TimeWork'] || a.timeRange || a.timework || a.TimeWork || '-';
-        
+        // เช็กค่าเวลาให้แสดงผลขึ้นมา (รวมถึงจัดรูปแบบไม่ให้ตกบรรทัด)
+        let rawTime = a['เวลาทำงาน'] || a.timework || a.timeWork || a.TimeWork || a.timeRange;
+        const timeworkval = (rawTime && String(rawTime).trim() !== '' && String(rawTime).trim() !== 'undefined' && String(rawTime).trim() !== '-') ? String(rawTime).trim() : '-';
+
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
         const remarkval = a.remark || a['Remark'] || '-';
@@ -1991,7 +2070,7 @@ function renderActuals() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${displayDate}</td>
-            <td class="text-warning small fw-bold">${timeworkval}</td>
+            <td class="text-warning small fw-bold" style="white-space: nowrap;">${timeworkval}</td>
             <td>${opval}</td>
             <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
             <td class="fw-bold text-info">${partval}</td>
@@ -2008,7 +2087,7 @@ function renderActuals() {
         tbody.appendChild(tr);
     });
 
-    updateOperatorDropdown();
+    if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
 }
 // ฟังก์ชันช่วยจัดรูปแบบวันที่ให้แม่นยำ ไม่เพี้ยนและไม่สลับเดือน/วัน
 function parseDateString(dateStr) {
@@ -2045,7 +2124,22 @@ function loadAllData() {
         .then(res => res.json())
         .then(data => {
             if (data.plans) plans = data.plans;
-            if (data.actuals) actuals = data.actuals;
+            
+            // --- จุดที่แก้ไข: แม็ปแปลงข้อมูล actuals ให้ดึงคีย์เวลาติดมาด้วยทุกครั้ง ---
+            if (data.actuals && Array.isArray(data.actuals)) {
+                actuals = data.actuals.map(item => {
+                    const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || '-';
+                    return {
+                        ...item, // คงค่าฟิลด์อื่นๆ ไว้ทั้งหมด
+                        "เวลาทำงาน": timeVal,
+                        timework: timeVal,
+                        TimeWork: timeVal,
+                        timeRange: timeVal
+                    };
+                });
+            } else {
+                actuals = [];
+            }
             
             if (typeof wipStock !== 'undefined' && Array.isArray(actuals)) {
                 wipStock = [];
@@ -4114,22 +4208,33 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-    // 2. ดึง Actuals
+   // 2. ดึง Actuals
     fetch(scriptUrl + "?action=getActuals")
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                actuals = res.data.map(a => ({
-                    date: a.date || a.Date || '',
-                    operator: a.operator || a['OP Name'] || a.opName || '',
-                    line: a.line || a.Line || a['Line/MC'] || '',
-                    mcNo: a.mcNo || a['Machine No.'] || '',
-                    partNo: a.partNo || a['Part No.'] || '',
-                    lotNo: a.lotNo || a['Lot No.'] || '',
-                    qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
-                    ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
-                    remark: a.remark || a.Remark || ''
-                }));
+                actuals = res.data.map(a => {
+                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
+                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || '-';
+                    
+                    return {
+                        date: a.date || a.Date || '',
+                        operator: a.operator || a['OP Name'] || a.opName || '',
+                        line: a.line || a.Line || a['Line/MC'] || '',
+                        mcNo: a.mcNo || a['Machine No.'] || '',
+                        partNo: a.partNo || a['Part No.'] || '',
+                        lotNo: a.lotNo || a['Lot No.'] || '',
+                        qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                        ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
+                        
+                        // เพิ่มฟิลด์เวลาทำงานตรงนี้เพื่อให้เรนเดอร์ขึ้นตาราง
+                        "เวลาทำงาน": timeVal,
+                        timework: timeVal,
+                        TimeWork: timeVal,
+                        
+                        remark: a.remark || a.Remark || ''
+                    };
+                });
 
                 renderActuals();
                 renderDashboard();
@@ -4137,11 +4242,9 @@ function loadAllDataFromCloud() {
                 if (typeof renderStock === 'function') renderStock();
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
                 if (typeof renderDiePM === 'function') renderDiePM();
-               
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
-
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
         .then(res => res.json())
