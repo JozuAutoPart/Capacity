@@ -604,21 +604,23 @@
 <!-- TAB: Q-GATE INSPECTION -->
 <div class="tab-pane fade" id="tab-qgate">
     <div class="row g-3">
-        <!-- 1. ฝั่งซ้าย: ฟอร์มบันทึกผลตรวจ Q-Gate -->
+        <!-- ฝั่งซ้าย: ฟอร์มบันทึกผลตรวจ Q-Gate -->
         <div class="col-md-4">
             <div class="card p-3 border-start border-4 border-warning shadow-sm">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
-                    <div id="qgate-image-box" style="display: none;">
-                        <img id="qgate-part-img" src="" alt="Part Image" style="width: 55px; height: 55px; border-radius: 6px; border: 2px solid #475569; background: #fff; padding: 2px; object-fit: contain;">
-                    </div>
-                </div>
+               <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
+    <!-- บ็อกซ์รูปภาพที่จะแสดงที่มุมขวา -->
+    <div id="qgate-image-box" style="display: none;">
+        <img id="qgate-part-img" src="" alt="Part Image" style="width: 55px; height: 55px; border-radius: 6px; border: 2px solid #475569; background: #fff; padding: 2px; object-fit: contain;">
+    </div>
+</div>
                 <form id="qgateForm" onsubmit="submitQGateTransaction(event)">
                     <div class="mb-2">
                         <label class="form-label small">วันที่ตรวจสอบ</label>
                         <input type="date" id="qgateDate" class="form-control form-control-sm" required>
                     </div>
 
+                    <!-- 📌 เพิ่มฟิลด์เวลาเริ่มต้น และ เวลาสิ้นสุด -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small">เวลาเริ่มตรวจสอบ</label>
@@ -632,14 +634,15 @@
 
                     <div class="mb-2">
                         <label class="form-label small">ชื่อพนักงานตรวจสอบ (Inspector)</label>
-                        <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น รหัสพนักงาน/ชื่อ" required>
+                        <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น ระหัสพนักงาน/ปีไหม่" required>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label text-muted small"><i class="fas fa-search me-1"></i>ค้นหา Part No. / WIP</label>
-                        <input type="text" id="qgatePartSearch" class="form-control bg-dark text-white border-secondary" placeholder="พิมพ์เพื่อกรองหา Part No. หรือยอดใน WIP...">
-                    </div>
-
+                   
+<!-- ช่องค้นหา Part No. สำหรับ Q-Gate -->
+<div class="mb-3">
+    <label class="form-label text-muted small"><i class="fas fa-search me-1"></i>ค้นหา Part No. / WIP</label>
+    <input type="text" id="qgatePartSearch" class="form-control bg-dark text-white border-secondary" placeholder="พิมพ์เพื่อกรองหา Part No. หรือยอดใน WIP...">
+</div>
                     <div class="mb-2">
                         <label class="form-label small fw-bold">2. Part No. (ตรวจจาก WIP)</label>
                         <select id="qgatePartNo" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="updateQGateWipInfo()" required>
@@ -664,23 +667,26 @@
             </div>
         </div>
 
-        <!-- 2. ตรงกลาง: ตารางประวัติการตรวจ Q-Gate (ย่อขนาดให้พอดี) -->
-        <div class="col-md-5">
+        <!-- ฝั่งขวา: ตารางประวัติการตรวจ Q-Gate -->
+        <div class="col-md-8">
             <div class="card p-3 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 fs-6"><i class="fas fa-history me-1"></i>ประวัติการตรวจ Q-Gate</h5>
-                    <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm py-0 px-2" style="font-size: 12px;">
-                        <i class="fas fa-file-excel me-1"></i> Export (.xlsx)
-                    </button>
-                </div>
+            <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการตรวจสินค้าที่ Q-Gate</h5>
+            <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i> Export Q-Gate (.xlsx)
+            </button>
+        </div>
                 <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
-                    <table class="table table-dark table-hover align-middle m-0" style="font-size: 12px;">
+                    <table class="table table-dark table-hover align-middle m-0">
                         <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
                             <tr>
-                                <th>วันที่/เวลา</th>
+                                <th>วันที่ตรวจ</th>
+                                <th>เวลา</th>
+                                <th>พนักงานตรวจ</th>
                                 <th>Part No.</th>
-                                <th>ยอดตรวจ</th>
-                                <th>ผ่าน FG</th>
+                                <th>ยอดตรวจทั้งหมด</th>
+                                <th>ของเสีย (NG)</th>
+                                <th>ผ่านเข้า FG (Pass)</th>
                                 <th class="text-center">จัดการ</th>
                             </tr>
                         </thead>
@@ -689,32 +695,8 @@
                 </div>
             </div>
         </div>
-
-        <!-- 3. ฝั่งขวา: รายการ Part No. ที่ต่ำกว่า Safety Stock FG (เตรียมไว้สำหรับสเต็ป JavaScript) -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm border-danger bg-dark text-white">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="m-0 text-danger fw-bold" style="font-size: 13px;">
-                        <i class="fas fa-exclamation-triangle me-1"></i> ต่ำกว่า Safety Stock FG
-                    </h6>
-                </div>
-                <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
-                    <table class="table table-dark table-sm align-middle m-0" style="font-size: 12px;">
-                        <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
-                            <tr>
-                                <th>Part No.</th>
-                                <th class="text-end">เลือก</th>
-                            </tr>
-                        </thead>
-                        <tbody id="qgateSafetyStockTableBody">
-                            <!-- ข้อมูลจะถูกดึงมาแสดงที่นี่ในสเต็ปถัดไป -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
+</div>>
             <!-- TAB 6: STOCK WIP & FG -->
             <div class="tab-pane fade" id="tab-stock">
                 <div class="row g-3">
@@ -1917,7 +1899,6 @@ function loadActualsFromCloud() {
                 actuals = res.data.map(item => ({
                     id: item.id || Date.now(),
                     date: item.date || item['Date'] || '',
-                    timework: item['เวลาทำงาน'] || item['เวลา'] || item['Time'] || item['Working Time'] || item['timework'] || item['TimeWork'] || item['timeRange'] || item.timework || item.TimeWork || item.timeRange || '-',
                     operator: item.operator || item['OP Name'] || '',
                     line: item.line || item['Line/MC'] || '',
                     mcNo: item.mcNo || item['Machine No.'] || '',
@@ -1925,6 +1906,7 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+                    timework: item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeWork || item.timeRange || '-',
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
@@ -2554,154 +2536,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (partSelectEl) {
         partSelectEl.addEventListener('change', updateQGateWipInfo);
     }
-});
-// 📌 ฟังก์ชันดึงและเรนเดอร์ข้อมูลเข้าตาราง Safety Stock FG หน้า Q-Gate ฝั่งขวา
-function renderQGateSafetyStockList() {
-    const tableBody = document.getElementById('qgateSafetyStockTableBody');
-    if (!tableBody) return;
-
-    tableBody.innerHTML = '';
-
-    const masterDb = window.masterPartsDatabase || window.masterParts || [];
-    if (masterDb.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="2" class="text-center text-muted small py-2">กำลังโหลด Master Parts...</td></tr>`;
-        return;
-    }
-
-    let lowSafetyList = [];
-
-    masterDb.forEach(m => {
-        let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-        if (!rawPartNo) return;
-
-        const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
-        if (hasProcessSuffix) return;
-
-        let partNoKey = rawPartNo.toUpperCase();
-        let safetyStockVal = 0;
-        let inspectorName = '-';
-
-        // 1. อ่านค่าจากชื่อคอลัมน์โดยตรง (Safety Stock FG และ Inspector / P)
-        Object.keys(m).forEach(k => {
-            let lk = String(k).toLowerCase().trim();
-            let val = String(m[k]).replace(/,/g, '').trim();
-
-            if (lk.includes('safety stock fg') || lk === 'safetystockfg' || lk.includes('safety')) {
-                let v = Number(val);
-                if (!isNaN(v) && v > 0) safetyStockVal = v;
-            }
-
-            if (lk.includes('inspector') || lk === 'ผู้ตรวจสอบ' || lk === 'p') {
-                if (val && val !== 'undefined') inspectorName = m[k];
-            }
-        });
-
-        // 2. สำรองกรณีอ่านตามตำแหน่งคอลัมน์ Index (O = 14, P = 15)
-        if (safetyStockVal <= 0) {
-            const values = Object.values(m);
-            if (values.length > 14 && Number(values[14]) > 0) {
-                safetyStockVal = Number(String(values[14]).replace(/,/g, ''));
-            }
-            if (values.length > 15 && values[15]) {
-                inspectorName = values[15];
-            }
-        }
-
-        if (safetyStockVal <= 0) return;
-
-        // คำนวณยอด FG Pass และ Delivery จริง
-        const fgPass = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
-            let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-            return p === partNoKey;
-        }).reduce((sum, q) => sum + Number(q.passQty || q['Pass Qty'] || 0), 0);
-
-        const fgDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
-            let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
-            return p === partNoKey;
-        }).reduce((sum, d) => sum + Number(d.qty || d['Delivery Qty'] || 0), 0);
-
-        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
-        const currentFg = (fgPass - fgDelivered) + adjustFg;
-
-        // ถ้ายอดคงเหลือ FG น้อยกว่า Safety Stock FG ให้นำมาแสดง
-        if (currentFg < safetyStockVal) {
-            lowSafetyList.push({
-                partNo: rawPartNo,
-                stock: currentFg,
-                safetyStock: safetyStockVal,
-                inspector: inspectorName
-            });
-        }
-    });
-
-    if (lowSafetyList.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="2" class="text-center text-success small py-3"><i class="fas fa-check-circle me-1"></i> Stock FG ปลอดภัยทุกรายการ</td></tr>`;
-        return;
-    }
-
-    lowSafetyList.forEach(item => {
-        let tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>
-                <div class="fw-bold text-warning" style="font-size: 11px;">${item.partNo}</div>
-                <div class="text-muted" style="font-size: 10px;">Stock: <span class="text-danger fw-bold">${item.stock.toLocaleString()}</span> / Min: ${item.safetyStock.toLocaleString()}</div>
-                <div class="text-info" style="font-size: 10px;"><i class="fas fa-user-check me-1"></i>ผู้ตรวจ: <span class="text-white">${item.inspector}</span></div>
-            </td>
-            <td class="text-end align-middle">
-                <button class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size: 10px;" onclick="selectPartForQGate('${item.partNo}')" title="เลือกพาร์ทนี้ไปตรวจ">
-                    <i class="fas fa-arrow-left"></i> เลือก
-                </button>
-            </td>
-        `;
-        tableBody.appendChild(tr);
-    });
-}
-
-// ฟังก์ชันเลือกพาร์ทจากตารางขวาไปใส่ในฟอร์มตรวจอัตโนมัติ
-window.selectPartForQGate = function(partNo) {
-    const partSelectEl = document.getElementById('qgatePartNo');
-    if (!partSelectEl) return;
-
-    let found = false;
-    for (let i = 0; i < partSelectEl.options.length; i++) {
-        if (partSelectEl.options[i].value.trim().toUpperCase() === partNo.trim().toUpperCase()) {
-            partSelectEl.selectedIndex = i;
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) {
-        const newOpt = document.createElement('option');
-        newOpt.value = partNo;
-        newOpt.text = `${partNo} (Safety Stock Alert)`;
-        partSelectEl.appendChild(newOpt);
-        partSelectEl.value = partNo;
-    }
-
-    partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
-    
-    const qgateTotalQtyInput = document.getElementById('qgateTotalQty');
-    if (qgateTotalQtyInput) {
-        qgateTotalQtyInput.focus();
-        qgateTotalQtyInput.select();
-    }
-};
-
-// ผูกเข้ากับระบบเรนเดอร์หน้า Q-Gate เดิม
-if (typeof window.originalRenderQGate === 'undefined') {
-    window.originalRenderQGate = window.renderQGate;
-    window.renderQGate = function(...args) {
-        if (typeof window.originalRenderQGate === 'function') {
-            window.originalRenderQGate.apply(this, args);
-        }
-        renderQGateSafetyStockList();
-    };
-}
-
-// เรียกใช้งานทันทีเมื่อโหลดหน้า
-document.addEventListener("DOMContentLoaded", function() {
-    setTimeout(renderQGateSafetyStockList, 1000);
 });
 // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
