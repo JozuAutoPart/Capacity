@@ -5044,7 +5044,6 @@ document.addEventListener('keypress', function(e) {
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
 (function() {
     let cachedLowStockList = [];
-    let isInitialized = false;
 
     function initLowStockWidget() {
         let container = document.getElementById('zeroStockListContainer');
@@ -5061,34 +5060,23 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
-        function cleanPart(str) {
-            if (!str) return '';
-            return String(str).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
-        }
-
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
             
-            // ดึงข้อมูลการผลิตจากทุกชื่อตัวแปรที่เป็นไปได้ในระบบ
-            const actList = window.actuals || window.actualProduction || window.actList || (typeof actuals !== 'undefined' ? actuals : []);
-            const qgList = window.qgate || window.qGateList || (typeof qgate !== 'undefined' ? qgate : []);
-            const delList = window.deliveries || window.deliveryList || (typeof deliveries !== 'undefined' ? deliveries : []);
-
-            if (masterDb.length === 0 || actList.length === 0) {
+            if (masterDb.length === 0) {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Master และ Production จากระบบหลัก...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Master Database...</h6>
                     </div>`;
-                setTimeout(() => renderWidget(selectedLine), 2000);
+                setTimeout(() => renderWidget(selectedLine), 1500);
                 return;
             }
 
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
-                let cleanPartNo = cleanPart(rawPartNo);
-                if (!cleanPartNo) return;
+                let partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
+                if (!partNo) return;
 
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
@@ -5097,56 +5085,43 @@ document.addEventListener('keypress', function(e) {
                 const vals = Object.values(m);
                 if (m.minimum !== undefined) minVal = Number(String(m.minimum).replace(/,/g, ''));
                 else if (m['Minimum'] !== undefined) minVal = Number(String(m['Minimum']).replace(/,/g, ''));
-                else if (m['minimum'] !== undefined) minVal = Number(String(m['minimum']).replace(/,/g, ''));
                 else if (vals[11] !== undefined) minVal = Number(String(vals[11]).replace(/,/g, ''));
                 else if (vals[8] !== undefined) minVal = Number(String(vals[8]).replace(/,/g, ''));
 
                 if (isNaN(minVal) || minVal <= 0) return;
 
-                // ฟังก์ชันจับคู่ Part No. กับข้อมูลการผลิตจริง
-                const isMatch = (recPart) => {
-                    let cleanRec = cleanPart(recPart);
-                    if (!cleanRec) return false;
-                    return cleanRec === cleanPartNo || cleanRec.includes(cleanPartNo) || cleanPartNo.includes(cleanRec);
-                };
+                // ค้นหายอด Stock WIP + FG จากฟังก์ชันหรือตัวแปรในระบบหลักถ้ามี (ถ้าไม่มีคำนวณจากอาเรย์กลาง)
+                let totalStock = 0;
+                
+                // ลองดึงจากฟังก์ชันคำนวณสต็อกเดิมของระบบ (ถ้ามีประกาศไว้ใน window)
+                if (typeof window.getStockByPart === 'function') {
+                    totalStock = Number(window.getStockByPart(partNo)) || 0;
+                } else if (window.stockWipFgData && window.stockWipFgData[partNo]) {
+                    totalStock = Number(window.stockWipFgData[partNo].total || window.stockWipFgData[partNo]) || 0;
+                } else {
+                    // คำนวณผ่าน Actuals, QGate, Deliveries กลาง
+                    const actList = window.actuals || [];
+                    const qgList = window.qgate || [];
+                    const delList = window.deliveries || [];
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals)
-                const totalIn = actList.filter(a => {
-                    return isMatch(a.partNo || a['Part No.'] || a.part || a[Object.keys(a).find(k => k.toLowerCase().includes('part'))]);
-                }).reduce((sum, a) => {
-                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || a[Object.keys(a).find(k => k.toLowerCase().includes('qty') || k.toLowerCase().includes('จำนวน'))] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                    const clean = (s) => String(s || '').replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
+                    let targetKey = clean(partNo);
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
-                const totalTransferred = qgList.filter(q => {
-                    return isMatch(q.partNo || q['Part No.'] || q.part || q[Object.keys(q).find(k => k.toLowerCase().includes('part'))]);
-                }).reduce((sum, q) => {
-                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                    const match = (p) => clean(p) === targetKey || clean(p).includes(targetKey);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries)
-                const totalDelivered = delList.filter(d => {
-                    return isMatch(d.partNo || d['Part No.'] || d.part || d[Object.keys(d).find(k => k.toLowerCase().includes('part'))]);
-                }).reduce((sum, d) => {
-                    let val = Number(d.qty || d['Qty'] || 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                    let inQty = actList.filter(a => match(a.partNo || a['Part No.'])).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || 0), 0);
+                    let qgQty = qgList.filter(q => match(q.partNo || q['Part No.'])).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || 0), 0);
+                    let delQty = delList.filter(d => match(d.partNo || d['Part No.'])).reduce((s, d) => s + Number(d.qty || d['Qty'] || 0), 0);
 
-                // 4. Manual Adjustment
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
-                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || 0);
+                    let wip = inQty - qgQty;
+                    let fg = qgQty - delQty;
+                    totalStock = wip + fg;
+                }
 
-                // 5. คำนวณยอดสต็อกรวม (WIP + FG)
-                const currentwip = (totalIn - totalTransferred) + adjustWip;
-                const currentFg = (totalTransferred - totalDelivered) + adjustFg;
-                const totalStock = currentwip + currentFg;
-
-                // เงื่อนไข: สต็อกรวม < Minimum ให้นำมาแสดงเตือน
+                // ถ้ายอดสต็อกน้อยกว่า Minimum นำมาแสดงในรายการเตือน
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo,
+                        partNo: partNo,
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -5155,8 +5130,6 @@ document.addEventListener('keypress', function(e) {
             });
 
             cachedLowStockList = lowStockList;
-            isInitialized = true;
-
             displayWidget(lowStockList, selectedLine);
         }
 
@@ -5193,25 +5166,14 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
-            let originalLoad = window.loadAllDataFromCloud;
-            window.loadAllDataFromCloud = async function(...args) {
-                let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 1000);
-                return res;
-            };
-            window._patchedLoadCloud = true;
-        }
-
-        setTimeout(() => renderWidget('ALL'), 2000);
-        setTimeout(() => renderWidget('ALL'), 4000);
+        setTimeout(() => renderWidget('ALL'), 1500);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 500);
+                    setTimeout(() => renderWidget(text), 400);
                 }
             }
         });
