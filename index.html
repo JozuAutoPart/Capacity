@@ -2335,6 +2335,7 @@ function exportFilteredProductionReport() {
                 }
             }
 
+            // 🛠️ เพิ่มการส่งค่า downtimeMins และ downtimeCode ไปด้วยอย่างสมบูรณ์
             reportData.push({
                 startTime,
                 endTime,
@@ -2344,56 +2345,10 @@ function exportFilteredProductionReport() {
                 okQty: item.qty !== undefined ? item.qty : (item['OK Qty'] || 0),
                 ngQty: item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0),
                 remark: String(item.remark || item['Remark'] || '-'),
-                downtimeMins: Number(item.downtimeMins || 0),
-                downtimeCode: String(item.downtimeCode || ''),
+                downtimeMins: Number(item.downtimeMins || item['Downtime Mins'] || 0),
+                downtimeCode: String(item.downtimeCode || item['Downtime Code'] || ''),
                 ct: ctVal
             });
-        });
-    } else {
-        // Fallback: หากดึงจาก Array ไม่ได้ ให้ดึงจาก DOM Table
-        let rows = document.querySelectorAll('#actualTableBody tr');
-        rows.forEach((tr) => {
-            let tds = tr.querySelectorAll('td');
-            if (tds.length < 9) return;
-
-            let timeVal = String(tds[1]?.innerText.trim() || '');  
-            let opName = String(tds[2]?.innerText.trim() || '');   
-            let lineMc = String(tds[3]?.innerText.trim() || '');   
-            let partNo = String(tds[4]?.innerText.trim() || '');   
-            let lotNo = String(tds[5]?.innerText.trim() || '');    
-            let okQty = tds[6]?.innerText.trim() || '0';   
-            let ngQty = tds[7]?.innerText.trim() || '0';   
-            let remark = String(tds[8]?.innerText.trim() || '');   
-
-            if (selectedOperator && !opName.includes(selectedOperator)) return;
-
-            let startTime = "";
-            let endTime = "";
-            if (timeVal.includes('-')) {
-                let parts = timeVal.split('-');
-                startTime = parts[0].trim();
-                endTime = parts[1].trim();
-            } else {
-                startTime = timeVal;
-            }
-
-            let cleanPart = partNo.split(' ')[0].trim().toUpperCase();
-            let ctVal = 6;
-            
-            let masterList = (typeof masterBarcodes !== 'undefined') ? masterBarcodes : [];
-            if (Array.isArray(masterList)) {
-                let found = masterList.find(m => {
-                    let p = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
-                    let c = String(m.partCode || m['Part Code'] || m['barcode'] || '').trim().toUpperCase();
-                    return p === cleanPart || c === cleanPart;
-                });
-                if (found) {
-                    let rawCt = Number(found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : Object.values(found)[16]));
-                    if (!isNaN(rawCt) && rawCt > 0) ctVal = rawCt;
-                }
-            }
-
-            reportData.push({ startTime, endTime, lotNo, partNo, lineMc, okQty, ngQty, remark, ct: ctVal });
         });
     }
 
