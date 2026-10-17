@@ -5061,7 +5061,7 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
-        // ฟังก์ชันคลีนข้อความรหัสพาร์ตให้สะอาดบริสุทธิ์
+        // ฟังก์ชันคลีน Part No. ให้สะอาดบริสุทธิ์
         function cleanPart(str) {
             if (!str) return '';
             return String(str).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
@@ -5090,13 +5090,10 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
+                // ใช้ partNo (Column B) เป็นหลัก
                 let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
-                let rawBarcode = String(m.barcode || m['barcode'] || m['Part Code'] || '').trim();
-
-                let cleanPartNoKey = cleanPart(rawPartNo);
-                let cleanBarcodeKey = cleanPart(rawBarcode);
-
-                if (!cleanPartNoKey && !cleanBarcodeKey) return;
+                let cleanPartNo = cleanPart(rawPartNo);
+                if (!cleanPartNo) return;
 
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
@@ -5111,57 +5108,47 @@ document.addEventListener('keypress', function(e) {
 
                 if (isNaN(minVal) || minVal <= 0) return;
 
-                // ฟังก์ชันตรวจสอบการจับคู่กับข้อมูลการผลิต โดยวิ่งสแกนทุกฟิลด์ในแถวข้อมูลนั้นๆ
-                const isMatchRow = (rowObj) => {
-                    if (!rowObj) return false;
-                    for (let k in rowObj) {
-                        let valStr = cleanPart(rowObj[k]);
-                        if (!valStr) continue;
-                        if ((cleanPartNoKey && valStr.includes(cleanPartNoKey)) || 
-                            (cleanBarcodeKey && valStr.includes(cleanBarcodeKey)) ||
-                            (cleanPartNoKey && cleanPartNoKey.includes(valStr))) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-
-                // ฟังก์ชันช่วยดึงค่าตัวเลขจำนวนผลิต/ส่งมอบจากแถวข้อมูล
-                const getQty = (rowObj) => {
-                    for (let k in rowObj) {
-                        let lk = k.toLowerCase();
-                        if (lk.includes('qty') || lk.includes('จำนวน') || lk.includes('pass') || lk.includes('total')) {
-                            let num = Number(String(rowObj[k]).replace(/,/g, ''));
-                            if (!isNaN(num) && num > 0) return num;
-                        }
-                    }
-                    // Fallback หาจากคีย์มาตรฐาน
-                    let directVal = Number(rowObj.qty !== undefined ? rowObj.qty : (rowObj['OK Qty'] || rowObj['Qty'] || rowObj['ยอดตรวจทั้งหมด'] || 0));
-                    return isNaN(directVal) ? 0 : directVal;
+                // ฟังก์ชันจับคู่ Part No. กับข้อมูลการผลิตจริง
+                const isMatch = (recPart) => {
+                    let cleanRec = cleanPart(recPart);
+                    if (!cleanRec) return false;
+                    return cleanRec === cleanPartNo || cleanRec.includes(cleanPartNo) || cleanPartNo.includes(cleanRec);
                 };
 
                 // 1. คำนวณยอดผลิตเข้า (Actuals)
-                const totalIn = actList.filter(isMatchRow).reduce((sum, r) => sum + getQty(r), 0);
+                const totalIn = actList.filter(a => isMatch(a.partNo || a['Part No.'] || a.part))
+                    .reduce((sum, a) => {
+                        let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || 0));
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
                 // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
-                const totalTransferred = qgList.filter(isMatchRow).reduce((sum, r) => sum + getQty(r), 0);
+                const totalTransferred = qgList.filter(q => isMatch(q.partNo || q['Part No.'] || q.part))
+                    .reduce((sum, q) => {
+                        let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
                 // 3. คำนวณยอดส่งมอบ (Deliveries)
-                const totalDelivered = delList.filter(isMatchRow).reduce((sum, r) => sum + getQty(r), 0);
+                const totalDelivered = delList.filter(d => isMatch(d.partNo || d['Part No.'] || d.part))
+                    .reduce((sum, d) => {
+                        let val = Number(d.qty || d['Qty'] || 0);
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
                 // 4. Manual Adjustment
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || 0);
 
-                // 5. คำนวณยอดสต็อกรวมจริง (WIP + FG)
+                // 5. คำนวณยอดสต็อกรวม (WIP + FG)
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
                 const currentFg = (totalTransferred - totalDelivered) + adjustFg;
                 const totalStock = currentwip + currentFg;
 
-                // เงื่อนไข: สต็อกรวมน้อยกว่า Minimum ถึงจะนำมาแสดงผลเตือน
+                // เงื่อนไข: สต็อกรวม < Minimum ให้นำมาแสดงเตือน
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: cleanBarcodeKey ? `${cleanBarcodeKey} (${cleanPartNoKey})` : cleanPartNoKey,
+                        partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -5233,13 +5220,12 @@ document.addEventListener('keypress', function(e) {
         });
     }
 
-    (function checkReady() {
-        if (typeof window.masterPartsDatabase !== 'undefined' || typeof masterParts !== 'undefined' || document.readyState === 'complete') {
-            initLowStockWidget();
-        } else {
-            setTimeout(checkReady, 500);
-        }
-    })();
+    if (document.readyState === 'complete') {
+        initLowStockWidget();
+    } else {
+        window.addEventListener('load', initLowStockWidget);
+        setTimeout(initLowStockWidget, 1000);
+    }
 })();
         function updateClock() {
     const now = new Date();
