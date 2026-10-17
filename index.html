@@ -5082,10 +5082,6 @@ document.addEventListener('keypress', function(e) {
                 return;
             }
 
-            const actList = window.actuals || (typeof actuals !== 'undefined' ? actuals : []);
-            const qgList = window.qgate || (typeof qgate !== 'undefined' ? qgate : []);
-            const delList = window.deliveries || (typeof deliveries !== 'undefined' ? deliveries : []);
-
             let lowStockList = [];
 
             masterDb.forEach(m => {
@@ -5101,7 +5097,7 @@ document.addEventListener('keypress', function(e) {
 
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
-                // ดึงค่า Minimum จาก Column L หรือฟิลด์ minimum
+                // ดึงค่า Minimum จาก Column L หรือฟิลด์ minimum ตามโค้ดต้นฉบับของคุณมิว
                 let minVal = 0;
                 for (let key in m) {
                     let lk = key.toLowerCase().trim();
@@ -5116,50 +5112,39 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // ฟังก์ชันจับคู่พาร์ทแบบครอบคลุมทุกลักษณะข้อมูล
-                const isMatch = (recPart) => {
-                    let cleanRec = cleanStr(recPart);
-                    if (!cleanRec) return false;
+                // ดึงยอด Stock (WIP + FG) จริงจากฟังก์ชันคำนวณสต็อกของหน้าเว็บหลัก (ถ้ามี) หรือคำนวณผ่านตัวแปรกลาง
+                let totalStock = 0;
+                let displayPartName = rawPartNo || rawBarcode || rawPartCode;
 
-                    return (codeKey && (cleanRec === codeKey || cleanRec.includes(codeKey) || codeKey.includes(cleanRec))) ||
-                           (partNoKey && (cleanRec === partNoKey || cleanRec.includes(partNoKey) || partNoKey.includes(cleanRec))) ||
-                           (partCodeKey && (cleanRec === partCodeKey || cleanRec.includes(partCodeKey) || partCodeKey.includes(cleanRec)));
-                };
+                if (typeof window.getStockByPart === 'function') {
+                    totalStock = Number(window.getStockByPart(displayPartName)) || 0;
+                } else if (window.stockWipFgData && window.stockWipFgData[displayPartName]) {
+                    totalStock = Number(window.stockWipFgData[displayPartName].total || window.stockWipFgData[displayPartName]) || 0;
+                } else {
+                    // คำนวณจากอาเรย์ Actuals, QGate, Deliveries โดยดึงจากฟังก์ชันกลางของระบบถ้ามี
+                    const actList = window.actuals || [];
+                    const qgList = window.qgate || [];
+                    const delList = window.deliveries || [];
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals)
-                const totalIn = actList.filter(a => isMatch(a.partNo || a['Part No.'] || a.part || a.barcode || a['barcode']))
-                    .reduce((sum, a) => {
-                        let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || 0));
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
+                    const match = (p) => {
+                        let cp = cleanStr(p);
+                        return cp && (cp === partNoKey || cp.includes(partNoKey) || partNoKey.includes(cp) || (codeKey && cp.includes(codeKey)));
+                    };
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
-                const totalTransferred = qgList.filter(q => isMatch(q.partNo || q['Part No.'] || q.part || q.barcode || q['barcode']))
-                    .reduce((sum, q) => {
-                        let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
+                    let totalIn = actList.filter(a => match(a.partNo || a['Part No.'] || a.part || a.barcode)).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || a.okQty || 0), 0);
+                    let totalTransferred = qgList.filter(q => match(q.partNo || q['Part No.'] || q.part || q.barcode)).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || 0) + Number(q.ngQty || 0)) || 0), 0);
+                    let totalDelivered = delList.filter(d => match(d.partNo || d['Part No.'] || d.part || d.barcode)).reduce((s, d) => s + Number(d.qty || d['Qty'] || 0), 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries)
-                const totalDelivered = delList.filter(d => isMatch(d.partNo || d['Part No.'] || d.part || d.barcode || d['barcode']))
-                    .reduce((sum, d) => {
-                        let val = Number(d.qty || d['Qty'] || 0);
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
+                    const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawBarcode}`) || localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
+                    const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawBarcode}`) || localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || 0);
 
-                // 4. Manual Adjustment จาก LocalStorage
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawBarcode}`) || localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
-                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawBarcode}`) || localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || 0);
+                    totalStock = (totalIn - totalTransferred + adjustWip) + (totalTransferred - totalDelivered + adjustFg);
+                }
 
-                // 5. คำนวณยอดสต็อกรวม (WIP + FG)
-                const currentwip = (totalIn - totalTransferred) + adjustWip;
-                const currentFg = (totalTransferred - totalDelivered) + adjustFg;
-                const totalStock = currentwip + currentFg;
-
-                // เงื่อนไข: สต็อกรวม (WIP + FG) < Minimum ถึงจะแสดงเตือน
+                // เงื่อนไข: สต็อกรวม (WIP + FG) < Minimum แสดงเตือน และแสดง Part No. (Column B)
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawBarcode || rawPartNo || rawPartCode,
+                        partNo: rawPartNo || rawBarcode || rawPartCode,
                         line: line,
                         stock: totalStock,
                         min: minVal
