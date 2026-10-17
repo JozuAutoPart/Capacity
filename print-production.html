@@ -266,25 +266,31 @@
                 `;
                 summaryTbody.appendChild(tr);
 
-                // --- 2. เช็กใส่ส่วนที่ 2: DOWNTIME RECORD (หากมี Remark) ---
-                if (remark !== '') {
-                    let totalTimeMin = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
-                    let dtCode = detectDowntimeCode(remark);
-                    totalDowntimeMinutes += totalTimeMin;
+                // --- 2. DOWNTIME RECORD (ตรวจสอบทั้ง downtimeMins และ remark) ---
+                let dtMins = Number(item.downtimeMins || 0);
+                let dtCode = item.downtimeCode || '';
+
+                // ถ้ายอด downtimeMins มากกว่า 0 หรือมีการกรอก Remark ให้ดึงมาแสดงในตารางส่วนที่ 2 ทันที
+                if (dtMins > 0 || remark !== '') {
+                    let dtTimeMin = dtMins > 0 ? dtMins : (endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin));
+                    let codeShow = dtCode ? dtCode : detectDowntimeCode(remark);
+                    let descShow = remark !== '' ? `${remark} (${rawPartNo})` : `เครื่องจักรหยุดทำงาน (${rawPartNo})`;
+
+                    totalDowntimeMinutes += dtTimeMin;
 
                     downtimeRowsHtml += `
                         <tr>
                             <td>${startTime}</td>
                             <td>${endTime}</td>
-                            <td>${totalTimeMin}</td>
-                            <td><b>${dtCode}</b></td>
-                            <td style="text-align: left; padding-left: 8px;">${remark} (${rawPartNo})</td>
+                            <td>${dtTimeMin}</td>
+                            <td><b>${codeShow}</b></td>
+                            <td style="text-align: left; padding-left: 8px;">${descShow}</td>
                             <td>แก้ไข/แจ้งช่าง</td>
                         </tr>
                     `;
                 }
 
-                // --- 3. เช็กใส่ส่วนที่ 3: DEFECT & SCRAP ANALYSIS (หากมี NG Qty > 0) ---
+                // --- 3. DEFECT & SCRAP ANALYSIS (หากมี NG Qty > 0) ---
                 if (ngQty > 0) {
                     let defectDesc = remark !== '' ? remark : 'งานเสียจากการผลิต';
                     ngRowsHtml += `
@@ -315,6 +321,7 @@
                 if (downtimeTotalTd) downtimeTotalTd.innerText = totalDowntimeMinutes + ' นาที';
             } else {
                 if (downtimeTableBody) downtimeTableBody.innerHTML = '<tr><td>-</td><td>-</td><td>-</td><td>-</td><td>ไม่มีบันทึกเครื่องหยุด</td><td>-</td></tr>';
+                if (downtimeTotalTd) downtimeTotalTd.innerText = '0 นาที';
             }
 
             // อัปเดตตารางส่วนที่ 3 (Defect)
