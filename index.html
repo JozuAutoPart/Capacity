@@ -1835,47 +1835,44 @@ function onActualPartChange() {
     const basePartNo = select.value.trim();
     if (!basePartNo) return;
 
-    // เงื่อนไข: ตัด Process ด้านหลังออก เช่น "55333-0D020 1/7" ตัดเหลือ "55333-0D020" เพื่อนำไปเทียบหาค่า CT
+    // ตัด Process ด้านหลังออก เช่น "17154-0T040 1/3" ตัดเหลือ "17154-0T040"
     const cleanPartNo = basePartNo.split(' ')[0].trim().toUpperCase();
 
     let ctVal = 0;
 
-    // 1. ค้นหาค่า CT จาก masterBarcodes (ที่ดึงมาจากชีต MasterParts คอลัมน์ Q)
-    if (typeof masterBarcodes !== 'undefined' && Array.isArray(masterBarcodes) && masterBarcodes.length > 0) {
-        let found = masterBarcodes.find(item => {
-            let pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
-            let pCode = String(item.partCode || item['Part Code'] || item['barcode'] || '').trim().toUpperCase();
+    // ค้นหา Master Data จากทุกแหล่งที่มีในระบบ
+    const masterList = (typeof masterBarcodes !== 'undefined' && Array.isArray(masterBarcodes) && masterBarcodes.length > 0) 
+        ? masterBarcodes 
+        : ((typeof masterPartsData !== 'undefined' && Array.isArray(masterPartsData)) ? masterPartsData : (window.masterPartsDatabase || []));
+
+    if (Array.isArray(masterList)) {
+        let found = masterList.find(item => {
+            let vals = Object.values(item);
+            let pNo = String(item.partNo || item['Part No.'] || item['partNo'] || vals[1] || '').trim().toUpperCase();
+            let pCode = String(item.partCode || item['Part Code'] || item['barcode'] || vals[0] || '').trim().toUpperCase();
             return pNo === cleanPartNo || pCode === cleanPartNo;
         });
-        if (found && (found.ct !== undefined || found['CT'] !== undefined)) {
-            ctVal = Number(found.ct !== undefined ? found.ct : found['CT']);
-        }
-    }
 
-    // 2. ถ้ายังไม่เจอ ให้ค้นหาจาก masterPartsData หรือ masterParts
-    if (!ctVal && typeof masterPartsData !== 'undefined' && masterPartsData) {
-        if (Array.isArray(masterPartsData)) {
-            let found = masterPartsData.find(item => {
-                let pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
-                let pCode = String(item.partCode || item['Part Code'] || item['barcode'] || '').trim().toUpperCase();
-                return pNo === cleanPartNo || pCode === cleanPartNo;
-            });
-            if (found && (found.ct !== undefined || found['CT'] !== undefined)) {
-                ctVal = Number(found.ct !== undefined ? found.ct : found['CT']);
+        if (found) {
+            let vals = Object.values(found);
+            // ดึงค่า CT จากคีย์ ct / CT หรือดึงตรงจาก Column Q (Index 16)
+            let rawCt = found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : (found['Cycle Time'] !== undefined ? found['Cycle Time'] : vals[16]));
+            let parsedCt = Number(String(rawCt).replace(/,/g, ''));
+            if (!isNaN(parsedCt) && parsedCt > 0) {
+                ctVal = parsedCt;
             }
-        } else if (masterPartsData[cleanPartNo]) {
-            ctVal = Number(masterPartsData[cleanPartNo].ct || masterPartsData[cleanPartNo]);
         }
+    } else if (typeof masterPartsData !== 'undefined' && masterPartsData[cleanPartNo]) {
+        ctVal = Number(masterPartsData[cleanPartNo].ct || masterPartsData[cleanPartNo]['CT'] || masterPartsData[cleanPartNo]);
     }
 
-    // แสดงค่า CT (วินาที) ในช่อง input อัตโนมัติ (ถ้าไม่พบใน Sheet ให้ใช้ค่า Default 3 วินาที)
-    const finalCt = ctVal > 0 ? ctVal : 3;
+    // กำหนดค่า CT (ถ้าหาไม่เจอจริงๆ ค่อย fallback เป็น 3)
+    const finalCt = (ctVal > 0) ? ctVal : 3;
     const ctInput = document.getElementById('actualCt');
     if (ctInput) {
         ctInput.value = finalCt + " วินาที";
     }
 }
-
 function submitActual(e) {
     e.preventDefault();
     
