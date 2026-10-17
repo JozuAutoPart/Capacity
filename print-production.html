@@ -152,8 +152,42 @@
         return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
     }
 
+    // ฟังก์ชันคำนวณเวลาทำงานจริง โดยหักช่วงเวลาพักเที่ยง (12:00-12:45) และพักเย็น (17:00-17:30)
+    function calculateNetWorkingMinutes(startMin, endMin) {
+        let totalMinutes = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
+        if (totalMinutes <= 0) return 0;
+
+        // กำหนดนาทีของช่วงพักนับจาก 00:00 น.
+        const break1Start = 12 * 60;      // 12:00 = 720
+        const break1End = 12 * 60 + 45;   // 12:45 = 765
+
+        const break2Start = 17 * 60;      // 17:00 = 1020
+        const break2End = 17 * 60 + 30;   // 17:30 = 1050
+
+        let breakMinutes = 0;
+
+        function getOverlapMinutes(s1, e1, s2, e2) {
+            let start = Math.max(s1, s2);
+            let end = Math.min(e1, e2);
+            return Math.max(0, end - start);
+        }
+
+        if (endMin >= startMin) {
+            breakMinutes += getOverlapMinutes(startMin, endMin, break1Start, break1End);
+            breakMinutes += getOverlapMinutes(startMin, endMin, break2Start, break2End);
+        } else {
+            // กรณีคร่อมข้ามคืน
+            breakMinutes += getOverlapMinutes(startMin, 1440, break1Start, break1End);
+            breakMinutes += getOverlapMinutes(startMin, 1440, break2Start, break2End);
+            breakMinutes += getOverlapMinutes(0, endMin, break1Start, break1End);
+            breakMinutes += getOverlapMinutes(0, endMin, break2Start, break2End);
+        }
+
+        let netMinutes = totalMinutes - breakMinutes;
+        return Math.max(0, netMinutes);
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
-        // ดึงข้อมูลรายงานที่ถูกส่งมาจากหน้าหลักผ่าน localStorage
         let reportData = [];
         try {
             reportData = JSON.parse(localStorage.getItem('productionReportData') || '[]');
@@ -161,7 +195,6 @@
             reportData = [];
         }
 
-        // ดึงชื่อพนักงานสำหรับลงนาม
         let operatorName = localStorage.getItem('productionReportOperator') || '-';
         if (operatorName && operatorName !== 'ทั้งหมด') {
             document.getElementById('sign-operator').innerText = operatorName;
@@ -183,20 +216,18 @@
                 let startTime = item.startTime || '-';
                 let endTime = item.endTime || '-';
 
-                // คำนวณระยะเวลาทำงานเป็นวินาที
+                // คำนวณเวลาทำงานจริงที่หักเวลาพักออกแล้ว (เป็นนาที และ แปลงเป็นวินาที)
                 let startMin = timeToMinutes(startTime);
                 let endMin = timeToMinutes(endTime);
-                let durationMinutes = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
-                let durationSeconds = durationMinutes * 60;
+                let netMinutes = calculateNetWorkingMinutes(startMin, endMin);
+                let durationSeconds = netMinutes * 60;
 
                 let rawPartNo = item.partNo || '-';
-                // ตัดส่วน Process ท้ายออก เช่น "55365-0G030 1/7" ตัดเหลือ "55365-0G030"
-                let cleanPartNo = String(rawPartNo).split(' ')[0].trim().toUpperCase();
+                
+                // ดึงค่า CT (วินาที) จาก item.ct ที่ส่งมาจากหน้าหลัก ถ้าไม่มีให้ใช้ 6 วินาทีตาม Google Sheet
+                let ctSeconds = item.ct ? Number(item.ct) : 6;
 
-                // ค่า CT เริ่มต้น (วินาที) หากไม่มีในระบบให้ใช้ 3 วินาที
-                let ctSeconds = item.ct ? Number(item.ct) : 3;
-
-                // คำนวณ Target Pcs = เวลารวม (วินาที) / CT (วินาที)
+                // คำนวณ Target Pcs = เวลาทำงานจริง (วินาที) / CT (วินาที)
                 let targetQty = durationSeconds > 0 && ctSeconds > 0 ? Math.round(durationSeconds / ctSeconds) : 0;
 
                 let okQty = Number(item.okQty || 0);
