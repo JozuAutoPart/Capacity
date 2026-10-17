@@ -2269,6 +2269,13 @@ function loadAllData() {
 
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
+    
+    // 📅 กำหนดค่าเริ่มต้นวันที่เป็น "วันนี้" อัตโนมัติสำหรับพิมพ์รายงาน
+    const reportDateEl = document.getElementById('filterReportDate');
+    if (reportDateEl && !reportDateEl.value) {
+        const today = new Date();
+        reportDateEl.value = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    }
 });
 
 // ฟังก์ชันสร้างเสียง Beep แจ้งเตือน
