@@ -5061,10 +5061,15 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
+        function cleanStr(val) {
+            if (!val) return '';
+            return String(val).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
+        }
+
         function renderWidget(selectedLine = 'ALL') {
-            const masterDb = window.masterPartsDatabase || window.masterParts || [];
+            const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
             
-            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
+            if (masterDb.length === 0) {
                 if (cachedLowStockList.length > 0) {
                     displayWidget(cachedLowStockList, selectedLine);
                 } else {
@@ -5072,83 +5077,89 @@ document.addEventListener('keypress', function(e) {
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                             <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
                         </div>`;
+                    setTimeout(() => renderWidget(selectedLine), 1500);
                 }
                 return;
             }
 
+            const actList = window.actuals || (typeof actuals !== 'undefined' ? actuals : []);
+            const qgList = window.qgate || (typeof qgate !== 'undefined' ? qgate : []);
+            const delList = window.deliveries || (typeof deliveries !== 'undefined' ? deliveries : []);
+
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-                if (!rawPartNo) return;
+                let rawBarcode = String(m.barcode || m['barcode'] || '').trim();
+                let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
+                let rawPartCode = String(m['Part Code'] || m.partCode || '').trim();
 
-                const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
-                if (hasProcessSuffix) return;
+                let codeKey = cleanStr(rawBarcode);
+                let partNoKey = cleanStr(rawPartNo);
+                let partCodeKey = cleanStr(rawPartCode);
 
-                // แปลง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อใช้เป็นมาตรฐานกลางในการเทียบ
-                let partNo = rawPartNo.toUpperCase();
+                if (!codeKey && !partNoKey && !partCodeKey) return;
 
-                let line = 'ALL';
+                let line = String(m.line || m['Line'] || 'ALL').trim();
+                
+                // ดึงค่า Minimum จาก Column L หรือฟิลด์ minimum
                 let minVal = 0;
-
-                const keys = Object.keys(m);
-                for (let i = 0; i < keys.length; i++) {
-                    let k = keys[i];
-                    let lk = k.toLowerCase().trim();
-                    let val = String(m[k]).replace(/,/g, '').trim();
-
-                    if (lk === 'line' || lk.includes('line')) {
-                        if (m[k]) line = m[k];
+                for (let key in m) {
+                    let lk = key.toLowerCase().trim();
+                    if (lk === 'minimum' || lk.includes('minimum') || lk === 'safetystock') {
+                        let v = Number(String(m[key]).replace(/,/g, ''));
+                        if (!isNaN(v)) minVal = v;
                     }
-                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
-                        let v = Number(val);
-                        if (!isNaN(v) && v > 0) {
-                            minVal = v;
-                        }
-                    }
+                }
+                if (minVal <= 0) {
+                    minVal = Number(m.minimum || m['Minimum'] || Object.values(m)[11] || Object.values(m)[8] || 0);
                 }
 
                 if (minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalIn = actuals.filter(a => {
-                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, a) => {
-                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                // ฟังก์ชันจับคู่พาร์ทแบบครอบคลุมทุกลักษณะข้อมูล
+                const isMatch = (recPart) => {
+                    let cleanRec = cleanStr(recPart);
+                    if (!cleanRec) return false;
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalTransferred = qgate.filter(q => {
-                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, q) => {
-                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                    return (codeKey && (cleanRec === codeKey || cleanRec.includes(codeKey) || codeKey.includes(cleanRec))) ||
+                           (partNoKey && (cleanRec === partNoKey || cleanRec.includes(partNoKey) || partNoKey.includes(cleanRec))) ||
+                           (partCodeKey && (cleanRec === partCodeKey || cleanRec.includes(partCodeKey) || partCodeKey.includes(cleanRec)));
+                };
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
-                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, d) => {
-                    let val = Number(d.qty || d['Qty'] || 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                // 1. คำนวณยอดผลิตเข้า (Actuals)
+                const totalIn = actList.filter(a => isMatch(a.partNo || a['Part No.'] || a.part || a.barcode || a['barcode']))
+                    .reduce((sum, a) => {
+                        let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || 0));
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
-                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment - ใช้ uppercase ควบคุม
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
-                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
+                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
+                const totalTransferred = qgList.filter(q => isMatch(q.partNo || q['Part No.'] || q.part || q.barcode || q['barcode']))
+                    .reduce((sum, q) => {
+                        let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกันแบบบวกตรงๆ
+                // 3. คำนวณยอดส่งมอบ (Deliveries)
+                const totalDelivered = delList.filter(d => isMatch(d.partNo || d['Part No.'] || d.part || d.barcode || d['barcode']))
+                    .reduce((sum, d) => {
+                        let val = Number(d.qty || d['Qty'] || 0);
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
+
+                // 4. Manual Adjustment จาก LocalStorage
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawBarcode}`) || localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
+                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawBarcode}`) || localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || 0);
+
+                // 5. คำนวณยอดสต็อกรวม (WIP + FG)
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
                 const currentFg = (totalTransferred - totalDelivered) + adjustFg;
                 const totalStock = currentwip + currentFg;
 
+                // เงื่อนไข: สต็อกรวม (WIP + FG) < Minimum ถึงจะแสดงเตือน
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo, // แสดงผลตามชื่อต้นฉบับ
+                        partNo: rawBarcode || rawPartNo || rawPartCode,
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -5156,12 +5167,10 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
-            if (lowStockList.length > 0 || isInitialized) {
-                cachedLowStockList = lowStockList;
-                isInitialized = true;
-            }
+            cachedLowStockList = lowStockList;
+            isInitialized = true;
 
-            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, selectedLine);
+            displayWidget(lowStockList, selectedLine);
         }
 
         function displayWidget(list, selectedLine) {
@@ -5208,19 +5217,8 @@ document.addEventListener('keypress', function(e) {
             window._patchedLoadCloud = true;
         }
 
-        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
-            let originalRenderAll = window.renderAll;
-            window.renderAll = function(...args) {
-                let res = originalRenderAll.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 300);
-                return res;
-            };
-            window._patchedRenderAll = true;
-        }
-
         setTimeout(() => renderWidget('ALL'), 1000);
         setTimeout(() => renderWidget('ALL'), 3000);
-        setTimeout(() => renderWidget('ALL'), 5000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
