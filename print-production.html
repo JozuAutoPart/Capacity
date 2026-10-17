@@ -152,16 +152,15 @@
         return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
     }
 
-    // ฟังก์ชันคำนวณเวลาทำงานจริง โดยหักช่วงเวลาพักเที่ยง (12:00-12:45) และพักเย็น (17:00-17:30)
     function calculateNetWorkingMinutes(startMin, endMin) {
         let totalMinutes = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
         if (totalMinutes <= 0) return 0;
 
-        const break1Start = 12 * 60;      // 12:00 = 720
-        const break1End = 12 * 60 + 45;   // 12:45 = 765
+        const break1Start = 12 * 60;      // 12:00
+        const break1End = 12 * 60 + 45;   // 12:45
 
-        const break2Start = 17 * 60;      // 17:00 = 1020
-        const break2End = 17 * 60 + 30;   // 17:30 = 1050
+        const break2Start = 17 * 60;      // 17:00
+        const break2End = 17 * 60 + 30;   // 17:30
 
         let breakMinutes = 0;
 
@@ -185,7 +184,6 @@
         return Math.max(0, netMinutes);
     }
 
-    // ฟังก์ชันเดารหัส Downtime จากคำใน Remark
     function detectDowntimeCode(remarkText) {
         if (!remarkText) return 'M/C';
         let txt = remarkText.toLowerCase();
@@ -266,13 +264,15 @@
                 `;
                 summaryTbody.appendChild(tr);
 
-                // --- 2. DOWNTIME RECORD (ตรวจสอบทั้ง downtimeMins และ remark) ---
+                // --- 2. DOWNTIME RECORD ---
+                let dtStartShow = item.dtStart || startTime;
+                let dtEndShow = item.dtEnd || endTime;
                 let dtMins = Number(item.downtimeMins || 0);
                 let dtCode = item.downtimeCode || '';
 
-                // ถ้ายอด downtimeMins มากกว่า 0 หรือมีการกรอก Remark ให้ดึงมาแสดงในตารางส่วนที่ 2 ทันที
-                if (dtMins > 0 || remark !== '') {
-                    let dtTimeMin = dtMins > 0 ? dtMins : (endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin));
+                // ถ้าระบุเวลาเริ่ม/จบที่หยุด หรือมี downtimeMins หรือมี Remark
+                if (item.dtStart || item.dtEnd || dtMins > 0 || remark !== '') {
+                    let dtTimeMin = dtMins > 0 ? dtMins : (timeToMinutes(dtEndShow) >= timeToMinutes(dtStartShow) ? (timeToMinutes(dtEndShow) - timeToMinutes(dtStartShow)) : (1440 - timeToMinutes(dtStartShow) + timeToMinutes(dtEndShow)));
                     let codeShow = dtCode ? dtCode : detectDowntimeCode(remark);
                     let descShow = remark !== '' ? `${remark} (${rawPartNo})` : `เครื่องจักรหยุดทำงาน (${rawPartNo})`;
 
@@ -280,8 +280,8 @@
 
                     downtimeRowsHtml += `
                         <tr>
-                            <td>${startTime}</td>
-                            <td>${endTime}</td>
+                            <td>${dtStartShow}</td>
+                            <td>${dtEndShow}</td>
                             <td>${dtTimeMin}</td>
                             <td><b>${codeShow}</b></td>
                             <td style="text-align: left; padding-left: 8px;">${descShow}</td>
@@ -290,7 +290,7 @@
                     `;
                 }
 
-                // --- 3. DEFECT & SCRAP ANALYSIS (หากมี NG Qty > 0) ---
+                // --- 3. DEFECT & SCRAP ANALYSIS ---
                 if (ngQty > 0) {
                     let defectDesc = remark !== '' ? remark : 'งานเสียจากการผลิต';
                     ngRowsHtml += `
@@ -305,7 +305,7 @@
                 }
             });
 
-            // อัปเดตตารางสรุปส่วนที่ 1
+            // อัปเดตตารางสรุป
             document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
             document.getElementById('totalActual').innerText = totalActual.toLocaleString();
             document.getElementById('totalOk').innerText = totalOk.toLocaleString();
