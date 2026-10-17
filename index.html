@@ -5061,22 +5061,26 @@ document.addEventListener('keypress', function(e) {
         container.style.display = 'block';
 
         function renderWidget(selectedLine = 'ALL') {
-            // 1. ดึงอาเรย์ข้อมูลการผลิตหลักของระบบ (Read-Only)
             const actList = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals : (window.actuals || []);
             const qgList = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate : (window.qgate || []);
             const delList = (typeof deliveries !== 'undefined' && Array.isArray(deliveries)) ? deliveries : (window.deliveries || []);
 
-            // 2. ดึง Master Data สำหรับอ่านค่า Minimum (Column L) และ Line
             const masterList = (typeof masterBarcodes !== 'undefined' && Array.isArray(masterBarcodes)) ? masterBarcodes : 
                                ((typeof masterPartsData !== 'undefined' && Array.isArray(masterPartsData)) ? masterPartsData : (window.masterPartsDatabase || []));
 
-            // รวบรวมข้อมูล Master เพื่อใช้ค้นหา Minimum
+            // 1. ดึงข้อมูล Master พร้อมแกะหา Line ให้เจอทุกรูปแบบคอลัมน์
             const masterMap = new Map();
             if (Array.isArray(masterList)) {
                 masterList.forEach(m => {
-                    let pNo = String(m.partNo || m['Part No.'] || m['partNo'] || Object.values(m)[1] || '').trim();
-                    let line = String(m.line || m['Line'] || Object.values(m)[4] || 'ALL').trim();
-                    let minVal = Number(m.minimum || m['Minimum'] || m.ct || Object.values(m)[11] || 0);
+                    let vals = Object.values(m);
+                    let pNo = String(m.partNo || m['Part No.'] || m['partNo'] || vals[1] || '').trim();
+                    
+                    // ค้นหาฟิลด์ Line หรือหยิบจาก Column E (Index 4)[cite: 10]
+                    let line = String(m.line || m['Line'] || m['LINE'] || vals[4] || 'ALL').trim();
+                    if (!line || line === 'undefined' || line === '') line = 'ALL';
+
+                    // ดึงค่า Minimum จาก Column L (Index 11)[cite: 10]
+                    let minVal = Number(m.minimum || m['Minimum'] || m['min'] || vals[11] || 0);
 
                     if (pNo) {
                         masterMap.set(pNo.toUpperCase(), { min: minVal, line: line, original: pNo });
@@ -5084,21 +5088,19 @@ document.addEventListener('keypress', function(e) {
                 });
             }
 
-            // 3. รวบรวม Part No. ทั้งหมดแบบเดียวกับฟังก์ชัน renderStock ใน Tab 6
             const partsMap = new Map();
             const allRecords = [...actList, ...qgList, ...delList];
 
             allRecords.forEach(item => {
                 let rawPart = String(item.partNo || item['Part No.'] || '').trim();
                 if (!rawPart) return;
-                if (/\s\d+\/\d+$/.test(rawPart)) return; // ตัด Process ออก
+                if (/\s\d+\/\d+$/.test(rawPart)) return;
                 let upperPart = rawPart.toUpperCase();
                 if (!partsMap.has(upperPart)) {
                     partsMap.set(upperPart, rawPart);
                 }
             });
 
-            // กรณีเปิดหน้าเว็บมาแล้วยังไม่มีประวัติการผลิต ให้ดึงพาร์ทจาก Master มาเช็กแทน
             if (partsMap.size === 0 && masterMap.size > 0) {
                 masterMap.forEach((val, key) => {
                     partsMap.set(key, val.original);
@@ -5116,9 +5118,7 @@ document.addEventListener('keypress', function(e) {
 
             let lowStockList = [];
 
-            // 4. คำนวณยอด Stock (WIP + FG) ตามสูตร Tab 6
             partsMap.forEach((displayPartNo, partNoKey) => {
-                // ยอดเข้า Actuals
                 const totalIn = actList.filter(a => {
                     let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
                     return p === partNoKey;
@@ -5127,7 +5127,6 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // ยอดตรวจ Q-Gate
                 const totalTransferred = qgList.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNoKey;
@@ -5139,7 +5138,6 @@ document.addEventListener('keypress', function(e) {
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${displayPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNoKey}`) || 0);
                 const currentWip = (totalIn - totalTransferred) + adjustWip;
 
-                // ยอดผ่านเข้า FG
                 const fgPass = qgList.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNoKey;
@@ -5148,7 +5146,6 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // ยอดส่งมอบ Delivery
                 const fgDelivered = delList.filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNoKey;
@@ -5160,18 +5157,14 @@ document.addEventListener('keypress', function(e) {
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${displayPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
                 const currentFg = (fgPass - fgDelivered) + adjustFg;
 
-                // ยอด Stock รวม (WIP + FG)
                 const totalStock = currentWip + currentFg;
 
-                // ดึงค่า Minimum จาก Master
                 let masterInfo = masterMap.get(partNoKey) || { min: 0, line: 'ALL' };
                 let minVal = masterInfo.min;
                 let line = masterInfo.line;
 
-                // ถ้ายอด Minimum เป็น 0 ให้ลองหาค่า Default
-                if (minVal <= 0) minVal = 10; 
+                if (minVal <= 0) minVal = 10; // ค่าเผื่อกรณีไม่มี Minimum ในชีต
 
-                // 5. เงื่อนไข: ถ้ายอด Stock (WIP + FG) น้อยกว่า Minimum ให้แสดง Part No. (Column B)[cite: 10]
                 if (totalStock < minVal) {
                     lowStockList.push({
                         partNo: displayPartNo,
@@ -5188,9 +5181,14 @@ document.addEventListener('keypress', function(e) {
 
         function displayWidget(list, selectedLine) {
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
+            
+            // กรองตามไลน์ที่เลือก (รองรับการเทียบชื่อไลน์แบบยืดหยุ่น)
             const filteredParts = (currentLine === 'ALL') 
                 ? list 
-                : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
+                : list.filter(x => {
+                    let xl = String(x.line).trim().toUpperCase();
+                    return xl === currentLine || xl.includes(currentLine) || currentLine.includes(xl);
+                });
 
             let badgesHtml = filteredParts.map(item => {
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
@@ -5219,15 +5217,15 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        // รอให้ระบบหลักโหลดข้อมูลเสร็จสมบูรณ์ก่อนทำงาน (3 วินาที)
         setTimeout(() => renderWidget('ALL'), 3000);
 
+        // ดักจับการคลิกปุ่มเลือกไลน์ (ALL, Line A, Line Q, Line C1...) บนหน้าเว็บอัตโนมัติ
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
-                if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 400);
+                if (text === 'ALL' || text.startsWith('Line') || text.includes('Line')) {
+                    setTimeout(() => renderWidget(text), 300);
                 }
             }
         });
