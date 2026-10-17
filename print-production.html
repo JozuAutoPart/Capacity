@@ -206,8 +206,8 @@
             document.getElementById('sign-operator').innerText = operatorName;
         }
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        document.getElementById('sign-date').innerText = todayStr;
+        let reportDate = localStorage.getItem('productionReportDate') || new Date().toISOString().split('T')[0];
+document.getElementById('sign-date').innerText = reportDate;
 
         if (reportData.length > 0) {
             const summaryTbody = document.getElementById('summaryTableBody');
