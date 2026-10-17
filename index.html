@@ -1822,6 +1822,7 @@ function checkAndLoadPlans() {
 }
 
 // ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก MasterParts ใน Google Sheet มาแสดงอัตโนมัติ
+// ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT จาก Master ใน LocalStorage หรือ Global โดยตรง
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
     if (!select || select.selectedIndex < 0) return;
@@ -1835,17 +1836,25 @@ function onActualPartChange() {
     const basePartNo = select.value.trim();
     if (!basePartNo) return;
 
-    // ตัด Process ด้านหลังออก เช่น "17154-0T040 1/3" ตัดเหลือ "17154-0T040"
     const cleanPartNo = basePartNo.split(' ')[0].trim().toUpperCase();
-
     let ctVal = 0;
 
-    // ค้นหา Master Data จากทุกแหล่งที่มีในระบบ
-    const masterList = (typeof masterBarcodes !== 'undefined' && Array.isArray(masterBarcodes) && masterBarcodes.length > 0) 
-        ? masterBarcodes 
-        : ((typeof masterPartsData !== 'undefined' && Array.isArray(masterPartsData)) ? masterPartsData : (window.masterPartsDatabase || []));
+    // ดึงข้อมูล Master จาก LocalStorage (แหล่งข้อมูลหลักที่อัปโหลดจากชีต)
+    let masterList = [];
+    try {
+        masterList = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    } catch (e) {
+        masterList = [];
+    }
 
-    if (Array.isArray(masterList)) {
+    // ถ้าใน LocalStorage ไม่มี ให้ดึงจากตัวแปร Global
+    if (masterList.length === 0) {
+        if (typeof masterBarcodes !== 'undefined' && Array.isArray(masterBarcodes)) masterList = masterBarcodes;
+        else if (typeof masterPartsData !== 'undefined' && Array.isArray(masterPartsData)) masterList = masterPartsData;
+        else if (typeof window.masterPartsDatabase !== 'undefined') masterList = window.masterPartsDatabase;
+    }
+
+    if (Array.isArray(masterList) && masterList.length > 0) {
         let found = masterList.find(item => {
             let vals = Object.values(item);
             let pNo = String(item.partNo || item['Part No.'] || item['partNo'] || vals[1] || '').trim().toUpperCase();
@@ -1855,19 +1864,16 @@ function onActualPartChange() {
 
         if (found) {
             let vals = Object.values(found);
-            // ดึงค่า CT จากคีย์ ct / CT หรือดึงตรงจาก Column Q (Index 16)
+            // ดึงค่า CT จากคีย์ ct, CT, Cycle Time หรือ Column Q (Index 16)
             let rawCt = found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : (found['Cycle Time'] !== undefined ? found['Cycle Time'] : vals[16]));
             let parsedCt = Number(String(rawCt).replace(/,/g, ''));
             if (!isNaN(parsedCt) && parsedCt > 0) {
                 ctVal = parsedCt;
             }
         }
-    } else if (typeof masterPartsData !== 'undefined' && masterPartsData[cleanPartNo]) {
-        ctVal = Number(masterPartsData[cleanPartNo].ct || masterPartsData[cleanPartNo]['CT'] || masterPartsData[cleanPartNo]);
     }
 
-    // กำหนดค่า CT (ถ้าหาไม่เจอจริงๆ ค่อย fallback เป็น 3)
-    const finalCt = (ctVal > 0) ? ctVal : 3;
+    const finalCt = (ctVal > 0) ? ctVal : 6; // ตั้งค่าเริ่มต้นเป็น 6 ตามชีต[cite: 10, 11]
     const ctInput = document.getElementById('actualCt');
     if (ctInput) {
         ctInput.value = finalCt + " วินาที";
