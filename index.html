@@ -5061,9 +5061,10 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
-        function cleanStr(val) {
-            if (!val) return '';
-            return String(val).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
+        // ฟังก์ชันคลีนข้อความ Part No. ตัด Process (1/2, 4/7) และสัญลักษณ์พิเศษออก
+        function cleanPart(str) {
+            if (!str) return '';
+            return String(str).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
         }
 
         function renderWidget(selectedLine = 'ALL') {
@@ -5089,58 +5090,59 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let displayCode = String(m.barcode || m['barcode'] || m['Part Code'] || '').trim();
+                // ดึงรหัสพาร์ท และ บาร์โค้ด
                 let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
+                let rawBarcode = String(m.barcode || m['barcode'] || m['Part Code'] || '').trim();
 
-                let partNoKey = cleanStr(rawPartNo);
-                if (!partNoKey) return;
+                let cleanPartNoKey = cleanPart(rawPartNo);
+                let cleanBarcodeKey = cleanPart(rawBarcode);
+
+                if (!cleanPartNoKey && !cleanBarcodeKey) return;
 
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
-                // ดึงค่า Minimum จาก Column L (index 11) หรือฟิลด์ minimum
+                // ดึงค่า Minimum (รองรับทั้ง Key ชื่อ Minimum, minimum หรือ Column L Index 11)
                 let minVal = 0;
-                for (let key in m) {
-                    let lk = key.toLowerCase().trim();
-                    if (lk === 'minimum' || lk.includes('minimum') || lk === 'safetystock') {
-                        let v = Number(String(m[key]).replace(/,/g, ''));
-                        if (!isNaN(v)) minVal = v;
-                    }
-                }
-                if (minVal <= 0) {
-                    minVal = Number(m.minimum || m['Minimum'] || Object.values(m)[11] || Object.values(m)[8] || 0);
-                }
+                const vals = Object.values(m);
+                if (m.minimum !== undefined) minVal = Number(String(m.minimum).replace(/,/g, ''));
+                else if (m['Minimum'] !== undefined) minVal = Number(String(m['Minimum']).replace(/,/g, ''));
+                else if (m['minimum'] !== undefined) minVal = Number(String(m['minimum']).replace(/,/g, ''));
+                else if (vals[11] !== undefined) minVal = Number(String(vals[11]).replace(/,/g, ''));
+                else if (vals[8] !== undefined) minVal = Number(String(vals[8]).replace(/,/g, ''));
 
-                if (minVal <= 0) return;
+                if (isNaN(minVal) || minVal <= 0) return;
 
-                // ฟังก์ชันเทียบรหัส Part No. กับข้อมูลการผลิตจริงให้ตรงกันเป๊ะ
+                // ฟังก์ชันตรวจสอบการจับคู่ Part No.
                 const isMatch = (recPart) => {
-                    let cleanRec = cleanStr(recPart);
+                    let cleanRec = cleanPart(recPart);
                     if (!cleanRec) return false;
-                    return cleanRec === partNoKey || cleanRec.includes(partNoKey) || partNoKey.includes(cleanRec);
+                    
+                    return (cleanPartNoKey && (cleanRec === cleanPartNoKey || cleanRec.includes(cleanPartNoKey) || cleanPartNoKey.includes(cleanRec))) ||
+                           (cleanBarcodeKey && (cleanRec === cleanBarcodeKey || cleanRec.includes(cleanBarcodeKey) || cleanBarcodeKey.includes(cleanRec)));
                 };
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals)[cite: 11]
+                // 1. ยอดผลิตเข้า (Actuals)
                 const totalIn = actList.filter(a => isMatch(a.partNo || a['Part No.'] || a.part))
                     .reduce((sum, a) => {
                         let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || 0));
                         return sum + (isNaN(val) ? 0 : val);
                     }, 0);
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
+                // 2. ยอดผ่านตรวจสอบ (Q-Gate Passed)
                 const totalTransferred = qgList.filter(q => isMatch(q.partNo || q['Part No.'] || q.part))
                     .reduce((sum, q) => {
                         let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
                         return sum + (isNaN(val) ? 0 : val);
                     }, 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries)
+                // 3. ยอดส่งมอบ (Deliveries)
                 const totalDelivered = delList.filter(d => isMatch(d.partNo || d['Part No.'] || d.part))
                     .reduce((sum, d) => {
                         let val = Number(d.qty || d['Qty'] || 0);
                         return sum + (isNaN(val) ? 0 : val);
                     }, 0);
 
-                // 4. Manual Adjustment จาก LocalStorage
+                // 4. Adjustments
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || 0);
 
@@ -5149,10 +5151,10 @@ document.addEventListener('keypress', function(e) {
                 const currentFg = (totalTransferred - totalDelivered) + adjustFg;
                 const totalStock = currentwip + currentFg;
 
-                // เงื่อนไข: สต็อกรวม (WIP + FG) < Minimum ถึงจะแสดงเตือน
+                // เช็กเงื่อนไข: สต็อกรวมน้อยกว่า Minimum
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: displayCode ? `${displayCode} (${rawPartNo})` : rawPartNo,
+                        partNo: cleanBarcodeKey ? `${cleanBarcodeKey} (${cleanPartNoKey})` : cleanPartNoKey,
                         line: line,
                         stock: totalStock,
                         min: minVal
