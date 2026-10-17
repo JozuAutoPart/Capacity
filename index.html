@@ -4966,8 +4966,7 @@ document.addEventListener('keypress', function(e) {
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
             
-            // ป้องกันติดค้างสถานะโหลด ให้แสดงผลจาก Cache หรือดึงต่อทันทีหากข้อมูลพร้อมบางส่วน
-            if (masterDb.length === 0) {
+            if (masterDb.length === 0 || typeof actuals === 'undefined') {
                 if (cachedLowStockList.length > 0) {
                     displayWidget(cachedLowStockList, selectedLine);
                 } else {
@@ -4990,33 +4989,15 @@ document.addEventListener('keypress', function(e) {
                 if (hasProcessSuffix) return;
 
                 let partNo = rawPartNo.toUpperCase();
-                let line = 'ALL';
-                let minVal = 0;
-
-                const keys = Object.keys(m);
-                for (let i = 0; i < keys.length; i++) {
-                    let k = keys[i];
-                    let lk = k.toLowerCase().trim();
-                    let val = String(m[k]).replace(/,/g, '').trim();
-
-                    if (lk === 'line' || lk.includes('line')) {
-                        if (m[k]) line = m[k];
-                    }
-                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || lk.includes('min') || i === 11) {
-                        let v = Number(val);
-                        if (!isNaN(v) && v > 0) {
-                            minVal = v;
-                        }
-                    }
-                }
+                let line = String(m.line || m['Line'] || 'ALL').trim();
+                
+                // ดึงค่า Minimum จากฟิลด์ 'minimum' หรือ 'safetyStock' ตรงๆ
+                let minVal = Number(m.minimum || m['Minimum'] || m.safetyStock || m['SafetyStock'] || 0);
 
                 if (minVal <= 0) return;
 
-                // ตรวจสอบข้อมูล actuals และ qgate แบบปลอดภัย (ถ้าไม่มีให้ใช้ค่าเริ่มต้นเป็นอาเรย์ว่าง)
+                // 1. คำนวณยอดผลิตเข้า (Actuals)
                 const actList = typeof actuals !== 'undefined' ? actuals : (window.actuals || []);
-                const qgList = typeof qgate !== 'undefined' ? qgate : (window.qgate || []);
-                const delList = typeof deliveries !== 'undefined' ? deliveries : (window.deliveries || []);
-
                 const totalIn = actList.filter(a => {
                     let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -5025,6 +5006,8 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
+                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
+                const qgList = typeof qgate !== 'undefined' ? qgate : (window.qgate || []);
                 const totalTransferred = qgList.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -5033,6 +5016,8 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
+                // 3. คำนวณยอดส่งมอบ (Deliveries)
+                const delList = typeof deliveries !== 'undefined' ? deliveries : (window.deliveries || []);
                 const totalDelivered = delList.filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
