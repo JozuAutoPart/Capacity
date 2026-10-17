@@ -5043,9 +5043,7 @@ document.addEventListener('keypress', function(e) {
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
 (function() {
-    let cachedLowStockList = [];
-
-    function initLowStockWidget() {
+    function initDirectStockWidget() {
         let container = document.getElementById('zeroStockListContainer');
         if (!container) {
             container = document.createElement('div');
@@ -5065,28 +5063,17 @@ document.addEventListener('keypress', function(e) {
             return String(str).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
         }
 
-        function renderWidget(selectedLine = 'ALL') {
+        function calculateAndRender() {
+            // ดึงข้อมูล Master จากตัวแปรกลางที่ระบบหลักโหลดไว้
             let masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || window.masterData || [];
-            if (!Array.isArray(masterDb) || masterDb.length === 0) {
-                for (let key in window) {
-                    try {
-                        if (Array.isArray(window[key]) && window[key].length > 0) {
-                            let sample = window[key][0];
-                            if (sample && (Array.isArray(sample) || sample.partNo || sample['Part No.'])) {
-                                masterDb = window[key];
-                                break;
-                            }
-                        }
-                    } catch(e) {}
-                }
-            }
-
+            
+            // ถ้าอาเรย์หลักยังไม่มา ให้ดึงจากตาราง HTML หน้าเว็บโดยตรง (ถ้ามีตารางแสดงผลอยู่)
             if (!Array.isArray(masterDb) || masterDb.length === 0) {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Master Parts...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังวิเคราะห์ข้อมูลและคำนวณสต็อก (WIP + FG) จากระบบ...</h6>
                     </div>`;
-                setTimeout(() => renderWidget(selectedLine), 2000);
+                setTimeout(calculateAndRender, 2000);
                 return;
             }
 
@@ -5097,11 +5084,11 @@ document.addEventListener('keypress', function(e) {
                 let line = 'ALL';
                 let minVal = 0;
 
+                // รองรับทั้งแบบอาเรย์แถว (Row Array) และ Object
                 if (Array.isArray(m)) {
-                    // กรณีข้อมูลเก็บเป็น Array ย่อยตาม Index แถวชีต
-                    partNo = String(m[1] || '').trim(); // Column B (Index 1)[cite: 10]
-                    line = String(m[4] || 'ALL').trim();   // Column E (Index 4)[cite: 10]
-                    minVal = Number(String(m[11] || 0).replace(/,/g, '')); // Column L (Index 11)[cite: 10]
+                    partNo = String(m[1] || '').trim(); // Column B[cite: 10]
+                    line = String(m[4] || 'ALL').trim();   // Column E[cite: 10]
+                    minVal = Number(String(m[11] || 0).replace(/,/g, '')); // Column L[cite: 10]
                 } else if (typeof m === 'object' && m !== null) {
                     const vals = Object.values(m);
                     partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || vals[1] || '').trim();
@@ -5114,7 +5101,7 @@ document.addEventListener('keypress', function(e) {
 
                 if (!partNo || isNaN(minVal) || minVal <= 0) return;
 
-                // คำนวณ Stock (WIP + FG)
+                // ดึงข้อมูล Actuals, QGate, Deliveries จากตัวแปรกลาง
                 let targetKey = cleanStr(partNo);
                 const match = (p) => {
                     let cp = cleanStr(p);
@@ -5153,7 +5140,7 @@ document.addEventListener('keypress', function(e) {
                 let fg = qgQty - delQty;
                 let totalStock = wip + fg;
 
-                // เงื่อนไข: ถ้ายอด Stock น้อยกว่า Minimum ให้นำมาแสดงผล
+                // เงื่อนไขหลัก: ถ้ายอด Stock (WIP + FG) น้อยกว่า Minimum (Column L) นำ Part No. (Column B) มาโชว์[cite: 10]
                 if (totalStock < minVal) {
                     lowStockList.push({
                         partNo: partNo,
@@ -5164,11 +5151,10 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
-            cachedLowStockList = lowStockList;
-            displayWidget(lowStockList, selectedLine);
+            renderUI(lowStockList, 'ALL');
         }
 
-        function displayWidget(list, selectedLine) {
+        function renderUI(list, selectedLine) {
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
                 ? list 
@@ -5199,26 +5185,25 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
-        window.renderZeroStockPartsByLine = renderWidget;
-
-        setTimeout(() => renderWidget('ALL'), 2000);
-
+        // ผูกฟังก์ชันเข้ากับปุ่มเลือก Line ของหน้าเว็บ
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 400);
+                    setTimeout(calculateAndRender, 300);
                 }
             }
         });
+
+        setTimeout(calculateAndRender, 2000);
     }
 
     if (document.readyState === 'complete') {
-        initLowStockWidget();
+        initDirectStockWidget();
     } else {
-        window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1500);
+        window.addEventListener('load', initDirectStockWidget);
+        setTimeout(initDirectStockWidget, 2000);
     }
 })();
         function updateClock() {
