@@ -604,21 +604,23 @@
 <!-- TAB: Q-GATE INSPECTION -->
 <div class="tab-pane fade" id="tab-qgate">
     <div class="row g-3">
-        <!-- 1. ฝั่งซ้าย: ฟอร์มบันทึกผลตรวจ Q-Gate -->
+        <!-- ฝั่งซ้าย: ฟอร์มบันทึกผลตรวจ Q-Gate -->
         <div class="col-md-4">
             <div class="card p-3 border-start border-4 border-warning shadow-sm">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
-                    <div id="qgate-image-box" style="display: none;">
-                        <img id="qgate-part-img" src="" alt="Part Image" style="width: 55px; height: 55px; border-radius: 6px; border: 2px solid #475569; background: #fff; padding: 2px; object-fit: contain;">
-                    </div>
-                </div>
+               <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
+    <!-- บ็อกซ์รูปภาพที่จะแสดงที่มุมขวา -->
+    <div id="qgate-image-box" style="display: none;">
+        <img id="qgate-part-img" src="" alt="Part Image" style="width: 55px; height: 55px; border-radius: 6px; border: 2px solid #475569; background: #fff; padding: 2px; object-fit: contain;">
+    </div>
+</div>
                 <form id="qgateForm" onsubmit="submitQGateTransaction(event)">
                     <div class="mb-2">
                         <label class="form-label small">วันที่ตรวจสอบ</label>
                         <input type="date" id="qgateDate" class="form-control form-control-sm" required>
                     </div>
 
+                    <!-- 📌 เพิ่มฟิลด์เวลาเริ่มต้น และ เวลาสิ้นสุด -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small">เวลาเริ่มตรวจสอบ</label>
@@ -632,14 +634,15 @@
 
                     <div class="mb-2">
                         <label class="form-label small">ชื่อพนักงานตรวจสอบ (Inspector)</label>
-                        <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น รหัสพนักงาน/ชื่อ" required>
+                        <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น ระหัสพนักงาน/ปีไหม่" required>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label text-muted small"><i class="fas fa-search me-1"></i>ค้นหา Part No. / WIP</label>
-                        <input type="text" id="qgatePartSearch" class="form-control bg-dark text-white border-secondary" placeholder="พิมพ์เพื่อกรองหา Part No. หรือยอดใน WIP...">
-                    </div>
-
+                   
+<!-- ช่องค้นหา Part No. สำหรับ Q-Gate -->
+<div class="mb-3">
+    <label class="form-label text-muted small"><i class="fas fa-search me-1"></i>ค้นหา Part No. / WIP</label>
+    <input type="text" id="qgatePartSearch" class="form-control bg-dark text-white border-secondary" placeholder="พิมพ์เพื่อกรองหา Part No. หรือยอดใน WIP...">
+</div>
                     <div class="mb-2">
                         <label class="form-label small fw-bold">2. Part No. (ตรวจจาก WIP)</label>
                         <select id="qgatePartNo" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="updateQGateWipInfo()" required>
@@ -664,26 +667,26 @@
             </div>
         </div>
 
-        <!-- 2. ตรงกลาง: ตารางประวัติการตรวจ Q-Gate (ย่อขนาดให้พอดี) -->
-        <div class="col-md-5">
+        <!-- ฝั่งขวา: ตารางประวัติการตรวจ Q-Gate -->
+        <div class="col-md-8">
             <div class="card p-3 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 fs-6"><i class="fas fa-history me-1"></i>ประวัติการตรวจ Q-Gate</h5>
-                    <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm py-0 px-2" style="font-size: 12px;">
-                        <i class="fas fa-file-excel me-1"></i> Export (.xlsx)
-                    </button>
-                </div>
+            <h5 class="m-0"><i class="fas fa-history me-2"></i>ประวัติการตรวจสินค้าที่ Q-Gate</h5>
+            <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i> Export Q-Gate (.xlsx)
+            </button>
+        </div>
                 <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
-                    <table class="table table-dark table-hover align-middle m-0" style="font-size: 12px;">
+                    <table class="table table-dark table-hover align-middle m-0">
                         <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
                             <tr>
                                 <th>วันที่ตรวจ</th>
                                 <th>เวลา</th>
-                                 <th>พนักงานตรวจ</th>
+                                <th>พนักงานตรวจ</th>
                                 <th>Part No.</th>
-                                <th>ยอดตรวจ</th>
-                                 <th>ของเสีย (NG)</th>
-                                  <th>ผ่านเข้า FG (Pass)</th>
+                                <th>ยอดตรวจทั้งหมด</th>
+                                <th>ของเสีย (NG)</th>
+                                <th>ผ่านเข้า FG (Pass)</th>
                                 <th class="text-center">จัดการ</th>
                             </tr>
                         </thead>
@@ -692,32 +695,8 @@
                 </div>
             </div>
         </div>
-
-        <!-- 3. ฝั่งขวา: รายการ Part No. ที่ต่ำกว่า Safety Stock FG (เตรียมไว้สำหรับสเต็ป JavaScript) -->
-        <div class="col-md-3">
-            <div class="card p-3 shadow-sm border-danger bg-dark text-white">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="m-0 text-danger fw-bold" style="font-size: 13px;">
-                        <i class="fas fa-exclamation-triangle me-1"></i> ต่ำกว่า Safety Stock FG
-                    </h6>
-                </div>
-                <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
-                    <table class="table table-dark table-sm align-middle m-0" style="font-size: 12px;">
-                        <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
-                            <tr>
-                                <th>Part No.</th>
-                                <th class="text-end">เลือก</th>
-                            </tr>
-                        </thead>
-                        <tbody id="qgateSafetyStockTableBody">
-                            <!-- ข้อมูลจะถูกดึงมาแสดงที่นี่ในสเต็ปถัดไป -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
+</div>>
             <!-- TAB 6: STOCK WIP & FG -->
             <div class="tab-pane fade" id="tab-stock">
                 <div class="row g-3">
@@ -1818,21 +1797,21 @@ function submitActual(e) {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม (แก้ไขให้ตรงกับ ID จริงในหน้าจอ)
-const startTimeEl = document.getElementById('actualStartTime');
-const endTimeEl = document.getElementById('actualEndTime');
-  
-const startTime = startTimeEl ? startTimeEl.value : '';
-const endTime = endTimeEl ? endTimeEl.value : '';
-  
-let timeRange = '-';
-if (startTime && endTime) {
-    timeRange = `${startTime} - ${endTime}`;
-} else if (startTime) {
-    timeRange = startTime;
-} else if (endTime) {
-    timeRange = endTime;
-}
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม
+    const startTimeEl = document.getElementById('workStartTime') || document.getElementById('actualStartTime') || document.querySelector('input[id*="Start"]');
+    const endTimeEl = document.getElementById('workEndTime') || document.getElementById('actualEndTime') || document.querySelector('input[id*="End"]');
+    
+    const startTime = startTimeEl ? startTimeEl.value : '';
+    const endTime = endTimeEl ? endTimeEl.value : '';
+    
+    let timeRange = '-';
+    if (startTime && endTime) {
+        timeRange = `${startTime} - ${endTime}`;
+    } else if (startTime) {
+        timeRange = startTime;
+    } else if (endTime) {
+        timeRange = endTime;
+    }
     
     // 🗓️ ดึงวันที่ตามเวลาท้องถิ่นประเทศไทย (แก้ปัญหาวันที่เพี้ยนถอยหลังเป็นวันที่ 14)
     const now = new Date();
@@ -1840,21 +1819,20 @@ if (startTime && endTime) {
     const formDateVal = document.getElementById('actualDate').value;
     const finalDate = formDateVal ? formDateVal : localDateStr;
     
-  const actual = {
-    date: finalDate,
-    operator: document.getElementById('actualOperator').value.trim(),
-    line: document.getElementById('actualLine').value,
-    mcNo: document.getElementById('actualMcNo').value.trim(),
-    partNo: finalPartNo, 
-    lotNo: document.getElementById('actualLotNo').value,
-    qty: Number(document.getElementById('actualQty').value),
-    ngQty: Number(document.getElementById('actualNgQty').value || 0),
-    "เวลาทำงาน": timeRange, // <--- เพิ่มคีย์นี้ให้ตรงกับที่ดึงในตาราง
-    timeWork: timeRange,
-    TimeWork: timeRange,
-    timeRange: timeRange,
-    remark: document.getElementById('actualRemark').value.trim()
-};
+   const actual = {
+        date: finalDate,
+        operator: document.getElementById('actualOperator').value.trim(),
+        line: document.getElementById('actualLine').value,
+        mcNo: document.getElementById('actualMcNo').value.trim(),
+        partNo: finalPartNo, 
+        lotNo: document.getElementById('actualLotNo').value,
+        qty: Number(document.getElementById('actualQty').value),
+        ngQty: Number(document.getElementById('actualNgQty').value || 0),
+        timeWork: timeRange,
+        TimeWork: timeRange,
+        timeRange: timeRange,
+        remark: document.getElementById('actualRemark').value.trim()
+    };
 
     // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
@@ -1918,19 +1896,19 @@ function loadActualsFromCloud() {
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-               actuals = res.data.map(item => ({
-    id: item.id || Date.now(),
-    date: item.date || item['Date'] || '',
-    operator: item.operator || item['OP Name'] || '',
-    line: item.line || item['Line/MC'] || '',
-    mcNo: item.mcNo || item['Machine No.'] || '',
-    partNo: item.partNo || item['Part No.'] || '',
-    lotNo: item.lotNo || item['Lot No.'] || '',
-    qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
-    ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-    timework: item['เวลาทำงาน'] || item['TimeWork'] || item['timeWork'] || item['timeRange'] || '-',
-    remark: item.remark || item['Remark'] || '-'
-}));
+                actuals = res.data.map(item => ({
+                    id: item.id || Date.now(),
+                    date: item.date || item['Date'] || '',
+                    operator: item.operator || item['OP Name'] || '',
+                    line: item.line || item['Line/MC'] || '',
+                    mcNo: item.mcNo || item['Machine No.'] || '',
+                    partNo: item.partNo || item['Part No.'] || '',
+                    lotNo: item.lotNo || item['Lot No.'] || '',
+                    qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
+                    ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+                    timework: item.timework || item.TimeWork || item.timeWork || item['TimeWork'] || item['timeWork'] || item['Time work'] || item['เวลาทำงาน'] || item['Time'] || item['time'] || '-',
+                    remark: item.remark || item['Remark'] || '-'
+                }));
                 
                 renderActuals();
                 if (typeof renderCapacity === 'function') renderCapacity();
@@ -1986,8 +1964,7 @@ function renderActuals() {
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
         // เพิ่ม a.timeRange ไว้ตัวแรกสุด เพื่อดึงเวลาขึ้นมาแสดงผลเหมือนหน้า Q-Gate
-      // ดึงค่าเวลาทำงานมาแสดง
-const timeworkval = a['เวลาทำงาน'] || a['TimeWork'] || a.timework || a.timeRange || '-';
+        const timeworkval = a.timeRange || a.timeWork || a.timework || a['TimeWork'] || a['timeWork'] || a['Time work'] || a['เวลาทำงาน'] || a['Time'] || a['time'] || '-';
         
         const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
         const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
@@ -2560,154 +2537,6 @@ document.addEventListener('DOMContentLoaded', () => {
         partSelectEl.addEventListener('change', updateQGateWipInfo);
     }
 });
-// 📌 ฟังก์ชันดึงและเรนเดอร์ข้อมูลเข้าตาราง Safety Stock FG หน้า Q-Gate ฝั่งขวา
-function renderQGateSafetyStockList() {
-    const tableBody = document.getElementById('qgateSafetyStockTableBody');
-    if (!tableBody) return;
-
-    tableBody.innerHTML = '';
-
-    const masterDb = window.masterPartsDatabase || window.masterParts || [];
-    if (masterDb.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="2" class="text-center text-muted small py-2">กำลังโหลด Master Parts...</td></tr>`;
-        return;
-    }
-
-    let lowSafetyList = [];
-
-    masterDb.forEach(m => {
-        let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-        if (!rawPartNo) return;
-
-        const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
-        if (hasProcessSuffix) return;
-
-        let partNoKey = rawPartNo.toUpperCase();
-        let safetyStockVal = 0;
-        let inspectorName = '-';
-
-        // 1. อ่านค่าจากชื่อคอลัมน์โดยตรง (Safety Stock FG และ Inspector / P)
-        Object.keys(m).forEach(k => {
-            let lk = String(k).toLowerCase().trim();
-            let val = String(m[k]).replace(/,/g, '').trim();
-
-            if (lk.includes('safety stock fg') || lk === 'safetystockfg' || lk.includes('safety')) {
-                let v = Number(val);
-                if (!isNaN(v) && v > 0) safetyStockVal = v;
-            }
-
-            if (lk.includes('inspector') || lk === 'ผู้ตรวจสอบ' || lk === 'p') {
-                if (val && val !== 'undefined') inspectorName = m[k];
-            }
-        });
-
-        // 2. สำรองกรณีอ่านตามตำแหน่งคอลัมน์ Index (O = 14, P = 15)
-        if (safetyStockVal <= 0) {
-            const values = Object.values(m);
-            if (values.length > 14 && Number(values[14]) > 0) {
-                safetyStockVal = Number(String(values[14]).replace(/,/g, ''));
-            }
-            if (values.length > 15 && values[15]) {
-                inspectorName = values[15];
-            }
-        }
-
-        if (safetyStockVal <= 0) return;
-
-        // คำนวณยอด FG Pass และ Delivery จริง
-        const fgPass = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
-            let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-            return p === partNoKey;
-        }).reduce((sum, q) => sum + Number(q.passQty || q['Pass Qty'] || 0), 0);
-
-        const fgDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
-            let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
-            return p === partNoKey;
-        }).reduce((sum, d) => sum + Number(d.qty || d['Delivery Qty'] || 0), 0);
-
-        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
-        const currentFg = (fgPass - fgDelivered) + adjustFg;
-
-        // ถ้ายอดคงเหลือ FG น้อยกว่า Safety Stock FG ให้นำมาแสดง
-        if (currentFg < safetyStockVal) {
-            lowSafetyList.push({
-                partNo: rawPartNo,
-                stock: currentFg,
-                safetyStock: safetyStockVal,
-                inspector: inspectorName
-            });
-        }
-    });
-
-    if (lowSafetyList.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="2" class="text-center text-success small py-3"><i class="fas fa-check-circle me-1"></i> Stock FG ปลอดภัยทุกรายการ</td></tr>`;
-        return;
-    }
-
-    lowSafetyList.forEach(item => {
-        let tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>
-                <div class="fw-bold text-warning" style="font-size: 11px;">${item.partNo}</div>
-                <div class="text-muted" style="font-size: 10px;">Stock: <span class="text-danger fw-bold">${item.stock.toLocaleString()}</span> / Min: ${item.safetyStock.toLocaleString()}</div>
-                <div class="text-info" style="font-size: 10px;"><i class="fas fa-user-check me-1"></i>ผู้ตรวจ: <span class="text-white">${item.inspector}</span></div>
-            </td>
-            <td class="text-end align-middle">
-                <button class="btn btn-outline-warning btn-sm py-0 px-1" style="font-size: 10px;" onclick="selectPartForQGate('${item.partNo}')" title="เลือกพาร์ทนี้ไปตรวจ">
-                    <i class="fas fa-arrow-left"></i> เลือก
-                </button>
-            </td>
-        `;
-        tableBody.appendChild(tr);
-    });
-}
-
-// ฟังก์ชันเลือกพาร์ทจากตารางขวาไปใส่ในฟอร์มตรวจอัตโนมัติ
-window.selectPartForQGate = function(partNo) {
-    const partSelectEl = document.getElementById('qgatePartNo');
-    if (!partSelectEl) return;
-
-    let found = false;
-    for (let i = 0; i < partSelectEl.options.length; i++) {
-        if (partSelectEl.options[i].value.trim().toUpperCase() === partNo.trim().toUpperCase()) {
-            partSelectEl.selectedIndex = i;
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) {
-        const newOpt = document.createElement('option');
-        newOpt.value = partNo;
-        newOpt.text = `${partNo} (Safety Stock Alert)`;
-        partSelectEl.appendChild(newOpt);
-        partSelectEl.value = partNo;
-    }
-
-    partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
-    
-    const qgateTotalQtyInput = document.getElementById('qgateTotalQty');
-    if (qgateTotalQtyInput) {
-        qgateTotalQtyInput.focus();
-        qgateTotalQtyInput.select();
-    }
-};
-
-// ผูกเข้ากับระบบเรนเดอร์หน้า Q-Gate เดิม
-if (typeof window.originalRenderQGate === 'undefined') {
-    window.originalRenderQGate = window.renderQGate;
-    window.renderQGate = function(...args) {
-        if (typeof window.originalRenderQGate === 'function') {
-            window.originalRenderQGate.apply(this, args);
-        }
-        renderQGateSafetyStockList();
-    };
-}
-
-// เรียกใช้งานทันทีเมื่อโหลดหน้า
-document.addEventListener("DOMContentLoaded", function() {
-    setTimeout(renderQGateSafetyStockList, 1000);
-});
 // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
@@ -2738,94 +2567,67 @@ function renderStock() {
     wipbody.innerHTML = '';
     fgtbody.innerHTML = ''; 
 
-    // 1. รวบรวม Part No. ทั้งหมดและแปลงเป็นตัวพิมพ์ใหญ่ เพื่อจัดกลุ่มให้เป็นตัวเดียวกัน
-    const partsMap = new Map();
+    const partsSet = new Set([
+        ...actuals.map(a => a.partNo || a['Part No.'] || ''),
+        ...qgate.map(q => q.partNo || q['Part No.'] || ''),
+        ...deliveries.map(d => d.partNo || d['Part No.'] || '')
+    ]);
 
-    const allRecords = [
-        ...(typeof actuals !== 'undefined' ? actuals : []),
-        ...(typeof qgate !== 'undefined' ? qgate : []),
-        ...(typeof deliveries !== 'undefined' ? deliveries : [])
-    ];
+    partsSet.forEach(partNo => {
+        if(!partNo) return;
 
-    allRecords.forEach(item => {
-        let rawPart = String(item.partNo || item['Part No.'] || '').trim();
-        if (!rawPart) return;
+        const hasProcessSuffix = /\s\d+\/\d+$/.test(String(partNo || '').trim());
+        if (hasProcessSuffix) return; 
 
-        const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPart);
-        if (hasProcessSuffix) return;
-
-        let upperPart = rawPart.toUpperCase();
-        if (!partsMap.has(upperPart)) {
-            // ใช้ชื่อพาร์ทตัวแรกที่เจอ หรือเลือกรูปแบบมาตรฐาน
-            partsMap.set(upperPart, rawPart);
-        }
-    });
-
-    partsMap.forEach((displayPartNo, partNoKey) => {
-        // 2. คำนวณยอดผลิตเข้า (Actuals) โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
-        const totalIn = (typeof actuals !== 'undefined' ? actuals : []).filter(a => {
-            let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
-            return p === partNoKey;
-        }).reduce((sum, a) => {
+        const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
             let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // 3. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
-        const totalTransferred = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
-            let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-            return p === partNoKey;
-        }).reduce((sum, q) => {
+        const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
             let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${displayPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNoKey}`) || 0);
+        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
         const currentwip = (totalIn - totalTransferred) + adjustWip;
 
         const trwip = document.createElement('tr');
         trwip.innerHTML = `
-            <td class="fw-bold text-info">${displayPartNo}</td>
+            <td class="fw-bold text-info">${partNo}</td>
             <td>${totalIn.toLocaleString()}</td>
             <td>${totalTransferred.toLocaleString()}</td>
             <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${displayPartNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
+                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
                     <i class="fas fa-edit"></i> ปรับ
                 </button>
             </td>
         `;
         wipbody.appendChild(trwip);
 
-        // 4. คำนวณยอด FG ผ่านคลังและส่งมอบ โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
-        const fgPass = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
-            let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-            return p === partNoKey;
-        }).reduce((sum, q) => {
+        const fgPass = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
             let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const fgDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
-            let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
-            return p === partNoKey;
-        }).reduce((sum, d) => {
+        const fgDelivered = deliveries.filter(d => (d.partNo || d['Part No.'] || '') === partNo).reduce((sum, d) => {
             let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['จำนวนส่งมอบ'] || 0));
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${displayPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
+        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
         const currentFg = (fgPass - fgDelivered) + adjustFg;
 
         const trfg = document.createElement('tr');
         trfg.innerHTML = `
-            <td class="fw-bold text-info">${displayPartNo}</td>
+            <td class="fw-bold text-info">${partNo}</td>
             <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
             <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
             <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()} ${adjustFg !== 0 ? `<span class="badge bg-warning text-dark">(${adjustFg > 0 ? '+' : ''}${adjustFg})</span>` : ''}</td>
             <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${displayPartNo}', 'FG')" title="ปรับสต็อกสิ้นเดือน">
+                <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${partNo}', 'FG')" title="ปรับสต็อกสิ้นเดือน">
                     <i class="fas fa-edit"></i> ปรับ
                 </button>
             </td>
@@ -2833,6 +2635,7 @@ function renderStock() {
         fgtbody.appendChild(trfg);
     });
 }
+
 function adjustStock(partNo, type) {
     const key = `stock_adjust_${type}_${partNo}`;
     const currentVal = localStorage.getItem(key) || 0;
@@ -4943,7 +4746,6 @@ document.addEventListener('keypress', function(e) {
 });
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -4964,17 +4766,17 @@ document.addEventListener('keypress', function(e) {
         container.style.display = 'block';
 
         function renderWidget(selectedLine = 'ALL') {
-            const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
+            const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
-            if (masterDb.length === 0 || typeof actuals === 'undefined') {
+            // ถ้าข้อมูลยังไม่พร้อม แต่มี Cache เก่า ให้ใช้ Cache เก่าแสดงผลประคองไว้ก่อนทันที
+            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 if (cachedLowStockList.length > 0) {
                     displayWidget(cachedLowStockList, selectedLine);
                 } else {
                     container.innerHTML = `
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock...</h6>
                         </div>`;
-                    setTimeout(() => renderWidget(selectedLine), 1500);
                 }
                 return;
             }
@@ -4982,71 +4784,64 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || m['Part Code'] || '').trim();
-                if (!rawPartNo) return;
+                let partNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
+                if (!partNo) return;
 
-                const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
+                const hasProcessSuffix = /\s\d+\/\d+$/.test(partNo);
                 if (hasProcessSuffix) return;
 
-                let partNo = rawPartNo.toUpperCase();
-                let line = String(m.line || m['Line'] || 'ALL').trim();
-                
-                // ดึงค่า Minimum จากฟิลด์ 'minimum' หรือ 'safetyStock' ตรงๆ
-                let minVal = Number(m.minimum || m['Minimum'] || m.safetyStock || m['SafetyStock'] || 0);
+                let line = 'ALL';
+                let minVal = 0;
+
+                const keys = Object.keys(m);
+                for (let i = 0; i < keys.length; i++) {
+                    let k = keys[i];
+                    let lk = k.toLowerCase().trim();
+                    let val = String(m[k]).replace(/,/g, '').trim();
+
+                    if (lk === 'line' || lk.includes('line')) {
+                        if (m[k]) line = m[k];
+                    }
+                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
+                        let v = Number(val);
+                        if (!isNaN(v) && v > 0) {
+                            minVal = v;
+                        }
+                    }
+                }
 
                 if (minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals)
-                const actList = typeof actuals !== 'undefined' ? actuals : (window.actuals || []);
-                const totalIn = actList.filter(a => {
-                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, a) => {
+                const totalIn = actuals.filter(a => (a.partNo || a['Part No.'] || '') === partNo).reduce((sum, a) => {
                     let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
-                const qgList = typeof qgate !== 'undefined' ? qgate : (window.qgate || []);
-                const totalTransferred = qgList.filter(q => {
-                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, q) => {
+                const totalTransferred = qgate.filter(q => (q.partNo || q['Part No.'] || '') === partNo).reduce((sum, q) => {
                     let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries)
-                const delList = typeof deliveries !== 'undefined' ? deliveries : (window.deliveries || []);
-                const totalDelivered = delList.filter(d => {
-                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, d) => {
-                    let val = Number(d.qty || d['Qty'] || 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
-
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
-                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
-
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
-                const currentFg = (totalTransferred - totalDelivered) + adjustFg;
-                const totalStock = currentwip + currentFg;
 
-                if (totalStock < minVal) {
+                if (currentwip < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo,
+                        partNo: partNo,
                         line: line,
-                        stock: totalStock,
+                        stock: currentwip,
                         min: minVal
                     });
                 }
             });
 
-            cachedLowStockList = lowStockList;
-            isInitialized = true;
+            // อัปเดตเก็บเข้า Cache เสมอเมื่อประมวลผลสำเร็จและมีข้อมูลมากกว่า 0 หรือเป็นการโหลดที่สมบูรณ์
+            if (lowStockList.length > 0 || isInitialized) {
+                cachedLowStockList = lowStockList;
+                isInitialized = true;
+            }
 
-            displayWidget(lowStockList, selectedLine);
+            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, selectedLine);
         }
 
         function displayWidget(list, selectedLine) {
@@ -5059,18 +4854,18 @@ document.addEventListener('keypress', function(e) {
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
                             <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock(WIP): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
                         </span>`;
             }).join('');
 
             if (filteredParts.length === 0) {
-                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
+                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock WIP ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
             }
 
             container.innerHTML = `
                 <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                     <h6 class="text-danger fw-bold mb-2">
-                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock WIP ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                         <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
@@ -5082,6 +4877,7 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
+        // ดักจับฟังก์ชัน Cloud และ Render ทั้งหมด เพื่อสั่งประมวลผลซ้ำอัตโนมัติทันทีที่โหลดเสร็จ
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
@@ -5093,6 +4889,17 @@ document.addEventListener('keypress', function(e) {
             window._patchedLoadCloud = true;
         }
 
+        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
+            let originalRenderAll = window.renderAll;
+            window.renderAll = function(...args) {
+                let res = originalRenderAll.apply(this, args);
+                setTimeout(() => renderWidget('ALL'), 300);
+                return res;
+            };
+            window._patchedRenderAll = true;
+        }
+
+        // รันตรวจสอบเป็นระยะเพื่อความเสถียรสูงสุด
         setTimeout(() => renderWidget('ALL'), 1000);
         setTimeout(() => renderWidget('ALL'), 3000);
         setTimeout(() => renderWidget('ALL'), 5000);
