@@ -1722,9 +1722,12 @@ document.addEventListener("DOMContentLoaded", function() {
         initMasterData();
     });
 
+// ==========================================
 // --- TAB 4: ACTUAL PRODUCTION ---
+// ==========================================
+
 // ฟังก์ชันดักจับการยิง Barcode เพื่อแปลงเป็น Part No. จาก Master และเลือกจากแผนอัตโนมัติ
-document.getElementById('actualBarcodeScanner').addEventListener('keypress', function(e) {
+document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
         let rawBarcode = this.value.trim();
@@ -1735,19 +1738,30 @@ document.getElementById('actualBarcodeScanner').addEventListener('keypress', fun
         let searchCode = (parts.length > 1 && !isNaN(parts[parts.length - 1])) ? parts.slice(0, -1).join('-') : rawBarcode;
         searchCode = searchCode.trim().toUpperCase();
 
-        // ค้นหาใน Master Barcode Data (เทียบกับคอลัมน์ Barcode เพื่อเอา Part No.)
-        let matchedPartNo = "";
-        if (typeof masterBarcodes !== 'undefined' && masterBarcodes.length > 0) {
-            let foundMaster = masterBarcodes.find(item => 
-                (item.barcode && item.barcode.toUpperCase() === searchCode) || 
-                (item.barcode && item.barcode.toUpperCase() === rawBarcode.toUpperCase())
-            );
-            if (foundMaster) {
-                matchedPartNo = foundMaster.partNo; // ได้ Part No. จากคอลัมน์ B
-            }
+        // ดึง Master Data จาก LocalStorage หรือ Global Variable
+        let masterData = [];
+        try {
+            masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+        } catch (err) {
+            masterData = [];
+        }
+        if (masterData.length === 0 && typeof masterBarcodes !== 'undefined') {
+            masterData = masterBarcodes;
         }
 
-        // ถ้าไม่เจอใน Master ให้ลองใช้ค่าที่ยิงมาตรงๆ
+        // ค้นหาใน Master Barcode Data
+        let matchedPartNo = "";
+        let foundMaster = masterData.find(item => {
+            let vals = Object.values(item);
+            let bCode = String(item.barcode || item['Barcode'] || vals[0] || '').trim().toUpperCase();
+            let pNo = String(item.partNo || item['Part No.'] || vals[1] || '').trim().toUpperCase();
+            return bCode === searchCode || bCode === rawBarcode.toUpperCase() || pNo === searchCode;
+        });
+
+        if (foundMaster) {
+            matchedPartNo = String(foundMaster.partNo || foundMaster['Part No.'] || Object.values(foundMaster)[1]).trim();
+        }
+
         if (!matchedPartNo) {
             matchedPartNo = searchCode;
         }
@@ -1768,30 +1782,38 @@ document.getElementById('actualBarcodeScanner').addEventListener('keypress', fun
 
         if (foundIndex !== -1) {
             selectPart.selectedIndex = foundIndex;
-            
-            // สั่งเรียกฟังก์ชันเปลี่ยนพาร์ท เพื่อดึง Lot No. และข้อมูลที่เกี่ยวข้องขึ้นมาทันที
-            if (typeof onActualPartChange === 'function') {
-                onActualPartChange();
-            } else {
-                const event = new Event('change', { bubbles: true });
-                selectPart.dispatchEvent(event);
-            }
-
-            this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับบาร์โค้ดถัดไป
-            this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
-            console.log("แปลง Barcode เป็น Part No. สำเร็จ:", matchedPartNo);
         } else {
-            alert("ไม่พบ Part No. '" + matchedPartNo + "' (จาก Barcode: " + rawBarcode + ") ในแผนการผลิตของ Line นี้");
-            this.select();
+            // กรณีไม่พบในแผน ให้เพิ่มเป็นตัวเลือก (นอกแผน)
+            const newOpt = document.createElement('option');
+            newOpt.value = matchedPartNo;
+            newOpt.innerText = matchedPartNo + " (นอกแผน)";
+            selectPart.appendChild(newOpt);
+            selectPart.value = matchedPartNo;
         }
+
+        // สั่งเรียกฟังก์ชันเปลี่ยนพาร์ท เพื่อดึง Lot No. และค่า CT ขึ้นมาทันที
+        if (typeof onActualPartChange === 'function') {
+            onActualPartChange();
+        } else {
+            selectPart.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับบาร์โค้ดถัดไป
+        this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
     }
 });
 
 // ฟังก์ชันตรวจสอบและโหลดแผนการผลิต (กรองตัวที่ผลิตครบตามแผนออกแล้ว)
 function checkAndLoadPlans() {
-    const line = document.getElementById('actualLine').value;
+    const lineSelect = document.getElementById('actualLine');
+    if (!lineSelect) return;
+    const line = lineSelect.value;
     const selectPart = document.getElementById('actualPartNo');
+    if (!selectPart) return;
+    
     selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
+
+    if (typeof plans === 'undefined' || !Array.isArray(plans)) return;
 
     // กรองแผนเฉพาะ Line ที่เลือก
     const linePlans = plans.filter(p => String(p.Line || p.line || '').trim() === String(line).trim());
@@ -1800,7 +1822,8 @@ function checkAndLoadPlans() {
     if (linePlans.length === 0) {
         if(alertBox) {
             alertBox.classList.remove('d-none');
-            document.getElementById('actualAlertText').innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+            const alertTxt = document.getElementById('actualAlertText');
+            if (alertTxt) alertTxt.innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
         }
     } else {
         if(alertBox) alertBox.classList.add('d-none');
@@ -1811,13 +1834,13 @@ function checkAndLoadPlans() {
             const planQty = Number(p["Plan Qty"] || p.qty || 0);
 
             // รวมยอดผลิตจริง (Actual OK) ของ Part และ Lot นี้
-            const actMatched = actuals.filter(a => {
+            const actMatched = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals.filter(a => {
                 let aLineRaw = a["Line/MC"] || a.line || a.Line || '';
                 let aLine = String(aLineRaw).split('/')[0].trim();
                 let aPart = String(a["Part No."] || a.partNo || '').trim();
                 let aLot = String(a["Lot No."] || a.lotNo || '').trim();
                 return aLine === line && aPart === planPart && aLot === planLot;
-            });
+            }) : [];
 
             const totalActualOk = actMatched.reduce((sum, a) => {
                 let val = Number(a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty || 0));
@@ -1840,8 +1863,7 @@ function checkAndLoadPlans() {
     }
 }
 
-// ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก MasterParts ใน Google Sheet มาแสดงอัตโนมัติ
-// ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT จาก Master ใน LocalStorage หรือ Global โดยตรง
+// ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
     if (!select || select.selectedIndex < 0) return;
@@ -1858,7 +1880,7 @@ function onActualPartChange() {
     const cleanPartNo = basePartNo.split(' ')[0].trim().toUpperCase();
     let ctVal = 0;
 
-    // ดึงข้อมูล Master จาก LocalStorage (แหล่งข้อมูลหลักที่อัปโหลดจากชีต)
+    // ดึงข้อมูล Master จาก LocalStorage
     let masterList = [];
     try {
         masterList = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
@@ -1866,7 +1888,6 @@ function onActualPartChange() {
         masterList = [];
     }
 
-    // ถ้าใน LocalStorage ไม่มี ให้ดึงจากตัวแปร Global
     if (masterList.length === 0) {
         if (typeof masterBarcodes !== 'undefined' && Array.isArray(masterBarcodes)) masterList = masterBarcodes;
         else if (typeof masterPartsData !== 'undefined' && Array.isArray(masterPartsData)) masterList = masterPartsData;
@@ -1892,26 +1913,27 @@ function onActualPartChange() {
         }
     }
 
-    const finalCt = (ctVal > 0) ? ctVal : 6; // ตั้งค่าเริ่มต้นเป็น 6 ตามชีต[cite: 10, 11]
+    const finalCt = (ctVal > 0) ? ctVal : 6; // ค่าเริ่มต้นเป็น 6 วินาทีตาม Google Sheet
     const ctInput = document.getElementById('actualCt');
     if (ctInput) {
         ctInput.value = finalCt + " วินาที";
     }
 }
+
+// ฟังก์ชันบันทึกข้อมูลการผลิต (submitActual)
 function submitActual(e) {
     e.preventDefault();
     
-    // 1. ดึงค่า Part No. หลัก และ Process ที่พนักงานพิมพ์เพิ่ม
+    // 1. ดึงค่า Part No. หลัก และ Process
     const basePartNo = document.getElementById('actualPartNo').value;
     const processSuffix = document.getElementById('actualProcess') ? document.getElementById('actualProcess').value.trim() : '';
 
-    // 2. รวมร่าง Part No. กับ Process (เช่น "17154-0T040 1/3")
     let finalPartNo = basePartNo;
     if (processSuffix !== '') {
         finalPartNo = basePartNo + ' ' + processSuffix;
     }
 
-    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด จากฟอร์ม (อ้างอิง ID จริงหน้าเว็บ)
+    // ⏱️ ดึงค่าเวลา เริ่ม - สิ้นสุด
     const startTimeEl = document.getElementById('actualStartTime') || document.getElementById('workStartTime');
     const endTimeEl = document.getElementById('actualEndTime') || document.getElementById('workEndTime');
     
@@ -1927,12 +1949,24 @@ function submitActual(e) {
         timeRange = endTime;
     }
     
-    // 🗓️ ดึงวันที่ตามเวลาท้องถิ่นประเทศไทย
+    // 🗓️ ดึงวันที่ตามเวลาท้องถิ่น
     const now = new Date();
     const localDateStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     const formDateVal = document.getElementById('actualDate') ? document.getElementById('actualDate').value : '';
     const finalDate = formDateVal ? formDateVal : localDateStr;
     
+    // 🛠️ ดึงข้อมูล Downtime (นาที และ รหัสสาเหตุ)
+    const downtimeMins = Number(document.getElementById('actualDowntimeMins')?.value) || 0;
+    const downtimeCode = document.getElementById('actualDowntimeCode')?.value || '';
+
+    // ⏱️ ดึงค่า CT
+    let ctVal = 6;
+    const ctInputVal = document.getElementById('actualCt')?.value;
+    if (ctInputVal) {
+        let parsed = parseInt(ctInputVal);
+        if (!isNaN(parsed) && parsed > 0) ctVal = parsed;
+    }
+
     const actual = {
         date: finalDate,
         operator: document.getElementById('actualOperator').value.trim(),
@@ -1947,20 +1981,31 @@ function submitActual(e) {
         TimeWork: timeRange,
         timeRange: timeRange,
         timework: timeRange,
-        remark: document.getElementById('actualRemark') ? document.getElementById('actualRemark').value.trim() : ''
+        remark: document.getElementById('actualRemark') ? document.getElementById('actualRemark').value.trim() : '',
+        downtimeMins: downtimeMins,
+        downtimeCode: downtimeCode,
+        ct: ctVal
     };
 
     // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
-    fetch(GOOGLE_SCRIPT_URL, {
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    if (!scriptUrl) {
+        alert("ไม่พบ GOOGLE_SCRIPT_URL");
+        return;
+    }
+
+    fetch(scriptUrl, {
         method: 'POST',
         body: JSON.stringify({ action: 'saveActual', data: actual })
     })
     .then(response => response.json())
     .then(result => {
         if (result.status === "success") {
-            actuals.unshift(actual); // เพิ่มข้อมูลใหม่ไว้ด้านบนสุดทันที
+            if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+                actuals.unshift(actual);
+            }
 
-            if (processSuffix === '' && typeof wipStock !== 'undefined') {
+            if (processSuffix === '' && typeof wipStock !== 'undefined' && Array.isArray(wipStock)) {
                 const existingWip = wipStock.find(w => w.partNo === actual.partNo && w.lotNo === actual.lotNo);
                 if (existingWip) {
                     existingWip.qty = (Number(existingWip.qty) || 0) + actual.qty;
@@ -1977,11 +2022,14 @@ function submitActual(e) {
                 if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
             }
 
+            // ล้างฟอร์ม
             document.getElementById('actualForm').reset();
             const resetNow = new Date();
             if (document.getElementById('actualDate')) {
                 document.getElementById('actualDate').value = new Date(resetNow.getTime() - (resetNow.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             }
+            if (document.getElementById('actualDowntimeMins')) document.getElementById('actualDowntimeMins').value = '0';
+            if (document.getElementById('actualDowntimeCode')) document.getElementById('actualDowntimeCode').value = '';
             
             checkAndLoadPlans();
             renderActuals();
@@ -1996,6 +2044,7 @@ function submitActual(e) {
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
 }
+
 // ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
@@ -2006,7 +2055,6 @@ function loadActualsFromCloud() {
         .then(res => {
             if (res.status === "success" && res.data) {
                 actuals = res.data.map(item => {
-                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้ทั้งหมด ทั้งไทยและอังกฤษ
                     const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || item['Start'] || '-';
                     
                     return {
@@ -2019,14 +2067,14 @@ function loadActualsFromCloud() {
                         lotNo: item.lotNo || item['Lot No.'] || '',
                         qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                         ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                        
-                        // กำหนดค่าคีย์เวลาให้ครอบคลุมทุกชื่อ เพื่อให้ฟังก์ชัน renderActuals อ่านเจอแน่นอน
                         "เวลาทำงาน": timeVal,
                         timework: timeVal,
                         TimeWork: timeVal,
                         timeRange: timeVal,
-                        
-                        remark: item.remark || item['Remark'] || '-'
+                        remark: item.remark || item['Remark'] || '-',
+                        downtimeMins: Number(item.downtimeMins || item['Downtime Mins'] || 0),
+                        downtimeCode: item.downtimeCode || item['Downtime Code'] || '',
+                        ct: Number(item.ct || item['CT'] || 6)
                     };
                 });
                 
@@ -2036,13 +2084,14 @@ function loadActualsFromCloud() {
         })
         .catch(err => console.error("Error loading Actuals:", err));
 }
+
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (!actuals || actuals.length === 0) {
+    if (typeof actuals === 'undefined' || !actuals || actuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
         if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
         return;
@@ -2081,7 +2130,6 @@ function renderActuals() {
         const partval = a.partNo || a['Part No.'] || '-';
         const lotval = a.lotNo || a['Lot No.'] || '-';
 
-        // เช็กค่าเวลาให้แสดงผลขึ้นมา (รวมถึงจัดรูปแบบไม่ให้ตกบรรทัด)
         let rawTime = a['เวลาทำงาน'] || a.timework || a.timeWork || a.TimeWork || a.timeRange;
         const timeworkval = (rawTime && String(rawTime).trim() !== '' && String(rawTime).trim() !== 'undefined' && String(rawTime).trim() !== '-') ? String(rawTime).trim() : '-';
 
@@ -2111,48 +2159,43 @@ function renderActuals() {
 
     if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
 }
-// ฟังก์ชันช่วยจัดรูปแบบวันที่ให้แม่นยำ ไม่เพี้ยนและไม่สลับเดือน/วัน
+
+// ฟังก์ชันช่วยจัดรูปแบบวันที่
 function parseDateString(dateStr) {
     if (!dateStr) return "0000-00-00";
     let cleanStr = String(dateStr).split('T')[0].trim();
     
-    // ถ้าข้อมูลมาเป็นแบบ YYYY-MM-DD อยู่แล้ว คืนค่าเดิมได้เลย
     if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(cleanStr)) {
         return cleanStr.replace(/\//g, '-');
     }
     
-    // ถ้ามาเป็นแบบอื่น ให้แยกส่วน
     let parts = cleanStr.split(/[-/]/);
     if (parts.length === 3) {
-        // กรณี DD-MM-YYYY ให้สลับเป็น YYYY-MM-DD
         if (parts[2].length === 4) {
             return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
         }
-        // กรณี YYYY-MM-DD
         if (parts[0].length === 4) {
             return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
         }
     }
     return cleanStr;
 }
+
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
-// ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ (เพิ่มตัวกัน Cache ป้องกันข้อมูลเก่าค้าง)
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    // เติม ?t= timestamp ป้องกันเบราว์เซอร์จำค่าแคชเก่า
     fetch(scriptUrl + "?t=" + new Date().getTime())
         .then(res => res.json())
         .then(data => {
             if (data.plans) plans = data.plans;
             
-            // --- จุดที่แก้ไข: แม็ปแปลงข้อมูล actuals ให้ดึงคีย์เวลาติดมาด้วยทุกครั้ง ---
             if (data.actuals && Array.isArray(data.actuals)) {
                 actuals = data.actuals.map(item => {
                     const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || '-';
                     return {
-                        ...item, // คงค่าฟิลด์อื่นๆ ไว้ทั้งหมด
+                        ...item,
                         "เวลาทำงาน": timeVal,
                         timework: timeVal,
                         TimeWork: timeVal,
@@ -2200,7 +2243,8 @@ function loadAllData() {
 window.addEventListener('DOMContentLoaded', () => {
     loadAllData();
 });
-// ฟังก์ชันสร้างเสียง Beep แจ้งเตือนแบบไม่ต้องง้อไฟล์เสียง
+
+// ฟังก์ชันสร้างเสียง Beep แจ้งเตือน
 function playSystemBeep() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2221,69 +2265,8 @@ function playSystemBeep() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const barcodeInput = document.querySelector('input[placeholder*="Scan Barcode"], input[id*="barcode"], input[id*="Barcode"]');
-    
-    if (barcodeInput) {
-        barcodeInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const scannedVal = this.value.trim();
-                if (!scannedVal) return;
-
-                const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-                const found = masterData.find(item => 
-                    String(item.barcode || item['Barcode'] || '').trim().toLowerCase() === scannedVal.toLowerCase() || 
-                    String(item.partNo || item['Part No.'] || '').trim().toLowerCase() === scannedVal.toLowerCase()
-                );
-
-                const targetPartNo = found ? (found.partNo || found['Part No.']) : scannedVal;
-                this.value = targetPartNo;
-
-                const partSelectEl = document.getElementById('actualPartNo') || document.querySelector('select[name*="part"], select[id*="part"]');
-                if (partSelectEl) {
-                    let matched = false;
-                    for (let i = 0; i < partSelectEl.options.length; i++) {
-                        if (partSelectEl.options[i].value === targetPartNo || partSelectEl.options[i].text.includes(targetPartNo)) {
-                            partSelectEl.value = partSelectEl.options[i].value;
-                            matched = true;
-                            break;
-                        }
-                    }
-                    
-                    if (matched) {
-                        if (typeof playBeep === 'function') playBeep('success');
-                    } else {
-                        playSystemBeep(); 
-                        
-                        const newOpt = document.createElement('option');
-                        newOpt.value = targetPartNo;
-                        newOpt.text = targetPartNo + " (นอกแผน)";
-                        partSelectEl.appendChild(newOpt);
-                        partSelectEl.value = targetPartNo;
-                    }
-
-                    partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
-                    partSelectEl.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-
-                this.dispatchEvent(new Event('input', { bubbles: true }));
-                this.dispatchEvent(new Event('change', { bubbles: true }));
-
-                setTimeout(() => {
-                    const qtyInput = document.querySelector('input[type="number"], input[id*="qty"]');
-                    if (qtyInput) {
-                        qtyInput.focus();
-                        qtyInput.select();
-                    }
-                }, 100);
-            }
-        });
-    }
-});
-
 // ==========================================
-// 🚀 ฟังก์ชันจัดการพนักงานและเชื่อมโยงไปหน้าพิมพ์แยกอิสระ
+// 🚀 ฟังก์ชันจัดการพนักงานและเชื่อมโยงไปหน้าพิมพ์ใบรายงาน
 // ==========================================
 function updateOperatorDropdown() {
     let select = document.getElementById('filterOperator');
@@ -2310,54 +2293,109 @@ function updateOperatorDropdown() {
 
 function exportFilteredProductionReport() {
     let selectedOperator = document.getElementById('filterOperator')?.value || '';
-    let rows = document.querySelectorAll('#actualTableBody tr');
     let reportData = [];
 
-    rows.forEach((tr) => {
-        let tds = tr.querySelectorAll('td');
-        if (tds.length < 9) return;
+    // ดึงข้อมูลตรงจาก Array actuals เพื่อให้ได้ฟิลด์ครบถ้วนรวมถึง Downtime
+    if (typeof actuals !== 'undefined' && Array.isArray(actuals) && actuals.length > 0) {
+        actuals.forEach(item => {
+            let opName = item.operator || item['OP Name'] || '';
+            if (selectedOperator && !opName.includes(selectedOperator)) return;
 
-        let timeVal = tds[1]?.innerText.trim() || '';  
-        let opName = tds[2]?.innerText.trim() || '';   
-        let lineMc = tds[3]?.innerText.trim() || '';   
-        let partNo = tds[4]?.innerText.trim() || '';   
-        let lotNo = tds[5]?.innerText.trim() || '';    
-        let okQty = tds[6]?.innerText.trim() || '0';   
-        let ngQty = tds[7]?.innerText.trim() || '0';   
-        let remark = tds[8]?.innerText.trim() || '';   
-
-        if (selectedOperator && !opName.includes(selectedOperator)) return;
-
-        let startTime = "";
-        let endTime = "";
-        if (timeVal.includes('-')) {
-            let parts = timeVal.split('-');
-            startTime = parts[0].trim();
-            endTime = parts[1].trim();
-        } else {
-            startTime = timeVal;
-        }
-
-        // 🔹 1. ดึงค่า CT จาก Master Parts (คอลัมน์ Q) โดยตัด Process ออกก่อนเทียบ
-        let cleanPart = partNo.split(' ')[0].trim().toUpperCase();
-        let ctVal = 3; // ค่า Default 3 วินาที
-        
-        let masterList = (typeof masterBarcodes !== 'undefined') ? masterBarcodes : ((typeof masterPartsData !== 'undefined') ? masterPartsData : []);
-        if (Array.isArray(masterList)) {
-            let found = masterList.find(m => {
-                let p = String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase();
-                let c = String(m.partCode || m['Part Code'] || m['barcode'] || '').trim().toUpperCase();
-                return p === cleanPart || c === cleanPart;
-            });
-            if (found) {
-                let rawCt = Number(found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : Object.values(found)[16])); // คอลัมน์ Q คือ Index 16[cite: 11]
-                if (!isNaN(rawCt) && rawCt > 0) ctVal = rawCt;
+            let timeVal = item['เวลาทำงาน'] || item.timeWork || item.timeRange || '-';
+            let startTime = "";
+            let endTime = "";
+            if (timeVal.includes('-')) {
+                let parts = timeVal.split('-');
+                startTime = parts[0].trim();
+                endTime = parts[1].trim();
+            } else {
+                startTime = timeVal;
             }
-        }
 
-        // 🔹 2. แนบค่า ct ส่งไปด้วย[cite: 10]
-        reportData.push({ startTime, endTime, lotNo, partNo, lineMc, okQty, ngQty, remark, ct: ctVal });
-    });
+            let partNo = item.partNo || item['Part No.'] || '-';
+            let cleanPart = String(partNo).split(' ')[0].trim().toUpperCase();
+            
+            // ดึงค่า CT
+            let ctVal = item.ct ? Number(item.ct) : 6;
+            let masterList = [];
+            try {
+                masterList = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+            } catch (e) { masterList = []; }
+            if (masterList.length === 0 && typeof masterBarcodes !== 'undefined') masterList = masterBarcodes;
+
+            if (Array.isArray(masterList)) {
+                let found = masterList.find(m => {
+                    let p = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
+                    let c = String(m.partCode || m['Part Code'] || m['barcode'] || '').trim().toUpperCase();
+                    return p === cleanPart || c === cleanPart;
+                });
+                if (found) {
+                    let rawCt = Number(found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : Object.values(found)[16]));
+                    if (!isNaN(rawCt) && rawCt > 0) ctVal = rawCt;
+                }
+            }
+
+            reportData.push({
+                startTime,
+                endTime,
+                lotNo: item.lotNo || item['Lot No.'] || '-',
+                partNo: partNo,
+                lineMc: item.line || item['Line/MC'] || '-',
+                okQty: item.qty !== undefined ? item.qty : (item['OK Qty'] || 0),
+                ngQty: item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0),
+                remark: item.remark || item['Remark'] || '-',
+                downtimeMins: item.downtimeMins || 0,
+                downtimeCode: item.downtimeCode || '',
+                ct: ctVal
+            });
+        });
+    } else {
+        // Fallback: หากดึงจาก Array ไม่ได้ ให้ดึงจาก DOM Table
+        let rows = document.querySelectorAll('#actualTableBody tr');
+        rows.forEach((tr) => {
+            let tds = tr.querySelectorAll('td');
+            if (tds.length < 9) return;
+
+            let timeVal = tds[1]?.innerText.trim() || '';  
+            let opName = tds[2]?.innerText.trim() || '';   
+            let lineMc = tds[3]?.innerText.trim() || '';   
+            let partNo = tds[4]?.innerText.trim() || '';   
+            let lotNo = tds[5]?.innerText.trim() || '';    
+            let okQty = tds[6]?.innerText.trim() || '0';   
+            let ngQty = tds[7]?.innerText.trim() || '0';   
+            let remark = tds[8]?.innerText.trim() || '';   
+
+            if (selectedOperator && !opName.includes(selectedOperator)) return;
+
+            let startTime = "";
+            let endTime = "";
+            if (timeVal.includes('-')) {
+                let parts = timeVal.split('-');
+                startTime = parts[0].trim();
+                endTime = parts[1].trim();
+            } else {
+                startTime = timeVal;
+            }
+
+            let cleanPart = partNo.split(' ')[0].trim().toUpperCase();
+            let ctVal = 6;
+            
+            let masterList = (typeof masterBarcodes !== 'undefined') ? masterBarcodes : [];
+            if (Array.isArray(masterList)) {
+                let found = masterList.find(m => {
+                    let p = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
+                    let c = String(m.partCode || m['Part Code'] || m['barcode'] || '').trim().toUpperCase();
+                    return p === cleanPart || c === cleanPart;
+                });
+                if (found) {
+                    let rawCt = Number(found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : Object.values(found)[16]));
+                    if (!isNaN(rawCt) && rawCt > 0) ctVal = rawCt;
+                }
+            }
+
+            reportData.push({ startTime, endTime, lotNo, partNo, lineMc, okQty, ngQty, remark, ct: ctVal });
+        });
+    }
 
     if (reportData.length === 0) {
         alert('ไม่พบข้อมูลตามเงื่อนไขที่เลือกสำหรับพิมพ์รายงาน');
