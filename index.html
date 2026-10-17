@@ -5061,7 +5061,6 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
-        // ฟังก์ชันคลีน Part No. ให้สะอาดบริสุทธิ์
         function cleanPart(str) {
             if (!str) return '';
             return String(str).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
@@ -5070,27 +5069,23 @@ document.addEventListener('keypress', function(e) {
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
             
-            if (masterDb.length === 0) {
-                if (cachedLowStockList.length > 0) {
-                    displayWidget(cachedLowStockList, selectedLine);
-                } else {
-                    container.innerHTML = `
-                        <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
-                        </div>`;
-                    setTimeout(() => renderWidget(selectedLine), 1500);
-                }
+            // ดึงข้อมูลการผลิตจากทุกชื่อตัวแปรที่เป็นไปได้ในระบบ
+            const actList = window.actuals || window.actualProduction || window.actList || (typeof actuals !== 'undefined' ? actuals : []);
+            const qgList = window.qgate || window.qGateList || (typeof qgate !== 'undefined' ? qgate : []);
+            const delList = window.deliveries || window.deliveryList || (typeof deliveries !== 'undefined' ? deliveries : []);
+
+            if (masterDb.length === 0 || actList.length === 0) {
+                container.innerHTML = `
+                    <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Master และ Production จากระบบหลัก...</h6>
+                    </div>`;
+                setTimeout(() => renderWidget(selectedLine), 2000);
                 return;
             }
-
-            const actList = window.actuals || (typeof actuals !== 'undefined' ? actuals : []);
-            const qgList = window.qgate || (typeof qgate !== 'undefined' ? qgate : []);
-            const delList = window.deliveries || (typeof deliveries !== 'undefined' ? deliveries : []);
 
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                // ใช้ partNo (Column B) เป็นหลัก
                 let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
                 let cleanPartNo = cleanPart(rawPartNo);
                 if (!cleanPartNo) return;
@@ -5116,25 +5111,28 @@ document.addEventListener('keypress', function(e) {
                 };
 
                 // 1. คำนวณยอดผลิตเข้า (Actuals)
-                const totalIn = actList.filter(a => isMatch(a.partNo || a['Part No.'] || a.part))
-                    .reduce((sum, a) => {
-                        let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || 0));
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
+                const totalIn = actList.filter(a => {
+                    return isMatch(a.partNo || a['Part No.'] || a.part || a[Object.keys(a).find(k => k.toLowerCase().includes('part'))]);
+                }).reduce((sum, a) => {
+                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || a[Object.keys(a).find(k => k.toLowerCase().includes('qty') || k.toLowerCase().includes('จำนวน'))] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
                 // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
-                const totalTransferred = qgList.filter(q => isMatch(q.partNo || q['Part No.'] || q.part))
-                    .reduce((sum, q) => {
-                        let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
+                const totalTransferred = qgList.filter(q => {
+                    return isMatch(q.partNo || q['Part No.'] || q.part || q[Object.keys(q).find(k => k.toLowerCase().includes('part'))]);
+                }).reduce((sum, q) => {
+                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
                 // 3. คำนวณยอดส่งมอบ (Deliveries)
-                const totalDelivered = delList.filter(d => isMatch(d.partNo || d['Part No.'] || d.part))
-                    .reduce((sum, d) => {
-                        let val = Number(d.qty || d['Qty'] || 0);
-                        return sum + (isNaN(val) ? 0 : val);
-                    }, 0);
+                const totalDelivered = delList.filter(d => {
+                    return isMatch(d.partNo || d['Part No.'] || d.part || d[Object.keys(d).find(k => k.toLowerCase().includes('part'))]);
+                }).reduce((sum, d) => {
+                    let val = Number(d.qty || d['Qty'] || 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
                 // 4. Manual Adjustment
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
@@ -5199,22 +5197,21 @@ document.addEventListener('keypress', function(e) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 500);
-                setTimeout(() => renderWidget('ALL'), 1500);
+                setTimeout(() => renderWidget('ALL'), 1000);
                 return res;
             };
             window._patchedLoadCloud = true;
         }
 
-        setTimeout(() => renderWidget('ALL'), 1000);
-        setTimeout(() => renderWidget('ALL'), 3000);
+        setTimeout(() => renderWidget('ALL'), 2000);
+        setTimeout(() => renderWidget('ALL'), 4000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 400);
+                    setTimeout(() => renderWidget(text), 500);
                 }
             }
         });
@@ -5224,7 +5221,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1000);
+        setTimeout(initLowStockWidget, 1500);
     }
 })();
         function updateClock() {
