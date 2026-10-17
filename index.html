@@ -4964,9 +4964,10 @@ document.addEventListener('keypress', function(e) {
         container.style.display = 'block';
 
         function renderWidget(selectedLine = 'ALL') {
-            const masterDb = window.masterPartsDatabase || window.masterParts || [];
+            const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
             
-            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
+            // ป้องกันติดค้างสถานะโหลด ให้แสดงผลจาก Cache หรือดึงต่อทันทีหากข้อมูลพร้อมบางส่วน
+            if (masterDb.length === 0) {
                 if (cachedLowStockList.length > 0) {
                     displayWidget(cachedLowStockList, selectedLine);
                 } else {
@@ -4974,6 +4975,7 @@ document.addEventListener('keypress', function(e) {
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                             <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
                         </div>`;
+                    setTimeout(() => renderWidget(selectedLine), 1500);
                 }
                 return;
             }
@@ -4981,15 +4983,13 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
+                let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || m['Part Code'] || '').trim();
                 if (!rawPartNo) return;
 
                 const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
                 if (hasProcessSuffix) return;
 
-                // แปลง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อใช้เป็นมาตรฐานกลางในการเทียบ
                 let partNo = rawPartNo.toUpperCase();
-
                 let line = 'ALL';
                 let minVal = 0;
 
@@ -5002,7 +5002,7 @@ document.addEventListener('keypress', function(e) {
                     if (lk === 'line' || lk.includes('line')) {
                         if (m[k]) line = m[k];
                     }
-                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
+                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || lk.includes('min') || i === 11) {
                         let v = Number(val);
                         if (!isNaN(v) && v > 0) {
                             minVal = v;
@@ -5012,8 +5012,12 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalIn = actuals.filter(a => {
+                // ตรวจสอบข้อมูล actuals และ qgate แบบปลอดภัย (ถ้าไม่มีให้ใช้ค่าเริ่มต้นเป็นอาเรย์ว่าง)
+                const actList = typeof actuals !== 'undefined' ? actuals : (window.actuals || []);
+                const qgList = typeof qgate !== 'undefined' ? qgate : (window.qgate || []);
+                const delList = typeof deliveries !== 'undefined' ? deliveries : (window.deliveries || []);
+
+                const totalIn = actList.filter(a => {
                     let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, a) => {
@@ -5021,8 +5025,7 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalTransferred = qgate.filter(q => {
+                const totalTransferred = qgList.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, q) => {
@@ -5030,8 +5033,7 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
+                const totalDelivered = delList.filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, d) => {
@@ -5039,18 +5041,16 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment - ใช้ uppercase ควบคุม
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกันแบบบวกตรงๆ
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
                 const currentFg = (totalTransferred - totalDelivered) + adjustFg;
                 const totalStock = currentwip + currentFg;
 
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo, // แสดงผลตามชื่อต้นฉบับ
+                        partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -5058,12 +5058,10 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
-            if (lowStockList.length > 0 || isInitialized) {
-                cachedLowStockList = lowStockList;
-                isInitialized = true;
-            }
+            cachedLowStockList = lowStockList;
+            isInitialized = true;
 
-            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, selectedLine);
+            displayWidget(lowStockList, selectedLine);
         }
 
         function displayWidget(list, selectedLine) {
@@ -5108,16 +5106,6 @@ document.addEventListener('keypress', function(e) {
                 return res;
             };
             window._patchedLoadCloud = true;
-        }
-
-        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
-            let originalRenderAll = window.renderAll;
-            window.renderAll = function(...args) {
-                let res = originalRenderAll.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 300);
-                return res;
-            };
-            window._patchedRenderAll = true;
         }
 
         setTimeout(() => renderWidget('ALL'), 1000);
