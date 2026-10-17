@@ -5044,7 +5044,6 @@ document.addEventListener('keypress', function(e) {
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
 (function() {
     let cachedLowStockList = [];
-    let isInitialized = false;
 
     function initLowStockWidget() {
         let container = document.getElementById('zeroStockListContainer');
@@ -5061,94 +5060,81 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
+        function cleanStr(str) {
+            if (!str) return '';
+            return String(str).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
+        }
+
         function renderWidget(selectedLine = 'ALL') {
-            const masterDb = window.masterPartsDatabase || window.masterParts || [];
-            
-            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
-                if (cachedLowStockList.length > 0) {
-                    displayWidget(cachedLowStockList, selectedLine);
-                } else {
-                    container.innerHTML = `
-                        <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
-                        </div>`;
+            // ระบบสแกนหาอาเรย์ข้อมูล Master ในหน้าเว็บแบบอัตโนมัติ
+            let masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || window.masterData || window.master || [];
+            if (!Array.isArray(masterDb) || masterDb.length === 0) {
+                for (let key in window) {
+                    try {
+                        if (Array.isArray(window[key]) && window[key].length > 0) {
+                            let sample = window[key][0];
+                            if (sample && (sample.partNo || sample['Part No.'] || sample.minimum || sample['Minimum'] || Object.values(sample).length > 10)) {
+                                masterDb = window[key];
+                                break;
+                            }
+                        }
+                    } catch(e) {}
                 }
+            }
+            
+            if (!Array.isArray(masterDb) || masterDb.length === 0) {
+                container.innerHTML = `
+                    <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Master Parts จากระบบ...</h6>
+                    </div>`;
+                setTimeout(() => renderWidget(selectedLine), 2000);
                 return;
             }
 
             let lowStockList = [];
 
-            masterDb.forEach(m => {
-                let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-                if (!rawPartNo) return;
+            masterDb.forEach((m) => {
+                const vals = Object.values(m);
+                
+                // 1. ดึง Part No. จาก Column B (คีย์ partNo หรือ Index 1)[cite: 10]
+                let partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || vals[1] || '').trim();
+                if (!partNo) return;
 
-                const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
-                if (hasProcessSuffix) return;
-
-                // แปลง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อใช้เป็นมาตรฐานกลางในการเทียบ
-                let partNo = rawPartNo.toUpperCase();
-
-                let line = 'ALL';
+                // 2. ดึง Line จาก Column E (หรือฟิลด์ line)[cite: 10]
+                let line = String(m.line || m['Line'] || vals[4] || 'ALL').trim();
+                
+                // 3. ดึงค่า Minimum จาก Column L (Index 11) หรือฟิลด์ minimum[cite: 10]
                 let minVal = 0;
-
-                const keys = Object.keys(m);
-                for (let i = 0; i < keys.length; i++) {
-                    let k = keys[i];
-                    let lk = k.toLowerCase().trim();
-                    let val = String(m[k]).replace(/,/g, '').trim();
-
-                    if (lk === 'line' || lk.includes('line')) {
-                        if (m[k]) line = m[k];
-                    }
-                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
-                        let v = Number(val);
-                        if (!isNaN(v) && v > 0) {
-                            minVal = v;
-                        }
-                    }
+                let rawMin = m.minimum !== undefined ? m.minimum : (m['Minimum'] !== undefined ? m['Minimum'] : (m['minimum'] !== undefined ? m['minimum'] : vals[11]));
+                if (rawMin !== undefined && rawMin !== null && rawMin !== '') {
+                    minVal = Number(String(rawMin).replace(/,/g, ''));
                 }
 
-                if (minVal <= 0) return;
+                if (isNaN(minVal) || minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalIn = actuals.filter(a => {
-                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, a) => {
-                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                // 4. คำนวณยอด Stock (WIP + FG)
+                let targetKey = cleanStr(partNo);
+                const match = (p) => {
+                    let cp = cleanStr(p);
+                    return cp === targetKey || cp.includes(targetKey) || targetKey.includes(cp);
+                };
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalTransferred = qgate.filter(q => {
-                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, q) => {
-                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                const actList = window.actuals || window.actualProduction || [];
+                const qgList = window.qgate || window.qGateList || [];
+                const delList = window.deliveries || window.deliveryList || [];
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries) - แปลง Part No. เป็น uppercase ก่อนเทียบ
-                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
-                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, d) => {
-                    let val = Number(d.qty || d['Qty'] || 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                let inQty = actList.filter(a => match(a.partNo || a['Part No.'] || a.part)).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || a.okQty || 0), 0);
+                let qgQty = qgList.filter(q => match(q.partNo || q['Part No.'] || q.part)).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || 0) + Number(q.ngQty || 0)) || 0), 0);
+                let delQty = delList.filter(d => match(d.partNo || d['Part No.'] || d.part)).reduce((s, d) => s + Number(d.qty || d['Qty'] || 0), 0);
 
-                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment - ใช้ uppercase ควบคุม
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
-                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
+                let wip = inQty - qgQty;
+                let fg = qgQty - delQty;
+                let totalStock = wip + fg;
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกันแบบบวกตรงๆ
-                const currentwip = (totalIn - totalTransferred) + adjustWip;
-                const currentFg = (totalTransferred - totalDelivered) + adjustFg;
-                const totalStock = currentwip + currentFg;
-
+                // 5. เงื่อนไข: ถ้ายอด Stock (WIP + FG) น้อยกว่า Minimum ให้เก็บมาแสดงผล
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo, // แสดงผลตามชื่อต้นฉบับ
+                        partNo: partNo,
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -5156,12 +5142,8 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
-            if (lowStockList.length > 0 || isInitialized) {
-                cachedLowStockList = lowStockList;
-                isInitialized = true;
-            }
-
-            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, selectedLine);
+            cachedLowStockList = lowStockList;
+            displayWidget(lowStockList, selectedLine);
         }
 
         function displayWidget(list, selectedLine) {
@@ -5197,30 +5179,7 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
-            let originalLoad = window.loadAllDataFromCloud;
-            window.loadAllDataFromCloud = async function(...args) {
-                let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 500);
-                setTimeout(() => renderWidget('ALL'), 1500);
-                return res;
-            };
-            window._patchedLoadCloud = true;
-        }
-
-        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
-            let originalRenderAll = window.renderAll;
-            window.renderAll = function(...args) {
-                let res = originalRenderAll.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 300);
-                return res;
-            };
-            window._patchedRenderAll = true;
-        }
-
-        setTimeout(() => renderWidget('ALL'), 1000);
-        setTimeout(() => renderWidget('ALL'), 3000);
-        setTimeout(() => renderWidget('ALL'), 5000);
+        setTimeout(() => renderWidget('ALL'), 2000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
@@ -5237,7 +5196,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1000);
+        setTimeout(initLowStockWidget, 1500);
     }
 })();
         function updateClock() {
