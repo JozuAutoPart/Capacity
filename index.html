@@ -5066,40 +5066,41 @@ document.addEventListener('keypress', function(e) {
         }
 
         function renderWidget(selectedLine = 'ALL') {
-            const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
+            // ดึงข้อมูล Master จากทุกตัวแปรที่เป็นไปได้ในระบบ
+            const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || window.masterData || [];
             
             if (masterDb.length === 0) {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังโหลดข้อมูล MasterParts...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Master Parts จากระบบ...</h6>
                     </div>`;
-                setTimeout(() => renderWidget(selectedLine), 1500);
+                setTimeout(() => renderWidget(selectedLine), 2000);
                 return;
             }
 
             let lowStockList = [];
 
-            masterDb.forEach(m => {
-                // 1. ดึง Part No. จาก Column B (คีย์ partNo หรือ Object.values index 1)
+            masterDb.forEach((m, index) => {
                 const vals = Object.values(m);
+                
+                // ดึง Part No. จาก Column B (คีย์ partNo หรือ Index 1)[cite: 10]
                 let partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || vals[1] || '').trim();
                 if (!partNo) return;
 
+                // ดึง Line จาก Column E (หรือฟิลด์ line)[cite: 10]
                 let line = String(m.line || m['Line'] || vals[4] || 'ALL').trim();
                 
-                // 2. ดึงค่า Minimum จาก Column L (index 11) หรือคีย์ minimum
+                // ดึงค่า Minimum จาก Column L (Index 11) หรือฟิลด์ minimum[cite: 10]
                 let minVal = 0;
-                if (m.minimum !== undefined) minVal = Number(String(m.minimum).replace(/,/g, ''));
-                else if (m['Minimum'] !== undefined) minVal = Number(String(m['Minimum']).replace(/,/g, ''));
-                else if (m['minimum'] !== undefined) minVal = Number(String(m['minimum']).replace(/,/g, ''));
-                else if (vals[11] !== undefined) minVal = Number(String(vals[11]).replace(/,/g, ''));
+                let rawMin = m.minimum !== undefined ? m.minimum : (m['Minimum'] !== undefined ? m['Minimum'] : (m['minimum'] !== undefined ? m['minimum'] : vals[11]));
+                if (rawMin !== undefined && rawMin !== null && rawMin !== '') {
+                    minVal = Number(String(rawMin).replace(/,/g, ''));
+                }
 
                 if (isNaN(minVal) || minVal <= 0) return;
 
-                // 3. คำนวณ Stock (WIP + FG) จากฟังก์ชันหรืออาเรย์ในระบบ
-                let totalStock = 0;
+                // คำนวณ Stock (WIP + FG)
                 let targetKey = cleanStr(partNo);
-
                 const match = (p) => {
                     let cp = cleanStr(p);
                     return cp === targetKey || cp.includes(targetKey) || targetKey.includes(cp);
@@ -5115,9 +5116,9 @@ document.addEventListener('keypress', function(e) {
 
                 let wip = inQty - qgQty;
                 let fg = qgQty - delQty;
-                totalStock = wip + fg;
+                let totalStock = wip + fg;
 
-                // 4. เงื่อนไข: ถ้าน้อยกว่า Minimum ให้แสดงผล
+                // เงื่อนไข: ถ้ายอด Stock (WIP + FG) น้อยกว่า Minimum ให้นำมาแสดง
                 if (totalStock < minVal) {
                     lowStockList.push({
                         partNo: partNo,
@@ -5165,7 +5166,7 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        setTimeout(() => renderWidget('ALL'), 1500);
+        setTimeout(() => renderWidget('ALL'), 2000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
