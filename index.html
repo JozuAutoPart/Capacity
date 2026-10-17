@@ -5066,14 +5066,13 @@ document.addEventListener('keypress', function(e) {
         }
 
         function renderWidget(selectedLine = 'ALL') {
-            // ค้นหาฐานข้อมูล Master จากตัวแปรกลางในระบบ
             let masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || window.masterData || [];
             if (!Array.isArray(masterDb) || masterDb.length === 0) {
                 for (let key in window) {
                     try {
                         if (Array.isArray(window[key]) && window[key].length > 0) {
                             let sample = window[key][0];
-                            if (sample && (sample.partNo || sample['Part No.'] || sample.minimum || sample['Minimum'])) {
+                            if (sample && (Array.isArray(sample) || sample.partNo || sample['Part No.'])) {
                                 masterDb = window[key];
                                 break;
                             }
@@ -5092,28 +5091,30 @@ document.addEventListener('keypress', function(e) {
             }
 
             let lowStockList = [];
-            console.log("=== DEBUG LOW STOCK WIDGET ===");
 
             masterDb.forEach((m) => {
-                const vals = Object.values(m);
-                
-                // 1. ดึง Part No. จาก Column B (คีย์ partNo หรือ Index 1)[cite: 10]
-                let partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || vals[1] || '').trim();
-                if (!partNo) return;
-
-                // 2. ดึง Line จาก Column E (คีย์ line หรือ Index 4)[cite: 10]
-                let line = String(m.line || m['Line'] || m['LINE'] || vals[4] || 'ALL').trim();
-                
-                // 3. ดึงค่า Minimum จาก Column L (คีย์ minimum / Minimum หรือ Index 11)[cite: 10]
+                let partNo = '';
+                let line = 'ALL';
                 let minVal = 0;
-                let rawMin = m.minimum !== undefined ? m.minimum : (m['Minimum'] !== undefined ? m['Minimum'] : (m['minimum'] !== undefined ? m['minimum'] : vals[11]));
-                if (rawMin !== undefined && rawMin !== null && rawMin !== '') {
-                    minVal = Number(String(rawMin).replace(/,/g, ''));
+
+                if (Array.isArray(m)) {
+                    // กรณีข้อมูลเก็บเป็น Array ย่อยตาม Index แถวชีต
+                    partNo = String(m[1] || '').trim(); // Column B (Index 1)[cite: 10]
+                    line = String(m[4] || 'ALL').trim();   // Column E (Index 4)[cite: 10]
+                    minVal = Number(String(m[11] || 0).replace(/,/g, '')); // Column L (Index 11)[cite: 10]
+                } else if (typeof m === 'object' && m !== null) {
+                    const vals = Object.values(m);
+                    partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || vals[1] || '').trim();
+                    line = String(m.line || m['Line'] || m['LINE'] || vals[4] || 'ALL').trim();
+                    let rawMin = m.minimum !== undefined ? m.minimum : (m['Minimum'] !== undefined ? m['Minimum'] : (m['minimum'] !== undefined ? m['minimum'] : vals[11]));
+                    if (rawMin !== undefined && rawMin !== null && rawMin !== '') {
+                        minVal = Number(String(rawMin).replace(/,/g, ''));
+                    }
                 }
 
-                if (isNaN(minVal) || minVal <= 0) return;
+                if (!partNo || isNaN(minVal) || minVal <= 0) return;
 
-                // 4. คำนวณ Stock (WIP + FG)
+                // คำนวณ Stock (WIP + FG)
                 let targetKey = cleanStr(partNo);
                 const match = (p) => {
                     let cp = cleanStr(p);
@@ -5124,17 +5125,35 @@ document.addEventListener('keypress', function(e) {
                 const qgList = window.qgate || window.qGateList || [];
                 const delList = window.deliveries || window.deliveryList || [];
 
-                let inQty = actList.filter(a => match(a.partNo || a['Part No.'] || a.part)).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || a.okQty || 0), 0);
-                let qgQty = qgList.filter(q => match(q.partNo || q['Part No.'] || q.part)).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || 0) + Number(q.ngQty || 0)) || 0), 0);
-                let delQty = delList.filter(d => match(d.partNo || d['Part No.'] || d.part)).reduce((s, d) => s + Number(d.qty || d['Qty'] || 0), 0);
+                let inQty = actList.filter(a => {
+                    let p = Array.isArray(a) ? a[1] : (a.partNo || a['Part No.'] || a.part);
+                    return match(p);
+                }).reduce((s, a) => {
+                    let q = Array.isArray(a) ? a[2] : (a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || 0));
+                    return s + (isNaN(Number(q)) ? 0 : Number(q));
+                }, 0);
+
+                let qgQty = qgList.filter(q => {
+                    let p = Array.isArray(q) ? q[1] : (q.partNo || q['Part No.'] || q.part);
+                    return match(p);
+                }).reduce((s, q) => {
+                    let val = Array.isArray(q) ? q[3] : (q.totalQty || q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || 0) + Number(q.ngQty || 0)) || 0);
+                    return s + (isNaN(Number(val)) ? 0 : Number(val));
+                }, 0);
+
+                let delQty = delList.filter(d => {
+                    let p = Array.isArray(d) ? d[1] : (d.partNo || d['Part No.'] || d.part);
+                    return match(p);
+                }).reduce((s, d) => {
+                    let q = Array.isArray(d) ? d[2] : (d.qty || d['Qty'] || 0);
+                    return s + (isNaN(Number(q)) ? 0 : Number(q));
+                }, 0);
 
                 let wip = inQty - qgQty;
                 let fg = qgQty - delQty;
                 let totalStock = wip + fg;
 
-                console.log(`Part: ${partNo} | Min(Col L): ${minVal} | Stock(WIP+FG): ${totalStock}`);
-
-                // 5. เงื่อนไข: ถ้ายอด Stock น้อยกว่า Minimum ให้นำมาแสดง
+                // เงื่อนไข: ถ้ายอด Stock น้อยกว่า Minimum ให้นำมาแสดงผล
                 if (totalStock < minVal) {
                     lowStockList.push({
                         partNo: partNo,
@@ -5145,7 +5164,6 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
-            console.log("Total Low Stock Found:", lowStockList.length);
             cachedLowStockList = lowStockList;
             displayWidget(lowStockList, selectedLine);
         }
@@ -5199,7 +5217,7 @@ document.addEventListener('keypress', function(e) {
     if (document.readyState === 'complete') {
         initLowStockWidget();
     } else {
-        window.addEventListener('load', initLowStatsWidget = initLowStockWidget);
+        window.addEventListener('load', initLowStockWidget);
         setTimeout(initLowStockWidget, 1500);
     }
 })();
