@@ -5060,13 +5060,18 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
+        function cleanStr(str) {
+            if (!str) return '';
+            return String(str).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
+        }
+
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
             
             if (masterDb.length === 0) {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Master Database...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังโหลดข้อมูล MasterParts...</h6>
                     </div>`;
                 setTimeout(() => renderWidget(selectedLine), 1500);
                 return;
@@ -5075,50 +5080,44 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
+                // 1. ดึง Part No. จาก Column B (คีย์ partNo หรือ Object.values index 1)
+                const vals = Object.values(m);
+                let partNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || vals[1] || '').trim();
                 if (!partNo) return;
 
-                let line = String(m.line || m['Line'] || 'ALL').trim();
+                let line = String(m.line || m['Line'] || vals[4] || 'ALL').trim();
                 
-                // ดึงค่า Minimum จาก Column L (index 11) หรือฟิลด์ minimum
+                // 2. ดึงค่า Minimum จาก Column L (index 11) หรือคีย์ minimum
                 let minVal = 0;
-                const vals = Object.values(m);
                 if (m.minimum !== undefined) minVal = Number(String(m.minimum).replace(/,/g, ''));
                 else if (m['Minimum'] !== undefined) minVal = Number(String(m['Minimum']).replace(/,/g, ''));
+                else if (m['minimum'] !== undefined) minVal = Number(String(m['minimum']).replace(/,/g, ''));
                 else if (vals[11] !== undefined) minVal = Number(String(vals[11]).replace(/,/g, ''));
-                else if (vals[8] !== undefined) minVal = Number(String(vals[8]).replace(/,/g, ''));
 
                 if (isNaN(minVal) || minVal <= 0) return;
 
-                // ค้นหายอด Stock WIP + FG จากฟังก์ชันหรือตัวแปรในระบบหลักถ้ามี (ถ้าไม่มีคำนวณจากอาเรย์กลาง)
+                // 3. คำนวณ Stock (WIP + FG) จากฟังก์ชันหรืออาเรย์ในระบบ
                 let totalStock = 0;
-                
-                // ลองดึงจากฟังก์ชันคำนวณสต็อกเดิมของระบบ (ถ้ามีประกาศไว้ใน window)
-                if (typeof window.getStockByPart === 'function') {
-                    totalStock = Number(window.getStockByPart(partNo)) || 0;
-                } else if (window.stockWipFgData && window.stockWipFgData[partNo]) {
-                    totalStock = Number(window.stockWipFgData[partNo].total || window.stockWipFgData[partNo]) || 0;
-                } else {
-                    // คำนวณผ่าน Actuals, QGate, Deliveries กลาง
-                    const actList = window.actuals || [];
-                    const qgList = window.qgate || [];
-                    const delList = window.deliveries || [];
+                let targetKey = cleanStr(partNo);
 
-                    const clean = (s) => String(s || '').replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
-                    let targetKey = clean(partNo);
+                const match = (p) => {
+                    let cp = cleanStr(p);
+                    return cp === targetKey || cp.includes(targetKey) || targetKey.includes(cp);
+                };
 
-                    const match = (p) => clean(p) === targetKey || clean(p).includes(targetKey);
+                const actList = window.actuals || [];
+                const qgList = window.qgate || [];
+                const delList = window.deliveries || [];
 
-                    let inQty = actList.filter(a => match(a.partNo || a['Part No.'])).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || 0), 0);
-                    let qgQty = qgList.filter(q => match(q.partNo || q['Part No.'])).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || 0), 0);
-                    let delQty = delList.filter(d => match(d.partNo || d['Part No.'])).reduce((s, d) => s + Number(d.qty || d['Qty'] || 0), 0);
+                let inQty = actList.filter(a => match(a.partNo || a['Part No.'] || a.part)).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || a.okQty || 0), 0);
+                let qgQty = qgList.filter(q => match(q.partNo || q['Part No.'] || q.part)).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || 0) + Number(q.ngQty || 0)) || 0), 0);
+                let delQty = delList.filter(d => match(d.partNo || d['Part No.'] || d.part)).reduce((s, d) => s + Number(d.qty || d['Qty'] || 0), 0);
 
-                    let wip = inQty - qgQty;
-                    let fg = qgQty - delQty;
-                    totalStock = wip + fg;
-                }
+                let wip = inQty - qgQty;
+                let fg = qgQty - delQty;
+                totalStock = wip + fg;
 
-                // ถ้ายอดสต็อกน้อยกว่า Minimum นำมาแสดงในรายการเตือน
+                // 4. เงื่อนไข: ถ้าน้อยกว่า Minimum ให้แสดงผล
                 if (totalStock < minVal) {
                     lowStockList.push({
                         partNo: partNo,
