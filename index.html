@@ -5093,9 +5093,51 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                // ดึง Part No. หลักจากคอลัมน์ B (index 1 หรือฟิลด์ partNo) และ Barcode จากคอลัมน์ A
-                let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || Object.values(m)[1] || '').trim();
-                let rawBarcode = String(m.barcode || m['barcode'] || Object.values(m)[0] || '').trim();
+                // ดึงค่าตามคอลัมน์จาก MasterParts ชัดเจน:
+                // คอลัมน์ A (index 0) = Barcode (JA...)
+                // คอลัมน์ B (index 1) = Part No. (53219-...)
+                let rawPartNo = '';
+                let rawBarcode = '';
+
+                if (Array.isArray(m)) {
+                    rawBarcode = String(m[0] || '').trim();
+                    rawPartNo = String(m[1] || '').trim();
+                } else if (typeof m === 'object' && m !== null) {
+                    const keys = Object.keys(m);
+                    const values = Object.values(m);
+
+                    // ค้นหาคีย์ partNo / Part No. แบบไม่สนอักษรเล็กใหญ่
+                    for (let key in m) {
+                        let k = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        if (k === 'partno' || k === 'partnumber' || k === 'part') {
+                            rawPartNo = String(m[key]).trim();
+                        }
+                        if (k === 'barcode' || k === 'code') {
+                            rawBarcode = String(m[key]).trim();
+                        }
+                    }
+
+                    // ถ้าหาตามคีย์ไม่เจอ ให้ใช้ index ของคอลัมน์ B (ตำแหน่งที่ 2 ใน object / values[1])
+                    if (!rawPartNo && values.length > 1) {
+                        // ถ้า values[0] คือ JA... ให้บังคับเลือก values[1] ซึ่งเป็น Part No. จริง
+                        if (String(values[0]).toUpperCase().startsWith('JA') && !String(values[1]).toUpperCase().startsWith('JA')) {
+                            rawPartNo = String(values[1]).trim();
+                            rawBarcode = String(values[0]).trim();
+                        } else {
+                            rawPartNo = String(m.partNo || m['Part No.'] || values[1] || '').trim();
+                        }
+                    }
+                }
+
+                // กรณีที่ rawPartNo ยังหลุดเป็นรหัส JA... ให้สลับเอาคอลัมน์ B มาใช้
+                if (rawPartNo.toUpperCase().startsWith('JA') && typeof m === 'object') {
+                    let vals = Object.values(m);
+                    let foundRealPart = vals.find(v => String(v).includes('-') || (String(v).length > 5 && !String(v).toUpperCase().startsWith('JA')));
+                    if (foundRealPart) {
+                        rawBarcode = rawPartNo;
+                        rawPartNo = String(foundRealPart).trim();
+                    }
+                }
 
                 if (!rawPartNo && !rawBarcode) return;
 
@@ -5104,7 +5146,7 @@ document.addEventListener('keypress', function(e) {
 
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
-                // ดึงค่า Minimum จากคอลัมน์ L หรือฟิลด์ที่เกี่ยวข้อง
+                // ดึงค่า Minimum จากคอลัมน์ L หรือฟิลด์ Minimum
                 let minVal = 0;
                 for (let key in m) {
                     let lk = key.toLowerCase().trim();
@@ -5162,7 +5204,7 @@ document.addEventListener('keypress', function(e) {
                 // เงื่อนไข: สต็อกรวม < Minimum
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo || rawBarcode,
+                        partNo: rawPartNo, // บังคับใช้ค่าจากคอลัมน์ B
                         line: line,
                         stock: totalStock,
                         min: minVal
