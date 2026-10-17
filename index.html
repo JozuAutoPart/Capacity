@@ -5061,6 +5061,17 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
+        // ฟังก์ชันคลีนชื่อ Part No. ให้เหลือเฉพาะรหัสพาร์ทบริสุทธิ์
+        function cleanPartString(str) {
+            if (!str) return '';
+            let s = String(str).trim();
+            // ตัดส่วนขยาย Process เช่น " 1/2", " 4/7", " 1/3" ออก
+            s = s.replace(/\s+\d+\/\d+.*$/, '');
+            // ลบดอกจัน * และอักขระพิเศษอื่นๆ รวมถึงช่องว่าง
+            s = s.replace(/[*_]/g, '').trim().toUpperCase();
+            return s;
+        }
+
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
             
@@ -5077,7 +5088,6 @@ document.addEventListener('keypress', function(e) {
                 return;
             }
 
-            // ดึงข้อมูลผ่าน window โดยตรงเพื่อความชัวร์
             const actList = window.actuals || (typeof actuals !== 'undefined' ? actuals : []);
             const qgList = window.qgate || (typeof qgate !== 'undefined' ? qgate : []);
             const delList = window.deliveries || (typeof deliveries !== 'undefined' ? deliveries : []);
@@ -5085,61 +5095,76 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let partNoPrimary = String(m.partNo || m['Part No.'] || m.PARTNO || '').trim();
-                let partCodeSecondary = String(m['Part Code'] || m.partCode || m.barcode || '').trim();
+                let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
+                let rawPartCode = String(m['Part Code'] || m.partCode || m.barcode || '').trim();
 
-                if (!partNoPrimary && !partCodeSecondary) return;
-                if (/\s\d+\/\d+$/.test(partNoPrimary)) return;
+                if (!rawPartNo && !rawPartCode) return;
+
+                let cleanMasterPartNo = cleanPartString(rawPartNo);
+                let cleanMasterPartCode = cleanPartString(rawPartCode);
 
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
-                // ดึงค่า Minimum จากฟิลด์ minimum หรือ Column I (Index 8)
-                let minVal = Number(m.minimum || m['Minimum'] || Object.values(m)[8] || 0);
+                // ดึงค่า Minimum จากฟิลด์ minimum หรือ Column L
+                let minVal = 0;
+                for (let key in m) {
+                    let lk = key.toLowerCase().trim();
+                    if (lk === 'minimum' || lk.includes('minimum') || lk === 'safetystock') {
+                        let v = Number(String(m[key]).replace(/,/g, ''));
+                        if (!isNaN(v)) minVal = v;
+                    }
+                }
+                if (minVal <= 0) {
+                    minVal = Number(m.minimum || m['Minimum'] || Object.values(m)[11] || Object.values(m)[8] || 0);
+                }
+
                 if (minVal <= 0) return;
 
+                // ฟังก์ชันเช็กว่าข้อมูลการผลิตบรรทัดนี้ ตรงกับพาร์ทใน Master หรือไม่
                 const isPartMatch = (recordPartNo) => {
                     if (!recordPartNo) return false;
-                    let cleanRec = String(recordPartNo).split(' ')[0].trim().toUpperCase();
-                    let p1 = partNoPrimary.split(' ')[0].trim().toUpperCase();
-                    let p2 = partCodeSecondary.split(' ')[0].trim().toUpperCase();
+                    let cleanRec = cleanPartString(recordPartNo);
+                    if (!cleanRec) return false;
 
-                    return (p1 && cleanRec === p1) || (p2 && cleanRec === p2) || (p1 && cleanRec.includes(p1)) || (p2 && cleanRec.includes(p2));
+                    return (cleanMasterPartNo && cleanRec === cleanMasterPartNo) ||
+                           (cleanMasterPartCode && cleanRec === cleanMasterPartCode) ||
+                           (cleanMasterPartNo && (cleanRec.includes(cleanMasterPartNo) || cleanMasterPartNo.includes(cleanRec)));
                 };
 
                 // 1. คำนวณยอดผลิตเข้า (Actuals)
-                const totalIn = actList.filter(a => isPartMatch(a.partNo || a['Part No.']))
+                const totalIn = actList.filter(a => isPartMatch(a.partNo || a['Part No.'] || a.part))
                     .reduce((sum, a) => {
-                        let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                        let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || a.okQty || 0));
                         return sum + (isNaN(val) ? 0 : val);
                     }, 0);
 
                 // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
-                const totalTransferred = qgList.filter(q => isPartMatch(q.partNo || q['Part No.']))
+                const totalTransferred = qgList.filter(q => isPartMatch(q.partNo || q['Part No.'] || q.part))
                     .reduce((sum, q) => {
                         let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
                         return sum + (isNaN(val) ? 0 : val);
                     }, 0);
 
                 // 3. คำนวณยอดส่งมอบ (Deliveries)
-                const totalDelivered = delList.filter(d => isPartMatch(d.partNo || d['Part No.']))
+                const totalDelivered = delList.filter(d => isPartMatch(d.partNo || d['Part No.'] || d.part))
                     .reduce((sum, d) => {
                         let val = Number(d.qty || d['Qty'] || 0);
                         return sum + (isNaN(val) ? 0 : val);
                     }, 0);
 
                 // 4. Manual Adjustment
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${partNoPrimary}`) || 0);
-                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${partNoPrimary}`) || 0);
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
+                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || 0);
 
-                // 5. สต็อกรวม (WIP + FG)
+                // 5. คำนวณยอดสต็อกรวม (WIP + FG)
                 const currentwip = (totalIn - totalTransferred) + adjustWip;
                 const currentFg = (totalTransferred - totalDelivered) + adjustFg;
                 const totalStock = currentwip + currentFg;
 
-                // ถ้ายอดสต็อกรวมน้อยกว่า Minimum ให้นำมาแสดงในรายการเตือน
+                // เงื่อนไข: สต็อกรวม (WIP + FG) < Minimum ให้แจ้งเตือนทันที!
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: partNoPrimary || partCodeSecondary,
+                        partNo: rawPartNo || rawPartCode,
                         line: line,
                         stock: totalStock,
                         min: minVal
