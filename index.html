@@ -2298,10 +2298,10 @@ function exportFilteredProductionReport() {
     // ดึงข้อมูลตรงจาก Array actuals เพื่อให้ได้ฟิลด์ครบถ้วนรวมถึง Downtime
     if (typeof actuals !== 'undefined' && Array.isArray(actuals) && actuals.length > 0) {
         actuals.forEach(item => {
-            let opName = item.operator || item['OP Name'] || '';
+            let opName = String(item.operator || item['OP Name'] || '');
             if (selectedOperator && !opName.includes(selectedOperator)) return;
 
-            let timeVal = item['เวลาทำงาน'] || item.timeWork || item.timeRange || '-';
+            let timeVal = String(item['เวลาทำงาน'] || item.timeWork || item.timeRange || '-');
             let startTime = "";
             let endTime = "";
             if (timeVal.includes('-')) {
@@ -2312,8 +2312,8 @@ function exportFilteredProductionReport() {
                 startTime = timeVal;
             }
 
-            let partNo = item.partNo || item['Part No.'] || '-';
-            let cleanPart = String(partNo).split(' ')[0].trim().toUpperCase();
+            let partNo = String(item.partNo || item['Part No.'] || '-');
+            let cleanPart = partNo.split(' ')[0].trim().toUpperCase();
             
             // ดึงค่า CT
             let ctVal = item.ct ? Number(item.ct) : 6;
@@ -2338,14 +2338,14 @@ function exportFilteredProductionReport() {
             reportData.push({
                 startTime,
                 endTime,
-                lotNo: item.lotNo || item['Lot No.'] || '-',
+                lotNo: String(item.lotNo || item['Lot No.'] || '-'),
                 partNo: partNo,
-                lineMc: item.line || item['Line/MC'] || '-',
+                lineMc: String(item.line || item['Line/MC'] || '-'),
                 okQty: item.qty !== undefined ? item.qty : (item['OK Qty'] || 0),
                 ngQty: item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0),
-                remark: item.remark || item['Remark'] || '-',
-                downtimeMins: item.downtimeMins || 0,
-                downtimeCode: item.downtimeCode || '',
+                remark: String(item.remark || item['Remark'] || '-'),
+                downtimeMins: Number(item.downtimeMins || 0),
+                downtimeCode: String(item.downtimeCode || ''),
                 ct: ctVal
             });
         });
@@ -2356,14 +2356,14 @@ function exportFilteredProductionReport() {
             let tds = tr.querySelectorAll('td');
             if (tds.length < 9) return;
 
-            let timeVal = tds[1]?.innerText.trim() || '';  
-            let opName = tds[2]?.innerText.trim() || '';   
-            let lineMc = tds[3]?.innerText.trim() || '';   
-            let partNo = tds[4]?.innerText.trim() || '';   
-            let lotNo = tds[5]?.innerText.trim() || '';    
+            let timeVal = String(tds[1]?.innerText.trim() || '');  
+            let opName = String(tds[2]?.innerText.trim() || '');   
+            let lineMc = String(tds[3]?.innerText.trim() || '');   
+            let partNo = String(tds[4]?.innerText.trim() || '');   
+            let lotNo = String(tds[5]?.innerText.trim() || '');    
             let okQty = tds[6]?.innerText.trim() || '0';   
             let ngQty = tds[7]?.innerText.trim() || '0';   
-            let remark = tds[8]?.innerText.trim() || '';   
+            let remark = String(tds[8]?.innerText.trim() || '');   
 
             if (selectedOperator && !opName.includes(selectedOperator)) return;
 
