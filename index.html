@@ -562,23 +562,27 @@
                         </div>
                     </div>
 
-                    <!-- ส่วนบันทึก Downtime (เพิ่มใหม่) -->
-                    <div class="row g-2 mb-2">
-                        <div class="col-6">
-                            <label class="form-label small text-warning">เวลาเครื่องหยุด (นาที)</label>
-                            <input type="number" id="actualDowntimeMins" class="form-control form-control-sm bg-dark text-white border-warning" value="0" min="0" placeholder="0">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
-                            <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
-                                <option value="">-- เลือกสาเหตุ --</option>
-                                <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
-                                <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
-                                <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
-                                <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
-                            </select>
-                        </div>
-                    </div>
+                   <!-- ส่วนบันทึกช่วงเวลา Downtime (เพิ่มใหม่: เลือกเวลาเริ่ม-จบที่หยุด) -->
+<div class="row g-2 mb-2">
+    <div class="col-6">
+        <label class="form-label small text-warning">เวลาเริ่มหยุด (From)</label>
+        <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
+    </div>
+    <div class="col-6">
+        <label class="form-label small text-warning">เวลาจบที่หยุด (To)</label>
+        <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
+    </div>
+</div>
+<div class="mb-2">
+    <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
+    <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
+        <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
+        <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
+        <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
+        <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
+        <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
+    </select>
+</div>
 
                     <div class="mb-3">
                         <label class="form-label small">หมายเหตุ / เครื่องหยุด (Remark)</label>
