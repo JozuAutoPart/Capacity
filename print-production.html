@@ -97,17 +97,17 @@
                 <th style="width: 15%;">การแก้ไขเบื้องต้น</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="downtimeTableBody">
             <tr><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
                 <td colspan="2" style="text-align: right;">รวมเวลาหยุดทำงานทั้งหมด (นาที)</td>
-                <td colspan="4" style="text-align: left; padding-left: 10px;">0 นาที</td>
+                <td colspan="4" style="text-align: left; padding-left: 10px;" id="totalDowntimeMinutes">0 นาที</td>
             </tr>
         </tfoot>
     </table>
-    <div style="font-size: 12px; margin-bottom: 10px;">* หมายเหตุ รหัส Downtime: M/C = เครื่องจักรเสีย | SET = ตั้งเครื่อง/เปลี่ยนพิมพ์ | MAT. = วัตถุดิบ | QUALITY = คุณภาพ</div>
+    <div style="font-size: 12px; margin-bottom: 10px;">* หมายเหตุ รหัส Downtime: M/C = เครื่องจักรเสีย | SET = ตั้งเครื่อง/เปลี่ยนพิมพ์ | MAT = วัตถุดิบ | QUALITY = คุณภาพ</div>
 
     <!-- ส่วนที่ 3: รายละเอียดงานเสียและงานแก้ไข -->
     <div class="section-title">3. รายละเอียดงานเสียและงานแก้ไข (DEFECT & SCRAP ANALYSIS)</div>
@@ -131,9 +131,9 @@
         <tr>
             <td style="padding: 10px; text-align: left;">
                 <strong>ชิ้นงานและเครื่องจักรมีปัญหาต่อเนื่อง 3 ชิ้น ให้ดำเนินการ "หยุด - เรียก - รอ" (Stop, Call, Wait)</strong><br>
-                 <strong>หยุด (STOP):</strong> เมื่อพบเห็นสิ่งผิดปกติ หรือเกิดข้อสงสัย ให้ "หยุด" การทำงานหรือหยุดเครื่องจักรทันที<br>
-                 <strong>เรียก (CALL):</strong> "เรียก" ผู้รับผิดชอบ เช่น หัวหน้างาน (Leader), ช่างซ่อมบำรุง (Maintenance) หรือ QC ทันที<br>
-                 <strong>รอ (WAIT):</strong> "รอ" อยู่ที่จุดเกิดเหตุจนกว่าหัวหน้างานหรือผู้เกี่ยวข้องจะมาถึง และปฏิบัติตามคำสั่งอย่างเคร่งครัด
+                <strong>หยุด (STOP):</strong> เมื่อพบเห็นสิ่งผิดปกติ หรือเกิดข้อสงสัย ให้ "หยุด" การทำงานหรือหยุดเครื่องจักรทันที<br>
+                <strong>เรียก (CALL):</strong> "เรียก" ผู้รับผิดชอบ เช่น หัวหน้างาน (Leader), ช่างซ่อมบำรุง (Maintenance) หรือ QC ทันที<br>
+                <strong>รอ (WAIT):</strong> "รอ" อยู่ที่จุดเกิดเหตุจนกว่าหัวหน้างานหรือผู้เกี่ยวข้องจะมาถึง และปฏิบัติตามคำสั่งอย่างเคร่งครัด
             </td>
         </tr>
     </table>
@@ -157,7 +157,6 @@
         let totalMinutes = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
         if (totalMinutes <= 0) return 0;
 
-        // กำหนดนาทีของช่วงพักนับจาก 00:00 น.
         const break1Start = 12 * 60;      // 12:00 = 720
         const break1End = 12 * 60 + 45;   // 12:45 = 765
 
@@ -176,7 +175,6 @@
             breakMinutes += getOverlapMinutes(startMin, endMin, break1Start, break1End);
             breakMinutes += getOverlapMinutes(startMin, endMin, break2Start, break2End);
         } else {
-            // กรณีคร่อมข้ามคืน
             breakMinutes += getOverlapMinutes(startMin, 1440, break1Start, break1End);
             breakMinutes += getOverlapMinutes(startMin, 1440, break2Start, break2End);
             breakMinutes += getOverlapMinutes(0, endMin, break1Start, break1End);
@@ -185,6 +183,16 @@
 
         let netMinutes = totalMinutes - breakMinutes;
         return Math.max(0, netMinutes);
+    }
+
+    // ฟังก์ชันเดารหัส Downtime จากคำใน Remark
+    function detectDowntimeCode(remarkText) {
+        if (!remarkText) return 'M/C';
+        let txt = remarkText.toLowerCase();
+        if (txt.includes('ตั้ง') || txt.includes('ปรับ') || txt.includes('เปลี่ยน') || txt.includes('เซ็ต')) return 'SET';
+        if (txt.includes('วัตถุดิบ') || txt.includes('เหล็ก') || txt.includes('เพลา') || txt.includes('ขาด')) return 'MAT';
+        if (txt.includes('คุณภาพ') || txt.includes('งานเสีย') || txt.includes('ขนาด') || txt.includes('เช็ก')) return 'QUAL';
+        return 'M/C';
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -204,30 +212,31 @@
         document.getElementById('sign-date').innerText = todayStr;
 
         if (reportData.length > 0) {
-            const tbody = document.getElementById('summaryTableBody');
-            tbody.innerHTML = '';
+            const summaryTbody = document.getElementById('summaryTableBody');
+            summaryTbody.innerHTML = '';
 
             let totalTarget = 0;
             let totalActual = 0;
             let totalOk = 0;
             let totalNg = 0;
 
+            let downtimeRowsHtml = '';
+            let totalDowntimeMinutes = 0;
+
+            let ngRowsHtml = '';
+
             reportData.forEach((item, index) => {
                 let startTime = item.startTime || '-';
                 let endTime = item.endTime || '-';
 
-                // คำนวณเวลาทำงานจริงที่หักเวลาพักออกแล้ว (เป็นนาที และ แปลงเป็นวินาที)
                 let startMin = timeToMinutes(startTime);
                 let endMin = timeToMinutes(endTime);
                 let netMinutes = calculateNetWorkingMinutes(startMin, endMin);
                 let durationSeconds = netMinutes * 60;
 
                 let rawPartNo = item.partNo || '-';
-                
-                // ดึงค่า CT (วินาที) จาก item.ct ที่ส่งมาจากหน้าหลัก ถ้าไม่มีให้ใช้ 6 วินาทีตาม Google Sheet
                 let ctSeconds = item.ct ? Number(item.ct) : 6;
 
-                // คำนวณ Target Pcs = เวลาทำงานจริง (วินาที) / CT (วินาที)
                 let targetQty = durationSeconds > 0 && ctSeconds > 0 ? Math.round(durationSeconds / ctSeconds) : 0;
 
                 let okQty = Number(item.okQty || 0);
@@ -240,6 +249,9 @@
                 totalOk += okQty;
                 totalNg += ngQty;
 
+                let remark = (item.remark && item.remark !== '-') ? item.remark.trim() : '';
+
+                // --- 1. สรุปภาพรวมการผลิต ---
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${index + 1}</td>
@@ -252,15 +264,67 @@
                     <td>${ngQty.toLocaleString()}</td>
                     <td>${achievement}</td>
                 `;
-                tbody.appendChild(tr);
+                summaryTbody.appendChild(tr);
+
+                // --- 2. เช็กใส่ส่วนที่ 2: DOWNTIME RECORD (หากมี Remark) ---
+                if (remark !== '') {
+                    let totalTimeMin = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
+                    let dtCode = detectDowntimeCode(remark);
+                    totalDowntimeMinutes += totalTimeMin;
+
+                    downtimeRowsHtml += `
+                        <tr>
+                            <td>${startTime}</td>
+                            <td>${endTime}</td>
+                            <td>${totalTimeMin}</td>
+                            <td><b>${dtCode}</b></td>
+                            <td style="text-align: left; padding-left: 8px;">${remark} (${rawPartNo})</td>
+                            <td>แก้ไข/แจ้งช่าง</td>
+                        </tr>
+                    `;
+                }
+
+                // --- 3. เช็กใส่ส่วนที่ 3: DEFECT & SCRAP ANALYSIS (หากมี NG Qty > 0) ---
+                if (ngQty > 0) {
+                    let defectDesc = remark !== '' ? remark : 'งานเสียจากการผลิต';
+                    ngRowsHtml += `
+                        <tr>
+                            <td style="text-align: left; padding-left: 8px;"><b>${rawPartNo}</b></td>
+                            <td style="font-weight: bold; color: red;">${ngQty.toLocaleString()}</td>
+                            <td>${defectDesc}</td>
+                            <td>${defectDesc}</td>
+                            <td>${operatorName !== 'ทั้งหมด' ? operatorName : 'Operate'}</td>
+                        </tr>
+                    `;
+                }
             });
 
+            // อัปเดตตารางสรุปส่วนที่ 1
             document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
             document.getElementById('totalActual').innerText = totalActual.toLocaleString();
             document.getElementById('totalOk').innerText = totalOk.toLocaleString();
             document.getElementById('totalNg').innerText = totalNg.toLocaleString();
             let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
             document.getElementById('totalAchievement').innerText = totalAch;
+
+            // อัปเดตตารางส่วนที่ 2 (Downtime)
+            const downtimeTableBody = document.getElementById('downtimeTableBody');
+            const downtimeTotalTd = document.getElementById('totalDowntimeMinutes');
+            if (downtimeRowsHtml !== '') {
+                if (downtimeTableBody) downtimeTableBody.innerHTML = downtimeRowsHtml;
+                if (downtimeTotalTd) downtimeTotalTd.innerText = totalDowntimeMinutes + ' นาที';
+            } else {
+                if (downtimeTableBody) downtimeTableBody.innerHTML = '<tr><td>-</td><td>-</td><td>-</td><td>-</td><td>ไม่มีบันทึกเครื่องหยุด</td><td>-</td></tr>';
+            }
+
+            // อัปเดตตารางส่วนที่ 3 (Defect)
+            const ngTableBody = document.getElementById('ngTableBody');
+            if (ngRowsHtml !== '') {
+                if (ngTableBody) ngTableBody.innerHTML = ngRowsHtml;
+            } else {
+                if (ngTableBody) ngTableBody.innerHTML = '<tr><td>-</td><td>-</td><td>ไม่มีงานเสีย (0 Pcs)</td><td>-</td><td>-</td></tr>';
+            }
+
         } else {
             document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ไม่พบข้อมูลตามเงื่อนไขที่เลือกพิมพ์</td></tr>`;
         }
