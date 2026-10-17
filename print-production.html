@@ -70,7 +70,7 @@
             </tr>
         </thead>
         <tbody id="summaryTableBody">
-            <tr><td colspan="9" class="text-muted">กำลังดึงข้อมูลและคำนวณเป้าหมายจาก CT...</td></tr>
+            <tr><td colspan="9" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
@@ -146,114 +146,92 @@
 </div>
 
 <script>
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHwVvVqZYGrRFGw5fIEy_IhhPv0SuBpPyCrJqq9nVM_VefXCQqdIt5MDdjr0zZA/exec";
-
     function timeToMinutes(timeStr) {
         if (!timeStr || !timeStr.includes(':')) return 0;
         let parts = timeStr.trim().split(':');
         return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
     }
 
-    window.addEventListener('DOMContentLoaded', async () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
-        document.getElementById('sign-date').innerText = targetDate;
-
-        let masterCT = {};
-
+    window.addEventListener('DOMContentLoaded', () => {
+        // ดึงข้อมูลรายงานที่ถูกส่งมาจากหน้าหลักผ่าน localStorage
+        let reportData = [];
         try {
-            // ดึงค่า CT จาก Google Sheet (MasterParts) มาจับคู่
-            let resMaster = await fetch(GOOGLE_SCRIPT_URL + "?action=getMasterParts");
-            let jsonMaster = await resMaster.json();
-            let masterList = Array.isArray(jsonMaster) ? jsonMaster : (jsonMaster.data || []);
-            masterList.forEach(item => {
-                let pNo = String(item.partNo || item['Part No.'] || item['partNo'] || '').trim().toUpperCase();
-                let ctVal = Number(item.ct || item['CT'] || 3);
-                if (pNo) masterCT[pNo] = ctVal;
-            });
+            reportData = JSON.parse(localStorage.getItem('productionReportData') || '[]');
         } catch (e) {
-            console.warn("Could not load MasterParts from sheet, using default CT", e);
+            reportData = [];
         }
 
-        try {
-            // ดึงข้อมูลการผลิต Actuals
-            let resActuals = await fetch(GOOGLE_SCRIPT_URL + "?action=getActuals&t=" + new Date().getTime());
-            let resJson = await resActuals.json();
-            let dataList = Array.isArray(resJson) ? resJson : (resJson.status === "success" && resJson.data ? resJson.data : []);
+        // ดึงชื่อพนักงานสำหรับลงนาม
+        let operatorName = localStorage.getItem('productionReportOperator') || '-';
+        if (operatorName && operatorName !== 'ทั้งหมด') {
+            document.getElementById('sign-operator').innerText = operatorName;
+        }
 
-            if (dataList.length > 0) {
-                const tbody = document.getElementById('summaryTableBody');
-                tbody.innerHTML = '';
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('sign-date').innerText = todayStr;
 
-                let totalTarget = 0;
-                let totalActual = 0;
-                let totalOk = 0;
-                let totalNg = 0;
+        if (reportData.length > 0) {
+            const tbody = document.getElementById('summaryTableBody');
+            tbody.innerHTML = '';
 
-                dataList.forEach((item, index) => {
-                    let timeVal = item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeRange || '-';
-                    let times = String(timeVal).split(' ');
-                    let startTime = times[0] || '-';
-                    let endTime = times[1] || '-';
+            let totalTarget = 0;
+            let totalActual = 0;
+            let totalOk = 0;
+            let totalNg = 0;
 
-                    // คำนวณเวลาทำงานเป็นวินาที
-                    let startMin = timeToMinutes(startTime);
-                    let endMin = timeToMinutes(endTime);
-                    let durationMinutes = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
-                    let durationSeconds = durationMinutes * 60;
+            reportData.forEach((item, index) => {
+                let startTime = item.startTime || '-';
+                let endTime = item.endTime || '-';
 
-                    let rawPartNo = item.partNo || item['Part No.'] || '-';
-                    // ตัด Process ด้านหลังออก เช่น "55333-0D020 1/7" เหลือ "55333-0D020"
-                    let cleanPartNo = String(rawPartNo).split(' ')[0].trim().toUpperCase();
+                // คำนวณระยะเวลาทำงานเป็นวินาที
+                let startMin = timeToMinutes(startTime);
+                let endMin = timeToMinutes(endTime);
+                let durationMinutes = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
+                let durationSeconds = durationMinutes * 60;
 
-                    // ดึงค่า CT (วินาที) จากชีต MasterParts ถ้าไม่เจอใช้ค่ามาตรฐาน 3 วินาที
-                    let ctSeconds = masterCT[cleanPartNo] || 3;
+                let rawPartNo = item.partNo || '-';
+                // ตัดส่วน Process ท้ายออก เช่น "55365-0G030 1/7" ตัดเหลือ "55365-0G030"
+                let cleanPartNo = String(rawPartNo).split(' ')[0].trim().toUpperCase();
 
-                    // คำนวณ Target Pcs = (เวลารวมเป็นวินาที) / CT วินาที
-                    let targetQty = durationSeconds > 0 && ctSeconds > 0 ? Math.round(durationSeconds / ctSeconds) : 0;
+                // ค่า CT เริ่มต้น (วินาที) หากไม่มีในระบบให้ใช้ 3 วินาที
+                let ctSeconds = item.ct ? Number(item.ct) : 3;
 
-                    let okQty = Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0));
-                    let ngQty = Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0));
-                    let actualQty = okQty + ngQty;
-                    let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
+                // คำนวณ Target Pcs = เวลารวม (วินาที) / CT (วินาที)
+                let targetQty = durationSeconds > 0 && ctSeconds > 0 ? Math.round(durationSeconds / ctSeconds) : 0;
 
-                    let opName = item.operator || item['OP Name'] || item.opName || '';
-                    if (opName) {
-                        document.getElementById('sign-operator').innerText = opName;
-                    }
+                let okQty = Number(item.okQty || 0);
+                let ngQty = Number(item.ngQty || 0);
+                let actualQty = okQty + ngQty;
+                let achievement = targetQty > 0 ? ((actualQty / targetQty) * 100).toFixed(1) + '%' : '0%';
 
-                    totalTarget += targetQty;
-                    totalActual += actualQty;
-                    totalOk += okQty;
-                    totalNg += ngQty;
+                totalTarget += targetQty;
+                totalActual += actualQty;
+                totalOk += okQty;
+                totalNg += ngQty;
 
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td>${startTime}</td>
-                        <td>${endTime}</td>
-                        <td style="text-align: left; padding-left: 8px;">${rawPartNo}</td>
-                        <td>${targetQty.toLocaleString()}</td>
-                        <td>${actualQty.toLocaleString()}</td>
-                        <td>${okQty.toLocaleString()}</td>
-                        <td>${ngQty.toLocaleString()}</td>
-                        <td>${achievement}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${startTime}</td>
+                    <td>${endTime}</td>
+                    <td style="text-align: left; padding-left: 8px;">${rawPartNo}</td>
+                    <td>${targetQty.toLocaleString()}</td>
+                    <td>${actualQty.toLocaleString()}</td>
+                    <td>${okQty.toLocaleString()}</td>
+                    <td>${ngQty.toLocaleString()}</td>
+                    <td>${achievement}</td>
+                `;
+                tbody.appendChild(tr);
+            });
 
-                document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
-                document.getElementById('totalActual').innerText = totalActual.toLocaleString();
-                document.getElementById('totalOk').innerText = totalOk.toLocaleString();
-                document.getElementById('totalNg').innerText = totalNg.toLocaleString();
-                let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
-                document.getElementById('totalAchievement').innerText = totalAch;
-            } else {
-                document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
-            }
-        } catch (err) {
-            console.error("Error loading report data:", err);
-            document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-danger">ไม่สามารถโหลดข้อมูลได้</td></tr>`;
+            document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
+            document.getElementById('totalActual').innerText = totalActual.toLocaleString();
+            document.getElementById('totalOk').innerText = totalOk.toLocaleString();
+            document.getElementById('totalNg').innerText = totalNg.toLocaleString();
+            let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
+            document.getElementById('totalAchievement').innerText = totalAch;
+        } else {
+            document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ไม่พบข้อมูลตามเงื่อนไขที่เลือกพิมพ์</td></tr>`;
         }
     });
 </script>
