@@ -1917,6 +1917,7 @@ function loadActualsFromCloud() {
                 actuals = res.data.map(item => ({
                     id: item.id || Date.now(),
                     date: item.date || item['Date'] || '',
+                    timework: item['เวลาทำงาน'] || item['เวลา'] || item['Time'] || item['Working Time'] || item['timework'] || item['TimeWork'] || item['timeRange'] || item.timework || item.TimeWork || item.timeRange || '-',
                     operator: item.operator || item['OP Name'] || '',
                     line: item.line || item['Line/MC'] || '',
                     mcNo: item.mcNo || item['Machine No.'] || '',
@@ -1924,7 +1925,6 @@ function loadActualsFromCloud() {
                     lotNo: item.lotNo || item['Lot No.'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
                     ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
-                    timework: item['เวลาทำงาน'] || item.timework || item.TimeWork || item.timeWork || item.timeRange || '-',
                     remark: item.remark || item['Remark'] || '-'
                 }));
                 
