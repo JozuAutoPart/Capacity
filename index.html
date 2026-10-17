@@ -5044,7 +5044,6 @@ document.addEventListener('keypress', function(e) {
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
 (function() {
     let cachedLowStockList = [];
-    let isInitialized = false;
 
     function initLowStockWidget() {
         let container = document.getElementById('zeroStockListContainer');
@@ -5060,11 +5059,6 @@ document.addEventListener('keypress', function(e) {
             }
         }
         container.style.display = 'block';
-
-        function cleanStr(val) {
-            if (!val) return '';
-            return String(val).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
-        }
 
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
@@ -5085,66 +5079,47 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let rawBarcode = String(m.barcode || m['barcode'] || '').trim();
                 let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
-                let rawPartCode = String(m['Part Code'] || m.partCode || '').trim();
-
-                let codeKey = cleanStr(rawBarcode);
-                let partNoKey = cleanStr(rawPartNo);
-                let partCodeKey = cleanStr(rawPartCode);
-
-                if (!codeKey && !partNoKey && !partCodeKey) return;
+                let rawBarcode = String(m.barcode || m['barcode'] || '').trim();
+                if (!rawPartNo && !rawBarcode) return;
 
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
-                // ดึงค่า Minimum จาก Column L หรือฟิลด์ minimum ตามโค้ดต้นฉบับของคุณมิว
+                // ดึงค่า Minimum จาก Column L[cite: 10]
                 let minVal = 0;
                 for (let key in m) {
                     let lk = key.toLowerCase().trim();
-                    if (lk === 'minimum' || lk.includes('minimum') || lk === 'safetystock') {
+                    if (lk === 'minimum' || lk.includes('minimum')) {
                         let v = Number(String(m[key]).replace(/,/g, ''));
                         if (!isNaN(v)) minVal = v;
                     }
                 }
                 if (minVal <= 0) {
-                    minVal = Number(m.minimum || m['Minimum'] || Object.values(m)[11] || Object.values(m)[8] || 0);
+                    minVal = Number(m.minimum || m['Minimum'] || Object.values(m)[11] || 0);
                 }
 
                 if (minVal <= 0) return;
 
-                // ดึงยอด Stock (WIP + FG) จริงจากฟังก์ชันคำนวณสต็อกของหน้าเว็บหลัก (ถ้ามี) หรือคำนวณผ่านตัวแปรกลาง
+                // ดึงยอด Stock (WIP + FG) จากฟังก์ชันคำนวณของระบบหลักโดยตรง (ไม่ไปยุ่งกับอาเรย์ดิบ)
                 let totalStock = 0;
-                let displayPartName = rawPartNo || rawBarcode || rawPartCode;
+                let targetKey = rawPartNo || rawBarcode;
 
                 if (typeof window.getStockByPart === 'function') {
-                    totalStock = Number(window.getStockByPart(displayPartName)) || 0;
-                } else if (window.stockWipFgData && window.stockWipFgData[displayPartName]) {
-                    totalStock = Number(window.stockWipFgData[displayPartName].total || window.stockWipFgData[displayPartName]) || 0;
+                    totalStock = Number(window.getStockByPart(targetKey)) || 0;
+                } else if (window.stockWipFgData && window.stockWipFgData[targetKey]) {
+                    totalStock = Number(window.stockWipFgData[targetKey].total || window.stockWipFgData[targetKey]) || 0;
                 } else {
-                    // คำนวณจากอาเรย์ Actuals, QGate, Deliveries โดยดึงจากฟังก์ชันกลางของระบบถ้ามี
-                    const actList = window.actuals || [];
-                    const qgList = window.qgate || [];
-                    const delList = window.deliveries || [];
-
-                    const match = (p) => {
-                        let cp = cleanStr(p);
-                        return cp && (cp === partNoKey || cp.includes(partNoKey) || partNoKey.includes(cp) || (codeKey && cp.includes(codeKey)));
-                    };
-
-                    let totalIn = actList.filter(a => match(a.partNo || a['Part No.'] || a.part || a.barcode)).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || a.okQty || 0), 0);
-                    let totalTransferred = qgList.filter(q => match(q.partNo || q['Part No.'] || q.part || q.barcode)).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || 0) + Number(q.ngQty || 0)) || 0), 0);
-                    let totalDelivered = delList.filter(d => match(d.partNo || d['Part No.'] || d.part || d.barcode)).reduce((s, d) => s + Number(d.qty || d['Qty'] || 0), 0);
-
-                    const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawBarcode}`) || localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || 0);
-                    const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawBarcode}`) || localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || 0);
-
-                    totalStock = (totalIn - totalTransferred + adjustWip) + (totalTransferred - totalDelivered + adjustFg);
+                    // Fallback คำนวณแบบปลอดภัยโดยไม่แก้ไขอาเรย์กลาง
+                    let act = (window.actuals || []).filter(a => String(a.partNo || a['Part No.'] || '').includes(rawPartNo)).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || 0), 0);
+                    let qg = (window.qgate || []).filter(q => String(q.partNo || q['Part No.'] || '').includes(rawPartNo)).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || 0), 0);
+                    let del = (window.deliveries || []).filter(d => String(d.partNo || d['Part No.'] || '').includes(rawPartNo)).reduce((s, d) => s + Number(d.qty || 0), 0);
+                    totalStock = (act - qg) + (qg - del);
                 }
 
-                // เงื่อนไข: สต็อกรวม (WIP + FG) < Minimum แสดงเตือน และแสดง Part No. (Column B)
+                // เงื่อนไข: ถ้ายอด Stock (WIP + FG) < Minimum ให้แสดง Part No. (Column B)[cite: 10]
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo || rawBarcode || rawPartCode,
+                        partNo: rawPartNo || rawBarcode,
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -5154,7 +5129,6 @@ document.addEventListener('keypress', function(e) {
 
             cachedLowStockList = lowStockList;
             isInitialized = true;
-
             displayWidget(lowStockList, selectedLine);
         }
 
@@ -5191,19 +5165,7 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
-            let originalLoad = window.loadAllDataFromCloud;
-            window.loadAllDataFromCloud = async function(...args) {
-                let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 500);
-                setTimeout(() => renderWidget('ALL'), 1500);
-                return res;
-            };
-            window._patchedLoadCloud = true;
-        }
-
-        setTimeout(() => renderWidget('ALL'), 1000);
-        setTimeout(() => renderWidget('ALL'), 3000);
+        setTimeout(() => renderWidget('ALL'), 2000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
@@ -5220,7 +5182,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1000);
+        setTimeout(initLowStockWidget, 1500);
     }
 })();
         function updateClock() {
