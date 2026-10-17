@@ -5065,9 +5065,7 @@ document.addEventListener('keypress', function(e) {
         function cleanPartString(str) {
             if (!str) return '';
             let s = String(str).trim();
-            // ตัดส่วนขยาย Process เช่น " 1/2", " 4/7", " 1/3" ออก
             s = s.replace(/\s+\d+\/\d+.*$/, '');
-            // ลบดอกจัน * และอักขระพิเศษอื่นๆ รวมถึงช่องว่าง
             s = s.replace(/[*_]/g, '').trim().toUpperCase();
             return s;
         }
@@ -5095,17 +5093,18 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
 
             masterDb.forEach(m => {
-                let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
-                let rawPartCode = String(m['Part Code'] || m.partCode || m.barcode || '').trim();
+                // ดึง Part No. หลักจากคอลัมน์ B (index 1 หรือฟิลด์ partNo) และ Barcode จากคอลัมน์ A
+                let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || Object.values(m)[1] || '').trim();
+                let rawBarcode = String(m.barcode || m['barcode'] || Object.values(m)[0] || '').trim();
 
-                if (!rawPartNo && !rawPartCode) return;
+                if (!rawPartNo && !rawBarcode) return;
 
                 let cleanMasterPartNo = cleanPartString(rawPartNo);
-                let cleanMasterPartCode = cleanPartString(rawPartCode);
+                let cleanMasterBarcode = cleanPartString(rawBarcode);
 
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
-                // ดึงค่า Minimum จากฟิลด์ minimum หรือ Column L
+                // ดึงค่า Minimum จากคอลัมน์ L หรือฟิลด์ที่เกี่ยวข้อง
                 let minVal = 0;
                 for (let key in m) {
                     let lk = key.toLowerCase().trim();
@@ -5120,14 +5119,13 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // ฟังก์ชันเช็กว่าข้อมูลการผลิตบรรทัดนี้ ตรงกับพาร์ทใน Master หรือไม่
                 const isPartMatch = (recordPartNo) => {
                     if (!recordPartNo) return false;
                     let cleanRec = cleanPartString(recordPartNo);
                     if (!cleanRec) return false;
 
                     return (cleanMasterPartNo && cleanRec === cleanMasterPartNo) ||
-                           (cleanMasterPartCode && cleanRec === cleanMasterPartCode) ||
+                           (cleanMasterBarcode && cleanRec === cleanMasterBarcode) ||
                            (cleanMasterPartNo && (cleanRec.includes(cleanMasterPartNo) || cleanMasterPartNo.includes(cleanRec)));
                 };
 
@@ -5161,10 +5159,10 @@ document.addEventListener('keypress', function(e) {
                 const currentFg = (totalTransferred - totalDelivered) + adjustFg;
                 const totalStock = currentwip + currentFg;
 
-                // เงื่อนไข: สต็อกรวม (WIP + FG) < Minimum ให้แจ้งเตือนทันที!
+                // เงื่อนไข: สต็อกรวม < Minimum
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo || rawPartCode,
+                        partNo: rawPartNo || rawBarcode,
                         line: line,
                         stock: totalStock,
                         min: minVal
