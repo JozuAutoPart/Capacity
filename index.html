@@ -482,7 +482,7 @@
         </div>
     </div>
 </div>
-       <!-- TAB 4: ACTUAL PRODUCTION -->
+      <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -562,27 +562,27 @@
                         </div>
                     </div>
 
-                   <!-- ส่วนบันทึกช่วงเวลา Downtime (เพิ่มใหม่: เลือกเวลาเริ่ม-จบที่หยุด) -->
-<div class="row g-2 mb-2">
-    <div class="col-6">
-        <label class="form-label small text-warning">เวลาเริ่มหยุด (From)</label>
-        <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
-    </div>
-    <div class="col-6">
-        <label class="form-label small text-warning">เวลาจบที่หยุด (To)</label>
-        <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
-    </div>
-</div>
-<div class="mb-2">
-    <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
-    <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
-        <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
-        <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
-        <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
-        <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
-        <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
-    </select>
-</div>
+                    <!-- ส่วนบันทึกช่วงเวลา Downtime (เวลาเริ่ม-จบที่หยุด) -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small text-warning">เวลาเริ่มหยุด (From)</label>
+                            <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-warning">เวลาจบที่หยุด (To)</label>
+                            <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
+                        <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
+                            <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
+                            <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
+                            <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
+                            <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
+                            <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
+                        </select>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label small">หมายเหตุ / เครื่องหยุด (Remark)</label>
@@ -596,9 +596,13 @@
             <div class="card p-3">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="m-0">ประวัติการบันทึกการผลิตของพนักงาน</h5>
+                    
+                    <!-- ส่วนเพิ่มช่องเลือกวันที่พิมพ์รายงาน และเลือกพนักงาน -->
                     <div class="d-flex align-items-center gap-2">
-                        <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 180px;">
-                            <option value="">-- ทุกพนักงาน (ทั้งหมด) --</option>
+                        <input type="date" id="filterReportDate" class="form-control form-control-sm bg-dark text-white border-secondary" style="width: 140px;" title="เลือกวันที่ต้องการพิมพ์รายงาน">
+                        
+                        <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 160px;">
+                            <option value="">-- ทุกพนักงาน --</option>
                         </select>
                         <button type="button" onclick="exportFilteredProductionReport()" class="btn btn-success btn-sm">
                             <i class="fas fa-file-excel me-1"></i> พิมพ์ใบรายงานการผลิต
