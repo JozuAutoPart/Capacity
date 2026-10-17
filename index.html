@@ -2316,7 +2316,25 @@ function exportFilteredProductionReport() {
             startTime = timeVal;
         }
 
-        reportData.push({ startTime, endTime, lotNo, partNo, lineMc, okQty, ngQty, remark });
+        // 🔹 1. ดึงค่า CT จาก Master Parts (คอลัมน์ Q) โดยตัด Process ออกก่อนเทียบ
+        let cleanPart = partNo.split(' ')[0].trim().toUpperCase();
+        let ctVal = 3; // ค่า Default 3 วินาที
+        
+        let masterList = (typeof masterBarcodes !== 'undefined') ? masterBarcodes : ((typeof masterPartsData !== 'undefined') ? masterPartsData : []);
+        if (Array.isArray(masterList)) {
+            let found = masterList.find(m => {
+                let p = String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase();
+                let c = String(m.partCode || m['Part Code'] || m['barcode'] || '').trim().toUpperCase();
+                return p === cleanPart || c === cleanPart;
+            });
+            if (found) {
+                let rawCt = Number(found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : Object.values(found)[16])); // คอลัมน์ Q คือ Index 16[cite: 11]
+                if (!isNaN(rawCt) && rawCt > 0) ctVal = rawCt;
+            }
+        }
+
+        // 🔹 2. แนบค่า ct ส่งไปด้วย[cite: 10]
+        reportData.push({ startTime, endTime, lotNo, partNo, lineMc, okQty, ngQty, remark, ct: ctVal });
     });
 
     if (reportData.length === 0) {
