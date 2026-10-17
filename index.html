@@ -1807,6 +1807,13 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
     }
 });
 
+// ฟังก์ชันช่วยแปลงเวลาเป็นนาที
+function timeToMinutes(timeStr) {
+    if (!timeStr || !timeStr.includes(':')) return 0;
+    let parts = timeStr.trim().split(':');
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+}
+
 // ฟังก์ชันตรวจสอบและโหลดแผนการผลิต (กรองตัวที่ผลิตครบตามแผนออกแล้ว)
 function checkAndLoadPlans() {
     const lineSelect = document.getElementById('actualLine');
@@ -1908,7 +1915,6 @@ function onActualPartChange() {
 
         if (found) {
             let vals = Object.values(found);
-            // ดึงค่า CT จากคีย์ ct, CT, Cycle Time หรือ Column Q (Index 16)
             let rawCt = found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : (found['Cycle Time'] !== undefined ? found['Cycle Time'] : vals[16]));
             let parsedCt = Number(String(rawCt).replace(/,/g, ''));
             if (!isNaN(parsedCt) && parsedCt > 0) {
@@ -1959,9 +1965,17 @@ function submitActual(e) {
     const formDateVal = document.getElementById('actualDate') ? document.getElementById('actualDate').value : '';
     const finalDate = formDateVal ? formDateVal : localDateStr;
     
-    // 🛠️ ดึงข้อมูล Downtime (นาที และ รหัสสาเหตุ)
-    const downtimeMins = Number(document.getElementById('actualDowntimeMins')?.value) || 0;
+    // 🛠️ ดึงช่วงเวลา Downtime (เวลาเริ่ม - เวลาจบ) และคำนวณนาทีอัตโนมัติ
+    const dtStart = document.getElementById('actualDtStart')?.value || '';
+    const dtEnd = document.getElementById('actualDtEnd')?.value || '';
     const downtimeCode = document.getElementById('actualDowntimeCode')?.value || '';
+
+    let downtimeMins = 0;
+    if (dtStart && dtEnd) {
+        let sMin = timeToMinutes(dtStart);
+        let eMin = timeToMinutes(dtEnd);
+        downtimeMins = eMin >= sMin ? (eMin - sMin) : (1440 - sMin + eMin);
+    }
 
     // ⏱️ ดึงค่า CT
     let ctVal = 6;
@@ -1986,6 +2000,8 @@ function submitActual(e) {
         timeRange: timeRange,
         timework: timeRange,
         remark: document.getElementById('actualRemark') ? document.getElementById('actualRemark').value.trim() : '',
+        dtStart: dtStart,
+        dtEnd: dtEnd,
         downtimeMins: downtimeMins,
         downtimeCode: downtimeCode,
         ct: ctVal
@@ -2032,7 +2048,8 @@ function submitActual(e) {
             if (document.getElementById('actualDate')) {
                 document.getElementById('actualDate').value = new Date(resetNow.getTime() - (resetNow.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             }
-            if (document.getElementById('actualDowntimeMins')) document.getElementById('actualDowntimeMins').value = '0';
+            if (document.getElementById('actualDtStart')) document.getElementById('actualDtStart').value = '';
+            if (document.getElementById('actualDtEnd')) document.getElementById('actualDtEnd').value = '';
             if (document.getElementById('actualDowntimeCode')) document.getElementById('actualDowntimeCode').value = '';
             
             checkAndLoadPlans();
@@ -2076,6 +2093,8 @@ function loadActualsFromCloud() {
                         TimeWork: timeVal,
                         timeRange: timeVal,
                         remark: item.remark || item['Remark'] || '-',
+                        dtStart: item.dtStart || item['DtStart'] || '',
+                        dtEnd: item.dtEnd || item['DtEnd'] || '',
                         downtimeMins: Number(item.downtimeMins || item['Downtime Mins'] || 0),
                         downtimeCode: item.downtimeCode || item['Downtime Code'] || '',
                         ct: Number(item.ct || item['CT'] || 6)
@@ -2299,7 +2318,6 @@ function exportFilteredProductionReport() {
     let selectedOperator = document.getElementById('filterOperator')?.value || '';
     let reportData = [];
 
-    // ดึงข้อมูลตรงจาก Array actuals เพื่อให้ได้ฟิลด์ครบถ้วนรวมถึง Downtime
     if (typeof actuals !== 'undefined' && Array.isArray(actuals) && actuals.length > 0) {
         actuals.forEach(item => {
             let opName = String(item.operator || item['OP Name'] || '');
@@ -2319,7 +2337,6 @@ function exportFilteredProductionReport() {
             let partNo = String(item.partNo || item['Part No.'] || '-');
             let cleanPart = partNo.split(' ')[0].trim().toUpperCase();
             
-            // ดึงค่า CT
             let ctVal = item.ct ? Number(item.ct) : 6;
             let masterList = [];
             try {
@@ -2339,7 +2356,6 @@ function exportFilteredProductionReport() {
                 }
             }
 
-            // 🛠️ เพิ่มการส่งค่า downtimeMins และ downtimeCode ไปด้วยอย่างสมบูรณ์
             reportData.push({
                 startTime,
                 endTime,
@@ -2349,8 +2365,10 @@ function exportFilteredProductionReport() {
                 okQty: item.qty !== undefined ? item.qty : (item['OK Qty'] || 0),
                 ngQty: item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0),
                 remark: String(item.remark || item['Remark'] || '-'),
-                downtimeMins: Number(item.downtimeMins || item['Downtime Mins'] || 0),
-                downtimeCode: String(item.downtimeCode || item['Downtime Code'] || ''),
+                dtStart: String(item.dtStart || ''),
+                dtEnd: String(item.dtEnd || ''),
+                downtimeMins: Number(item.downtimeMins || 0),
+                downtimeCode: String(item.downtimeCode || ''),
                 ct: ctVal
             });
         });
