@@ -5060,6 +5060,11 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
+        function cleanStr(val) {
+            if (!val) return '';
+            return String(val).replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').trim().toUpperCase();
+        }
+
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
             
@@ -5076,16 +5081,30 @@ document.addEventListener('keypress', function(e) {
                 return;
             }
 
-            let lowStockList = [];
+            const actList = typeof actuals !== 'undefined' ? actuals : (window.actuals || []);
+            const qgList = typeof qgate !== 'undefined' ? qgate : (window.qgate || []);
+            const delList = typeof deliveries !== 'undefined' ? deliveries : (window.deliveries || []);
 
+            // 1. รวบรวม Part No. ทั้งหมดแบบเดียวกับฟังก์ชัน renderStock ของระบบหลัก
+            const partsMap = new Map();
+            const allRecords = [...actList, ...qgList, ...delList];
+
+            allRecords.forEach(item => {
+                let rawPart = String(item.partNo || item['Part No.'] || '').trim();
+                if (!rawPart) return;
+                if (/\s\d+\/\d+$/.test(rawPart)) return;
+                let upperPart = rawPart.toUpperCase();
+                if (!partsMap.has(upperPart)) {
+                    partsMap.set(upperPart, rawPart);
+                }
+            });
+
+            // ดึงข้อมูล Master มารอเทียบค่า Minimum (Column L)
+            const masterMap = new Map();
             masterDb.forEach(m => {
                 let rawPartNo = String(m.partNo || m['partNo'] || m['Part No.'] || m.PARTNO || '').trim();
-                let rawBarcode = String(m.barcode || m['barcode'] || '').trim();
-                if (!rawPartNo && !rawBarcode) return;
-
                 let line = String(m.line || m['Line'] || 'ALL').trim();
                 
-                // ดึงค่า Minimum จาก Column L[cite: 10]
                 let minVal = 0;
                 for (let key in m) {
                     let lk = key.toLowerCase().trim();
@@ -5098,28 +5117,71 @@ document.addEventListener('keypress', function(e) {
                     minVal = Number(m.minimum || m['Minimum'] || Object.values(m)[11] || 0);
                 }
 
-                if (minVal <= 0) return;
-
-                // ดึงยอด Stock (WIP + FG) จากฟังก์ชันคำนวณของระบบหลักโดยตรง (ไม่ไปยุ่งกับอาเรย์ดิบ)
-                let totalStock = 0;
-                let targetKey = rawPartNo || rawBarcode;
-
-                if (typeof window.getStockByPart === 'function') {
-                    totalStock = Number(window.getStockByPart(targetKey)) || 0;
-                } else if (window.stockWipFgData && window.stockWipFgData[targetKey]) {
-                    totalStock = Number(window.stockWipFgData[targetKey].total || window.stockWipFgData[targetKey]) || 0;
-                } else {
-                    // Fallback คำนวณแบบปลอดภัยโดยไม่แก้ไขอาเรย์กลาง
-                    let act = (window.actuals || []).filter(a => String(a.partNo || a['Part No.'] || '').includes(rawPartNo)).reduce((s, a) => s + Number(a.qty || a['OK Qty'] || 0), 0);
-                    let qg = (window.qgate || []).filter(q => String(q.partNo || q['Part No.'] || '').includes(rawPartNo)).reduce((s, q) => s + Number(q.totalQty || q['ยอดตรวจทั้งหมด'] || 0), 0);
-                    let del = (window.deliveries || []).filter(d => String(d.partNo || d['Part No.'] || '').includes(rawPartNo)).reduce((s, d) => s + Number(d.qty || 0), 0);
-                    totalStock = (act - qg) + (qg - del);
+                if (rawPartNo) {
+                    masterMap.set(rawPartNo.toUpperCase(), { min: minVal, line: line, originalPartNo: rawPartNo });
                 }
+            });
 
-                // เงื่อนไข: ถ้ายอด Stock (WIP + FG) < Minimum ให้แสดง Part No. (Column B)[cite: 10]
+            let lowStockList = [];
+
+            // 2. วนลูปคำนวณ Stock (WIP + FG) ตามสูตรเป๊ะๆ ของระบบหลัก
+            partsMap.forEach((displayPartNo, partNoKey) => {
+                // คำนวณ Actuals (Total In)
+                const totalIn = actList.filter(a => {
+                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
+                    return p === partNoKey;
+                }).reduce((sum, a) => {
+                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                // คำนวณ Q-Gate Total Transferred
+                const totalTransferred = qgList.filter(q => {
+                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
+                    return p === partNoKey;
+                }).reduce((sum, q) => {
+                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${displayPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNoKey}`) || 0);
+                const currentwip = (totalIn - totalTransferred) + adjustWip;
+
+                // คำนวณ FG Pass
+                const fgPass = qgList.filter(q => {
+                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
+                    return p === partNoKey;
+                }).reduce((sum, q) => {
+                    let val = Number(q.passQty !== undefined ? q.passQty : (q['Pass Qty'] || q['ผ่านเข้า FG (Pass)'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                // คำนวณ FG Delivered
+                const fgDelivered = delList.filter(d => {
+                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
+                    return p === partNoKey;
+                }).reduce((sum, d) => {
+                    let val = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['จำนวนส่งมอบ'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${displayPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
+                const currentFg = (fgPass - fgDelivered) + adjustFg;
+
+                // ยอด Stock รวม (WIP + FG) ตามที่ต้องการ
+                const totalStock = currentwip + currentFg;
+
+                // ดึงค่า Minimum จาก Master (Column L)
+                let masterInfo = masterMap.get(partNoKey);
+                if (!masterInfo || masterInfo.min <= 0) return;
+
+                let minVal = masterInfo.min;
+                let line = masterInfo.line;
+
+                // เงื่อนไข: สต็อกรวม (WIP + FG) < Minimum ถึงจะแสดงเตือน และโชว์ Part No. (Column B)
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo || rawBarcode,
+                        partNo: displayPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -5128,7 +5190,6 @@ document.addEventListener('keypress', function(e) {
             });
 
             cachedLowStockList = lowStockList;
-            isInitialized = true;
             displayWidget(lowStockList, selectedLine);
         }
 
@@ -5165,7 +5226,17 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        setTimeout(() => renderWidget('ALL'), 2000);
+        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
+            let originalLoad = window.loadAllDataFromCloud;
+            window.loadAllDataFromCloud = async function(...args) {
+                let res = await originalLoad.apply(this, args);
+                setTimeout(() => renderWidget('ALL'), 500);
+                return res;
+            };
+            window._patchedLoadCloud = true;
+        }
+
+        setTimeout(() => renderWidget('ALL'), 1500);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
@@ -5182,7 +5253,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1500);
+        setTimeout(initLowStockWidget, 1000);
     }
 })();
         function updateClock() {
