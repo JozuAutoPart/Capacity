@@ -2940,16 +2940,16 @@ function renderStock() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // ตรวจสอบว่ามีการตั้งค่า Base Stock ของ WIP ไว้หรือไม่
-        const baseWipKey = `stock_base_WIP_${displayPartNo}`;
-        const savedBaseWip = localStorage.getItem(baseWipKey) || localStorage.getItem(`stock_base_WIP_${partNoKey}`);
+        // ดึงค่า Base Stock ของ WIP
+        const baseWipVal = localStorage.getItem(`stock_base_WIP_${displayPartNo}`) ?? localStorage.getItem(`stock_base_WIP_${partNoKey}`);
         
         let currentwip;
-        if (savedBaseWip !== null && savedBaseWip !== undefined && savedBaseWip !== '') {
-            // ถ้ามีการเซ็ตสต็อกจริงไว้แล้ว ให้ยึดค่านั้นเป็นหลัก หรือบวกเพิ่มตามยอดผลิตเข้าใหม่
-            currentwip = parseInt(savedBaseWip);
+        let isWipCustom = false;
+
+        if (baseWipVal !== null && baseWipVal !== undefined && baseWipVal !== '') {
+            currentwip = parseInt(baseWipVal, 10);
+            isWipCustom = true;
         } else {
-            // ถ้ายังไม่เคยกดปรับ ให้ใช้สูตรเดิม
             currentwip = (totalIn - totalTransferred);
         }
 
@@ -2958,7 +2958,7 @@ function renderStock() {
             <td class="fw-bold text-info">${displayPartNo}</td>
             <td>${totalIn.toLocaleString()}</td>
             <td>${totalTransferred.toLocaleString()}</td>
-            <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${savedBaseWip !== null && savedBaseWip !== '' ? `<span class="badge bg-warning text-dark">(Base: ${savedBaseWip})</span>` : ''}</td>
+            <td class="fw-bold ${currentwip > 0 ? 'text-warning' : (currentwip < 0 ? 'text-danger' : '')}">${currentwip.toLocaleString()} ${isWipCustom ? `<span class="badge bg-warning text-dark">(Set: ${currentwip})</span>` : ''}</td>
             <td class="text-center">
                 <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${displayPartNo}', 'WIP')" title="กำหนดสต็อกจริง">
                     <i class="fas fa-edit"></i> ปรับ
@@ -2984,13 +2984,15 @@ function renderStock() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // ตรวจสอบว่ามีการตั้งค่า Base Stock ของ FG ไว้หรือไม่
-        const baseFgKey = `stock_base_FG_${displayPartNo}`;
-        const savedBaseFg = localStorage.getItem(baseFgKey) || localStorage.getItem(`stock_base_FG_${partNoKey}`);
+        // ดึงค่า Base Stock ของ FG
+        const baseFgVal = localStorage.getItem(`stock_base_FG_${displayPartNo}`) ?? localStorage.getItem(`stock_base_FG_${partNoKey}`);
 
         let currentFg;
-        if (savedBaseFg !== null && savedBaseFg !== undefined && savedBaseFg !== '') {
-            currentFg = parseInt(savedBaseFg);
+        let isFgCustom = false;
+
+        if (baseFgVal !== null && baseFgVal !== undefined && baseFgVal !== '') {
+            currentFg = parseInt(baseFgVal, 10);
+            isFgCustom = true;
         } else {
             currentFg = (fgPass - fgDelivered);
         }
@@ -3000,7 +3002,7 @@ function renderStock() {
             <td class="fw-bold text-info">${displayPartNo}</td>
             <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
             <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
-            <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()} ${savedBaseFg !== null && savedBaseFg !== '' ? `<span class="badge bg-warning text-dark">(Base: ${savedBaseFg})</span>` : ''}</td>
+            <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()} ${isFgCustom ? `<span class="badge bg-warning text-dark">(Set: ${currentFg})</span>` : ''}</td>
             <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
             <td class="text-center">
                 <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${displayPartNo}', 'FG')" title="กำหนดสต็อกจริง">
@@ -3014,14 +3016,15 @@ function renderStock() {
 
 function adjustStock(partNo, type) {
     const key = `stock_base_${type}_${partNo}`;
-    const currentVal = localStorage.getItem(key) || '';
+    const currentVal = localStorage.getItem(key) ?? '';
     
-    const input = prompt(`[${type}] กำหนดสต็อกจริงของ Part No: ${partNo}\n(ค่าตั้งต้นเดิม: ${currentVal || 'ยังไม่มีการตั้งค่า'})\nกรอกจำนวนสต็อกที่แท้จริงที่ต้องการเซ็ต:`, currentVal);
+    const input = prompt(`[${type}] กำหนดสต็อกจริงของ Part No: ${partNo}\n(ค่าตั้งต้นเดิม: ${currentVal !== '' ? currentVal : 'ยังไม่มีการตั้งค่า'})\nกรอกจำนวนสต็อกที่แท้จริงที่ต้องการเซ็ต:`, currentVal);
     
     if (input !== null && input.trim() !== "") {
-        const val = parseInt(input);
+        const val = parseInt(input.trim(), 10);
         
         if (!isNaN(val)) {
+            // บันทึกลงใน localStorage ทันที
             localStorage.setItem(key, val);
 
             if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
@@ -3037,14 +3040,14 @@ function adjustStock(partNo, type) {
                 })
                 .then(response => response.text())
                 .then(result => {
-                    location.reload();
+                    renderStock(); // รีเรนเดอร์ทันทีโดยไม่ต้องรอนาน
                 })
                 .catch(error => {
                     console.error("Error saving to cloud:", error);
-                    location.reload();
+                    renderStock();
                 });
             } else {
-                location.reload();
+                renderStock();
             }
 
         } else {
