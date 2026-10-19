@@ -70,7 +70,7 @@
             padding: 2px 4px;
             vertical-align: middle;
             word-wrap: break-word;
-            height: 17px;
+            height: 16px;
         }
 
         .fw-bold { font-weight: bold; }
@@ -135,7 +135,7 @@
     <div id="printContainer"></div>
 
     <script>
-         const Masterparts = {
+        const Masterparts = {
                "53219-0D020": { partName: "SUPPORT,RADIATOR,LWR RR", qty: 50, code: "JA114" },
             "55330-0D480-10": { partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", qty: 25, code: "JA118" },
             "55330-0D490-10": { partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", qty: 25, code: "JA119" },
@@ -499,19 +499,26 @@
                             <td style="font-size: 9px;">Delivery Date</td>
                             <td class="fw-bold text-center" style="font-size: 9px;">STAM QC Receiving</td>
                         </tr>
-                        <!-- แถวช่องว่างสำหรับปั๊มตรา/เซ็นชื่อ (ขนาดสมดุลตามต้นฉบับ) -->
-                        <tr style="height: 25px;">
+                        <!-- แถวช่องว่างสำหรับปั๊มตรา/เซ็นชื่อ (ช่องที่ 1) -->
+                        <tr style="height: 18px;">
                             <td></td>
                             <td></td>
                             <td></td>
                             <td></td>
                         </tr>
-                        <!-- แถว Time / by. อยู่ด้านล่างถัดลงมา -->
+                        <!-- แถว Time / by. -->
                         <tr>
                             <td style="font-size: 9px;">Time</td>
                             <td style="font-size: 9px;">Time</td>
                             <td style="font-size: 9px;">Time</td>
                             <td style="font-size: 9px;">by.</td>
+                        </tr>
+                        <!-- แถวช่องว่างโล่งๆ ด้านล่างสุด (ช่องที่ 2 ก่อนถึงบาร์โค้ด) -->
+                        <tr style="height: 18px;">
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
                         </tr>
                     </table>
 
