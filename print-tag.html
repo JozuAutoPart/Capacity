@@ -135,7 +135,7 @@
     <div id="printContainer"></div>
 
     <script>
-        const Masterparts = {
+       const Masterparts = {
                "53219-0D020": { partName: "SUPPORT,RADIATOR,LWR RR", qty: 50, code: "JA114" },
             "55330-0D480-10": { partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", qty: 25, code: "JA118" },
             "55330-0D490-10": { partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", qty: 25, code: "JA119" },
@@ -429,7 +429,6 @@
             "743L4 5EK0A": { partName: "BRKT-FR SEAT MTG, RH  ", qty: 50, code: "TMC023" },
             "743L5 5EK0A": { partName: " BRKT-FR SEAT MTG, LH  ", qty: 50, code: "TMC024" }
         };
-
         function getUrlParams() {
             const params = new URLSearchParams(window.location.search);
             const pNo = params.get('partNo') || '55366-KK020';
@@ -499,22 +498,15 @@
                             <td style="font-size: 9px;">Delivery Date</td>
                             <td class="fw-bold text-center" style="font-size: 9px;">STAM QC Receiving</td>
                         </tr>
-                        <!-- แถวช่องว่างสำหรับปั๊มตรา/เซ็นชื่อ (แถวที่ 1) -->
-                        <tr style="height: 18px;">
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                        </tr>
-                        <!-- แถว Time / by. -->
+                        <!-- แถว Time / by. อยู่ใต้หัวข้อวันที่ทันที -->
                         <tr>
                             <td style="font-size: 9px;">Time</td>
                             <td style="font-size: 9px;">Time</td>
                             <td style="font-size: 9px;">Time</td>
                             <td style="font-size: 9px;">by.</td>
                         </tr>
-                        <!-- แถวช่องว่างโล่งๆ ด้านล่างสุด (ก่อนถึงขอบบาร์โค้ด) -->
-                        <tr style="height: 22px;">
+                        <!-- ช่องว่างโล่งๆ สำหรับปั๊มตรา/เซ็นชื่อ อยู่ด้านล่างสุดก่อนถึงขอบ -->
+                        <tr style="height: 38px;">
                             <td></td>
                             <td></td>
                             <td></td>
