@@ -92,7 +92,7 @@
             font-weight: bold;
         }
 
-        /* โซนด้านล่าง (Logo + Barcode เต็มตาราง) */
+        /* โซนด้านล่าง (Logo + Barcode) */
         .bottom-section {
             display: flex;
             align-items: center;
@@ -141,7 +141,7 @@
                 partNo: params.get('partNo') || '55366-KK020',
                 partName: params.get('partName') || 'BRACKET, FINISH PANEL MOUNTING, NO.1',
                 qty: parseInt(params.get('qty')) || 50,
-                totalOrder: parseInt(params.get('totalOrder')) || 6300,
+                totalOrder: parseInt(params.get('totalOrder')) || parseInt(params.get('qty')) || 50,
                 lotNo: params.get('lotNo') || '1037601',
                 code: params.get('code') || 'JA269',
                 date: params.get('date') || new Date().toISOString().split('T')[0]
@@ -150,10 +150,16 @@
 
         function generateTags() {
             const data = getUrlParams();
-            const totalTags = Math.ceil(data.totalOrder / data.qty);
-            const container = document.getElementById('printContainer');
             
-            document.getElementById('tagSummary').innerText = `Part No: ${data.partNo} | Qty/Tag: ${data.qty} | Total Order: ${data.totalOrder.toLocaleString()} | Total Tags: ${totalTags} ใบ`;
+            // --- ลอจิกการคำนวณเดิมคงไว้ทั้งหมด ---
+            const stdPack = data.qty;
+            const totalOrder = data.totalOrder;
+            const fullTags = Math.floor(totalOrder / stdPack);
+            const remainder = totalOrder % stdPack;
+            const totalTags = fullTags + (remainder > 0 ? 1 : 0);
+
+            const container = document.getElementById('printContainer');
+            document.getElementById('tagSummary').innerText = `Part No: ${data.partNo} | Qty/Tag: ${stdPack} | Total Order: ${totalOrder.toLocaleString()} | Total Tags: ${totalTags} ใบ`;
 
             container.innerHTML = '';
             let currentContainer = null;
@@ -165,7 +171,8 @@
                     container.appendChild(currentContainer);
                 }
 
-                const currentQty = (i === totalTags && data.totalOrder % data.qty !== 0) ? (data.totalOrder % data.qty) : data.qty;
+                // คำนวณจำนวนในแต่ละแท็ก (แท็กสุดท้ายถ้ามีเศษจะแสดงยอดเศษ)
+                const currentQty = (i === totalTags && remainder > 0) ? remainder : stdPack;
 
                 const tagCard = document.createElement('div');
                 tagCard.className = 'tag-card';
@@ -215,7 +222,7 @@
 
                 currentContainer.appendChild(tagCard);
 
-                // สร้าง Barcode สำหรับ Part No. ยิงเข้าตรงแน่อน
+                // เจนเนอเรต Barcode
                 setTimeout(() => {
                     JsBarcode(`#barcode_${i}`, data.partNo, {
                         format: "CODE128",
