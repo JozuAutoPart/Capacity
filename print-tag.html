@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Print STEM Tags (6 Tags / A4 Landscape)</title>
-    <!-- โหลดไลบรารี JsBarcode และ qrcode.js สำหรับสร้าง QR Code -->
+    <!-- โหลดไลบรารี JsBarcode สำหรับสร้าง 1D Barcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         @page {
             size: A4 landscape;
@@ -48,7 +47,7 @@
             .page { box-shadow: none; margin: 0; width: 297mm; height: 210mm; }
         }
 
-        /* โครงสร้างป้าย Tag แบบกรอบเป๊ะ */
+        /* โครงสร้างป้าย Tag */
         .tag-card {
             border: 1.5px solid #000;
             box-sizing: border-box;
@@ -74,10 +73,8 @@
             word-wrap: break-word;
         }
 
-        .bg-light-gray { background-color: #f9f9f9; }
         .fw-bold { font-weight: bold; }
         .text-center { text-align: center; }
-        .text-end { text-align: right; }
 
         .part-no-text {
             font-size: 20px;
@@ -95,11 +92,10 @@
             font-weight: bold;
         }
 
-        /* โซนด้านล่าง (Barcode + Running No. + QR Code) */
+        /* โซนด้านล่าง (Logo + Barcode เต็มตาราง) */
         .bottom-section {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             border-top: 1px solid #000;
             padding-top: 2px;
             margin-top: 2px;
@@ -110,36 +106,18 @@
             font-style: italic;
             font-weight: 900;
             padding-left: 5px;
-            width: 15%;
+            width: 20%;
         }
 
         .barcode-container {
-            width: 48%;
+            width: 80%;
             text-align: center;
+            padding-right: 5px;
         }
 
-        .barcode-container img, .barcode-container svg {
-            max-width: 100%;
-            height: 30px;
-        }
-
-        .serial-container {
-            width: 22%;
-            text-align: center;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
-        .qrcode-container {
-            width: 15%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .qrcode-container div {
-            width: 38px !important;
-            height: 38px !important;
+        .barcode-container svg {
+            width: 100%;
+            height: 35px;
         }
     </style>
 </head>
@@ -160,11 +138,11 @@
         function getUrlParams() {
             const params = new URLSearchParams(window.location.search);
             return {
-                partNo: params.get('partNo') || '55381-BZ160',
+                partNo: params.get('partNo') || '55366-KK020',
                 partName: params.get('partName') || 'BRACKET, FINISH PANEL MOUNTING, NO.1',
                 qty: parseInt(params.get('qty')) || 50,
                 totalOrder: parseInt(params.get('totalOrder')) || 6300,
-                lotNo: params.get('lotNo') || '10YSP32301',
+                lotNo: params.get('lotNo') || '1037601',
                 code: params.get('code') || 'JA269',
                 date: params.get('date') || new Date().toISOString().split('T')[0]
             };
@@ -180,11 +158,6 @@
             container.innerHTML = '';
             let currentContainer = null;
 
-            // คำนวณรหัสวันที่สำหรับ Serial (เช่น 061026)
-            const d = new Date(data.date);
-            const dateStr = String(d.getDate()).padStart(2, '0') + String(d.getMonth() + 1).padStart(2, '0') + String(d.getFullYear()).slice(-2);
-            const baseSerial = dateStr + "076"; 
-
             for (let i = 1; i <= totalTags; i++) {
                 if ((i - 1) % 6 === 0) {
                     currentContainer = document.createElement('div');
@@ -193,10 +166,6 @@
                 }
 
                 const currentQty = (i === totalTags && data.totalOrder % data.qty !== 0) ? (data.totalOrder % data.qty) : data.qty;
-                const tagSerial = `${baseSerial}_${i}`;
-                
-                // รูปแบบข้อมูลสำหรับยิงสแกนเข้าบาร์โค้ด/QR Code ของลูกค้า STEM
-                const qrData = `${data.partNo}|${data.lotNo}|${currentQty}|${tagSerial}`;
 
                 const tagCard = document.createElement('div');
                 tagCard.className = 'tag-card';
@@ -241,33 +210,19 @@
                         <div class="barcode-container">
                             <svg id="barcode_${i}"></svg>
                         </div>
-                        <div class="serial-container">
-                            ${tagSerial}
-                        </div>
-                        <div class="qrcode-container">
-                            <div id="qrcode_${i}"></div>
-                        </div>
                     </div>
                 `;
 
                 currentContainer.appendChild(tagCard);
 
-                // เจนเนอเรต 1D Barcode โดยส่งค่า tagSerial ออกมาให้ปืนสแกนยิงได้ตรงรหัสแท็ก
+                // สร้าง Barcode สำหรับ Part No. ยิงเข้าตรงแน่อน
                 setTimeout(() => {
-                    JsBarcode(`#barcode_${i}`, tagSerial, {
+                    JsBarcode(`#barcode_${i}`, data.partNo, {
                         format: "CODE128",
-                        height: 28,
-                        width: 1.1,
+                        height: 32,
+                        width: 1.4,
                         displayValue: false,
                         margin: 0
-                    });
-
-                    // เจนเนอเรต 2D QR Code รวมฟิลด์สำหรับเครื่องสแกน 2D
-                    new QRCode(document.getElementById(`qrcode_${i}`), {
-                        text: qrData,
-                        width: 38,
-                        height: 38,
-                        correctLevel: QRCode.CorrectLevel.L
                     });
                 }, 50);
             }
