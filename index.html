@@ -2870,23 +2870,6 @@ document.addEventListener("DOMContentLoaded", function() {
     setTimeout(renderQGateSafetyStockList, 1000);
 });
 // --- TAB 6: STOCK WIP & FG ---
-let cloudAdjustments = { WIP: {}, FG: {} };
-
-// ฟังก์ชันดึงค่าปรับปรุงสต็อกล่าสุดจาก Google Sheet
-async function fetchStockAdjustmentsFromCloud() {
-    if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
-        try {
-            const res = await fetch(GOOGLE_SCRIPT_URL + '?action=getStockAdjustments');
-            const data = await res.json();
-            if (data && data.status === 'success' && data.adjustments) {
-                cloudAdjustments = data.adjustments;
-            }
-        } catch (e) {
-            console.error("Cannot fetch adjustments from cloud:", e);
-        }
-    }
-}
-
 function getFgBalances() {
     const fgMap = {};
     qgate.forEach(q => {
@@ -2908,19 +2891,17 @@ function getFgBalances() {
     return fgMap;
 }
 
-async function renderStock() {
+function renderStock() {
     const wipbody = document.getElementById('wipTableBody');
     const fgtbody = document.getElementById('fgTableBody');
     if (!wipbody || !fgtbody) return;
 
-    // ดึงค่าล่าสุดจาก Cloud ก่อนแสดงผล
-    await fetchStockAdjustmentsFromCloud();
-
     wipbody.innerHTML = '';
     fgtbody.innerHTML = ''; 
 
-    // 1. รวบรวม Part No. ทั้งหมด
+    // 1. รวบรวม Part No. ทั้งหมดและแปลงเป็นตัวพิมพ์ใหญ่
     const partsMap = new Map();
+
     const allRecords = [
         ...(typeof actuals !== 'undefined' ? actuals : []),
         ...(typeof qgate !== 'undefined' ? qgate : []),
@@ -2959,17 +2940,17 @@ async function renderStock() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // เช็กค่าจาก Cloud ก่อน ถ้าไม่มีค่อยเช็ก LocalStorage
-        const cloudWip = cloudAdjustments.WIP ? cloudAdjustments.WIP[partNoKey] : undefined;
-        const localWip = localStorage.getItem(`stock_base_WIP_${displayPartNo}`) ?? localStorage.getItem(`stock_base_WIP_${partNoKey}`);
+        // อ่านค่าสต็อกจริงที่ตั้งไว้ (เช็กทุกรูปแบบ key)
+        const savedBaseWip = localStorage.getItem(`stock_base_WIP_${displayPartNo}`) ?? 
+                             localStorage.getItem(`stock_base_WIP_${partNoKey}`) ?? 
+                             localStorage.getItem(`stock_adjust_WIP_${displayPartNo}`) ?? 
+                             localStorage.getItem(`stock_adjust_WIP_${partNoKey}`);
         
-        const baseWipVal = cloudWip !== undefined ? cloudWip : localWip;
-
         let currentwip;
         let isWipCustom = false;
 
-        if (baseWipVal !== null && baseWipVal !== undefined && baseWipVal !== '') {
-            currentwip = parseInt(baseWipVal, 10);
+        if (savedBaseWip !== null && savedBaseWip !== undefined && savedBaseWip !== '') {
+            currentwip = Number(savedBaseWip);
             isWipCustom = true;
         } else {
             currentwip = (totalIn - totalTransferred);
@@ -3006,17 +2987,17 @@ async function renderStock() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // เช็กค่า FG จาก Cloud ก่อน ถ้าไม่มีค่อยเช็ก LocalStorage
-        const cloudFg = cloudAdjustments.FG ? cloudAdjustments.FG[partNoKey] : undefined;
-        const localFg = localStorage.getItem(`stock_base_FG_${displayPartNo}`) ?? localStorage.getItem(`stock_base_FG_${partNoKey}`);
-        
-        const baseFgVal = cloudFg !== undefined ? cloudFg : localFg;
+        // อ่านค่าสต็อกจริง FG
+        const savedBaseFg = localStorage.getItem(`stock_base_FG_${displayPartNo}`) ?? 
+                            localStorage.getItem(`stock_base_FG_${partNoKey}`) ?? 
+                            localStorage.getItem(`stock_adjust_FG_${displayPartNo}`) ?? 
+                            localStorage.getItem(`stock_adjust_FG_${partNoKey}`);
 
         let currentFg;
         let isFgCustom = false;
 
-        if (baseFgVal !== null && baseFgVal !== undefined && baseFgVal !== '') {
-            currentFg = parseInt(baseFgVal, 10);
+        if (savedBaseFg !== null && savedBaseFg !== undefined && savedBaseFg !== '') {
+            currentFg = Number(savedBaseFg);
             isFgCustom = true;
         } else {
             currentFg = (fgPass - fgDelivered);
@@ -3042,24 +3023,27 @@ async function renderStock() {
 function adjustStock(partNo, type) {
     const upperPart = partNo.toUpperCase();
     const key = `stock_base_${type}_${partNo}`;
-    const currentVal = localStorage.getItem(key) ?? '';
+    const keyUpper = `stock_base_${type}_${upperPart}`;
     
-    const input = prompt(`[${type}] กำหนดสต็อกจริงของ Part No: ${partNo}\n(ค่าตั้งต้นเดิม: ${currentVal !== '' ? currentVal : 'ยังไม่มีการตั้งค่า'})\nกรอกจำนวนสต็อกที่แท้จริงที่ต้องการเซ็ต:`, currentVal);
+    // ดึงค่าเดิม
+    const currentVal = localStorage.getItem(key) ?? localStorage.getItem(keyUpper) ?? '';
+    
+    const input = prompt(`[${type}] กำหนดสต็อกจริงของ Part No: ${partNo}\n(ค่าเดิม: ${currentVal !== '' ? currentVal : 'ยังไม่ได้ตั้งค่า'})\nกรอกจำนวนสต็อกจริงที่ต้องการเซ็ตลงไปตรงๆ:`, currentVal);
     
     if (input !== null && input.trim() !== "") {
-        const val = parseInt(input.trim(), 10);
+        const val = Number(input.trim());
         
         if (!isNaN(val)) {
-            // บันทึก LocalStorage
+            // บันทึกเก็บลง LocalStorage ทุกรูปแบบเพื่อป้องกัน Key ไม่ตรงกัน
             localStorage.setItem(key, val);
-            localStorage.setItem(`stock_base_${type}_${upperPart}`, val);
+            localStorage.setItem(keyUpper, val);
+            localStorage.setItem(`stock_adjust_${type}_${partNo}`, val);
+            localStorage.setItem(`stock_adjust_${type}_${upperPart}`, val);
 
-            // อัปเดตตัวแปร Cloud ชั่วคราวเพื่อให้เห็นผลทันที
-            if (!cloudAdjustments[type]) cloudAdjustments[type] = {};
-            cloudAdjustments[type][upperPart] = val;
+            // อัปเดตหน้าตารางทันที
+            renderStock();
 
-            renderStock(); // เรนเดอร์หน้าจอทันที
-
+            // ส่งข้อมูลไปเก็บที่ Google Sheet
             if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
@@ -3071,13 +3055,9 @@ function adjustStock(partNo, type) {
                         note: "Set Base Stock Direct" 
                     })
                 })
-                .then(response => response.text())
-                .then(result => {
-                    console.log("Synced to cloud successfully");
-                })
-                .catch(error => {
-                    console.error("Error saving to cloud:", error);
-                });
+                .then(res => res.text())
+                .then(data => console.log("Cloud synced:", data))
+                .catch(err => console.error("Cloud sync error:", err));
             }
 
         } else {
