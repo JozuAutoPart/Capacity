@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Print STEM Tags (6 Tags / A4 Landscape)</title>
-    <!-- โหลดไลบรารี JsBarcode สำหรับสร้าง 1D Barcode -->
+    <!-- โหลดไลบรารี JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         @page {
@@ -15,16 +15,6 @@
             background: #eee;
             margin: 0;
             padding: 10px;
-        }
-        .no-print-bar {
-            background: #333;
-            color: #fff;
-            padding: 10px 20px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
         .page {
             width: 297mm;
@@ -43,11 +33,10 @@
         }
         @media print {
             body { background: none; padding: 0; }
-            .no-print-bar { display: none !important; }
+            .no-print { display: none !important; }
             .page { box-shadow: none; margin: 0; width: 297mm; height: 210mm; }
         }
 
-        /* โครงสร้างป้าย Tag */
         .tag-card {
             border: 1.5px solid #000;
             box-sizing: border-box;
@@ -75,25 +64,9 @@
 
         .fw-bold { font-weight: bold; }
         .text-center { text-align: center; }
+        .label-title { font-size: 11px; }
 
-        .part-no-text {
-            font-size: 20px;
-            font-weight: 900;
-            letter-spacing: 0.5px;
-        }
-
-        .qty-text {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .code-text {
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        /* โซนด้านล่าง (Logo + Barcode) */
-        .bottom-section {
+        .footer-section {
             display: flex;
             align-items: center;
             border-top: 1px solid #000;
@@ -101,141 +74,214 @@
             margin-top: 2px;
         }
 
-        .logo-stem {
-            font-size: 16px;
+        .logo-box {
+            font-size: 20px;
             font-style: italic;
-            font-weight: 900;
+            font-weight: bold;
             padding-left: 5px;
             width: 20%;
+            color: black;
         }
 
-        .barcode-container {
+        .barcode-box {
             width: 80%;
             text-align: center;
             padding-right: 5px;
         }
 
-        .barcode-container svg {
+        .barcode-box svg {
+            max-height: 32px;
             width: 100%;
-            height: 35px;
         }
     </style>
 </head>
 <body>
 
-    <div class="no-print-bar">
-        <div>
-            <button onclick="window.print()" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
-            </button>
-            <span id="tagSummary" style="margin-left: 15px; font-weight: bold;"></span>
-        </div>
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px;">
+            🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
+        </button>
+        <span id="tagInfoSummary" style="margin-left: 15px; font-weight: bold; color: #333;"></span>
     </div>
 
-    <div id="printContainer"></div>
+    <div id="container"></div>
 
     <script>
-        function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                partNo: params.get('partNo') || '55366-KK020',
-                partName: params.get('partName') || 'BRACKET, FINISH PANEL MOUNTING, NO.1',
-                qty: parseInt(params.get('qty')) || 50,
-                totalOrder: parseInt(params.get('totalOrder')) || parseInt(params.get('qty')) || 50,
-                lotNo: params.get('lotNo') || '1037601',
-                code: params.get('code') || 'JA269',
-                date: params.get('date') || new Date().toISOString().split('T')[0]
-            };
-        }
+        // ==========================================
+        // 📌 ฐานข้อมูล Masterparts (อัปเดตครอบคลุม)
+        // ==========================================
+        const Masterparts = {
+            "53219-0D020": { partName: "SUPPORT, RADIATOR, LWR RR", qty: 50, code: "JA114" },
+            "55330-0D480-10": { partName: "REINFORCEMENT ASSY, INSTRUMENT PANEL", qty: 25, code: "JA118" },
+            "55330-0D490-10": { partName: "REINFORCEMENT ASSY, INSTRUMENT PANEL", qty: 25, code: "JA119" },
+            "61761-KK040": { partName: "REINFROCE, SEAT BELT ANCHOR, NO.1 UPR RH", qty: 45, code: "JA183" },
+            "61762-KK050": { partName: "REINFROCE, SEAT BELT ANCHOR, NO.1 UPR LH", qty: 45, code: "JA184" },
+            "55428-0D010": { partName: "BRACKET, AIR BAG PASSENGER MT, NO.2", qty: 50, code: "JA197" },
+            "55428-0D020": { partName: "BRACKET, AIR BAG PASSENGER MT, NO.2", qty: 50, code: "JA199" },
+            "58309-06190": { partName: "RETAINER SUB ASSY LUG DOOR LOCK STRIKER", qty: 90, code: "JA217" },
+            "57248-0D010": { partName: "BRK, T FLEXIBLE HOSE NO.1 OR", qty: 100, code: "JA112" },
+            "57249-0D040": { partName: "BRK, T FLEXIBLE HOSE NO.1 OL", qty: 100, code: "JA113" },
+            "67323-0D090": { partName: "EXTENSION, FR DOOR BEAM, RR RH", qty: 80, code: "JA121" },
+            "67324-0D060": { partName: "EXTENSION, FR DOOR BEAM, RR LH", qty: 80, code: "JA122" },
+            "62590-4JA0A": { partName: "R/F-RAD CORE LWR", qty: 30, code: "JA160" },
+            "62590-4JA5A": { partName: "R/F-RAD CORE LWR", qty: 30, code: "JA161" },
+            "76294-4JA0A": { partName: "BULKHEAD ASSY-FR PLR, LWR RH", qty: 60, code: "JA166" },
+            "76295-4JA0A": { partName: "BULKHEAD ASSY-FR PLR, LWR LH", qty: 60, code: "JA167" },
+            "76344-4JG1A": { partName: "ANCH ASSY-SEAT BELT", qty: 60, code: "JA168" },
+            "55328-KK030": { partName: "STAY, INSTRUMENT PANEL, NO.3", qty: 50, code: "JA176" },
+            "55328-KK040": { partName: "STAY, INSTRUMENT PANEL, NO.3", qty: 70, code: "JA177" },
+            "55329-KK030": { partName: "STAY, INSTRUMENT PANEL, NO.4", qty: 70, code: "JA178" },
+            "55329-KK040": { partName: "STAY, INSTRUMENT PANEL, NO.4", qty: 50, code: "JA179" },
+            "58221-KK010": { partName: "REINFOCEMENT, FLOOR PANEL, FR RH", qty: 100, code: "JA186" },
+            "58222-KK010": { partName: "REINFOCEMENT, FLOOR PANEL, FR LH", qty: 100, code: "JA187" },
+            "58221-KK020": { partName: "REINFOCEMENT, FLOOR PANEL, FR RH", qty: 100, code: "JA192" },
+            "58222-KK020": { partName: "REINFOCEMENT, FLOOR PANEL, FR LH", qty: 100, code: "JA193" },
+            "51638-0K010": { partName: "REINFORCEMENT, SHOCK ABSORBER BRKT, LH", qty: 100, code: "JA189" },
+            "67323-0D150": { partName: "EXTENSION, FR DOOR BEAM, RR RH", qty: 80, code: "JA194" },
+            "67324-0D120": { partName: "EXTENSION, FR DOOR BEAM, RR LH", qty: 80, code: "JA195" },
+            "55308-0D070": { partName: "BRACE SUB-ASSY, INSTRUMENT PANEL, NO.3", qty: 30, code: "JA202" },
+            "55308-0D080": { partName: "BRACE SUB-ASSY, INSTRUMENT PANEL, NO.3", qty: 30, code: "JA203" },
+            "55125-0D130": { partName: "BRACKET, STEERING SUPPORT", qty: 80, code: "JA206" },
+            "55323-06210": { partName: "BRACKET, FLOOR BRACE MOUNTING, NO.3", qty: 150, code: "JA212" },
+            "67327-06190": { partName: "EXTENSION, RR DOOR BEAM, RR RH", qty: 50, code: "JA222" },
+            "67328-06190": { partName: "EXTENSION, RR DOOR BEAM, RR LH", qty: 50, code: "JA223" },
+            "55365-06030": { partName: "BRACKET, RADIO TUNER MOUNTION, NO.1", qty: 80, code: "JA254" },
+            "55125-BZ080": { partName: "BRACKET, STEERING SUPPORT", qty: 25, code: "JA259" },
+            "55321-BZ180": { partName: "BRACKET, FLOOR BRACE MOUNTING, NO.1", qty: 30, code: "JA277" },
+            "55342-BZ070": { partName: "BRACE, INSTRUMENT PANEL TO DASH, LWR", qty: 15, code: "JA278" },
+            "55598-BZ160": { partName: "BRACKET, GLOVE COMP DOOR HINGE, RH", qty: 80, code: "JA283" },
+            "55321-BZ350": { partName: "BRACKET, INSTRUMENT PANEL, NO.1", qty: 20, code: "JA286" },
+            "17141-0C040-15": { partName: "PLATE PIPE", qty: 1000, code: "STEM002" },
+            "17531-0L060": { partName: "CONE, CATALATIC CONVERTER OPR NO.1", qty: 12, code: "STEM165" },
+            "25051-BZ200-08": { partName: "COVE NO.1", qty: 40, code: "STEM181" },
+            "25051-BZ200-10": { partName: "CONE NO.2", qty: 30, code: "STEM182" },
+            "17443-0V110": { partName: "FLANGE EXHAUST PIPE NO 3", qty: 30, code: "STEM195" },
+            "17531-0E040": { partName: "CONE, CATALYTIC CONVERTER, UPR NO.1", qty: 12, code: "STEM200" },
+            "743F4-5RY0A": { partName: "REINF-FR FLOOR, RH/LH", qty: 50, code: "TMC027" },
+            "92334-011-7142": { partName: "VALVE CHAMBER", qty: 3000, code: "MS014" },
+            "K1155-011-7131": { partName: "VALVE CHAMBER", qty: 5000, code: "MS011" },
+            "H1116-011-5710": { partName: "BRAZING SHEET", qty: 1000, code: "MS008" },
+            "K1155-011-2251": { partName: "INNER TUBE", qty: 250, code: "MS010" },
+            "K1041-011-7110": { partName: "VALVE DISC", qty: 10000, code: "MS013" },
+            "5251C588N": { partName: "REINF, BODY MTG NO.2, LWR ", qty: 60, code: "TMC0007" },
+            "5251F024N": { partName: "REINF, BODY MTG NO.2, LWR ", qty: 60, code: "TMC0022" },
+            "5251D147N": { partName: "BRKT, HARN ESS ", qty: 2000, code: "TMC0011" },
+            "5230F499N": { partName: "BRKT HARNESS ", qty: 800, code: "TMC0019" },
+            "5220J202N": { partName: "BRKT CONDENSER TANK ", qty: 500, code: "TMC0017" },
+            "17531-0E010-10": { partName: "SUB-ASSY CONVERTER ", qty: 9, code: "STEM386" },
+            "17533-0E010": { partName: "CONE, CATALYTIC CONVERTER, UPR NO.2 ", qty: 16, code: "STEM398" },
+            "743L4 5EK0A": { partName: "BRKT-FR SEAT MTG, RH ", qty: 50, code: "TMC023" },
+            "743L5 5EK0A": { partName: "BRKT-FR SEAT MTG, LH ", qty: 50, code: "TMC024" }
+        };
 
-        function generateTags() {
-            const data = getUrlParams();
-            
-            // --- ลอจิกการคำนวณเดิมคงไว้ทั้งหมด ---
-            const stdPack = data.qty;
-            const totalOrder = data.totalOrder;
-            const fullTags = Math.floor(totalOrder / stdPack);
-            const remainder = totalOrder % stdPack;
-            const totalTags = fullTags + (remainder > 0 ? 1 : 0);
+        // ดึงค่าพารามิเตอร์จาก URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const partNo = urlParams.get('partNo') || '53219-0D020';
+        const lotNo = urlParams.get('lotNo') || '-';
+        const totalOrderQty = parseInt(urlParams.get('qty')) || 0;
 
-            const container = document.getElementById('printContainer');
-            document.getElementById('tagSummary').innerText = `Part No: ${data.partNo} | Qty/Tag: ${stdPack} | Total Order: ${totalOrder.toLocaleString()} | Total Tags: ${totalTags} ใบ`;
+        // ค้นหาพารามิเตอร์ใน Masterparts
+        const cleanPartNo = (partNo || '').trim().toLowerCase();
+        const foundKey = Object.keys(Masterparts || {}).find(k => k.trim().toLowerCase() === cleanPartNo);
+        const currentPart = Masterparts[foundKey] || {
+            partName: "ไม่พบข้อมูลพาร์ทนี้ใน Masterparts",
+            qty: 60,
+            code: "-"
+        };
 
-            container.innerHTML = '';
-            let currentContainer = null;
+        const partName = currentPart.partName;
+        const qtyPerTag = currentPart.qty;
+        const tagCode = currentPart.code;
 
-            for (let i = 1; i <= totalTags; i++) {
-                if ((i - 1) % 6 === 0) {
-                    currentContainer = document.createElement('div');
-                    currentContainer.className = 'page';
-                    container.appendChild(currentContainer);
-                }
+        // คำนวณจำนวนใบ Tag ที่ต้องพิมพ์ทั้งหมด
+        let totalTags = totalOrderQty > 0 ? Math.ceil(totalOrderQty / qtyPerTag) : 6;
 
-                // คำนวณจำนวนในแต่ละแท็ก (แท็กสุดท้ายถ้ามีเศษจะแสดงยอดเศษ)
-                const currentQty = (i === totalTags && remainder > 0) ? remainder : stdPack;
+        document.getElementById('tagInfoSummary').innerText = `Part No: ${partNo} | Qty/Tag: ${qtyPerTag} | Total Order: ${totalOrderQty} | Total Tags: ${totalTags} ใบ`;
 
-                const tagCard = document.createElement('div');
-                tagCard.className = 'tag-card';
-                tagCard.innerHTML = `
-                    <table class="tag-table">
-                        <tr>
-                            <td style="width: 25%;">Part No.</td>
-                            <td colspan="3" class="part-no-text">${data.partNo}</td>
-                        </tr>
-                        <tr>
-                            <td>Part Name</td>
-                            <td colspan="3" class="fw-bold" style="font-size: 11px;">${data.partName}</td>
-                        </tr>
-                        <tr>
-                            <td>Q'ty</td>
-                            <td class="qty-text" style="width: 30%;">${currentQty} <span style="font-size: 12px; font-weight: normal;">Pcs.</span></td>
-                            <td style="width: 20%;">Stamp Mark</td>
-                            <td style="width: 25%;"></td>
-                        </tr>
-                        <tr>
-                            <td style="font-size: 9px;">Production Data/Lot No.:</td>
-                            <td class="fw-bold">${data.lotNo}</td>
-                            <td>STAM Code</td>
-                            <td class="code-text text-center">${data.code}</td>
-                        </tr>
-                        <tr>
-                            <td>Production Date</td>
-                            <td>Supplier Check</td>
-                            <td>Delivery Date</td>
-                            <td class="fw-bold text-center" style="font-size: 9px;">STAM QC Receiving</td>
-                        </tr>
-                        <tr style="height: 25px;">
-                            <td>Time</td>
-                            <td>Time</td>
-                            <td>Time</td>
-                            <td>by.</td>
-                        </tr>
-                    </table>
+        const container = document.getElementById('container');
+        let pageDiv = document.createElement('div');
+        pageDiv.className = 'page';
 
-                    <div class="bottom-section">
-                        <div class="logo-stem">STEM</div>
-                        <div class="barcode-container">
-                            <svg id="barcode_${i}"></svg>
-                        </div>
-                    </div>
-                `;
-
-                currentContainer.appendChild(tagCard);
-
-                // เจนเนอเรต Barcode
-                setTimeout(() => {
-                    JsBarcode(`#barcode_${i}`, data.partNo, {
-                        format: "CODE128",
-                        height: 32,
-                        width: 1.4,
-                        displayValue: false,
-                        margin: 0
-                    });
-                }, 50);
+        for (let i = 0; i < totalTags; i++) {
+            // ขึ้นหน้าใหม่ทุกๆ 6 ใบ Tag
+            if (i > 0 && i % 6 === 0) {
+                container.appendChild(pageDiv);
+                pageDiv = document.createElement('div');
+                pageDiv.className = 'page';
             }
-        }
 
-        window.onload = generateTags;
+            // กำหนดเงื่อนไขเปลี่ยนชื่อ Code (STEM, FTS, TMC, MSFT, TH)
+            let companyName = "STEM";
+            if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
+                companyName = "FTS";
+            } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
+                companyName = "TMC";
+            } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
+                companyName = "MSFT";
+            } else if (tagCode.includes("TH") || tagCode.startsWith("H")) {
+                companyName = "TH";
+            } else {
+                companyName = "STEM";
+            }
+
+            const card = document.createElement('div');
+            card.className = 'tag-card';
+            card.innerHTML = `
+                <table class="tag-table">
+                    <tr>
+                        <td style="width: 22%; font-size: 14px; font-weight: bold;" class="label-title">Part No.</td>
+                        <td colspan="3" class="fw-bold" style="font-size: 24px; font-weight: bold; padding: 10px 6px; letter-spacing: 0.5px;">${partNo}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Part Name</td>
+                        <td class="fw-bold" colspan="3">${partName}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Q'ty</td>
+                        <td style="font-size: 16px;"><span class="fw-bold" style="font-size: 20px;">${qtyPerTag}</span> Pcs.</td>
+                        <td class="label-title text-center" style="width: 22%;">Stamp Mark</td>
+                        <td class="text-center fw-bold" style="width: 25%;"></td>
+                    </tr>
+                    <tr>
+                        <td class="label-title">Production / Lot No.:</td>
+                        <td>${lotNo}</td>
+                        <td class="label-title text-center">Code</td>
+                        <td class="text-center fw-bold" style="font-size: 20px;">${tagCode}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-center" style="font-size: 10px;">Production Date</td>
+                        <td class="text-center" style="font-size: 10px;">Supplier Check</td>
+                        <td class="text-center" style="font-size: 10px;">Delivery Date</td>
+                        <td class="text-center" style="font-size: 10px;">QC Receiving</td>
+                    </tr>
+                    <tr>
+                        <td style="height: 35px;"></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </table>
+                <div class="footer-section">
+                    <div class="logo-box" style="color: black; border-color: black; font-weight: bold; font-size: 20px;">${companyName}</div>
+                    <div class="barcode-box">
+                        <svg class="barcode"></svg>
+                    </div>
+                </div>
+            `;
+
+            pageDiv.appendChild(card);
+        }
+        container.appendChild(pageDiv);
+
+        // วนลูปเจนเนอเรต Barcode จากรหัส partNo เพื่อให้ลูกค้ายิงสแกนตรงเป๊ะ
+        document.querySelectorAll('.barcode').forEach((el) => {
+            JsBarcode(el, partNo ? partNo : '123456', {
+                format: "CODE128",
+                displayValue: false,
+                height: 30,
+                margin: 0
+            });
+        });
     </script>
 </body>
 </html>
