@@ -2917,13 +2917,12 @@ function renderStock() {
 
         let upperPart = rawPart.toUpperCase();
         if (!partsMap.has(upperPart)) {
-            // ใช้ชื่อพาร์ทตัวแรกที่เจอ หรือเลือกรูปแบบมาตรฐาน
             partsMap.set(upperPart, rawPart);
         }
     });
 
     partsMap.forEach((displayPartNo, partNoKey) => {
-        // 2. คำนวณยอดผลิตเข้า (Actuals) โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
+        // 2. คำนวณยอดผลิตเข้า (Actuals)
         const totalIn = (typeof actuals !== 'undefined' ? actuals : []).filter(a => {
             let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
             return p === partNoKey;
@@ -2932,7 +2931,7 @@ function renderStock() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        // 3. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
+        // 3. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
         const totalTransferred = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
             let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
             return p === partNoKey;
@@ -2941,15 +2940,18 @@ function renderStock() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${displayPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNoKey}`) || 0);
-        const currentwip = (totalIn - totalTransferred) + adjustWip;
+        // ดึงประวัติการปรับปรุง WIP ทั้งหมดมารวมกัน
+        const wipAdjKey = `stock_adjustments_WIP_${displayPartNo}`;
+        const wipAdjustments = JSON.parse(localStorage.getItem(wipAdjKey) || localStorage.getItem(`stock_adjustments_WIP_${partNoKey}`) || '[]');
+        const totalAdjustWip = wipAdjustments.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+        const currentwip = (totalIn - totalTransferred) + totalAdjustWip;
 
         const trwip = document.createElement('tr');
         trwip.innerHTML = `
             <td class="fw-bold text-info">${displayPartNo}</td>
             <td>${totalIn.toLocaleString()}</td>
             <td>${totalTransferred.toLocaleString()}</td>
-            <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${adjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${adjustWip > 0 ? '+' : ''}${adjustWip})</span>` : ''}</td>
+            <td class="fw-bold ${currentwip > 0 ? 'text-warning' : ''}">${currentwip.toLocaleString()} ${totalAdjustWip !== 0 ? `<span class="badge bg-warning text-dark">(${totalAdjustWip > 0 ? '+' : ''}${totalAdjustWip})</span>` : ''}</td>
             <td class="text-center">
                 <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${displayPartNo}', 'WIP')" title="ปรับสต็อกสิ้นเดือน">
                     <i class="fas fa-edit"></i> ปรับ
@@ -2958,7 +2960,7 @@ function renderStock() {
         `;
         wipbody.appendChild(trwip);
 
-        // 4. คำนวณยอด FG ผ่านคลังและส่งมอบ โดยเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
+        // 4. คำนวณยอด FG ผ่านคลังและส่งมอบ
         const fgPass = (typeof qgate !== 'undefined' ? qgate : []).filter(q => {
             let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
             return p === partNoKey;
@@ -2975,15 +2977,18 @@ function renderStock() {
             return sum + (isNaN(val) ? 0 : val);
         }, 0);
 
-        const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${displayPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNoKey}`) || 0);
-        const currentFg = (fgPass - fgDelivered) + adjustFg;
+        // ดึงประวัติการปรับปรุง FG ทั้งหมดมารวมกัน
+        const fgAdjKey = `stock_adjustments_FG_${displayPartNo}`;
+        const fgAdjustments = JSON.parse(localStorage.getItem(fgAdjKey) || localStorage.getItem(`stock_adjustments_FG_${partNoKey}`) || '[]');
+        const totalAdjustFg = fgAdjustments.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+        const currentFg = (fgPass - fgDelivered) + totalAdjustFg;
 
         const trfg = document.createElement('tr');
         trfg.innerHTML = `
             <td class="fw-bold text-info">${displayPartNo}</td>
             <td class="text-success fw-bold">${fgPass.toLocaleString()}</td>
             <td class="text-primary fw-bold">${fgDelivered.toLocaleString()}</td>
-            <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()} ${adjustFg !== 0 ? `<span class="badge bg-warning text-dark">(${adjustFg > 0 ? '+' : ''}${adjustFg})</span>` : ''}</td>
+            <td class="fw-bold ${currentFg > 0 ? 'text-success' : 'text-danger'}">${currentFg.toLocaleString()} ${totalAdjustFg !== 0 ? `<span class="badge bg-warning text-dark">(${totalAdjustFg > 0 ? '+' : ''}${totalAdjustFg})</span>` : ''}</td>
             <td><span class="badge ${currentFg > 0 ? 'bg-success' : 'bg-secondary'}">${currentFg > 0 ? 'In Stock' : 'Out of Stock'}</span></td>
             <td class="text-center">
                 <button class="btn btn-sm btn-outline-warning py-0 px-2" onclick="adjustStock('${displayPartNo}', 'FG')" title="ปรับสต็อกสิ้นเดือน">
@@ -2994,24 +2999,42 @@ function renderStock() {
         fgtbody.appendChild(trfg);
     });
 }
-function adjustStock(partNo, type) {
-    const key = `stock_adjust_${type}_${partNo}`;
-    const currentVal = localStorage.getItem(key) || 0;
-    const input = prompt(`[${type}] ปรับสต็อกเพิ่ม/ลดของ Part No: ${partNo}\n(ยอดปรับปรุงเดิม: ${currentVal})\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`, currentVal);
 
-    if (input !== null) {
+function adjustStock(partNo, type) {
+    const key = `stock_adjustments_${type}_${partNo}`;
+    let adjustments = JSON.parse(localStorage.getItem(key) || '[]');
+    
+    let historyText = adjustments.map(a => `- ${a.date}: ${a.qty > 0 ? '+' : ''}${a.qty} (${a.note || '-'})`).join('\n');
+    
+    const input = prompt(`[${type}] บันทึกปรับปรุงสต็อก Part No: ${partNo}\n\nประวัติการปรับเดิม:\n${historyText || 'ยังไม่มีประวัติ'}\n\nกรอกจำนวนที่ต้องการเพิ่ม/ลด (เช่น +50 หรือ -20):`);
+    
+    if (input !== null && input.trim() !== "") {
         const val = parseInt(input);
+        const note = prompt("กรอกเหตุผลในการปรับสต็อก (เช่น นับสต็อกสิ้นเดือน, สินค้าเกิน/ขาด):", "นับสต็อกประจำเดือน");
+        
         if (!isNaN(val)) {
-            localStorage.setItem(key, val);
+            const newAdj = {
+                date: new Date().toISOString().slice(0, 10),
+                qty: val,
+                note: note || ''
+            };
+            
+            adjustments.push(newAdj);
+            localStorage.setItem(key, JSON.stringify(adjustments));
 
             if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'adjustStock', partNo: partNo, type: type, value: val })
+                    body: JSON.stringify({ 
+                        action: 'addStockAdjustment', 
+                        partNo: partNo, 
+                        type: type, 
+                        qty: val, 
+                        note: note 
+                    })
                 })
                 .then(response => response.json())
                 .then(result => {
-                    console.log("Stock adjusted and saved to cloud");
                     location.reload();
                 })
                 .catch(error => {
