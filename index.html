@@ -3690,7 +3690,46 @@ function renderDiePM() {
     const inputSearchEl = document.getElementById('dieSearchInput');
     const queryFilter = inputSearchEl ? inputSearchEl.value.toLowerCase() : '';
     
-    const limitVal = typeof PM_LIMIT !== 'undefined' ? PM_LIMIT : 40000;
+    // ดึงฐานข้อมูล Master Parts
+    const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
+
+    // ฟังก์ชันช่วยคลีนรหัสพาร์ทเพื่อค้นหาใน MasterParts
+    const cleanP = (str) => String(str || '').trim().replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').toUpperCase();
+
+    // ฟังก์ชันค้นหา PM Limit ของแต่ละ Part No. จาก MasterParts (รองรับ คอลัมน์ R / pmLimit)
+    const getPmLimitForPart = (pNo) => {
+        if (!pNo || masterDb.length === 0) return 40000;
+        
+        let targetClean = cleanP(pNo);
+        let foundMaster = masterDb.find(m => {
+            let mPart = cleanP(m.partNo || m['partNo'] || m['Part No.'] || Object.values(m)[1] || '');
+            let mBarcode = cleanP(m.barcode || m['barcode'] || Object.values(m)[0] || '');
+            return (mPart && targetClean === mPart) || (mBarcode && targetClean === mBarcode) || (mPart && targetClean.includes(mPart));
+        });
+
+        if (foundMaster) {
+            // ค้นหาฟิลด์ PM Limit หรือดึงจากคอลัมน์ R (index 17)
+            let limitVal = 0;
+            for (let key in foundMaster) {
+                let k = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (k === 'pmlimit' || k === 'pm' || k === 'limit') {
+                    let v = Number(String(foundMaster[key]).replace(/,/g, ''));
+                    if (!isNaN(v) && v > 0) limitVal = v;
+                }
+            }
+            if (limitVal <= 0) {
+                // ดึงจาก index 17 (คอลัมน์ R ใน Google Sheets)
+                let vals = Object.values(foundMaster);
+                if (vals.length >= 18) {
+                    let v = Number(String(vals[17]).replace(/,/g, ''));
+                    if (!isNaN(v) && v > 0) limitVal = v;
+                }
+            }
+            if (limitVal > 0) return limitVal;
+        }
+
+        return (typeof PM_LIMIT !== 'undefined' && PM_LIMIT > 0) ? PM_LIMIT : 40000;
+    };
 
     const strokeMap = {};
     if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
@@ -3724,6 +3763,9 @@ function renderDiePM() {
         if (queryFilter && !partKey.toLowerCase().includes(queryFilter) && !currentItem.line.toLowerCase().includes(queryFilter)) {
             return;
         }
+
+        // ดึง PM Limit เฉพาะของพาร์ทนี้จาก MasterParts
+        const limitVal = getPmLimitForPart(partKey);
 
         if (currentStrokes < limitVal * 0.85) {
             return;
