@@ -106,7 +106,7 @@
 
         .barcode-container svg {
             width: 100%;
-            height: 28px;
+            height: 20px;
         }
     </style>
 </head>
@@ -483,8 +483,6 @@
                             <td class="code-text text-center">${data.code}</td>
                         </tr>
 
-                        <!-- === โซนกรอบสีแดง 4 แถวตามต้นฉบับเป๊ะๆ === -->
-                        
                         <!-- แถวที่ 1: หัวข้อวันที่ -->
                         <tr>
                             <td style="font-size: 9px; height: 16px;">Production Date</td>
@@ -493,8 +491,8 @@
                             <td class="fw-bold text-center" style="font-size: 9px;">STAM QC Receiving</td>
                         </tr>
 
-                        <!-- แถวที่ 2: ช่องว่างสำหรับปั๊มตรา (ขยายความสูงพอดีๆ) -->
-                        <tr style="height: 28px;">
+                        <!-- แถวที่ 2: ช่องว่างสำหรับปั๊มตรา (ขยายความสูงเป็น 34px) -->
+                        <tr style="height: 34px;">
                             <td></td>
                             <td></td>
                             <td></td>
@@ -509,8 +507,8 @@
                             <td style="font-size: 9px;">by.</td>
                         </tr>
 
-                        <!-- แถวที่ 4: โซนบาร์โค้ดล่างสุด (รวมในตารางเดียวกัน ไม่มีช่องว่างอื่นคั่นอีก) -->
-                        <tr style="height: 32px;">
+                        <!-- แถวที่ 4: โซนบาร์โค้ด (ลดความสูงเหลือ 26px) -->
+                        <tr style="height: 26px;">
                             <td class="logo-stem">STEM</td>
                             <td colspan="3" class="barcode-container">
                                 <svg id="barcode_${i}"></svg>
@@ -524,7 +522,7 @@
                 setTimeout(() => {
                     JsBarcode(`#barcode_${i}`, data.partNo, {
                         format: "CODE128",
-                        height: 24,
+                        height: 20,
                         width: 1.3,
                         displayValue: false,
                         margin: 0
