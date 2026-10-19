@@ -644,55 +644,62 @@
     <div class="row g-3">
         <!-- 1. ฝั่งซ้าย: ฟอร์มบันทึกผลตรวจ Q-Gate -->
         <div class="col-md-4">
-            <div class="card p-3 border-start border-4 border-warning shadow-sm">
+            <div class="card p-3 border-start border-4 border-warning shadow-sm bg-dark text-white">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
-                    <div id="qgate-image-box" style="display: none;">
-                        <img id="qgate-part-img" src="" alt="Part Image" style="width: 55px; height: 55px; border-radius: 6px; border: 2px solid #475569; background: #fff; padding: 2px; object-fit: contain;">
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- ปุ่มปลดล็อกสำหรับหัวหน้างาน -->
+                        <button type="button" class="btn btn-outline-warning btn-sm py-0 px-2" onclick="requestUnlockQGateManual()" title="ปลดล็อกพิมพ์มือ">
+                            <i class="fas fa-lock" id="qgateUnlockIcon"></i> <span id="qgateUnlockText">ปลดล็อก</span>
+                        </button>
+                        <div id="qgate-image-box" style="display: none;">
+                            <img id="qgate-part-img" src="" alt="Part Image" style="width: 45px; height: 45px; border-radius: 6px; border: 2px solid #475569; background: #fff; padding: 2px; object-fit: contain;">
+                        </div>
                     </div>
                 </div>
                 <form id="qgateForm" onsubmit="submitQGateTransaction(event)">
                     <div class="mb-2">
                         <label class="form-label small">วันที่ตรวจสอบ</label>
-                        <input type="date" id="qgateDate" class="form-control form-control-sm" required>
+                        <input type="date" id="qgateDate" class="form-control form-control-sm bg-dark text-white border-secondary" required>
                     </div>
 
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small">เวลาเริ่มตรวจสอบ</label>
-                            <input type="time" id="qgateStartTime" class="form-control form-control-sm" required>
+                            <input type="time" id="qgateStartTime" class="form-control form-control-sm bg-dark text-white border-secondary" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">เวลาสิ้นสุด</label>
-                            <input type="time" id="qgateEndTime" class="form-control form-control-sm" required>
+                            <input type="time" id="qgateEndTime" class="form-control form-control-sm bg-dark text-white border-secondary" required>
                         </div>
                     </div>
 
                     <div class="mb-2">
                         <label class="form-label small">ชื่อพนักงานตรวจสอบ (Inspector)</label>
-                        <input type="text" id="qgateInspector" class="form-control form-control-sm" placeholder="เช่น รหัสพนักงาน/ชื่อ" required>
+                        <input type="text" id="qgateInspector" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="เช่น รหัสพนักงาน/ชื่อ" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted small"><i class="fas fa-search me-1"></i>ค้นหา Part No. / WIP</label>
-                        <input type="text" id="qgatePartSearch" class="form-control bg-dark text-white border-secondary" placeholder="พิมพ์เพื่อกรองหา Part No. หรือยอดใน WIP...">
+                        <label class="form-label text-warning small"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No. (บังคับสแกน)</label>
+                        <input type="text" id="qgatePartSearch" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดจาก Tag ที่นี่..." autocomplete="off">
                     </div>
 
                     <div class="mb-2">
-                        <label class="form-label small fw-bold">2. Part No. (ตรวจจาก WIP)</label>
-                        <select id="qgatePartNo" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="updateQGateWipInfo()" required>
-                            <option value="">-- กรุณาเลือก Line ก่อน --</option>
+                        <label class="form-label small text-info fw-bold">Part No. (เลือกจาก WIP)</label>
+                        <!-- กำหนด disabled ไว้เริ่มต้น บังคับสแกน -->
+                        <select id="qgatePartNo" class="form-select form-select-sm bg-dark text-white border-secondary" disabled required>
+                            <option value="">-- กรุณาสแกนบาร์โค้ดจาก Tag --</option>
                         </select>
-                        <small class="text-muted" id="qgateWipBalance">คงเหลือใน WIP: 0 ชิ้น</small>
+                        <small class="text-warning fw-bold" id="qgateWipHint"></small>
                     </div>
 
                     <div class="mb-2">
                         <label class="form-label small">จำนวนที่ตรวจสอบ</label>
-                        <input type="number" id="qgateTotalQty" class="form-control form-control-sm" placeholder="0" min="1" required>
+                        <input type="number" id="qgateTotalQty" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="0" min="1" required>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small text-danger">ของเสีย (NG Qty)</label>
-                        <input type="number" id="qgateNgQty" class="form-control form-control-sm" placeholder="0" min="0" value="0" required>
+                        <input type="number" id="qgateNgQty" class="form-control form-control-sm bg-dark text-danger" placeholder="0" min="0" value="0" required>
                     </div>
 
                     <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
@@ -702,9 +709,9 @@
             </div>
         </div>
 
-        <!-- 2. ตรงกลาง: ตารางประวัติการตรวจ Q-Gate (ย่อขนาดให้พอดี) -->
+        <!-- 2. ตรงกลาง: ตารางประวัติการตรวจ Q-Gate -->
         <div class="col-md-5">
-            <div class="card p-3 shadow-sm">
+            <div class="card p-3 shadow-sm bg-dark text-white">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="m-0 fs-6"><i class="fas fa-history me-1"></i>ประวัติการตรวจ Q-Gate</h5>
                     <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm py-0 px-2" style="font-size: 12px;">
@@ -717,11 +724,11 @@
                             <tr>
                                 <th>วันที่ตรวจ</th>
                                 <th>เวลา</th>
-                                 <th>พนักงานตรวจ</th>
+                                <th>พนักงาน</th>
                                 <th>Part No.</th>
                                 <th>ยอดตรวจ</th>
-                                 <th>ของเสีย (NG)</th>
-                                  <th>ผ่านเข้า FG (Pass)</th>
+                                <th>NG</th>
+                                <th>ผ่าน (Pass)</th>
                                 <th class="text-center">จัดการ</th>
                             </tr>
                         </thead>
@@ -731,7 +738,7 @@
             </div>
         </div>
 
-        <!-- 3. ฝั่งขวา: รายการ Part No. ที่ต่ำกว่า Safety Stock FG (เตรียมไว้สำหรับสเต็ป JavaScript) -->
+        <!-- 3. ฝั่งขวา: รายการ Part No. ที่ต่ำกว่า Safety Stock FG -->
         <div class="col-md-3">
             <div class="card p-3 shadow-sm border-danger bg-dark text-white">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -747,9 +754,7 @@
                                 <th class="text-end">เลือก</th>
                             </tr>
                         </thead>
-                        <tbody id="qgateSafetyStockTableBody">
-                            <!-- ข้อมูลจะถูกดึงมาแสดงที่นี่ในสเต็ปถัดไป -->
-                        </tbody>
+                        <tbody id="qgateSafetyStockTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -2486,8 +2491,44 @@ function exportFilteredProductionReport() {
 
     window.open('print-production.html', '_blank');
 }
-// 📌 ระบบจัดการ Q-Gate Inspection & History (สมบูรณ์และเสถียรที่สุด)
 // ==========================================
+// 📌 ระบบจัดการ Q-Gate Inspection & History (สมบูรณ์ เสถียร และบังคับสแกนบาร์โค้ด)
+// ==========================================
+
+// 🔒 ตัวแปรระบบล็อกคีย์มือและรหัสผ่านสำหรับปลดล็อก
+let isQGateManualUnlocked = false;
+const QGATE_SUPER_PASSWORD = "1234"; // 🔑 รหัสผ่านหัวหน้างานสำหรับปลดล็อกพิมพ์มือ
+
+// 🔓 ฟังก์ชันขอรหัสผ่านเพื่อปลดล็อกให้พิมพ์มือเข้าช่องสแกน/เลือกพาร์ทได้
+function requestUnlockQGateManual() {
+    const qgateSearchInput = document.getElementById('qgatePartSearch');
+    const selectPart = document.getElementById('qgatePartNo');
+    const unlockIcon = document.getElementById('qgateUnlockIcon');
+    const unlockText = document.getElementById('qgateUnlockText');
+
+    if (isQGateManualUnlocked) {
+        // ถ้าปลดล็อกอยู่แล้ว ให้กดล็อกกลับคืน
+        isQGateManualUnlocked = false;
+        if (selectPart) selectPart.disabled = true;
+        if (unlockIcon) unlockIcon.className = "fas fa-lock";
+        if (unlockText) unlockText.innerText = "ปลดล็อก";
+        if (qgateSearchInput) qgateSearchInput.placeholder = "คลิกยิงบาร์โค้ดจาก Tag ที่นี่...";
+        alert("🔒 ล็อกระบบเรียบร้อยแล้ว (บังคับใช้เครื่องสแกนบาร์โค้ดเท่านั้น)");
+        return;
+    }
+
+    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (Supervisor Password) เพื่อปลดล็อกช่องสแกน Q-Gate:");
+    if (inputPass === QGATE_SUPER_PASSWORD) {
+        isQGateManualUnlocked = true;
+        if (selectPart) selectPart.disabled = false;
+        if (unlockIcon) unlockIcon.className = "fas fa-lock-open text-warning";
+        if (unlockText) unlockText.innerText = "ล็อกกลับ";
+        if (qgateSearchInput) qgateSearchInput.placeholder = "ปลดล็อกแล้ว - สามารถพิมพ์/เลือกพาร์ทได้...";
+        alert("🔓 ปลดล็อกสำเร็จ! สามารถเลือกหรือพิมพ์ Part No. ด้วยมือได้แล้ว");
+    } else if (inputPass !== null) {
+        alert("❌ รหัสผ่านไม่ถูกต้อง! ไม่สามารถปลดล็อกได้");
+    }
+}
 
 // ดักจับหน้าต่าง Alert ของ Q-Gate ให้ข้ามอัตโนมัติ ไม่ต้องกด OK
 if (typeof originalQGateAlert === 'undefined') {
@@ -2508,8 +2549,9 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (ป้องกันการเด้งเปลี่ยนพาร์ทอัตโนมัติ)
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (รองรับทุกพาร์ทแบบสมบูรณ์ ไม่บล็อก)
+// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate + บล็อกคีย์บอร์ดพิมพ์มือ
+let qgateLastKeyTime = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
     const qgateInputEl = document.getElementById('qgatePartSearch') || 
                          document.querySelector('input[placeholder*="ค้นหา Part No"]') || 
@@ -2519,6 +2561,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const partSelectEl = document.getElementById('qgatePartNo');
 
     if (qgateInputEl && partSelectEl) {
+
+        // 🚫 1. ดักจับคีย์บอร์ด: บล็อกไม่ให้กดพิมพ์มือเข้าช่องสแกน (เว้นแต่จะปลดล็อกด้วยรหัสผ่าน)
+        qgateInputEl.addEventListener('keydown', function(e) {
+            if (isQGateManualUnlocked) return; // ถ้าปลดล็อกแล้ว ให้พิมพ์ได้ปกติ
+            if (e.key === 'Tab' || e.key === 'Escape') return;
+
+            let currentTime = Date.now();
+            let timeDiff = currentTime - qgateLastKeyTime;
+            qgateLastKeyTime = currentTime;
+
+            // เครื่องสแกนบาร์โค้ดจะส่งข้อมูลเร็วกว่า 50ms ต่อตัวอักษร
+            // ถ้าพิมพ์มือช้ากว่า 50ms -> บล็อกทันที
+            if (timeDiff > 50 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
+                e.preventDefault();
+                this.value = "";
+                originalQGateAlert("⛔ ช่องนี้บังคับใช้ 'เครื่องสแกนบาร์โค้ดจาก Tag' เท่านั้น!\n\nหากต้องการพิมพ์มือ กรุณาให้หัวหน้ากดปุ่ม 'ปลดล็อก' และใส่รหัสผ่าน");
+                return false;
+            }
+        });
+
+        // 📌 2. เมื่อยิงบาร์โค้ดเข้ามาสำเร็จ (พรวดเดียวจบด้วย Enter)
         qgateInputEl.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -2545,6 +2608,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 qgateInputEl.value = targetClean;
                 let cleanTargetLower = targetClean.toLowerCase();
 
+                // ปลดล็อก Dropdown ชั่วคราวเพื่อเลือกพาร์ทที่สแกนมา
+                partSelectEl.disabled = false;
+
                 // ค้นหาใน Dropdown ที่มีอยู่
                 let matchedValue = "";
                 for (let i = 0; i < partSelectEl.options.length; i++) {
@@ -2569,6 +2635,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     newOpt.text = `${targetClean} (สแกนเข้ามา)`;
                     partSelectEl.appendChild(newOpt);
                     partSelectEl.value = targetClean;
+                }
+
+                // หากไม่ได้ปลดล็อกคีย์มือไว้ ให้ล็อก Dropdown กลับตามเดิม
+                if (!isQGateManualUnlocked) {
+                    partSelectEl.disabled = true;
                 }
 
                 // สั่งอัปเดตข้อมูลภาพและยอด WIP ทันที
@@ -2650,17 +2721,17 @@ function submitQGateTransaction(e) {
     const ngQty = parseInt(document.getElementById('qgateNgQty').value || 0);
 
     if (!partNo) {
-        alert("กรุณาเลือก Part No. จาก WIP ที่ต้องการตรวจ!");
+        originalQGateAlert("⚠️ กรุณาสแกนบาร์โค้ดเลือก Part No. จาก Tag ก่อนทำการบันทึก!");
         return;
     }
 
     if (isNaN(totalQty) || totalQty <= 0) {
-        alert("กรุณากรอกจำนวนตรวจสอบทั้งหมดให้ถูกต้อง!");
+        originalQGateAlert("กรุณากรอกจำนวนตรวจสอบทั้งหมดให้ถูกต้อง!");
         return;
     }
 
     if (ngQty > totalQty) {
-        alert("จำนวนของเสีย (NG) ต้องไม่มากกว่าตรวจสอบทั้งหมด!");
+        originalQGateAlert("จำนวนของเสีย (NG) ต้องไม่มากกว่าตรวจสอบทั้งหมด!");
         return;
     }
 
@@ -2711,9 +2782,9 @@ function deleteQGateItem(id) {
         if (typeof checkAndLoadWipForQGate === 'function') {
             checkAndLoadWipForQGate();
         }
-        alert("ลบรายการ Q-Gate สำเร็จ");
+        originalQGateAlert("ลบรายการ Q-Gate สำเร็จ");
     } else if (password !== null) {
-        alert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
+        originalQGateAlert("รหัสผ่านไม่ถูกต้อง! ไม่อนุญาตให้ลบข้อมูล");
     }
 }
 
@@ -2722,16 +2793,15 @@ function checkAndLoadWipForQGate() {
     const selectPart = document.getElementById('qgatePartNo');
     if (!selectPart) return;
     
-    selectPart.innerHTML = '<option value="">-- เลือก Part No. ที่มีใน WIP --</option>';
+    selectPart.innerHTML = '<option value="">-- กรุณาสแกนบาร์โค้ดจาก Tag --</option>';
 
     const wipMap = {};
     
     // 🛠️ ฟังก์ชันช่วยแปลงรหัสพาร์ทหน้างานให้เป็นพาร์ทจริงอันเดียวกัน
     function normalizePartNo(rawPart) {
         let p = String(rawPart || '').trim();
-        // ตัวอย่างเงื่อนไขการแปลงรหัสพาร์ทที่ซ้ำหรือรหัสย่อ
         if (p === "JA188" || p === "JA188.") {
-            return "17443-BZ190"; // ปรับแก้รหัสจริงตามที่ต้องการตรงนี้ได้เลยครับ
+            return "17443-BZ190"; 
         }
         return p;
     }
@@ -2770,6 +2840,9 @@ function checkAndLoadWipForQGate() {
             selectPart.appendChild(opt);
         }
     });
+
+    // กำหนดสถานะ ล็อก/ปลดล็อก ของ Dropdown ตามสิทธิ์
+    selectPart.disabled = !isQGateManualUnlocked;
 }
 
 // ฟังก์ชันอัปเดตยอดคงเหลือและรูปภาพ
@@ -2806,6 +2879,7 @@ document.addEventListener('DOMContentLoaded', () => {
         partSelectEl.addEventListener('change', updateQGateWipInfo);
     }
 });
+
 // 📌 ฟังก์ชันดึงและเรนเดอร์ข้อมูลเข้าตาราง Safety Stock FG หน้า Q-Gate ฝั่งขวา
 function renderQGateSafetyStockList() {
     const tableBody = document.getElementById('qgateSafetyStockTableBody');
