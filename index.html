@@ -5439,7 +5439,7 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed)
+                // 2. คำนวณยอดตัดโอนออกจาก WIP ไป Q-Gate (ยอดตรวจสอบทั้งหมด)
                 const totalTransferred = qgate.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -5457,7 +5457,7 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries)
+                // 3. คำนวณยอดส่งมอบ (Deliveries) ออกจาก FG
                 const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -5470,10 +5470,10 @@ document.addEventListener('keypress', function(e) {
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. สูตรใหม่: ดึงจาก (คงเหลือ WIP ปัจจุบัน) + (คงเหลือ FG จริง) ตรงๆ ตามหน้า Stock
+                // 5. สูตรตรงไปตรงมา: (คงเหลือ WIP ปัจจุบัน) + (คงเหลือ FG จริง)
                 const currentWip = (totalIn - totalTransferred) + adjustWip;
                 const currentFg = (totalFgPass - totalDelivered) + adjustFg;
-                const totalStock = currentWip + currentFg;
+                const totalStock = (currentWip > 0 ? currentWip : 0) + currentFg;
 
                 if (totalStock < minVal) {
                     lowStockList.push({
