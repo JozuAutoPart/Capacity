@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Print STEM Tags (6 Tags / A4 Landscape)</title>
-    <!-- โหลดไลบรารี JsBarcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         @page {
@@ -14,14 +13,14 @@
             font-family: 'Tahoma', 'Arial', sans-serif;
             background: #eee;
             margin: 0;
-            padding: 10px;
+            padding: 5px;
         }
         .no-print-bar {
             background: #333;
             color: #fff;
-            padding: 10px 20px;
-            margin-bottom: 15px;
-            border-radius: 6px;
+            padding: 8px 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -30,14 +29,14 @@
             width: 297mm;
             height: 210mm;
             padding: 5mm 6mm;
-            margin: 0 auto 10px auto;
+            margin: 0 auto 5mm auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             box-sizing: border-box;
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(3, 1fr);
-            gap: 3mm 4mm;
+            gap: 2mm 3mm;
             page-break-after: always;
             page-break-inside: avoid;
         }
@@ -47,17 +46,15 @@
             .page { box-shadow: none; margin: 0; width: 297mm; height: 210mm; }
         }
 
-        /* โครงสร้างป้าย Tag ตรงตามแบบ STEM */
         .tag-card {
             border: 1.5px solid #000;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 0;
+            padding: 2px;
             background: #fff;
-            font-size: 10px;
-            position: relative;
+            font-size: 9px;
             height: 100%;
         }
 
@@ -67,59 +64,59 @@
             table-layout: fixed;
         }
 
-        .tag-table td, .tag-table th {
+        .tag-table td {
             border: 1px solid #000;
-            padding: 1px 3px;
+            padding: 2px 4px;
             vertical-align: middle;
             word-wrap: break-word;
+            height: 18px;
         }
 
         .fw-bold { font-weight: bold; }
         .text-center { text-align: center; }
 
         .part-no-text {
-            font-size: 18px;
+            font-size: 19px;
             font-weight: 900;
             letter-spacing: 0.5px;
+            padding: 3px 4px;
         }
 
         .qty-text {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
         }
 
         .code-text {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
         }
 
-        /* โซนด้านล่าง (Logo STEM + Barcode) */
         .bottom-section {
             display: flex;
             align-items: center;
             border-top: 1px solid #000;
-            padding: 2px 0;
-            background: #fff;
+            padding-top: 2px;
+            margin-top: 2px;
         }
 
         .logo-stem {
-            font-size: 15px;
+            font-size: 14px;
             font-style: italic;
             font-weight: 900;
-            padding-left: 6px;
-            width: 22%;
-            letter-spacing: 1px;
+            padding-left: 4px;
+            width: 20%;
         }
 
         .barcode-container {
-            width: 78%;
+            width: 80%;
             text-align: center;
-            padding-right: 6px;
+            padding-right: 4px;
         }
 
         .barcode-container svg {
             width: 100%;
-            height: 28px;
+            height: 25px;
         }
     </style>
 </head>
@@ -127,18 +124,17 @@
 
     <div class="no-print-bar">
         <div>
-            <button onclick="window.print()" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+            <button onclick="window.print()" style="padding: 6px 14px; background: #28a745; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
                 🖨️ พิมพ์ใบ Tag ทั้งหมด (แนวนอน)
             </button>
-            <span id="tagSummary" style="margin-left: 15px; font-weight: bold;"></span>
+            <span id="tagSummary" style="margin-left: 15px; font-weight: bold; font-size: 12px;"></span>
         </div>
     </div>
 
     <div id="printContainer"></div>
 
     <script>
-        // 📌 ฐานข้อมูล Masterparts
-         const Masterparts = {
+        const Masterparts = {
                "53219-0D020": { partName: "SUPPORT,RADIATOR,LWR RR", qty: 50, code: "JA114" },
             "55330-0D480-10": { partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", qty: 25, code: "JA118" },
             "55330-0D490-10": { partName: "REINFORCEMENT ASSY,INSTRUMENT PANEL", qty: 25, code: "JA119" },
@@ -437,7 +433,6 @@
             const params = new URLSearchParams(window.location.search);
             const pNo = params.get('partNo') || '55366-KK020';
             
-            // ค้นหาใน Masterparts
             const cleanP = pNo.trim().toLowerCase();
             const foundKey = Object.keys(Masterparts).find(k => k.trim().toLowerCase() === cleanP);
             const master = Masterparts[foundKey] || {};
@@ -445,8 +440,8 @@
             return {
                 partNo: pNo,
                 partName: params.get('partName') || master.partName || 'BRACKET, RADIO TUNER MOUNTING, NO.2',
-                qty: parseInt(params.get('qty')) || master.qty || 50,
-                totalOrder: parseInt(params.get('totalOrder')) || parseInt(params.get('qty')) || 6300,
+                qty: master.qty || 50,
+                totalOrder: parseInt(params.get('qty')) || parseInt(params.get('totalOrder')) || 6300,
                 lotNo: params.get('lotNo') || '1037601',
                 code: params.get('code') || master.code || 'JA318'
             };
@@ -478,7 +473,7 @@
                 tagCard.innerHTML = `
                     <table class="tag-table">
                         <tr>
-                            <td style="width: 25%;">Part No.</td>
+                            <td style="width: 22%;">Part No.</td>
                             <td colspan="3" class="part-no-text">${data.partNo}</td>
                         </tr>
                         <tr>
@@ -486,28 +481,28 @@
                             <td colspan="3" class="fw-bold" style="font-size: 10px;">${data.partName}</td>
                         </tr>
                         <tr>
-                            <td style="width: 25%;">Q'ty</td>
-                            <td class="qty-text" style="width: 30%;">${currentQty} <span style="font-size: 11px; font-weight: normal;">Pcs.</span></td>
-                            <td style="width: 20%;">Stamp Mark</td>
-                            <td style="width: 25%;"></td>
+                            <td>Q'ty</td>
+                            <td class="qty-text" style="width: 32%;">${currentQty} <span style="font-size: 11px; font-weight: normal;">Pcs.</span></td>
+                            <td style="width: 18%;">Stamp Mark</td>
+                            <td style="width: 28%;"></td>
                         </tr>
                         <tr>
-                            <td style="font-size: 8.5px;">Production Data/Lot No.:</td>
+                            <td style="font-size: 8px;">Production Data/Lot No.:</td>
                             <td class="fw-bold">${data.lotNo}</td>
                             <td>STAM Code</td>
                             <td class="code-text text-center">${data.code}</td>
                         </tr>
                         <tr>
-                            <td>Production Date</td>
-                            <td>Supplier Check</td>
-                            <td>Delivery Date</td>
-                            <td class="fw-bold text-center" style="font-size: 8.5px;">STAM QC Receiving</td>
+                            <td style="font-size: 8px;">Production Date</td>
+                            <td style="font-size: 8px;">Supplier Check</td>
+                            <td style="font-size: 8px;">Delivery Date</td>
+                            <td class="fw-bold text-center" style="font-size: 8px;">STAM QC Receiving</td>
                         </tr>
-                        <tr style="height: 22px;">
-                            <td style="vertical-align: top; font-size: 9px;">Time</td>
-                            <td style="vertical-align: top; font-size: 9px;">Time</td>
-                            <td style="vertical-align: top; font-size: 9px;">Time</td>
-                            <td style="vertical-align: top; font-size: 9px;">by.</td>
+                        <tr style="height: 24px;">
+                            <td style="vertical-align: top; font-size: 8px;">Time</td>
+                            <td style="vertical-align: top; font-size: 8px;">Time</td>
+                            <td style="vertical-align: top; font-size: 8px;">Time</td>
+                            <td style="vertical-align: top; font-size: 8px;">by.</td>
                         </tr>
                     </table>
 
@@ -521,12 +516,11 @@
 
                 currentContainer.appendChild(tagCard);
 
-                // เจนเนอเรต Barcode จากรหัส Part No. เพื่อให้เครื่องสแกนของลูกค้ายิงเข้าตรงเป๊ะ
                 setTimeout(() => {
                     JsBarcode(`#barcode_${i}`, data.partNo, {
                         format: "CODE128",
-                        height: 26,
-                        width: 1.3,
+                        height: 24,
+                        width: 1.2,
                         displayValue: false,
                         margin: 0
                     });
