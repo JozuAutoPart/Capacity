@@ -429,6 +429,7 @@
             "743L4 5EK0A": { partName: "BRKT-FR SEAT MTG, RH  ", qty: 50, code: "TMC023" },
             "743L5 5EK0A": { partName: " BRKT-FR SEAT MTG, LH  ", qty: 50, code: "TMC024" }
         };
+
         function getUrlParams() {
             const params = new URLSearchParams(window.location.search);
             const pNo = params.get('partNo') || '55366-KK020';
@@ -498,14 +499,14 @@
                             <td style="font-size: 9px;">Delivery Date</td>
                             <td class="fw-bold text-center" style="font-size: 9px;">STAM QC Receiving</td>
                         </tr>
-                        <!-- 1. ช่องว่างสำหรับปั๊มตรา/เซ็นชื่อ (ขยายความสูงให้ใหญ่โปร่งเต็มพื้นที่ตรงกลาง) -->
-                        <tr style="height: 40px;">
+                        <!-- 1. ขยายความสูงช่องว่างตรงกลางให้ใหญ่โปร่งเต็มที่ -->
+                        <tr style="height: 44px;">
                             <td></td>
                             <td></td>
                             <td></td>
                             <td></td>
                         </tr>
-                        <!-- 2. แถว Time / by. (อยู่ด้านล่างสุดติดขอบตารางพอดี ไม่มีช่องว่างเหลือข้างล่างอีก) -->
+                        <!-- 2. แถว Time / by. อยู่ล่างสุดติดขอบตารางพอดี -->
                         <tr>
                             <td style="font-size: 9px;">Time</td>
                             <td style="font-size: 9px;">Time</td>
