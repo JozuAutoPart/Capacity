@@ -3695,7 +3695,7 @@ function renderDiePM() {
 
     const cleanP = (str) => String(str || '').trim().replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').toUpperCase();
 
-    // ฟังก์ชันค้นหา PM Limit จาก MasterParts (รองรับคอลัมน์ R / pm limit)
+    // ฟังก์ชันค้นหา PM Limit จาก MasterParts โดยเช็คจากคอลัมน์ R (index 17) หรือชื่อคีย์ PM Limit
     const getPmLimitForPart = (pNo) => {
         if (!pNo) return 40000;
         
@@ -3713,24 +3713,24 @@ function renderDiePM() {
         if (foundMaster) {
             let limitVal = 0;
 
-            // 1. ตรวจหาคีย์ทั้งหมดแบบไม่สนอักษรเล็ก-ใหญ่/ช่องว่าง (เช่น "PM Limit", "pmLimit", "pm_limit", "pmlimit")
-            for (let key in foundMaster) {
-                let k = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-                if (k === 'pmlimit' || k === 'pm' || k === 'limit' || k.includes('pmlimit')) {
-                    let v = Number(String(foundMaster[key]).replace(/,/g, ''));
-                    if (!isNaN(v) && v > 0) {
-                        limitVal = v;
-                        break;
-                    }
-                }
+            // 1. ตรวจหาจาก index ตำแหน่งที่ 17 (คอลัมน์ R ของ Google Sheets โดยตรง)
+            let vals = Object.values(foundMaster);
+            if (vals.length >= 18) {
+                let v = Number(String(vals[17]).replace(/,/g, ''));
+                if (!isNaN(v) && v > 0) limitVal = v;
             }
 
-            // 2. ถ้าหาคีย์ไม่เจอ ให้ไล่ดึงจาก index ตำแหน่งที่ 17 (คอลัมน์ R)
+            // 2. ถ้ายังไม่ได้ ให้เช็คจากคีย์ทั้งหมดที่มีคำว่า pm หรือ limit
             if (limitVal <= 0) {
-                let vals = Object.values(foundMaster);
-                if (vals.length >= 18) {
-                    let v = Number(String(vals[17]).replace(/,/g, ''));
-                    if (!isNaN(v) && v > 0) limitVal = v;
+                for (let key in foundMaster) {
+                    let k = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (k.includes('pm') || k.includes('limit')) {
+                        let v = Number(String(foundMaster[key]).replace(/,/g, ''));
+                        if (!isNaN(v) && v > 0) {
+                            limitVal = v;
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -3838,17 +3838,6 @@ function renderDiePM() {
             tableBmEl.appendChild(tr);
         });
     }
-}
-
-// ช่วยบังคับให้สั่งเรนเดอร์ PM ซ้ำอีกครั้งเมื่อดึงข้อมูล Cloud สำเร็จ
-if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedPmCloud) {
-    let _oldLoadCloud = window.loadAllDataFromCloud;
-    window.loadAllDataFromCloud = async function(...args) {
-        let res = await _oldLoadCloud.apply(this, args);
-        setTimeout(() => { if (typeof renderDiePM === 'function') renderDiePM(); }, 1200);
-        return res;
-    };
-    window._patchedPmCloud = true;
 }
 function deleteDieBmRecord(index) {
     if (confirm("ต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
