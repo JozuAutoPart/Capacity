@@ -487,7 +487,13 @@
     <div class="row g-3">
         <div class="col-md-4">
             <div class="card p-3 border-start border-4 border-success">
-                <h5 class="mb-3 text-success"><i class="fas fa-edit me-2"></i>ฟอร์มบันทึกการผลิต (พนักงาน)</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0 text-success"><i class="fas fa-edit me-2"></i>ฟอร์มบันทึกการผลิต (พนักงาน)</h5>
+                    <!-- ปุ่มสำหรับหัวหน้างานปลดล็อกพิมพ์มือ -->
+                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="requestUnlockManualInput()" title="ปลดล็อกเพื่อให้พิมพ์/เลือก Part เองได้">
+                        <i class="fas fa-lock" id="unlockIcon"></i> <span id="unlockText">ปลดล็อก</span>
+                    </button>
+                </div>
                 
                 <div id="actualAlert" class="alert alert-warning d-none" role="alert">
                     <i class="fas fa-exclamation-triangle me-1"></i> <span id="actualAlertText"></span>
@@ -534,8 +540,9 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
-                        <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" required>
-                            <option value="">-- เลือก Part No. จากแผน --</option>
+                        <!-- กำหนดให้ disabled ไว้เริ่มต้น เพื่อบังคับให้สแกนหรือใส่รหัสผ่านปลดล็อกก่อน -->
+                        <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" disabled required>
+                            <option value="">-- กรุณาสแกนบาร์โค้ดหรือปลดล็อก --</option>
                         </select>
                     </div>
                     <!-- ช่องแสดงค่า CT (วินาที) แบบ Auto -->
@@ -625,7 +632,7 @@
                                 <th class="text-center">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody id="actualTableBody">
+                        <tbody id="ajaxTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -1730,11 +1737,42 @@ document.addEventListener("DOMContentLoaded", function() {
         initMasterData();
     });
 
-// ==========================================
 // --- TAB 4: ACTUAL PRODUCTION ---
 // ==========================================
 
-// ฟังก์ชันดักจับการยิง Barcode เพื่อแปลงเป็น Part No. จาก Master และเลือกจากแผนอัตโนมัติ
+// 🔒 ตัวแปรระบบล็อกและรหัสผ่านสำหรับปลดล็อก
+let isManualUnlocked = false;
+const SUPER_PASSWORD = "9999"; // 🔑 พี่มิวสามารถเปลี่ยนรหัสผ่านตรงนี้ได้ตามต้องการ
+
+// 🔓 ฟังก์ชันขอรหัสผ่านเพื่อปลดล็อกให้เลือก/พิมพ์ Part ด้วยมือ
+function requestUnlockManualInput() {
+    const selectPart = document.getElementById('actualPartNo');
+    const unlockIcon = document.getElementById('unlockIcon');
+    const unlockText = document.getElementById('unlockText');
+
+    if (isManualUnlocked) {
+        // ถ้าปลดล็อกอยู่แล้ว ให้กดล็อกกลับคืน
+        isManualUnlocked = false;
+        if (selectPart) selectPart.disabled = true;
+        if (unlockIcon) unlockIcon.className = "fas fa-lock";
+        if (unlockText) unlockText.innerText = "ปลดล็อก";
+        alert("🔒 ล็อกระบบเลือกพาร์ทด้วยมือเรียบร้อยแล้ว (บังคับสแกนบาร์โค้ด)");
+        return;
+    }
+
+    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (Supervisor Password) เพื่อปลดล็อกคีย์มือ:");
+    if (inputPass === SUPER_PASSWORD) {
+        isManualUnlocked = true;
+        if (selectPart) selectPart.disabled = false;
+        if (unlockIcon) unlockIcon.className = "fas fa-lock-open text-warning";
+        if (unlockText) unlockText.innerText = "ล็อกกลับ";
+        alert("🔓 ปลดล็อกสำเร็จ! สามารถเลือกหรือพิมพ์ Part No. ด้วยมือได้แล้ว");
+    } else if (inputPass !== null) {
+        alert("❌ รหัสผ่านไม่ถูกต้อง! ไม่สามารถปลดล็อกได้");
+    }
+}
+
+// 📌 ฟังก์ชันดักจับการยิง Barcode หรือการพยายามพิมพ์คีย์บอร์ด
 document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
@@ -1778,36 +1816,53 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
         const selectPart = document.getElementById('actualPartNo');
         let foundIndex = -1;
 
-        for (let i = 0; i < selectPart.options.length; i++) {
-            const optionText = selectPart.options[i].text.toUpperCase();
-            const optionValue = selectPart.options[i].value.toUpperCase();
-            
-            if (optionText.includes(matchedPartNo.toUpperCase()) || optionValue.includes(matchedPartNo.toUpperCase())) {
-                foundIndex = i;
-                break;
+        if (selectPart) {
+            for (let i = 0; i < selectPart.options.length; i++) {
+                const optionText = selectPart.options[i].text.toUpperCase();
+                const optionValue = selectPart.options[i].value.toUpperCase();
+                
+                if (optionText.includes(matchedPartNo.toUpperCase()) || optionValue.includes(matchedPartNo.toUpperCase())) {
+                    foundIndex = i;
+                    break;
+                }
             }
-        }
 
-        if (foundIndex !== -1) {
-            selectPart.selectedIndex = foundIndex;
-        } else {
-            // กรณีไม่พบในแผน ให้เพิ่มเป็นตัวเลือก (นอกแผน)
-            const newOpt = document.createElement('option');
-            newOpt.value = matchedPartNo;
-            newOpt.innerText = matchedPartNo + " (นอกแผน)";
-            selectPart.appendChild(newOpt);
-            selectPart.value = matchedPartNo;
+            // ปลดล็อกชั่วคราวเพื่อตั้งค่า Part No. จากการสแกน
+            selectPart.disabled = false;
+
+            if (foundIndex !== -1) {
+                selectPart.selectedIndex = foundIndex;
+            } else {
+                // กรณีไม่พบในแผน ให้เพิ่มเป็นตัวเลือก (นอกแผน)
+                const newOpt = document.createElement('option');
+                newOpt.value = matchedPartNo;
+                newOpt.innerText = matchedPartNo + " (นอกแผน)";
+                selectPart.appendChild(newOpt);
+                selectPart.value = matchedPartNo;
+            }
+
+            // ล็อก Dropdown กลับทันทีหลังเลือกเสร็จ (ถ้าไม่ได้ปลดล็อกคีย์มือไว้)
+            if (!isManualUnlocked) {
+                selectPart.disabled = true;
+            }
         }
 
         // สั่งเรียกฟังก์ชันเปลี่ยนพาร์ท เพื่อดึง Lot No. และค่า CT ขึ้นมาทันที
         if (typeof onActualPartChange === 'function') {
             onActualPartChange();
-        } else {
+        } else if (selectPart) {
             selectPart.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
         this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับบาร์โค้ดถัดไป
         this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
+    }
+});
+
+// 🚫 ดักจับหากพยายามคลิกเลือก Dropdown Part No. ตอนที่ยังไม่ปลดล็อก
+document.getElementById('actualPartNo')?.addEventListener('click', function(e) {
+    if (this.disabled && !isManualUnlocked) {
+        alert("⛔ บังคับสแกนบาร์โค้ดเท่านั้น! หากต้องการเลือกพาร์ทด้วยมือ กรุณากดปุ่ม 'ปลดล็อก' ด้านบนและใส่รหัสผ่าน");
     }
 });
 
@@ -1826,7 +1881,7 @@ function checkAndLoadPlans() {
     const selectPart = document.getElementById('actualPartNo');
     if (!selectPart) return;
     
-    selectPart.innerHTML = '<option value="">-- เลือก Part No. จากแผน --</option>';
+    selectPart.innerHTML = '<option value="">-- กรุณาสแกนบาร์โค้ด Part No. --</option>';
 
     if (typeof plans === 'undefined' || !Array.isArray(plans)) return;
 
@@ -1876,6 +1931,9 @@ function checkAndLoadPlans() {
             }
         });
     }
+
+    // กำหนดสถานะ disabled ตามการปลดล็อก
+    selectPart.disabled = !isManualUnlocked;
 }
 
 // ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
@@ -1940,6 +1998,11 @@ function submitActual(e) {
     
     // 1. ดึงค่า Part No. หลัก และ Process
     const basePartNo = document.getElementById('actualPartNo').value;
+    if (!basePartNo) {
+        alert("⚠️ กรุณาสแกนบาร์โค้ดเลือก Part No. ก่อนทำการบันทึก");
+        return;
+    }
+
     const processSuffix = document.getElementById('actualProcess') ? document.getElementById('actualProcess').value.trim() : '';
 
     let finalPartNo = basePartNo;
