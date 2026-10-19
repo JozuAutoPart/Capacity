@@ -3690,41 +3690,50 @@ function renderDiePM() {
     const inputSearchEl = document.getElementById('dieSearchInput');
     const queryFilter = inputSearchEl ? inputSearchEl.value.toLowerCase() : '';
     
-    // ดึงฐานข้อมูล Master Parts
-    const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || [];
+    // ดึงฐานข้อมูล Master Parts จากทุกตัวแปรที่เป็นไปได้
+    const masterDb = window.masterPartsDatabase || window.masterParts || window.masterPartsData || (typeof masterParts !== 'undefined' ? masterParts : []);
 
-    // ฟังก์ชันช่วยคลีนรหัสพาร์ทเพื่อค้นหาใน MasterParts
     const cleanP = (str) => String(str || '').trim().replace(/\s+\d+\/\d+.*$/, '').replace(/[*_]/g, '').toUpperCase();
 
-    // ฟังก์ชันค้นหา PM Limit ของแต่ละ Part No. จาก MasterParts (รองรับ คอลัมน์ R / pmLimit)
+    // ฟังก์ชันค้นหา PM Limit จาก MasterParts (รองรับคอลัมน์ R / pm limit)
     const getPmLimitForPart = (pNo) => {
-        if (!pNo || masterDb.length === 0) return 40000;
+        if (!pNo) return 40000;
         
         let targetClean = cleanP(pNo);
-        let foundMaster = masterDb.find(m => {
-            let mPart = cleanP(m.partNo || m['partNo'] || m['Part No.'] || Object.values(m)[1] || '');
-            let mBarcode = cleanP(m.barcode || m['barcode'] || Object.values(m)[0] || '');
-            return (mPart && targetClean === mPart) || (mBarcode && targetClean === mBarcode) || (mPart && targetClean.includes(mPart));
-        });
+        let foundMaster = null;
+
+        if (masterDb && masterDb.length > 0) {
+            foundMaster = masterDb.find(m => {
+                let mPart = cleanP(m.partNo || m['partNo'] || m['Part No.'] || Object.values(m)[1] || '');
+                let mBarcode = cleanP(m.barcode || m['barcode'] || Object.values(m)[0] || '');
+                return (mPart && targetClean === mPart) || (mBarcode && targetClean === mBarcode) || (mPart && targetClean.includes(mPart));
+            });
+        }
 
         if (foundMaster) {
-            // ค้นหาฟิลด์ PM Limit หรือดึงจากคอลัมน์ R (index 17)
             let limitVal = 0;
+
+            // 1. ตรวจหาคีย์ทั้งหมดแบบไม่สนอักษรเล็ก-ใหญ่/ช่องว่าง (เช่น "PM Limit", "pmLimit", "pm_limit", "pmlimit")
             for (let key in foundMaster) {
                 let k = key.toLowerCase().replace(/[^a-z0-9]/g, '');
-                if (k === 'pmlimit' || k === 'pm' || k === 'limit') {
+                if (k === 'pmlimit' || k === 'pm' || k === 'limit' || k.includes('pmlimit')) {
                     let v = Number(String(foundMaster[key]).replace(/,/g, ''));
-                    if (!isNaN(v) && v > 0) limitVal = v;
+                    if (!isNaN(v) && v > 0) {
+                        limitVal = v;
+                        break;
+                    }
                 }
             }
+
+            // 2. ถ้าหาคีย์ไม่เจอ ให้ไล่ดึงจาก index ตำแหน่งที่ 17 (คอลัมน์ R)
             if (limitVal <= 0) {
-                // ดึงจาก index 17 (คอลัมน์ R ใน Google Sheets)
                 let vals = Object.values(foundMaster);
                 if (vals.length >= 18) {
                     let v = Number(String(vals[17]).replace(/,/g, ''));
                     if (!isNaN(v) && v > 0) limitVal = v;
                 }
             }
+
             if (limitVal > 0) return limitVal;
         }
 
@@ -3764,7 +3773,7 @@ function renderDiePM() {
             return;
         }
 
-        // ดึง PM Limit เฉพาะของพาร์ทนี้จาก MasterParts
+        // ดึง PM Limit ของพาร์ทนี้ตามคอลัมน์ R
         const limitVal = getPmLimitForPart(partKey);
 
         if (currentStrokes < limitVal * 0.85) {
@@ -3829,6 +3838,17 @@ function renderDiePM() {
             tableBmEl.appendChild(tr);
         });
     }
+}
+
+// ช่วยบังคับให้สั่งเรนเดอร์ PM ซ้ำอีกครั้งเมื่อดึงข้อมูล Cloud สำเร็จ
+if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedPmCloud) {
+    let _oldLoadCloud = window.loadAllDataFromCloud;
+    window.loadAllDataFromCloud = async function(...args) {
+        let res = await _oldLoadCloud.apply(this, args);
+        setTimeout(() => { if (typeof renderDiePM === 'function') renderDiePM(); }, 1200);
+        return res;
+    };
+    window._patchedPmCloud = true;
 }
 function deleteDieBmRecord(index) {
     if (confirm("ต้องการลบประวัติการซ่อมแม่พิมพ์รายการนี้ใช่หรือไม่?")) {
