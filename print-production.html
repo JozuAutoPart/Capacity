@@ -58,23 +58,24 @@
     <table class="main-table mb-3">
         <thead>
             <tr>
-                <th style="width: 6%;">ลำดับ<br>(No.)</th>
-                <th style="width: 12%;">เวลาเริ่มต้น<br>(Start Time)</th>
-                <th style="width: 12%;">เวลาสิ้นสุด<br>(End Time)</th>
-                <th style="width: 22%;">หมายเลขชิ้นส่วน<br>(Part No.)</th>
+                <th style="width: 5%;">ลำดับ<br>(No.)</th>
+                <th style="width: 11%;">เวลาเริ่มต้น<br>(Start Time)</th>
+                <th style="width: 11%;">เวลาสิ้นสุด<br>(End Time)</th>
+                <th style="width: 21%;">หมายเลขชิ้นส่วน<br>(Part No.)</th>
+                <th style="width: 8%;">CT<br>(วิ/ชิ้น)</th>
                 <th style="width: 10%;">เป้าหมาย<br>(Target Pcs)</th>
                 <th style="width: 10%;">ผลิตได้จริง<br>(Actual Pcs)</th>
                 <th style="width: 10%;">งานดี<br>(OK Pcs)</th>
-                <th style="width: 8%;">งานเสีย<br>(NG Pcs)</th>
-                <th style="width: 10%;">อัตราความสำเร็จ<br>(% Achievement)</th>
+                <th style="width: 7%;">งานเสีย<br>(NG Pcs)</th>
+                <th style="width: 7%;">อัตราความสำเร็จ<br>(% Ach)</th>
             </tr>
         </thead>
         <tbody id="summaryTableBody">
-            <tr><td colspan="9" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
+            <tr><td colspan="10" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
         </tbody>
         <tfoot>
             <tr style="font-weight: bold; background-color: #f8f9fa;">
-                <td colspan="4" style="text-align: right;">รวมทั้งสิ้น (TOTAL)</td>
+                <td colspan="5" style="text-align: right;">รวมทั้งสิ้น (TOTAL)</td>
                 <td id="totalTarget">0</td>
                 <td id="totalActual">0</td>
                 <td id="totalOk">0</td>
@@ -242,7 +243,7 @@
                 let rawPartNo = item.partNo || '-';
                 let cleanPart = rawPartNo.split(' ')[0].trim().toUpperCase();
 
-                // ⏱️ ดึงค่า CT จาก Master Parts คอลัมน์ Q (Index 16)
+                // ⏱️ ดึงค่า CT จาก Master Parts คอลัมน์ Q (Index 16) หรือ item.ct
                 let ctSeconds = item.ct ? Number(item.ct) : 0;
                 if (!ctSeconds || ctSeconds === 6) {
                     if (Array.isArray(masterList) && masterList.length > 0) {
@@ -259,7 +260,7 @@
                         }
                     }
                 }
-                if (!ctSeconds || ctSeconds <= 0) ctSeconds = 6; // ค่าสำรองถ้าไม่พบใน Master
+                if (!ctSeconds || ctSeconds <= 0) ctSeconds = 6; // ค่าสำรองถ้าไม่พบ
 
                 let targetQty = durationSeconds > 0 && ctSeconds > 0 ? Math.round(durationSeconds / ctSeconds) : 0;
 
@@ -275,13 +276,14 @@
 
                 let remark = (item.remark && item.remark !== '-') ? item.remark.trim() : '';
 
-                // --- 1. สรุปภาพรวมการผลิต ---
+                // --- 1. สรุปภาพรวมการผลิต (เพิ่มคอลัมน์ CT) ---
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${index + 1}</td>
                     <td>${startTime}</td>
                     <td>${endTime}</td>
                     <td style="text-align: left; padding-left: 8px;">${rawPartNo}</td>
+                    <td><b>${ctSeconds}</b></td>
                     <td>${targetQty.toLocaleString()}</td>
                     <td>${actualQty.toLocaleString()}</td>
                     <td>${okQty.toLocaleString()}</td>
@@ -358,7 +360,7 @@
             }
 
         } else {
-            document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="9" class="text-muted">ไม่พบข้อมูลตามเงื่อนไขที่เลือกพิมพ์</td></tr>`;
+            document.getElementById('summaryTableBody').innerHTML = `<tr><td colspan="10" class="text-muted">ไม่พบข้อมูลตามเงื่อนไขที่เลือกพิมพ์</td></tr>`;
         }
     });
 </script>
