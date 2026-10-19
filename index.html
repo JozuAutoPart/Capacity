@@ -482,7 +482,7 @@
         </div>
     </div>
 </div>
-      <!-- TAB 4: ACTUAL PRODUCTION -->
+     <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -540,9 +540,8 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
-                        <!-- กำหนดให้ disabled ไว้เริ่มต้น เพื่อบังคับให้สแกนหรือใส่รหัสผ่านปลดล็อกก่อน -->
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" disabled required>
-                            <option value="">-- กรุณาสแกนบาร์โค้ดหรือปลดล็อก --</option>
+                            <option value="">-- กรุณาสแกนบาร์โค้ด Part No. --</option>
                         </select>
                     </div>
                     <!-- ช่องแสดงค่า CT (วินาที) แบบ Auto -->
@@ -632,7 +631,7 @@
                                 <th class="text-center">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody id="ajaxTableBody">
+                        <tbody id="actualTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -1737,15 +1736,17 @@ document.addEventListener("DOMContentLoaded", function() {
         initMasterData();
     });
 
+// ==========================================
 // --- TAB 4: ACTUAL PRODUCTION ---
 // ==========================================
 
 // 🔒 ตัวแปรระบบล็อกและรหัสผ่านสำหรับปลดล็อก
 let isManualUnlocked = false;
-const SUPER_PASSWORD = "9999"; // 🔑 พี่มิวสามารถเปลี่ยนรหัสผ่านตรงนี้ได้ตามต้องการ
+const SUPER_PASSWORD = "1234"; // 🔑 รหัสผ่านหัวหน้างานสำหรับปลดล็อกพิมพ์มือ
 
-// 🔓 ฟังก์ชันขอรหัสผ่านเพื่อปลดล็อกให้เลือก/พิมพ์ Part ด้วยมือ
+// 🔓 ฟังก์ชันขอรหัสผ่านเพื่อปลดล็อกให้พิมพ์มือเข้าช่องสแกนได้
 function requestUnlockManualInput() {
+    const scannerInput = document.getElementById('actualBarcodeScanner');
     const selectPart = document.getElementById('actualPartNo');
     const unlockIcon = document.getElementById('unlockIcon');
     const unlockText = document.getElementById('unlockText');
@@ -1756,23 +1757,51 @@ function requestUnlockManualInput() {
         if (selectPart) selectPart.disabled = true;
         if (unlockIcon) unlockIcon.className = "fas fa-lock";
         if (unlockText) unlockText.innerText = "ปลดล็อก";
-        alert("🔒 ล็อกระบบเลือกพาร์ทด้วยมือเรียบร้อยแล้ว (บังคับสแกนบาร์โค้ด)");
+        if (scannerInput) scannerInput.placeholder = "คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท...";
+        alert("🔒 ล็อกระบบเรียบร้อยแล้ว (บังคับใช้เครื่องสแกนบาร์โค้ดเท่านั้น)");
         return;
     }
 
-    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (Supervisor Password) เพื่อปลดล็อกคีย์มือ:");
+    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (Supervisor Password) เพื่อปลดล็อกให้พิมพ์มือได้:");
     if (inputPass === SUPER_PASSWORD) {
         isManualUnlocked = true;
         if (selectPart) selectPart.disabled = false;
         if (unlockIcon) unlockIcon.className = "fas fa-lock-open text-warning";
         if (unlockText) unlockText.innerText = "ล็อกกลับ";
-        alert("🔓 ปลดล็อกสำเร็จ! สามารถเลือกหรือพิมพ์ Part No. ด้วยมือได้แล้ว");
+        if (scannerInput) scannerInput.placeholder = "ปลดล็อกแล้ว - สามารถพิมพ์มือได้...";
+        alert("🔓 ปลดล็อกสำเร็จ! สามารถใช้คีย์บอร์ดพิมพ์ลงในช่องนี้ได้แล้ว");
     } else if (inputPass !== null) {
         alert("❌ รหัสผ่านไม่ถูกต้อง! ไม่สามารถปลดล็อกได้");
     }
 }
 
-// 📌 ฟังก์ชันดักจับการยิง Barcode หรือการพยายามพิมพ์คีย์บอร์ด
+// ----------------------------------------------------
+// 🚫 ดักจับคีย์บอร์ด: บล็อกไม่ให้กดพิมพ์มือเข้าช่องสแกน
+// ----------------------------------------------------
+let lastKeyTime = 0;
+
+document.getElementById('actualBarcodeScanner')?.addEventListener('keydown', function(e) {
+    // ถ้าปลดล็อกด้วยรหัสผ่านแล้ว อนุญาตให้พิมพ์มือได้ปกติ
+    if (isManualUnlocked) return;
+
+    // อนุญาตให้ปุ่ม Tab, Esc, Enter ทำงานได้
+    if (e.key === 'Tab' || e.key === 'Escape') return;
+
+    const currentTime = Date.now();
+    const timeDiff = currentTime - lastKeyTime;
+    lastKeyTime = currentTime;
+
+    // เครื่องสแกนบาร์โค้ดส่งข้อมูลเร็วกว่า 50ms ต่อตัวอักษร
+    // ถ้าระบบตรวจพบการพิมพ์ช้ากว่า 50ms (คีย์บอร์ดมนุษย์) -> บล็อกทันที!
+    if (timeDiff > 50 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
+        e.preventDefault(); // บล็อกไม่ให้ตัวอักษรขึ้นหน้าจอ
+        this.value = "";    // ล้างค่าทิ้ง
+        alert("⛔ ช่องนี้บังคับใช้ 'เครื่องสแกนบาร์โค้ด' เท่านั้น!\n\nหากต้องการพิมพ์มือ กรุณาให้หัวหน้ากดปุ่ม 'ปลดล็อก' และใส่รหัสผ่าน");
+        return false;
+    }
+});
+
+// 📌 ฟังก์ชันดักจับเมื่อยิงบาร์โค้ดสำเร็จ (ส่งค่าพรวดเดียวจบด้วย Enter)
 document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
@@ -1827,7 +1856,7 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
                 }
             }
 
-            // ปลดล็อกชั่วคราวเพื่อตั้งค่า Part No. จากการสแกน
+            // ปลดล็อกชั่วคราวเพื่อเลือกค่าใน Dropdown
             selectPart.disabled = false;
 
             if (foundIndex !== -1) {
@@ -1841,7 +1870,7 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
                 selectPart.value = matchedPartNo;
             }
 
-            // ล็อก Dropdown กลับทันทีหลังเลือกเสร็จ (ถ้าไม่ได้ปลดล็อกคีย์มือไว้)
+            // ล็อก Dropdown กลับทันทีถ้าไม่ได้ปลดล็อกคีย์มือไว้
             if (!isManualUnlocked) {
                 selectPart.disabled = true;
             }
@@ -1856,13 +1885,6 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
 
         this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับบาร์โค้ดถัดไป
         this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
-    }
-});
-
-// 🚫 ดักจับหากพยายามคลิกเลือก Dropdown Part No. ตอนที่ยังไม่ปลดล็อก
-document.getElementById('actualPartNo')?.addEventListener('click', function(e) {
-    if (this.disabled && !isManualUnlocked) {
-        alert("⛔ บังคับสแกนบาร์โค้ดเท่านั้น! หากต้องการเลือกพาร์ทด้วยมือ กรุณากดปุ่ม 'ปลดล็อก' ด้านบนและใส่รหัสผ่าน");
     }
 });
 
