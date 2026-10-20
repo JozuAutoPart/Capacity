@@ -215,44 +215,56 @@
             </div>
         </div>
     </div>
-          <!-- กราฟวงกลมและกล่องสรุปสัดส่วน Stock Part -->
-<div class="row mt-4" id="stockSummaryBox" style="display: none;">
-    <!-- ฝั่งซ้าย: กราฟวงกลม -->
-    <div class="col-md-6 mb-3">
-        <div class="card p-3 border-secondary bg-dark text-white shadow-sm h-100">
-            <h5 class="text-center text-warning mb-3">📊 สัดส่วน Stock Part (Minimum เทียบกับทั้งหมด)</h5>
-            <div style="position: relative; height: 260px; width: 100%;">
-                <canvas id="stockZeroPieChart"></canvas>
+        <!-- ========================================================== -->
+<!-- 📌 ส่วน HTML: กล่องกราฟ Defect PPM By Customer & ตารางสรุปคุณภาพ -->
+<!-- ========================================================== -->
+<div id="customerSummaryBox" class="row mt-3" style="display: none;">
+    <!-- ฝั่งซ้าย: กราฟแท่งเปรียบเทียบ PPM แยกตามลูกค้า -->
+    <div class="col-md-5 mb-3">
+        <div class="card bg-dark text-white p-3 border-secondary shadow h-100">
+            <h6 class="text-warning fw-bold mb-3">
+                <i class="fas fa-chart-bar me-2"></i> อัตราของเสียแยกตามลูกค้า (Defect PPM By Customer)
+            </h6>
+            <div style="height: 250px; position: relative;">
+                <canvas id="customerPpmChart"></canvas>
             </div>
         </div>
     </div>
-    
-    <!-- ฝั่งขวา: กล่องสรุปตัวเลข -->
-    <div class="col-md-6 mb-3">
-        <div class="card p-4 border-secondary bg-dark text-white shadow-sm h-100 d-flex flex-column justify-content-center">
-            <h5 class="text-warning mb-3 border-bottom border-secondary pb-2">📋 สรุปข้อมูลสต็อกพาร์ท (Jozu Auto Part)</h5>
-            <div class="d-flex flex-column gap-2" style="font-size: 1.05rem;">
-                <div class="d-flex justify-content-between align-items-center bg-secondary bg-opacity-10 p-2 rounded">
-                    <span>📦 จำนวนพาร์ททั้งหมด:</span>
-                    <span id="summary-total-parts" class="fw-bold text-info fs-5">0</span> รายการ
-                </div>
-                <div class="d-flex justify-content-between align-items-center bg-danger bg-opacity-10 p-2 rounded">
-                    <span>🔴 Stock หมด (zero-stock):</span>
-                    <span id="summary-zero-stock" class="fw-bold text-danger fs-5">0</span> รายการ
-                </div>
-                <div class="d-flex justify-content-between align-items-center bg-success bg-opacity-10 p-2 rounded">
-                    <span>🟢 มี Stock :</span>
-                    <span id="summary-available-stock" class="fw-bold text-success fs-5">0</span> รายการ
-                </div>
-                <div class="d-flex justify-content-between align-items-center bg-warning bg-opacity-10 p-2 rounded">
-                    <span>📈 สัดส่วนสินค้าหมด:</span>
-                    <span id="summary-zero-percent" class="fw-bold text-warning fs-5">0%</span>
-                </div>
+
+    <!-- ฝั่งขวา: ตารางสรุปผลงาน + ตารางกรอกยอดของเสียที่หลุดไปหาลูกค้า -->
+    <div class="col-md-7 mb-3">
+        <div class="card bg-dark text-white p-3 border-secondary shadow h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="text-info fw-bold m-0">
+                    <i class="fas fa-list-alt me-2"></i> สรุปผลงานคุณภาพรายลูกค้า (Target แยกตามเจ้า)
+                </h6>
+                <!-- ปุ่มปลดล็อกระบบกรอกข้อมูล (ใช้รหัสผ่าน 9999) -->
+                <button id="unlockClaimBtn" class="btn btn-outline-warning btn-sm" onclick="requestUnlockCustomerClaim()">
+                    <i id="unlockClaimIcon" class="fas fa-lock me-1"></i> <span id="unlockClaimText">ปลดล็อกบันทึก NG</span>
+                </button>
+            </div>
+
+            <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+                <table class="table table-dark table-hover table-sm text-center align-middle mb-0" style="font-size: 12px;">
+                    <thead class="table-secondary sticky-top">
+                        <tr>
+                            <th class="text-start">Customer</th>
+                            <th>ส่งมอบ (Delivery)</th>
+                            <th>Target</th>
+                            <th>NG Q-Gate</th>
+                            <th class="text-warning" style="width: 110px;">NG หลุดหาลูกค้า</th>
+                            <th>PPM รวม</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerPpmTableBody">
+                        <!-- รายการลูกค้าและช่องกรอกข้อมูลจะถูกเรนเดอร์มาวางตรงนี้ -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
-
             <!-- TAB 2: CAPACITY -->
             <div class="tab-pane fade" id="tab-capacity">
                 <div class="card p-3 mb-3">
@@ -5191,50 +5203,196 @@ function getActivePartsMap() {
 
     return activePartsSet;
 }
-// ประกาศตัวแปรเก็บค่าล่าสุดไว้ในระดับ Global (ป้องกันการรีเฟรชแล้วหลุด)
-function renderStockZeroPieChart() {
-    let canvasElement = document.getElementById('stockZeroPieChart');
+// ==========================================================
+// 📌 ส่วน JavaScript: คำนวณ PPM, ควบคุมตารางEditable และการแสดงผล
+// ==========================================================
+
+// ตัวแปรสถานะปลดล็อกช่องกรอก NG หลุดหาลูกค้า
+let isCustomerClaimUnlocked = false;
+const CLAIM_SUPER_PASSWORD = "9999"; // รหัสผ่านหัวหน้างานสำหรับปลดล็อกกรอกข้อมูล
+
+// 🔓 ฟังก์ชันขอรหัสผ่านเพื่อปลดล็อกช่องกรอกตัวเลข
+function requestUnlockCustomerClaim() {
+    const btnIcon = document.getElementById('unlockClaimIcon');
+    const btnText = document.getElementById('unlockClaimText');
+
+    if (isCustomerClaimUnlocked) {
+        isCustomerClaimUnlocked = false;
+        if (btnIcon) btnIcon.className = "fas fa-lock me-1";
+        if (btnText) btnText.innerText = "ปลดล็อกบันทึก NG";
+        alert("🔒 ล็อกระบบบันทึกยอด NG หลุดหาลูกค้าเรียบร้อยแล้ว");
+        renderCustomerDefectPPM();
+        return;
+    }
+
+    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (Supervisor Password) เพื่อแก้ไขยอด NG หลุดหาลูกค้า:");
+    if (inputPass === CLAIM_SUPER_PASSWORD) {
+        isCustomerClaimUnlocked = true;
+        if (btnIcon) btnIcon.className = "fas fa-lock-open me-1 text-warning";
+        if (btnText) btnText.innerText = "ล็อกระบบ";
+        alert("🔓 ปลดล็อกสำเร็จ! ท่านสามารถแก้ไขยอด NG หลุดหาลูกค้าในตารางได้แล้ว");
+        renderCustomerDefectPPM();
+    } else if (inputPass !== null) {
+        alert("❌ รหัสผ่านไม่ถูกต้อง! ไม่สามารถปลดล็อกได้");
+    }
+}
+
+// 💾 ฟังก์ชันบันทึกค่ายอด NG หลุดหาลูกค้าลงใน localStorage
+function updateCustomerClaimData(customerName, value) {
+    let ngVal = parseInt(value) || 0;
+    if (ngVal < 0) ngVal = 0;
+    
+    localStorage.setItem(`customer_claim_ng_${customerName.toUpperCase()}`, ngVal);
+    renderCustomerDefectPPM(); // อัปเดตกราฟและตารางทันที
+}
+
+// 📌 ฟังก์ชันคำนวณและเรนเดอร์ Defect PPM แยกตามลูกค้า
+function renderCustomerDefectPPM() {
+    let canvasElement = document.getElementById('customerPpmChart');
     if (!canvasElement) return;
 
-    let masterDb = window.masterPartsDatabase || [];
-    let totalParts = masterDb.length;
-    if (totalParts === 0) totalParts = 279; // ยึดตามจำนวนจริงหน้าจอ
+    let masterDb = window.masterPartsDatabase || window.masterParts || [];
+    let qgateData = typeof qgate !== 'undefined' ? qgate : [];
+    let deliveryData = typeof deliveries !== 'undefined' ? deliveries : [];
 
-    // เรียกฟังก์ชันกลางเช็กพาร์ทที่มี Stock และคำนวณจำนวนศูนย์จากฐานข้อมูลชุดเดียวกัน
-    let activePartsSet = getActivePartsMap();
-    
-    const zeroStockParts = masterDb.length > 0 ? masterDb.filter(m => {
-        const rawPNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-        const cleanPNo = rawPNo.toUpperCase();
-        if (!cleanPNo) return false;
-        return !activePartsSet.has(cleanPNo);
-    }) : [];
+    // 🎯 Target PPM แยกตามลูกค้า
+    const customerTargets = {
+        'STEM-A': 0.03,
+        'STEM-B': 0.03,
+        'TMC': 0.57,
+        'FTS': 0.0,
+        'MSFT': 0.08,
+        'OTHERS': 1.5
+    };
 
-    // ดึงค่าจำนวนศูนย์ที่ตรงกับแถบด้านบนเป๊ะๆ
-    let zeroCount = masterDb.length > 0 ? zeroStockParts.length : Math.max(0, totalParts - activePartsSet.size);
-    let availableCount = Math.max(0, totalParts - zeroCount);
-    let zeroPercent = totalParts > 0 ? ((zeroCount / totalParts) * 100).toFixed(1) : 0;
+    const defaultCustomers = ['STEM-A', 'STEM-B', 'TMC', 'FTS', 'MSFT', 'OTHERS'];
 
-    // อัปเดตตัวเลขแสดงผลบนหน้า Dashboard ตามจริง
-    if (document.getElementById('summary-total-parts')) document.getElementById('summary-total-parts').innerText = totalParts.toLocaleString();
-    if (document.getElementById('summary-zero-stock')) document.getElementById('summary-zero-stock').innerText = zeroCount.toLocaleString();
-    if (document.getElementById('summary-available-stock')) document.getElementById('summary-available-stock').innerText = availableCount.toLocaleString();
-    if (document.getElementById('summary-zero-percent')) document.getElementById('summary-zero-percent').innerText = zeroPercent + '%';
+    // Map Part No. -> Customer
+    const partToCustomerMap = {};
+    masterDb.forEach(m => {
+        let vals = Object.values(m);
+        let pNo = String(m['Part No.'] || m.partNo || m.PARTNO || vals[1] || '').trim().toUpperCase();
+        
+        let cust = '';
+        Object.keys(m).forEach(k => {
+            let lk = String(k).toLowerCase().trim();
+            if (lk.includes('customer') || lk === 'ลูกค้า' || lk === 'cust') {
+                cust = String(m[k]).trim();
+            }
+        });
+        if (!cust && vals.length > 3) cust = String(vals[3] || '').trim();
+        if (!cust || cust === 'undefined') cust = 'OTHERS';
 
-    // วาดกราฟวงกลม
-    if (window.myStockPieChart instanceof Chart) {
-        window.myStockPieChart.destroy();
+        if (pNo && !/\s\d+\/\d+$/.test(pNo)) {
+            partToCustomerMap[pNo] = cust.toUpperCase();
+        }
+    });
+
+    const customerStats = {};
+    defaultCustomers.forEach(c => {
+        customerStats[c] = { deliveryQty: 0, ngQgateQty: 0 };
+    });
+
+    // รวบรวมยอด Delivery
+    deliveryData.forEach(d => {
+        let pNo = String(d.partNo || d['Part No.'] || d['part_no'] || '').trim().toUpperCase();
+        let cust = (partToCustomerMap[pNo] || 'OTHERS').toUpperCase();
+        let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || 0));
+
+        if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0, ngQgateQty: 0 };
+        customerStats[cust].deliveryQty += (isNaN(qty) ? 0 : qty);
+    });
+
+    // รวบรวมยอด NG จาก Q-Gate
+    qgateData.forEach(q => {
+        let pNo = String(q.partNo || q['Part No.'] || q['part_no'] || '').trim().toUpperCase();
+        let cust = (partToCustomerMap[pNo] || 'OTHERS').toUpperCase();
+        let ng = Number(q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] || q['ng'] || 0));
+
+        if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0, ngQgateQty: 0 };
+        customerStats[cust].ngQgateQty += (isNaN(ng) ? 0 : ng);
+    });
+
+    // เรนเดอร์ลงตาราง
+    const tableBody = document.getElementById('customerPpmTableBody');
+    if (tableBody) {
+        tableBody.innerHTML = '';
+
+        Object.keys(customerStats).forEach(cust => {
+            let stat = customerStats[cust];
+            let deliveryQty = stat.deliveryQty;
+            let ngQgateQty = stat.ngQgateQty;
+            
+            // ดึงยอด NG หลุดหาลูกค้าที่คีย์ไว้
+            let claimNgQty = parseInt(localStorage.getItem(`customer_claim_ng_${cust}`)) || 0;
+            let totalNg = ngQgateQty + claimNgQty;
+
+            // คำนวณ PPM รวม
+            let ppm = deliveryQty > 0 ? (totalNg / deliveryQty) * 1000000 : 0;
+            let targetPpm = customerTargets[cust] !== undefined ? customerTargets[cust] : 1.5;
+            let isPass = ppm <= targetPpm;
+
+            let statusBadge = isPass 
+                ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> ผ่าน</span>`
+                : `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> ตกเกณฑ์</span>`;
+
+            let disabledAttr = isCustomerClaimUnlocked ? '' : 'disabled';
+            let inputBgClass = isCustomerClaimUnlocked ? 'bg-warning text-dark fw-bold' : 'bg-secondary text-white';
+
+            tableBody.innerHTML += `
+                <tr>
+                    <td class="text-start fw-bold text-warning">${cust}</td>
+                    <td>${deliveryQty.toLocaleString()}</td>
+                    <td class="text-info">${targetPpm}</td>
+                    <td class="text-danger">${ngQgateQty.toLocaleString()}</td>
+                    <td>
+                        <input type="number" 
+                               class="form-control form-control-sm text-center p-0 ${inputBgClass}" 
+                               style="font-size: 11px; height: 24px;" 
+                               value="${claimNgQty}" 
+                               min="0" 
+                               ${disabledAttr} 
+                               onchange="updateCustomerClaimData('${cust}', this.value)">
+                    </td>
+                    <td class="fw-bold ${isPass ? 'text-success' : 'text-danger'}">${ppm.toFixed(2)}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // วาดกราฟแท่ง
+    const labels = [];
+    const ppmValues = [];
+    const bgColors = [];
+
+    Object.keys(customerStats).forEach(cust => {
+        let stat = customerStats[cust];
+        let claimNgQty = parseInt(localStorage.getItem(`customer_claim_ng_${cust}`)) || 0;
+        let totalNg = stat.ngQgateQty + claimNgQty;
+
+        let ppm = stat.deliveryQty > 0 ? (totalNg / stat.deliveryQty) * 1000000 : 0;
+        let targetPpm = customerTargets[cust] !== undefined ? customerTargets[cust] : 1.5;
+        
+        labels.push(cust);
+        ppmValues.push(Number(ppm.toFixed(2)));
+        bgColors.push(ppm <= targetPpm ? '#10b981' : '#ef4444');
+    });
+
+    if (window.customerPpmChartInstance instanceof Chart) {
+        window.customerPpmChartInstance.destroy();
     }
 
     let ctx = canvasElement.getContext('2d');
-    window.myStockPieChart = new Chart(ctx, {
-        type: 'pie',
+    window.customerPpmChartInstance = new Chart(ctx, {
+        type: 'bar',
         data: {
-            labels: ['Stock 0 ชิ้น', 'มี Stock มากกว่า 0 ชิ้น'],
+            labels: labels,
             datasets: [{
-                data: [zeroCount, availableCount],
-                backgroundColor: ['#ef4444', '#10b981'],
-                borderWidth: 1
+                label: 'Defect PPM',
+                data: ppmValues,
+                backgroundColor: bgColors,
+                borderRadius: 4
             }]
         },
         options: {
@@ -5242,54 +5400,53 @@ function renderStockZeroPieChart() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#ffffff', font: { size: 12 } }
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: '#ffffff' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                },
+                x: {
+                    ticks: { color: '#ffffff' },
+                    grid: { display: false }
                 }
             }
         }
     });
 }
-// เรียกทำงานเมื่อโหลดหน้าเสร็จ และกดคลิกเปลี่ยนแท็บ
-setTimeout(renderStockZeroPieChart, 2500);
-document.addEventListener('click', function(e) {
-    setTimeout(renderStockZeroPieChart, 300);
-});
-        
-// ==========================================================
-// ฟังก์ชันบังคับเปิด-ปิดกล่องกราฟเฉพาะหน้า Dashboard
-// ==========================================================
+
+// 📌 ฟังก์ชันบังคับเปิด-ปิดกล่องเฉพาะหน้า Dashboard
 function updateDashboardVisibility() {
-    let box = document.getElementById('stockSummaryBox');
+    let box = document.getElementById('customerSummaryBox');
     if (!box) return;
 
-    // เช็คจากแท็บหลักหน้า Dashboard ว่ามีคลาส active หรือกำลังแสดงผลอยู่ไหม
     let dashTab = document.getElementById('tab-dash');
-    
-    if (dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'))) {
-        box.style.display = 'flex'; // แสดงเฉพาะหน้า Dashboard
-        if (typeof renderStockZeroPieChart === 'function') {
-            // เช็คว่าถ้ายังไม่ได้กำลังเรนเดอร์ ให้สั่งทำงานและล็อกไว้ 1 วินาที
-            if (!window._isRenderingStock) {
-                window._isRenderingStock = true;
-                renderStockZeroPieChart(); // สั่งวาดกราฟ
+    let isDashboardActive = dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'));
+
+    if (isDashboardActive) {
+        box.style.display = 'flex';
+        if (typeof renderCustomerDefectPPM === 'function') {
+            if (!window._isRenderingCustomerPpm) {
+                window._isRenderingCustomerPpm = true;
+                renderCustomerDefectPPM();
                 setTimeout(() => {
-                    window._isRenderingStock = false;
+                    window._isRenderingCustomerPpm = false;
                 }, 1000);
             }
         }
     } else {
-        box.style.display = 'none'; // ซ่อนทันทีในหน้าอื่นๆ ทั้งหมด
+        box.style.display = 'none';
     }
 }
 
-// สั่งทำงานทุกครั้งที่มีการคลิกเปลี่ยนแท็บเมนู
 document.addEventListener('click', function(e) {
     setTimeout(updateDashboardVisibility, 100);
 });
 
-// ตรวจสอบสถานะทุกๆ 0.5 วินาที เพื่อความชัวร์ไม่ให้หลุดไปโผล่หน้าอื่น
 setInterval(updateDashboardVisibility, 500);
+setTimeout(renderCustomerDefectPPM, 2000);
 
 // ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
 document.addEventListener('change', function(e) {
