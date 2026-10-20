@@ -5205,10 +5205,22 @@ function renderCustomerDefectPPM() {
     // 1. สร้าง Map สำหรับจับคู่ Part No. -> Customer
     const partToCustomerMap = {};
     masterDb.forEach(m => {
-        let pNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim().toUpperCase();
-        let cust = String(m['Customer'] || m.customer || m['CUSTOMER'] || m['Customer Name'] || 'OTHERS').trim();
+        let vals = Object.values(m);
+        let pNo = String(m['Part No.'] || m.partNo || m.PARTNO || vals[1] || '').trim().toUpperCase();
+        
+        // ค้นหาชื่อลูกค้าจากคอลัมน์ต่างๆ
+        let cust = '';
+        Object.keys(m).forEach(k => {
+            let lk = String(k).toLowerCase().trim();
+            if (lk.includes('customer') || lk === 'ลูกค้า' || lk === 'cust') {
+                cust = String(m[k]).trim();
+            }
+        });
+        if (!cust && vals.length > 3) cust = String(vals[3] || '').trim(); // สำรองเผื่ออ่านตามตำแหน่ง index
+        if (!cust || cust === 'undefined') cust = 'OTHERS';
+
         if (pNo && !/\s\d+\/\d+$/.test(pNo)) {
-            partToCustomerMap[pNo] = cust;
+            partToCustomerMap[pNo] = cust.toUpperCase();
         }
     });
 
@@ -5217,9 +5229,9 @@ function renderCustomerDefectPPM() {
 
     // รวมยอด Delivery
     deliveryData.forEach(d => {
-        let pNo = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
+        let pNo = String(d.partNo || d['Part No.'] || d['part_no'] || '').trim().toUpperCase();
         let cust = partToCustomerMap[pNo] || 'OTHERS';
-        let qty = Number(d.qty || d['Qty'] || d['Delivery Qty'] || 0);
+        let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || 0));
 
         if (!customerStats[cust]) {
             customerStats[cust] = { deliveryQty: 0, ngQty: 0 };
@@ -5229,9 +5241,9 @@ function renderCustomerDefectPPM() {
 
     // รวมยอด NG Qty จาก Q-Gate
     qgateData.forEach(q => {
-        let pNo = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
+        let pNo = String(q.partNo || q['Part No.'] || q['part_no'] || '').trim().toUpperCase();
         let cust = partToCustomerMap[pNo] || 'OTHERS';
-        let ng = Number(q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] || 0));
+        let ng = Number(q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] || q['ng'] || 0));
 
         if (!customerStats[cust]) {
             customerStats[cust] = { deliveryQty: 0, ngQty: 0 };
@@ -5244,28 +5256,33 @@ function renderCustomerDefectPPM() {
     if (tableBody) {
         tableBody.innerHTML = '';
 
-        Object.keys(customerStats).forEach(cust => {
-            let stat = customerStats[cust];
-            let deliveryQty = stat.deliveryQty;
-            let ngQty = stat.ngQty;
-            
-            let ppm = deliveryQty > 0 ? Math.round((ngQty / deliveryQty) * 1000000) : 0;
-            let isPass = ppm <= 250; // Target มาตรฐานเทียบกับ 250 PPM
+        const customerKeys = Object.keys(customerStats);
+        if (customerKeys.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีข้อมูลการส่งมอบ (Delivery) หรือของเสีย</td></tr>`;
+        } else {
+            customerKeys.forEach(cust => {
+                let stat = customerStats[cust];
+                let deliveryQty = stat.deliveryQty;
+                let ngQty = stat.ngQty;
+                
+                let ppm = deliveryQty > 0 ? Math.round((ngQty / deliveryQty) * 1000000) : 0;
+                let isPass = ppm <= 250;
 
-            let statusBadge = isPass 
-                ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> ผ่าน</span>`
-                : `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> ตกเกณฑ์</span>`;
+                let statusBadge = isPass 
+                    ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> ผ่าน</span>`
+                    : `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> ตกเกณฑ์</span>`;
 
-            tableBody.innerHTML += `
-                <tr>
-                    <td class="text-start fw-bold text-warning">${cust}</td>
-                    <td>${deliveryQty.toLocaleString()}</td>
-                    <td class="text-danger fw-bold">${ngQty.toLocaleString()}</td>
-                    <td class="fw-bold ${isPass ? 'text-success' : 'text-danger'}">${ppm.toLocaleString()}</td>
-                    <td>${statusBadge}</td>
-                </tr>
-            `;
-        });
+                tableBody.innerHTML += `
+                    <tr>
+                        <td class="text-start fw-bold text-warning">${cust}</td>
+                        <td>${deliveryQty.toLocaleString()}</td>
+                        <td class="text-danger fw-bold">${ngQty.toLocaleString()}</td>
+                        <td class="fw-bold ${isPass ? 'text-success' : 'text-danger'}">${ppm.toLocaleString()}</td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            });
+        }
     }
 
     // 4. เตรียมข้อมูลสำหรับวาดกราฟแท่ง Chart.js
@@ -5291,11 +5308,11 @@ function renderCustomerDefectPPM() {
     window.customerPpmChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: labels.length > 0 ? labels : ['ไม่มีข้อมูล'],
             datasets: [{
                 label: 'Defect PPM',
-                data: ppmValues,
-                backgroundColor: bgColors,
+                data: ppmValues.length > 0 ? ppmValues : [0],
+                backgroundColor: bgColors.length > 0 ? bgColors : ['#10b981'],
                 borderRadius: 4
             }]
         },
@@ -5322,43 +5339,40 @@ function renderCustomerDefectPPM() {
 }
 
 // เรียกทำงานเมื่อโหลดหน้าเสร็จ และกดคลิกเปลี่ยนแท็บ
-setTimeout(renderCustomerDefectPPM, 2500);
+setTimeout(renderCustomerDefectPPM, 2000);
 document.addEventListener('click', function(e) {
     setTimeout(renderCustomerDefectPPM, 300);
 });
 
 // ==========================================================
-// 📌 ฟังก์ชันบังคับเปิด-ปิดกล่องกราฟเฉพาะหน้า Dashboard
+// 📌 ฟังก์ชันบังคับเปิด-ปิดกล่องเฉพาะหน้า Dashboard
 // ==========================================================
 function updateDashboardVisibility() {
     let box = document.getElementById('customerSummaryBox') || document.getElementById('stockSummaryBox');
     if (!box) return;
 
-    // เช็คจากแท็บหลักหน้า Dashboard ว่ามีคลาส active หรือกำลังแสดงผลอยู่ไหม
     let dashTab = document.getElementById('tab-dash');
     
     if (dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'))) {
-        box.style.display = 'flex'; // แสดงเฉพาะหน้า Dashboard
+        box.style.display = 'flex';
         if (typeof renderCustomerDefectPPM === 'function') {
             if (!window._isRenderingCustomerPpm) {
                 window._isRenderingCustomerPpm = true;
-                renderCustomerDefectPPM(); // สั่งเรนเดอร์กราฟและตารางลูกค้า
+                renderCustomerDefectPPM();
                 setTimeout(() => {
                     window._isRenderingCustomerPpm = false;
                 }, 1000);
             }
         }
     } else {
-        box.style.display = 'none'; // ซ่อนทันทีในหน้าอื่นๆ ทั้งหมด
+        box.style.display = 'none';
     }
 }
 
-// สั่งทำงานทุกครั้งที่มีการคลิกเปลี่ยนแท็บเมนู
 document.addEventListener('click', function(e) {
     setTimeout(updateDashboardVisibility, 100);
 });
 
-// ตรวจสอบสถานะทุกๆ 0.5 วินาที เพื่อความชัวร์ไม่ให้หลุดไปโผล่หน้าอื่น
 setInterval(updateDashboardVisibility, 500);
 // ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
 document.addEventListener('change', function(e) {
