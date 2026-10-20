@@ -194,31 +194,23 @@
         return 'M/C';
     }
 
-    // ฟังก์ชันดึงค่า CT จาก Master Parts คอลัมน์ Q หรือชื่อฟิลด์ต่างๆ
-    function getCTFromMaster(rawPartNo, masterList) {
+    // 📌 ตารางฝังค่า CT ประจำ Part No. (คุณมิวสามารถเติมเพิ่มได้ที่นี่เลยครับ)
+    const embeddedCtTable = {
+        "55347-KK080": 2.89,
+        "55342-BZ060": 2.88,
+        "17141-0C080": 3.00,
+        "76344-4JG1A": 2.50,
+        // สามารถเติมพาร์ทอื่นๆ เพิ่มได้ เช่น "รหัสพาร์ท": ค่าCT
+    };
+
+    function getEmbeddedCT(rawPartNo) {
         if (!rawPartNo) return 0;
         let cleanPart = String(rawPartNo).split(' ')[0].trim().toUpperCase();
-
-        if (Array.isArray(masterList) && masterList.length > 0) {
-            let found = masterList.find(m => {
-                let pNo = String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase();
-                let pCode = String(m.partCode || m['Part Code'] || m['barcode'] || m['Barcode'] || '').trim().toUpperCase();
-                let vals = Object.values(m).map(v => String(v).trim().toUpperCase());
-                
-                return pNo === cleanPart || pCode === cleanPart || vals.includes(cleanPart);
-            });
-
-            if (found) {
-                let vals = Object.values(found);
-                // ดึงค่า CT จากคอลัมน์ Q (Index 16) หรือคีย์ ct, CT, Cycle Time
-                let rawCt = found.ct !== undefined ? found.ct : 
-                           (found['CT'] !== undefined ? found['CT'] : 
-                           (found['Cycle Time'] !== undefined ? found['Cycle Time'] : vals[16]));
-
-                let parsedCt = Number(String(rawCt).replace(/,/g, ''));
-                if (!isNaN(parsedCt) && parsedCt > 0) {
-                    return parsedCt;
-                }
+        
+        // เช็คจากตารางฝังโค้ดก่อน
+        for (let key in embeddedCtTable) {
+            if (cleanPart.includes(key.toUpperCase()) || key.toUpperCase().includes(cleanPart)) {
+                return embeddedCtTable[key];
             }
         }
         return 0;
@@ -254,13 +246,6 @@
 
             let ngRowsHtml = '';
 
-            // 📥 โหลด Master Parts Database
-            let masterList = [];
-            try {
-                masterList = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-            } catch (e) { masterList = []; }
-            if (masterList.length === 0 && typeof masterBarcodes !== 'undefined') masterList = masterBarcodes;
-
             reportData.forEach((item, index) => {
                 let startTime = item.startTime || '-';
                 let endTime = item.endTime || '-';
@@ -271,10 +256,10 @@
                 let durationSeconds = netMinutes * 60;
 
                 let rawPartNo = item.partNo || '-';
-
-                // ⏱️ เรียกฟังก์ชันดึงค่า CT ตรงจาก Master Parts คอลัมน์ Q
-                let masterCt = getCTFromMaster(rawPartNo, masterList);
-                let ctSeconds = masterCt > 0 ? masterCt : (item.ct ? Number(item.ct) : 6);
+                
+                // ⏱️ ดึง CT จากตารางฝังโค้ด หรือจาก item.ct หรือค่าสำรอง 6
+                let embeddedCt = getEmbeddedCT(rawPartNo);
+                let ctSeconds = embeddedCt > 0 ? embeddedCt : (item.ct ? parseFloat(item.ct) : 6);
 
                 let targetQty = durationSeconds > 0 && ctSeconds > 0 ? Math.round(durationSeconds / ctSeconds) : 0;
 
@@ -290,7 +275,7 @@
 
                 let remark = (item.remark && item.remark !== '-') ? item.remark.trim() : '';
 
-                // --- 1. สรุปภาพรวมการผลิต (แสดงค่า CT จาก Master คอลัมน์ Q) ---
+                // --- 1. สรุปภาพรวมการผลิต (แสดงค่า CT) ---
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${index + 1}</td>
