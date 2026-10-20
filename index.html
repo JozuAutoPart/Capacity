@@ -5203,13 +5203,12 @@ function getActivePartsMap() {
     return activePartsSet;
 }
 // ==========================================================
-// 📌 ส่วน JavaScript: ควบคุมการคำนวณ วาดกราฟ 12 เดือน และจัดการข้อมูล
+// 📌 JavaScript แก้ไขปัญหาตัวเลขเด้งกลับเป็น 0 และหยุดการรีเซ็ตซ้ำซ้อน
 // ==========================================================
 
 let isCustomerClaimUnlocked = false;
 const CLAIM_SUPER_PASSWORD = "9999";
 
-// 📅 ดึงรหัสเดือนปัจจุบัน (รูปแบบ "YYYY-MM")
 function getCurrentMonthKey() {
     const now = new Date();
     const year = now.getFullYear();
@@ -5217,7 +5216,7 @@ function getCurrentMonthKey() {
     return `${year}-${month}`;
 }
 
-// 🔓 ปุ่มปลดล็อกระบบกรอกข้อมูล
+// 🔓 ปลดล็อกระบบกรอกข้อมูล
 function requestUnlockCustomerClaim() {
     const btnIcon = document.getElementById('unlockClaimIcon');
     const btnText = document.getElementById('unlockClaimText');
@@ -5243,7 +5242,7 @@ function requestUnlockCustomerClaim() {
     }
 }
 
-// 💾 บันทึกยอด NG หลุดหาลูกค้าแยกตามเดือน
+// 💾 บันทึกยอด NG หลุดหาลูกค้า
 function updateCustomerClaimData(customerName, value) {
     let ngVal = parseInt(value) || 0;
     if (ngVal < 0) ngVal = 0;
@@ -5253,20 +5252,19 @@ function updateCustomerClaimData(customerName, value) {
     renderCustomerDefectPPM();
 }
 
-// 📌 ฟังก์ชันคำนวณ PPM เรนเดอร์ตาราง และวาดกราฟสะสม 12 เดือน
+// 📌 ฟังก์ชันหลักเรนเดอร์ข้อมูล (ปับปรุงความเสถียร ไม่ให้ข้อมูลกระโดด)
 function renderCustomerDefectPPM() {
     let canvasElement = document.getElementById('customerPpmChart');
     if (!canvasElement) return;
 
     let masterDb = window.masterPartsDatabase || window.masterParts || [];
-    let deliveryData = typeof deliveries !== 'undefined' ? deliveries : [];
+    let deliveryData = window.deliveries || (typeof deliveries !== 'undefined' ? deliveries : []);
 
-    const currentMonthKey = getCurrentMonthKey();
+    const currentMonthKey = getCurrentMonthKey(); // เช่น "2026-10"
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonthNum = now.getMonth() + 1;
 
-    // หัวตารางแสดงเดือนปัจจุบัน
     const titleElem = document.getElementById('customerPpmMonthTitle');
     if (titleElem) {
         titleElem.innerText = `(ประจำเดือน ${currentMonthNum}/${currentYear})`;
@@ -5283,7 +5281,7 @@ function renderCustomerDefectPPM() {
 
     const defaultCustomers = ['STEM-A', 'STEM-B', 'TMC', 'FTS', 'MSFT', 'OTHERS'];
 
-    // 1. Map Part No. -> Customer (จับคู่ชื่อลูกค้าแบบยืดหยุ่น)
+    // 1. Map Part No. -> Customer
     const partToCustomerMap = {};
     masterDb.forEach(m => {
         let vals = Object.values(m);
@@ -5311,17 +5309,16 @@ function renderCustomerDefectPPM() {
         }
     });
 
-    // 2. เรนเดอร์ข้อมูลในตาราง (เฉพาะเดือนปัจจุบัน)
+    // 2. คำนวณยอด Delivery เฉพาะเดือนปัจจุบัน (ป้องกันข้อมูลเป็น 0)
     const customerStats = {};
-    defaultCustomers.forEach(c => {
-        customerStats[c] = { deliveryQty: 0 };
-    });
+    defaultCustomers.forEach(c => { customerStats[c] = { deliveryQty: 0 }; });
 
     deliveryData.forEach(d => {
         let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || d['deliveryDate'] || '').trim();
         let isCurrentMonth = false;
 
         if (dateStr) {
+            // เช็คว่าตรงกับปีและเดือนปัจจุบันไหม
             if (dateStr.includes(`${currentYear}-${String(currentMonthNum).padStart(2, '0')}`) ||
                 dateStr.includes(`${String(currentMonthNum).padStart(2, '0')}/${currentYear}`) ||
                 dateStr.includes(`${currentYear}/${String(currentMonthNum).padStart(2, '0')}`)) {
@@ -5335,6 +5332,7 @@ function renderCustomerDefectPPM() {
                 }
             }
         } else {
+            // ถ้าไม่มีฟิลด์วันที่ ให้ถือว่าเป็นข้อมูลปัจจุบันเพื่อป้องกันยอดหาย
             isCurrentMonth = true;
         }
 
@@ -5348,6 +5346,7 @@ function renderCustomerDefectPPM() {
         }
     });
 
+    // เรนเดอร์ลงตาราง
     const tableBody = document.getElementById('customerPpmTableBody');
     if (tableBody) {
         tableBody.innerHTML = '';
@@ -5389,7 +5388,7 @@ function renderCustomerDefectPPM() {
         });
     }
 
-    // 3. คำนวณและวาดกราฟสะสม 12 เดือน (แยกตามเดือนอย่างแม่นยำ)
+    // 3. วาดกราฟสะสม 12 เดือน
     const monthlyDelivery = new Array(12).fill(0);
     const monthlyClaimNg = new Array(12).fill(0);
     const monthLabels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -5407,14 +5406,12 @@ function renderCustomerDefectPPM() {
                     break;
                 }
             }
-
             if (mIndex === -1) {
                 let dObj = new Date(dateStr);
                 if (!isNaN(dObj.getTime()) && dObj.getFullYear() === currentYear) {
                     mIndex = dObj.getMonth();
                 }
             }
-
             if (mIndex >= 0 && mIndex < 12) {
                 let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || d['ยอดส่งมอบ'] || 0));
                 monthlyDelivery[mIndex] += (isNaN(qty) ? 0 : qty);
@@ -5441,7 +5438,6 @@ function renderCustomerDefectPPM() {
         let ppm = delQty > 0 ? (ngQty / delQty) * 1000000 : 0;
         
         monthlyPpmValues.push(Number(ppm.toFixed(2)));
-
         if (ppm > 0) {
             bgColors.push('#ef4444');
             borderColors.push('#b91c1c');
@@ -5477,10 +5473,7 @@ function renderCustomerDefectPPM() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { 
-                    display: true,
-                    labels: { color: '#ffffff', font: { size: 11 } }
-                },
+                legend: { display: true, labels: { color: '#ffffff', font: { size: 11 } } },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
@@ -5510,7 +5503,7 @@ function renderCustomerDefectPPM() {
     });
 }
 
-// 📌 ควบคุมการเปิด-ปิดเฉพาะหน้า Dashboard
+// 📌 ควบคุมการแสดงผลเฉพาะเมื่อกดเลือกหน้า Dashboard (เอา setInterval ออก ป้องกันตารางกระพริบหรือข้อมูลดีดกลับ)
 function updateDashboardVisibility() {
     let box = document.getElementById('customerSummaryBox');
     if (!box) return;
@@ -5520,14 +5513,10 @@ function updateDashboardVisibility() {
 
     if (isDashboardActive) {
         box.style.display = 'flex';
-        if (typeof renderCustomerDefectPPM === 'function') {
-            if (!window._isRenderingCustomerPpm) {
-                window._isRenderingCustomerPpm = true;
-                renderCustomerDefectPPM();
-                setTimeout(() => {
-                    window._isRenderingCustomerPpm = false;
-                }, 1000);
-            }
+        if (!window._isRenderingCustomerPpm) {
+            window._isRenderingCustomerPpm = true;
+            renderCustomerDefectPPM();
+            setTimeout(() => { window._isRenderingCustomerPpm = false; }, 500);
         }
     } else {
         box.style.display = 'none';
@@ -5538,8 +5527,9 @@ document.addEventListener('click', function(e) {
     setTimeout(updateDashboardVisibility, 100);
 });
 
-setInterval(updateDashboardVisibility, 500);
-setTimeout(renderCustomerDefectPPM, 2000);
+// เรียกทำงานทันทีเมื่อโหลดหน้าเว็บเสร็จ
+setTimeout(renderCustomerDefectPPM, 1000);
+    
 // ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'bmImageInput') {
