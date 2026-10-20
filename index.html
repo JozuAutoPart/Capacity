@@ -5250,6 +5250,10 @@ function updateCustomerClaimData(customerName, value) {
     renderCustomerDefectPPM();
 }
 
+// ==========================================================
+// 📌 ฟังก์ชันแก้ไขการจัดกลุ่ม Delivery รายลูกค้า (แก้ปัญหายอดไปกองที่ OTHERS)
+// ==========================================================
+
 function renderCustomerDefectPPM() {
     let canvasElement = document.getElementById('customerPpmChart');
     if (!canvasElement) return;
@@ -5278,25 +5282,30 @@ function renderCustomerDefectPPM() {
 
     const defaultCustomers = ['STEM-A', 'STEM-B', 'TMC', 'FTS', 'MSFT', 'OTHERS'];
 
-    // 1. Map Part No. -> Customer
+    // 1. สร้าง Map จับคู่ Part No. -> Customer แบบครอบคลุมชื่อทุกรูปแบบ
     const partToCustomerMap = {};
     masterDb.forEach(m => {
-        let vals = Object.values(m);
-        let pNo = String(m['Part No.'] || m.partNo || m.PARTNO || vals[1] || '').trim().toUpperCase();
+        let pNo = String(m['Part No.'] || m.partNo || m.PARTNO || m.part_no || Object.values(m)[1] || '').trim().toUpperCase();
+        
+        // ค้นหาชื่อลูกค้าจากทุกฟิลด์ใน Master
         let cust = '';
         Object.keys(m).forEach(k => {
             let lk = String(k).toLowerCase().trim();
-            if (lk.includes('customer') || lk === 'ลูกค้า' || lk === 'cust') {
+            if (lk.includes('customer') || lk.includes('ลูกค้า') || lk === 'cust') {
                 cust = String(m[k]).trim();
             }
         });
-        if (!cust && vals.length > 3) cust = String(vals[3] || '').trim();
+        
+        if (!cust) {
+            cust = String(m['Customer'] || m['ลูกค้า'] || m.customer || m.Cust || '').trim();
+        }
+
         cust = cust.toUpperCase();
 
         let matchedCust = 'OTHERS';
         if (cust.includes('STEM-A') || cust.includes('STEM A')) matchedCust = 'STEM-A';
         else if (cust.includes('STEM-B') || cust.includes('STEM B')) matchedCust = 'STEM-B';
-        else if (cust.includes('STEM')) matchedCust = 'STEM-A';
+        else if (cust.includes('STEM')) matchedCust = 'STEM-A'; // Default STEM
         else if (cust.includes('TMC')) matchedCust = 'TMC';
         else if (cust.includes('FTS')) matchedCust = 'FTS';
         else if (cust.includes('MSFT')) matchedCust = 'MSFT';
@@ -5306,7 +5315,7 @@ function renderCustomerDefectPPM() {
         }
     });
 
-    // 2. เรนเดอร์ข้อมูลลงในตาราง
+    // 2. คำนวณยอด Delivery เฉพาะเดือนปัจจุบัน
     const customerStats = {};
     defaultCustomers.forEach(c => { customerStats[c] = { deliveryQty: 0 }; });
 
@@ -5332,15 +5341,31 @@ function renderCustomerDefectPPM() {
         }
 
         if (isCurrentMonth) {
-            let pNo = String(d.partNo || d['Part No.'] || d['part_no'] || '').trim().toUpperCase();
-            let cust = partToCustomerMap[pNo] || 'OTHERS';
-            let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || d['ยอดส่งมอบ'] || 0));
+            let pNo = String(d.partNo || d['Part No.'] || d['part_no'] || d.PartNo || '').trim().toUpperCase();
+            
+            // เช็คว่ามีระบุ Customer มาโดยตรงในข้อมูล Delivery หรือไม่
+            let directCust = String(d.customer || d['Customer'] || d['ลูกค้า'] || d.cust || '').trim().toUpperCase();
+            let cust = 'OTHERS';
+
+            if (directCust.includes('STEM-A') || directCust.includes('STEM A')) cust = 'STEM-A';
+            else if (directCust.includes('STEM-B') || directCust.includes('STEM B')) cust = 'STEM-B';
+            else if (directCust.includes('STEM')) cust = 'STEM-A';
+            else if (directCust.includes('TMC')) cust = 'TMC';
+            else if (directCust.includes('FTS')) cust = 'FTS';
+            else if (directCust.includes('MSFT')) cust = 'MSFT';
+            else {
+                // ถ้าใน Delivery ไม่มี ให้ดึงจาก Map Master
+                cust = partToCustomerMap[pNo] || 'OTHERS';
+            }
+
+            let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || d['ยอดส่งมอบ'] || d.deliveryQty || 0));
 
             if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0 };
             customerStats[cust].deliveryQty += (isNaN(qty) ? 0 : qty);
         }
     });
 
+    // 3. เรนเดอร์ลงตาราง
     const tableBody = document.getElementById('customerPpmTableBody');
     if (tableBody) {
         tableBody.innerHTML = '';
@@ -5382,7 +5407,7 @@ function renderCustomerDefectPPM() {
         });
     }
 
-    // 3. คำนวณและออกแบบกราฟผสม (Combo Chart: PPM + Delivery Qty) 12 เดือน
+    // 4. วาดกราฟสะสม 12 เดือน (Combo Chart)
     const monthlyDelivery = new Array(12).fill(0);
     const monthlyClaimNg = new Array(12).fill(0);
     const monthLabels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -5407,7 +5432,7 @@ function renderCustomerDefectPPM() {
                 }
             }
             if (mIndex >= 0 && mIndex < 12) {
-                let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || d['ยอดส่งมอบ'] || 0));
+                let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || d['ยอดส่งมอบ'] || d.deliveryQty || 0));
                 monthlyDelivery[mIndex] += (isNaN(qty) ? 0 : qty);
             }
         }
@@ -5434,10 +5459,10 @@ function renderCustomerDefectPPM() {
         monthlyPpmValues.push(Number(ppm.toFixed(2)));
 
         if (ppm > 0) {
-            bgColors.push('#ef4444');      // สีแดงเมื่อมี NG
+            bgColors.push('#ef4444');
             borderColors.push('#b91c1c');
         } else if (delQty > 0) {
-            bgColors.push('#10b981');      // สีเขียวสดเมื่อส่งมอบผ่านเกณฑ์ 0 PPM
+            bgColors.push('#10b981');
             borderColors.push('#059669');
         } else {
             bgColors.push('rgba(255, 255, 255, 0.1)');
@@ -5449,7 +5474,6 @@ function renderCustomerDefectPPM() {
         window.customerPpmChartInstance.destroy();
     }
 
-    // Custom Plugin เขียนวาดตัวเลขบนหัวแท่งกราฟให้อัตโนมัติ
     const drawDataLabelsPlugin = {
         id: 'drawDataLabelsPlugin',
         afterDatasetsDraw(chart) {
@@ -5465,7 +5489,6 @@ function renderCustomerDefectPPM() {
                             ctx.font = 'bold 10px sans-serif';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'bottom';
-                            // แสดงตัวเลขค่า PPM บนหัวแท่งกราฟ
                             ctx.fillText(`${val} PPM`, bar.x, bar.y - 2);
                             ctx.restore();
                         }
