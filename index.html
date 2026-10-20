@@ -5254,10 +5254,6 @@ function updateCustomerClaimData(customerName, value) {
 }
 
 // 📌 ฟังก์ชันคำนวณ PPM เรนเดอร์ตาราง และวาดกราฟสะสม 12 เดือน
-// ==========================================================
-// 📌 แก้ไขสูตรคำนวณ PPM กราฟสะสม 12 เดือน + ปรับแกน Y อัตโนมัติ
-// ==========================================================
-
 function renderCustomerDefectPPM() {
     let canvasElement = document.getElementById('customerPpmChart');
     if (!canvasElement) return;
@@ -5270,6 +5266,7 @@ function renderCustomerDefectPPM() {
     const currentYear = now.getFullYear();
     const currentMonthNum = now.getMonth() + 1;
 
+    // หัวตารางแสดงเดือนปัจจุบัน
     const titleElem = document.getElementById('customerPpmMonthTitle');
     if (titleElem) {
         titleElem.innerText = `(ประจำเดือน ${currentMonthNum}/${currentYear})`;
@@ -5286,7 +5283,7 @@ function renderCustomerDefectPPM() {
 
     const defaultCustomers = ['STEM-A', 'STEM-B', 'TMC', 'FTS', 'MSFT', 'OTHERS'];
 
-    // 1. Map Part No. -> Customer
+    // 1. Map Part No. -> Customer (จับคู่ชื่อลูกค้าแบบยืดหยุ่น)
     const partToCustomerMap = {};
     masterDb.forEach(m => {
         let vals = Object.values(m);
@@ -5314,9 +5311,11 @@ function renderCustomerDefectPPM() {
         }
     });
 
-    // 2. คำนวณตารางประจำเดือนปัจจุบัน
+    // 2. เรนเดอร์ข้อมูลในตาราง (เฉพาะเดือนปัจจุบัน)
     const customerStats = {};
-    defaultCustomers.forEach(c => { customerStats[c] = { deliveryQty: 0 }; });
+    defaultCustomers.forEach(c => {
+        customerStats[c] = { deliveryQty: 0 };
+    });
 
     deliveryData.forEach(d => {
         let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || d['deliveryDate'] || '').trim();
@@ -5390,7 +5389,7 @@ function renderCustomerDefectPPM() {
         });
     }
 
-    // 3. คำนวณข้อมูลกราฟ 12 เดือน (แยกตามเดือนอย่างแม่นยำ)
+    // 3. คำนวณและวาดกราฟสะสม 12 เดือน (แยกตามเดือนอย่างแม่นยำ)
     const monthlyDelivery = new Array(12).fill(0);
     const monthlyClaimNg = new Array(12).fill(0);
     const monthLabels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -5399,7 +5398,6 @@ function renderCustomerDefectPPM() {
         let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || d['deliveryDate'] || '').trim();
         if (dateStr) {
             let mIndex = -1;
-            // เช็คเดือนจาก string ตรงๆ
             for (let m = 1; m <= 12; m++) {
                 let mTwoDigit = String(m).padStart(2, '0');
                 if (dateStr.includes(`${currentYear}-${mTwoDigit}`) || 
@@ -5410,7 +5408,6 @@ function renderCustomerDefectPPM() {
                 }
             }
 
-            // ถ้าไม่เจอ string ให้ parse ผ่าน Date object
             if (mIndex === -1) {
                 let dObj = new Date(dateStr);
                 if (!isNaN(dObj.getTime()) && dObj.getFullYear() === currentYear) {
@@ -5500,7 +5497,6 @@ function renderCustomerDefectPPM() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    // ไม่ล็อก max เพื่อให้แกน Y ขยายตามค่า PPM จริงอัตโนมัติ
                     ticks: { color: '#ffffff' },
                     grid: { color: 'rgba(255, 255, 255, 0.1)' },
                     title: { display: true, text: 'PPM', color: '#ffffff' }
