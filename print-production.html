@@ -194,6 +194,36 @@
         return 'M/C';
     }
 
+    // ฟังก์ชันดึงค่า CT จาก Master Parts คอลัมน์ Q หรือชื่อฟิลด์ต่างๆ
+    function getCTFromMaster(rawPartNo, masterList) {
+        if (!rawPartNo) return 0;
+        let cleanPart = String(rawPartNo).split(' ')[0].trim().toUpperCase();
+
+        if (Array.isArray(masterList) && masterList.length > 0) {
+            let found = masterList.find(m => {
+                let pNo = String(m.partNo || m['Part No.'] || m['partNo'] || '').trim().toUpperCase();
+                let pCode = String(m.partCode || m['Part Code'] || m['barcode'] || m['Barcode'] || '').trim().toUpperCase();
+                let vals = Object.values(m).map(v => String(v).trim().toUpperCase());
+                
+                return pNo === cleanPart || pCode === cleanPart || vals.includes(cleanPart);
+            });
+
+            if (found) {
+                let vals = Object.values(found);
+                // ดึงค่า CT จากคอลัมน์ Q (Index 16) หรือคีย์ ct, CT, Cycle Time
+                let rawCt = found.ct !== undefined ? found.ct : 
+                           (found['CT'] !== undefined ? found['CT'] : 
+                           (found['Cycle Time'] !== undefined ? found['Cycle Time'] : vals[16]));
+
+                let parsedCt = Number(String(rawCt).replace(/,/g, ''));
+                if (!isNaN(parsedCt) && parsedCt > 0) {
+                    return parsedCt;
+                }
+            }
+        }
+        return 0;
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         let reportData = [];
         try {
@@ -224,7 +254,7 @@
 
             let ngRowsHtml = '';
 
-            // 📥 โหลด Master Parts Database สำหรับดึงค่า CT จากคอลัมน์ Q
+            // 📥 โหลด Master Parts Database
             let masterList = [];
             try {
                 masterList = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
@@ -241,26 +271,10 @@
                 let durationSeconds = netMinutes * 60;
 
                 let rawPartNo = item.partNo || '-';
-                let cleanPart = rawPartNo.split(' ')[0].trim().toUpperCase();
 
-                // ⏱️ ดึงค่า CT จาก Master Parts คอลัมน์ Q (Index 16) หรือ item.ct
-                let ctSeconds = item.ct ? Number(item.ct) : 0;
-                if (!ctSeconds || ctSeconds === 6) {
-                    if (Array.isArray(masterList) && masterList.length > 0) {
-                        let found = masterList.find(m => {
-                            let p = String(m.partNo || m['Part No.'] || '').trim().toUpperCase();
-                            let c = String(m.partCode || m['Part Code'] || m['barcode'] || '').trim().toUpperCase();
-                            return p === cleanPart || c === cleanPart;
-                        });
-                        if (found) {
-                            let vals = Object.values(found);
-                            let rawCt = found.ct !== undefined ? found.ct : (found['CT'] !== undefined ? found['CT'] : (found['Cycle Time'] !== undefined ? found['Cycle Time'] : vals[16]));
-                            let parsedCt = Number(String(rawCt).replace(/,/g, ''));
-                            if (!isNaN(parsedCt) && parsedCt > 0) ctSeconds = parsedCt;
-                        }
-                    }
-                }
-                if (!ctSeconds || ctSeconds <= 0) ctSeconds = 6; // ค่าสำรองถ้าไม่พบ
+                // ⏱️ เรียกฟังก์ชันดึงค่า CT ตรงจาก Master Parts คอลัมน์ Q
+                let masterCt = getCTFromMaster(rawPartNo, masterList);
+                let ctSeconds = masterCt > 0 ? masterCt : (item.ct ? Number(item.ct) : 6);
 
                 let targetQty = durationSeconds > 0 && ctSeconds > 0 ? Math.round(durationSeconds / ctSeconds) : 0;
 
@@ -276,7 +290,7 @@
 
                 let remark = (item.remark && item.remark !== '-') ? item.remark.trim() : '';
 
-                // --- 1. สรุปภาพรวมการผลิต (เพิ่มคอลัมน์ CT) ---
+                // --- 1. สรุปภาพรวมการผลิต (แสดงค่า CT จาก Master คอลัมน์ Q) ---
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${index + 1}</td>
