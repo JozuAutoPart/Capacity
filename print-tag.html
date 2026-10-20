@@ -437,7 +437,7 @@
             };
         }
 
-        function generateTags() {
+  function generateTags() {
             const data = getUrlParams();
             const stdPack = data.qty;
             const totalOrder = data.totalOrder;
@@ -449,6 +449,14 @@
             container.innerHTML = '';
             let currentContainer = null;
 
+            // กำหนดชื่อไฟล์รูปภาพโลโก้ของแต่ละลูกค้า (สามารถเปลี่ยน Path ให้ตรงกับที่เก็บไฟล์จริงในเครื่องหรือ GitHub ของคุณได้)
+            const logoImages = {
+                "STEM": "stem-logo.png.jpg",   
+                "FTS": "fts-logo.png.jpg",     
+                "TMC": "tmc-logo.png.jpg",     
+                "MSFT": "msft-logo.png.jpg",
+            };
+
             for (let i = 1; i <= totalTags; i++) {
                 if ((i - 1) % 6 === 0) {
                     currentContainer = document.createElement('div');
@@ -458,7 +466,7 @@
 
                 const currentQty = (i === totalTags && totalOrder % stdPack !== 0) ? (totalOrder % stdPack) : stdPack;
 
-                // กำหนดเงื่อนไขแปลงชื่อบริษัท/ลูกค้าตาม Code อัตโนมัติ
+                // เช็ค Code เพื่อเลือกกลุ่มลูกค้า
                 let tagCode = data.code ? String(data.code) : "STEM";
                 let companyName = "STEM"; 
                 if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
@@ -472,6 +480,9 @@
                 } else {
                     companyName = "STEM";
                 }
+
+                // ดึงไฟล์รูปตามชื่อบริษัท (ถ้าไม่พบ จะใช้รูป STEM เป็นค่าเริ่มต้น)
+                let logoSrc = logoImages[companyName] || "Jozu.png";
 
                 const tagCard = document.createElement('div');
                 tagCard.className = 'tag-card';
@@ -522,9 +533,11 @@
                             <td style="font-size: 9px;">by.</td>
                         </tr>
 
-                        <!-- แถวที่ 4: โซนบาร์โค้ด -->
+                        <!-- แถวที่ 4: โซนบาร์โค้ด พร้อมแสดงรูปภาพโลโก้ -->
                         <tr style="height: 26px;">
-                            <td class="logo-stem">${companyName}</td>
+                            <td class="logo-stem" style="text-align: center; vertical-align: middle; padding: 0;">
+                                <img src="${logoSrc}" alt="${companyName}" style="max-height: 22px; max-width: 55px; object-fit: contain; display: block; margin: 0 auto;">
+                            </td>
                             <td colspan="3" class="barcode-container">
                                 <svg id="barcode_${i}"></svg>
                             </td>
@@ -534,7 +547,6 @@
 
                 currentContainer.appendChild(tagCard);
 
-                // สั่งรันบาร์โค้ดแบบปลอดภัย
                 setTimeout(((index, partNoVal) => {
                     return () => {
                         const svgElement = document.getElementById(`barcode_${index}`);
