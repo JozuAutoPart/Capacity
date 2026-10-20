@@ -215,41 +215,50 @@
             </div>
         </div>
     </div>
-         <!-- ========================================================== -->
-<!-- 📌 ส่วน HTML ของกล่อง Defect PPM By Customer & สรุปผลงานคุณภาพรายลูกค้า -->
+<!-- ========================================================== -->
+<!-- 📌 ส่วน HTML ของกล่อง Defect PPM By Customer & Editable Table -->
 <!-- ========================================================== -->
 <div id="customerSummaryBox" class="row mt-3" style="display: none;">
     <!-- ฝั่งซ้าย: กราฟแท่งเปรียบเทียบ PPM แยกตามลูกค้า -->
-    <div class="col-md-6 mb-3">
+    <div class="col-md-5 mb-3">
         <div class="card bg-dark text-white p-3 border-secondary shadow h-100">
             <h6 class="text-warning fw-bold mb-3">
                 <i class="fas fa-chart-bar me-2"></i> อัตราของเสียแยกตามลูกค้า (Defect PPM By Customer)
             </h6>
-            <div style="height: 220px; position: relative;">
+            <div style="height: 250px; position: relative;">
                 <canvas id="customerPpmChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- ฝั่งขวา: ตารางสรุปรายชื่อลูกค้า ยอดส่งมอบ ของเสีย และ PPM -->
-    <div class="col-md-6 mb-3">
+    <!-- ฝั่งขวา: ตารางสรุปผลงาน + ตารางกรอกยอดของเสียที่หลุดไปหาลูกค้า (Customer Claim) -->
+    <div class="col-md-7 mb-3">
         <div class="card bg-dark text-white p-3 border-secondary shadow h-100">
-            <h6 class="text-info fw-bold mb-2">
-                <i class="fas fa-list-alt me-2"></i> สรุปผลงานคุณภาพรายลูกค้า (Target &le; 250 PPM)
-            </h6>
-            <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
-                <table class="table table-dark table-hover table-sm text-center align-middle mb-0" style="font-size: 13px;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="text-info fw-bold m-0">
+                    <i class="fas fa-list-alt me-2"></i> สรุปผลงานคุณภาพรายลูกค้า (Target แยกตามเจ้า)
+                </h6>
+                <!-- ปุ่มปลดล็อกระบบกรอกข้อมูล (ใช้รหัสผ่าน 9999) -->
+                <button id="unlockClaimBtn" class="btn btn-outline-warning btn-sm" onclick="requestUnlockCustomerClaim()">
+                    <i id="unlockClaimIcon" class="fas fa-lock me-1"></i> <span id="unlockClaimText">ปลดล็อกบันทึก NG</span>
+                </button>
+            </div>
+
+            <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+                <table class="table table-dark table-hover table-sm text-center align-middle mb-0" style="font-size: 12px;">
                     <thead class="table-secondary sticky-top">
                         <tr>
                             <th class="text-start">Customer</th>
                             <th>ส่งมอบ (Delivery)</th>
-                            <th>ของเสีย (NG)</th>
-                            <th>PPM</th>
+                            <th>Target</th>
+                            <th>NG Q-Gate</th>
+                            <th class="text-warning" style="width: 110px;">NG หลุดหาลูกค้า</th>
+                            <th>PPM รวม</th>
                             <th>สถานะ</th>
                         </tr>
                     </thead>
                     <tbody id="customerPpmTableBody">
-                        <!-- รายการข้อมูลลูกค้าจะถูกเรนเดอร์มาใส่ตรงนี้อัตโนมัติ -->
+                        <!-- รายการลูกค้าและช่องกรอกข้อมูลจะถูกเรนเดอร์มาวางตรงนี้ -->
                     </tbody>
                 </table>
             </div>
@@ -5194,9 +5203,50 @@ function getActivePartsMap() {
 
     return activePartsSet;
 }
-// ==========================================================
-// 📌 ฟังก์ชันคำนวณและแสดงผล Defect PPM แยกตามลูกค้า (Customer Defect PPM)
-// ==========================================================
+<!-- ========================================================== -->
+<!-- 📌 ส่วน JavaScript จัดการระบบและตาราง Editable -->
+<!-- ========================================================== -->
+<script>
+// ตัวแปรสถานะปลดล็อกช่องกรอก NG หลุดหาลูกค้า
+let isCustomerClaimUnlocked = false;
+const CLAIM_SUPER_PASSWORD = "9999"; // รหัสผ่านหัวหน้างานสำหรับปลดล็อกกรอกข้อมูล
+
+// 🔓 ฟังก์ชันขอรหัสผ่านเพื่อปลดล็อกช่องกรอกตัวเลข
+function requestUnlockCustomerClaim() {
+    const btnIcon = document.getElementById('unlockClaimIcon');
+    const btnText = document.getElementById('unlockClaimText');
+
+    if (isCustomerClaimUnlocked) {
+        isCustomerClaimUnlocked = false;
+        if (btnIcon) btnIcon.className = "fas fa-lock me-1";
+        if (btnText) btnText.innerText = "ปลดล็อกบันทึก NG";
+        alert("🔒 ล็อกระบบบันทึกยอด NG หลุดหาลูกค้าเรียบร้อยแล้ว");
+        renderCustomerDefectPPM();
+        return;
+    }
+
+    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (Supervisor Password) เพื่อแก้ไขยอด NG หลุดหาลูกค้า:");
+    if (inputPass === CLAIM_SUPER_PASSWORD) {
+        isCustomerClaimUnlocked = true;
+        if (btnIcon) btnIcon.className = "fas fa-lock-open me-1 text-warning";
+        if (btnText) btnText.innerText = "ล็อกระบบ";
+        alert("🔓 ปลดล็อกสำเร็จ! ท่านสามารถแก้ไขยอด NG หลุดหาลูกค้าในตารางได้แล้ว");
+        renderCustomerDefectPPM();
+    } else if (inputPass !== null) {
+        alert("❌ รหัสผ่านไม่ถูกต้อง! ไม่สามารถปลดล็อกได้");
+    }
+}
+
+// 💾 ฟังก์ชันบันทึกค่ายอด NG หลุดหาลูกค้าลงใน localStorage
+function updateCustomerClaimData(customerName, value) {
+    let ngVal = parseInt(value) || 0;
+    if (ngVal < 0) ngVal = 0;
+    
+    localStorage.setItem(`customer_claim_ng_${customerName.toUpperCase()}`, ngVal);
+    renderCustomerDefectPPM(); // อัปเดตกราฟและตารางทันที
+}
+
+// 📌 ฟังก์ชันคำนวณและเรนเดอร์ Defect PPM แยกตามลูกค้า
 function renderCustomerDefectPPM() {
     let canvasElement = document.getElementById('customerPpmChart');
     if (!canvasElement) return;
@@ -5205,13 +5255,25 @@ function renderCustomerDefectPPM() {
     let qgateData = typeof qgate !== 'undefined' ? qgate : [];
     let deliveryData = typeof deliveries !== 'undefined' ? deliveries : [];
 
-    // 1. สร้าง Map สำหรับจับคู่ Part No. -> Customer
+    // 🎯 Target PPM แยกตามลูกค้า
+    const customerTargets = {
+        'STEM-A': 0.03,
+        'STEM-B': 0.03,
+        'TMC': 0.57,
+        'FTS': 0.0,
+        'MSFT': 0.08,
+        'OTHERS': 1.5
+    };
+
+    // กำหนดรายชื่อลูกค้าหลักให้แสดงผลครบถ้วนเสมอ
+    const defaultCustomers = ['STEM-A', 'STEM-B', 'TMC', 'FTS', 'MSFT', 'OTHERS'];
+
+    // Map Part No. -> Customer
     const partToCustomerMap = {};
     masterDb.forEach(m => {
         let vals = Object.values(m);
         let pNo = String(m['Part No.'] || m.partNo || m.PARTNO || vals[1] || '').trim().toUpperCase();
         
-        // ค้นหาชื่อลูกค้าจากคอลัมน์ต่างๆ
         let cust = '';
         Object.keys(m).forEach(k => {
             let lk = String(k).toLowerCase().trim();
@@ -5219,7 +5281,7 @@ function renderCustomerDefectPPM() {
                 cust = String(m[k]).trim();
             }
         });
-        if (!cust && vals.length > 3) cust = String(vals[3] || '').trim(); // สำรองเผื่ออ่านตามตำแหน่ง index
+        if (!cust && vals.length > 3) cust = String(vals[3] || '').trim();
         if (!cust || cust === 'undefined') cust = 'OTHERS';
 
         if (pNo && !/\s\d+\/\d+$/.test(pNo)) {
@@ -5227,82 +5289,97 @@ function renderCustomerDefectPPM() {
         }
     });
 
-    // 2. รวบรวมยอด Delivery และ NG Qty แยกตาม Customer
     const customerStats = {};
+    defaultCustomers.forEach(c => {
+        customerStats[c] = { deliveryQty: 0, ngQgateQty: 0 };
+    });
 
-    // รวมยอด Delivery
+    // รวบรวมยอด Delivery
     deliveryData.forEach(d => {
         let pNo = String(d.partNo || d['Part No.'] || d['part_no'] || '').trim().toUpperCase();
-        let cust = partToCustomerMap[pNo] || 'OTHERS';
+        let cust = (partToCustomerMap[pNo] || 'OTHERS').toUpperCase();
         let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || 0));
 
-        if (!customerStats[cust]) {
-            customerStats[cust] = { deliveryQty: 0, ngQty: 0 };
-        }
+        if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0, ngQgateQty: 0 };
         customerStats[cust].deliveryQty += (isNaN(qty) ? 0 : qty);
     });
 
-    // รวมยอด NG Qty จาก Q-Gate
+    // รวบรวมยอด NG จาก Q-Gate
     qgateData.forEach(q => {
         let pNo = String(q.partNo || q['Part No.'] || q['part_no'] || '').trim().toUpperCase();
-        let cust = partToCustomerMap[pNo] || 'OTHERS';
+        let cust = (partToCustomerMap[pNo] || 'OTHERS').toUpperCase();
         let ng = Number(q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] || q['ng'] || 0));
 
-        if (!customerStats[cust]) {
-            customerStats[cust] = { deliveryQty: 0, ngQty: 0 };
-        }
-        customerStats[cust].ngQty += (isNaN(ng) ? 0 : ng);
+        if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0, ngQgateQty: 0 };
+        customerStats[cust].ngQgateQty += (isNaN(ng) ? 0 : ng);
     });
 
-    // 3. เรนเดอร์ข้อมูลลงในตาราง HTML
+    // เรนเดอร์ลงตาราง
     const tableBody = document.getElementById('customerPpmTableBody');
     if (tableBody) {
         tableBody.innerHTML = '';
 
-        const customerKeys = Object.keys(customerStats);
-        if (customerKeys.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีข้อมูลการส่งมอบ (Delivery) หรือของเสีย</td></tr>`;
-        } else {
-            customerKeys.forEach(cust => {
-                let stat = customerStats[cust];
-                let deliveryQty = stat.deliveryQty;
-                let ngQty = stat.ngQty;
-                
-                let ppm = deliveryQty > 0 ? Math.round((ngQty / deliveryQty) * 1000000) : 0;
-                let isPass = ppm <= 250;
+        Object.keys(customerStats).forEach(cust => {
+            let stat = customerStats[cust];
+            let deliveryQty = stat.deliveryQty;
+            let ngQgateQty = stat.ngQgateQty;
+            
+            // ดึงยอด NG หลุดหาลูกค้าที่คีย์ไว้
+            let claimNgQty = parseInt(localStorage.getItem(`customer_claim_ng_${cust}`)) || 0;
+            let totalNg = ngQgateQty + claimNgQty;
 
-                let statusBadge = isPass 
-                    ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> ผ่าน</span>`
-                    : `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> ตกเกณฑ์</span>`;
+            // คำนวณ PPM รวม
+            let ppm = deliveryQty > 0 ? (totalNg / deliveryQty) * 1000000 : 0;
+            let targetPpm = customerTargets[cust] !== undefined ? customerTargets[cust] : 1.5;
+            let isPass = ppm <= targetPpm;
 
-                tableBody.innerHTML += `
-                    <tr>
-                        <td class="text-start fw-bold text-warning">${cust}</td>
-                        <td>${deliveryQty.toLocaleString()}</td>
-                        <td class="text-danger fw-bold">${ngQty.toLocaleString()}</td>
-                        <td class="fw-bold ${isPass ? 'text-success' : 'text-danger'}">${ppm.toLocaleString()}</td>
-                        <td>${statusBadge}</td>
-                    </tr>
-                `;
-            });
-        }
+            let statusBadge = isPass 
+                ? `<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> ผ่าน</span>`
+                : `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> ตกเกณฑ์</span>`;
+
+            let disabledAttr = isCustomerClaimUnlocked ? '' : 'disabled';
+            let inputBgClass = isCustomerClaimUnlocked ? 'bg-warning text-dark fw-bold' : 'bg-secondary text-white';
+
+            tableBody.innerHTML += `
+                <tr>
+                    <td class="text-start fw-bold text-warning">${cust}</td>
+                    <td>${deliveryQty.toLocaleString()}</td>
+                    <td class="text-info">${targetPpm}</td>
+                    <td class="text-danger">${ngQgateQty.toLocaleString()}</td>
+                    <td>
+                        <input type="number" 
+                               class="form-control form-control-sm text-center p-0 ${inputBgClass}" 
+                               style="font-size: 11px; height: 24px;" 
+                               value="${claimNgQty}" 
+                               min="0" 
+                               ${disabledAttr} 
+                               onchange="updateCustomerClaimData('${cust}', this.value)">
+                    </td>
+                    <td class="fw-bold ${isPass ? 'text-success' : 'text-danger'}">${ppm.toFixed(2)}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        });
     }
 
-    // 4. เตรียมข้อมูลสำหรับวาดกราฟแท่ง Chart.js
+    // วาดกราฟแท่ง
     const labels = [];
     const ppmValues = [];
     const bgColors = [];
 
     Object.keys(customerStats).forEach(cust => {
         let stat = customerStats[cust];
-        let ppm = stat.deliveryQty > 0 ? Math.round((stat.ngQty / stat.deliveryQty) * 1000000) : 0;
+        let claimNgQty = parseInt(localStorage.getItem(`customer_claim_ng_${cust}`)) || 0;
+        let totalNg = stat.ngQgateQty + claimNgQty;
+
+        let ppm = stat.deliveryQty > 0 ? (totalNg / stat.deliveryQty) * 1000000 : 0;
+        let targetPpm = customerTargets[cust] !== undefined ? customerTargets[cust] : 1.5;
         
         labels.push(cust);
-        ppmValues.push(ppm);
-        bgColors.push(ppm <= 250 ? '#10b981' : '#ef4444');
+        ppmValues.push(Number(ppm.toFixed(2)));
+        bgColors.push(ppm <= targetPpm ? '#10b981' : '#ef4444');
     });
 
-    // วาดกราฟแท่ง
     if (window.customerPpmChartInstance instanceof Chart) {
         window.customerPpmChartInstance.destroy();
     }
@@ -5311,11 +5388,11 @@ function renderCustomerDefectPPM() {
     window.customerPpmChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels.length > 0 ? labels : ['ไม่มีข้อมูล'],
+            labels: labels,
             datasets: [{
                 label: 'Defect PPM',
-                data: ppmValues.length > 0 ? ppmValues : [0],
-                backgroundColor: bgColors.length > 0 ? bgColors : ['#10b981'],
+                data: ppmValues,
+                backgroundColor: bgColors,
                 borderRadius: 4
             }]
         },
@@ -5341,27 +5418,16 @@ function renderCustomerDefectPPM() {
     });
 }
 
-// เรียกทำงานเมื่อโหลดหน้าเสร็จ และกดคลิกเปลี่ยนแท็บ
-setTimeout(renderCustomerDefectPPM, 2000);
-document.addEventListener('click', function(e) {
-    setTimeout(renderCustomerDefectPPM, 300);
-});
-
-// ==========================================================
-// 📌 ฟังก์ชันบังคับเปิด-ปิดกล่องเฉพาะหน้า Dashboard เท่านั้น
-// ==========================================================
+// 📌 ฟังก์ชันบังคับเปิด-ปิดกล่องเฉพาะหน้า Dashboard
 function updateDashboardVisibility() {
-    // 🔍 ระบุ ID ของกล่องให้ตรงกับในไฟล์ HTML ของพี่มิว (ใส่เผื่อไว้ทั้งสองชื่อกันพลาด)
-    let box = document.getElementById('customerSummaryBox') || document.getElementById('stockSummaryBox');
+    let box = document.getElementById('customerSummaryBox');
     if (!box) return;
 
     let dashTab = document.getElementById('tab-dash');
-    
-    // เช็คว่าหน้าปัจจุบันอยู่หน้า Dashboard หรือไม่
     let isDashboardActive = dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'));
 
     if (isDashboardActive) {
-        box.style.display = 'flex'; // แสดงเฉพาะหน้า Dashboard
+        box.style.display = 'flex';
         if (typeof renderCustomerDefectPPM === 'function') {
             if (!window._isRenderingCustomerPpm) {
                 window._isRenderingCustomerPpm = true;
@@ -5372,17 +5438,16 @@ function updateDashboardVisibility() {
             }
         }
     } else {
-        box.style.display = 'none'; // ซ่อนทันทีเมื่ออยู่หน้าอื่น (เช่น หน้าบันทึกยอด, Q-Gate, ฯลฯ)
+        box.style.display = 'none';
     }
 }
 
-// สั่งทำงานทุกครั้งที่มีการคลิกเปลี่ยนแท็บเมนู
 document.addEventListener('click', function(e) {
     setTimeout(updateDashboardVisibility, 100);
 });
 
-// ตรวจสอบสถานะทุกๆ 0.5 วินาที เพื่อป้องกันการหลุดไปโผล่หน้าอื่น
 setInterval(updateDashboardVisibility, 500);
+setTimeout(renderCustomerDefectPPM, 2000);
 // ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'bmImageInput') {
