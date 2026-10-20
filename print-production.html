@@ -194,22 +194,26 @@
         return 'M/C';
     }
 
-    // 📌 ตารางฝังค่า CT ประจำ Part No. (คุณมิวสามารถเติมเพิ่มได้ที่นี่เลยครับ)
+    // 📌 ตารางฝังค่า CT ประจำ Part No. หลัก (ตัดพวก 1/4, 1/2 ออกอัตโนมัติ)
     const embeddedCtTable = {
         "55347-KK080": 2.89,
         "55342-BZ060": 2.88,
         "17141-0C080": 3.00,
         "76344-4JG1A": 2.50,
-        // สามารถเติมพาร์ทอื่นๆ เพิ่มได้ เช่น "รหัสพาร์ท": ค่าCT
+        "76224-4JA0A": 2.75, // ตัวอย่างเพิ่มพาร์ทของคุณมิว
+        "55342-KK020":2.0,
+
+        
+        // สามารถเติมรหัสพาร์ทหลักอื่นๆ เพิ่มตรงนี้ได้เลยครับ
     };
 
     function getEmbeddedCT(rawPartNo) {
         if (!rawPartNo) return 0;
+        // ตัดช่องว่างและเอาเฉพาะตัวหน้า เช่น "76224-4JA0A 1/4" จะตัดเหลือ "76224-4JA0A"
         let cleanPart = String(rawPartNo).split(' ')[0].trim().toUpperCase();
         
-        // เช็คจากตารางฝังโค้ดก่อน
         for (let key in embeddedCtTable) {
-            if (cleanPart.includes(key.toUpperCase()) || key.toUpperCase().includes(cleanPart)) {
+            if (cleanPart === key.toUpperCase()) {
                 return embeddedCtTable[key];
             }
         }
@@ -257,7 +261,7 @@
 
                 let rawPartNo = item.partNo || '-';
                 
-                // ⏱️ ดึง CT จากตารางฝังโค้ด หรือจาก item.ct หรือค่าสำรอง 6
+                // ⏱️ ดึง CT โดยตัดคำต่อท้ายอัตโนมัติ
                 let embeddedCt = getEmbeddedCT(rawPartNo);
                 let ctSeconds = embeddedCt > 0 ? embeddedCt : (item.ct ? parseFloat(item.ct) : 6);
 
@@ -275,7 +279,7 @@
 
                 let remark = (item.remark && item.remark !== '-') ? item.remark.trim() : '';
 
-                // --- 1. สรุปภาพรวมการผลิต (แสดงค่า CT) ---
+                // --- 1. สรุปภาพรวมการผลิต ---
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${index + 1}</td>
