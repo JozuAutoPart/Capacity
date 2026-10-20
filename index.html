@@ -215,15 +215,12 @@
             </div>
         </div>
     </div>
-        <!-- ========================================================== -->
-<!-- 📌 ส่วน HTML: กล่องกราฟ Defect PPM By Customer & ตารางสรุปคุณภาพ -->
-<!-- ========================================================== -->
-<div id="customerSummaryBox" class="row mt-3" style="display: none;">
-    <!-- ฝั่งซ้าย: กราฟแท่งเปรียบเทียบ PPM แยกตามลูกค้า -->
+       <div id="customerSummaryBox" class="row mt-3" style="display: none;">
+    <!-- ฝั่งซ้าย: กราฟแท่งแสดง PPM ลูกค้า -->
     <div class="col-md-5 mb-3">
         <div class="card bg-dark text-white p-3 border-secondary shadow h-100">
             <h6 class="text-warning fw-bold mb-3">
-                <i class="fas fa-chart-bar me-2"></i> อัตราของเสียแยกตามลูกค้า (Defect PPM By Customer)
+                <i class="fas fa-chart-bar me-2"></i> อัตราของเสียแยกตามลูกค้า (Customer PPM)
             </h6>
             <div style="height: 250px; position: relative;">
                 <canvas id="customerPpmChart"></canvas>
@@ -231,16 +228,15 @@
         </div>
     </div>
 
-    <!-- ฝั่งขวา: ตารางสรุปผลงาน + ตารางกรอกยอดของเสียที่หลุดไปหาลูกค้า -->
+    <!-- ฝั่งขวา: ตารางสรุป (ตัด NG Q-Gate ออก เหลือช่องกรอก NG ลูกค้า) -->
     <div class="col-md-7 mb-3">
         <div class="card bg-dark text-white p-3 border-secondary shadow h-100">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="text-info fw-bold m-0">
                     <i class="fas fa-list-alt me-2"></i> สรุปผลงานคุณภาพรายลูกค้า (Target แยกตามเจ้า)
                 </h6>
-                <!-- ปุ่มปลดล็อกระบบกรอกข้อมูล (ใช้รหัสผ่าน 9999) -->
                 <button id="unlockClaimBtn" class="btn btn-outline-warning btn-sm" onclick="requestUnlockCustomerClaim()">
-                    <i id="unlockClaimIcon" class="fas fa-lock me-1"></i> <span id="unlockClaimText">ปลดล็อกบันทึก NG</span>
+                    <i id="unlockClaimIcon" class="fas fa-lock me-1"></i> <span id="unlockClaimText">ปลดล็อกบันทึก NG ลูกค้า</span>
                 </button>
             </div>
 
@@ -251,14 +247,13 @@
                             <th class="text-start">Customer</th>
                             <th>ส่งมอบ (Delivery)</th>
                             <th>Target</th>
-                            <th>NG Q-Gate</th>
-                            <th class="text-warning" style="width: 110px;">NG หลุดหาลูกค้า</th>
-                            <th>PPM รวม</th>
+                            <th class="text-warning" style="width: 130px;">NG หลุดหาลูกค้า</th>
+                            <th>PPM ลูกค้า</th>
                             <th>สถานะ</th>
                         </tr>
                     </thead>
                     <tbody id="customerPpmTableBody">
-                        <!-- รายการลูกค้าและช่องกรอกข้อมูลจะถูกเรนเดอร์มาวางตรงนี้ -->
+                        <!-- เรนเดอร์ข้อมูล -->
                     </tbody>
                 </table>
             </div>
@@ -5209,9 +5204,8 @@ function getActivePartsMap() {
 
 // ตัวแปรสถานะปลดล็อกช่องกรอก NG หลุดหาลูกค้า
 let isCustomerClaimUnlocked = false;
-const CLAIM_SUPER_PASSWORD = "9999"; // รหัสผ่านหัวหน้างานสำหรับปลดล็อกกรอกข้อมูล
+const CLAIM_SUPER_PASSWORD = "9999";
 
-// 🔓 ฟังก์ชันขอรหัสผ่านเพื่อปลดล็อกช่องกรอกตัวเลข
 function requestUnlockCustomerClaim() {
     const btnIcon = document.getElementById('unlockClaimIcon');
     const btnText = document.getElementById('unlockClaimText');
@@ -5219,43 +5213,38 @@ function requestUnlockCustomerClaim() {
     if (isCustomerClaimUnlocked) {
         isCustomerClaimUnlocked = false;
         if (btnIcon) btnIcon.className = "fas fa-lock me-1";
-        if (btnText) btnText.innerText = "ปลดล็อกบันทึก NG";
-        alert("🔒 ล็อกระบบบันทึกยอด NG หลุดหาลูกค้าเรียบร้อยแล้ว");
+        if (btnText) btnText.innerText = "ปลดล็อกบันทึก NG ลูกค้า";
+        alert("🔒 ล็อกระบบบันทึกยอดเรียบร้อยแล้ว");
         renderCustomerDefectPPM();
         return;
     }
 
-    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (Supervisor Password) เพื่อแก้ไขยอด NG หลุดหาลูกค้า:");
+    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (9999):");
     if (inputPass === CLAIM_SUPER_PASSWORD) {
         isCustomerClaimUnlocked = true;
         if (btnIcon) btnIcon.className = "fas fa-lock-open me-1 text-warning";
         if (btnText) btnText.innerText = "ล็อกระบบ";
-        alert("🔓 ปลดล็อกสำเร็จ! ท่านสามารถแก้ไขยอด NG หลุดหาลูกค้าในตารางได้แล้ว");
+        alert("🔓 ปลดล็อกสำเร็จ! สามารถแก้ไขยอด NG ลูกค้าได้แล้ว");
         renderCustomerDefectPPM();
     } else if (inputPass !== null) {
-        alert("❌ รหัสผ่านไม่ถูกต้อง! ไม่สามารถปลดล็อกได้");
+        alert("❌ รหัสผ่านไม่ถูกต้อง!");
     }
 }
 
-// 💾 ฟังก์ชันบันทึกค่ายอด NG หลุดหาลูกค้าลงใน localStorage
 function updateCustomerClaimData(customerName, value) {
     let ngVal = parseInt(value) || 0;
     if (ngVal < 0) ngVal = 0;
-    
     localStorage.setItem(`customer_claim_ng_${customerName.toUpperCase()}`, ngVal);
-    renderCustomerDefectPPM(); // อัปเดตกราฟและตารางทันที
+    renderCustomerDefectPPM();
 }
 
-// 📌 ฟังก์ชันคำนวณและเรนเดอร์ Defect PPM แยกตามลูกค้า
 function renderCustomerDefectPPM() {
     let canvasElement = document.getElementById('customerPpmChart');
     if (!canvasElement) return;
 
     let masterDb = window.masterPartsDatabase || window.masterParts || [];
-    let qgateData = typeof qgate !== 'undefined' ? qgate : [];
     let deliveryData = typeof deliveries !== 'undefined' ? deliveries : [];
 
-    // 🎯 Target PPM แยกตามลูกค้า
     const customerTargets = {
         'STEM-A': 0.03,
         'STEM-B': 0.03,
@@ -5267,12 +5256,10 @@ function renderCustomerDefectPPM() {
 
     const defaultCustomers = ['STEM-A', 'STEM-B', 'TMC', 'FTS', 'MSFT', 'OTHERS'];
 
-    // Map Part No. -> Customer
     const partToCustomerMap = {};
     masterDb.forEach(m => {
         let vals = Object.values(m);
         let pNo = String(m['Part No.'] || m.partNo || m.PARTNO || vals[1] || '').trim().toUpperCase();
-        
         let cust = '';
         Object.keys(m).forEach(k => {
             let lk = String(k).toLowerCase().trim();
@@ -5290,30 +5277,18 @@ function renderCustomerDefectPPM() {
 
     const customerStats = {};
     defaultCustomers.forEach(c => {
-        customerStats[c] = { deliveryQty: 0, ngQgateQty: 0 };
+        customerStats[c] = { deliveryQty: 0 };
     });
 
-    // รวบรวมยอด Delivery
     deliveryData.forEach(d => {
         let pNo = String(d.partNo || d['Part No.'] || d['part_no'] || '').trim().toUpperCase();
         let cust = (partToCustomerMap[pNo] || 'OTHERS').toUpperCase();
         let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || 0));
 
-        if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0, ngQgateQty: 0 };
+        if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0 };
         customerStats[cust].deliveryQty += (isNaN(qty) ? 0 : qty);
     });
 
-    // รวบรวมยอด NG จาก Q-Gate
-    qgateData.forEach(q => {
-        let pNo = String(q.partNo || q['Part No.'] || q['part_no'] || '').trim().toUpperCase();
-        let cust = (partToCustomerMap[pNo] || 'OTHERS').toUpperCase();
-        let ng = Number(q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] || q['ng'] || 0));
-
-        if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0, ngQgateQty: 0 };
-        customerStats[cust].ngQgateQty += (isNaN(ng) ? 0 : ng);
-    });
-
-    // เรนเดอร์ลงตาราง
     const tableBody = document.getElementById('customerPpmTableBody');
     if (tableBody) {
         tableBody.innerHTML = '';
@@ -5321,14 +5296,11 @@ function renderCustomerDefectPPM() {
         Object.keys(customerStats).forEach(cust => {
             let stat = customerStats[cust];
             let deliveryQty = stat.deliveryQty;
-            let ngQgateQty = stat.ngQgateQty;
             
-            // ดึงยอด NG หลุดหาลูกค้าที่คีย์ไว้
+            // ใช้เฉพาะยอด NG ที่กรอกหลุดไปหาลูกค้าเท่านั้น
             let claimNgQty = parseInt(localStorage.getItem(`customer_claim_ng_${cust}`)) || 0;
-            let totalNg = ngQgateQty + claimNgQty;
 
-            // คำนวณ PPM รวม
-            let ppm = deliveryQty > 0 ? (totalNg / deliveryQty) * 1000000 : 0;
+            let ppm = deliveryQty > 0 ? (claimNgQty / deliveryQty) * 1000000 : 0;
             let targetPpm = customerTargets[cust] !== undefined ? customerTargets[cust] : 1.5;
             let isPass = ppm <= targetPpm;
 
@@ -5344,7 +5316,6 @@ function renderCustomerDefectPPM() {
                     <td class="text-start fw-bold text-warning">${cust}</td>
                     <td>${deliveryQty.toLocaleString()}</td>
                     <td class="text-info">${targetPpm}</td>
-                    <td class="text-danger">${ngQgateQty.toLocaleString()}</td>
                     <td>
                         <input type="number" 
                                class="form-control form-control-sm text-center p-0 ${inputBgClass}" 
@@ -5361,7 +5332,6 @@ function renderCustomerDefectPPM() {
         });
     }
 
-    // วาดกราฟแท่ง
     const labels = [];
     const ppmValues = [];
     const bgColors = [];
@@ -5369,9 +5339,7 @@ function renderCustomerDefectPPM() {
     Object.keys(customerStats).forEach(cust => {
         let stat = customerStats[cust];
         let claimNgQty = parseInt(localStorage.getItem(`customer_claim_ng_${cust}`)) || 0;
-        let totalNg = stat.ngQgateQty + claimNgQty;
-
-        let ppm = stat.deliveryQty > 0 ? (totalNg / stat.deliveryQty) * 1000000 : 0;
+        let ppm = stat.deliveryQty > 0 ? (claimNgQty / stat.deliveryQty) * 1000000 : 0;
         let targetPpm = customerTargets[cust] !== undefined ? customerTargets[cust] : 1.5;
         
         labels.push(cust);
@@ -5389,7 +5357,7 @@ function renderCustomerDefectPPM() {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Defect PPM',
+                label: 'Customer PPM',
                 data: ppmValues,
                 backgroundColor: bgColors,
                 borderRadius: 4
@@ -5417,7 +5385,6 @@ function renderCustomerDefectPPM() {
     });
 }
 
-// 📌 ฟังก์ชันบังคับเปิด-ปิดกล่องเฉพาะหน้า Dashboard
 function updateDashboardVisibility() {
     let box = document.getElementById('customerSummaryBox');
     if (!box) return;
