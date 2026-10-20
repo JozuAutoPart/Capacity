@@ -200,16 +200,12 @@
         "55342-BZ060": 2.88,
         "17141-0C080": 3.00,
         "76344-4JG1A": 2.50,
-        "76224-4JA0A": 6, // ตัวอย่างเพิ่มพาร์ทของคุณมิว
-        "55342-KK020":2.0,
-
-        
-        // สามารถเติมรหัสพาร์ทหลักอื่นๆ เพิ่มตรงนี้ได้เลยครับ
+        "76224-4JA0A": 8,
+        "17154-0T040": 8, // เพิ่มเติมพาร์ทตามต้องการ
     };
 
     function getEmbeddedCT(rawPartNo) {
         if (!rawPartNo) return 0;
-        // ตัดช่องว่างและเอาเฉพาะตัวหน้า เช่น "76224-4JA0A 1/4" จะตัดเหลือ "76224-4JA0A"
         let cleanPart = String(rawPartNo).split(' ')[0].trim().toUpperCase();
         
         for (let key in embeddedCtTable) {
@@ -295,7 +291,7 @@
                 `;
                 summaryTbody.appendChild(tr);
 
-                // --- 2. DOWNTIME RECORD ---
+                // --- 2. DOWNTIME RECORD (เอาวงเล็บ Part No. ออกแล้ว) ---
                 let dtStartShow = item.dtStart || startTime;
                 let dtEndShow = item.dtEnd || endTime;
                 let dtMins = Number(item.downtimeMins || 0);
@@ -304,7 +300,7 @@
                 if (item.dtStart || item.dtEnd || dtMins > 0 || remark !== '') {
                     let dtTimeMin = dtMins > 0 ? dtMins : (timeToMinutes(dtEndShow) >= timeToMinutes(dtStartShow) ? (timeToMinutes(dtEndShow) - timeToMinutes(dtStartShow)) : (1440 - timeToMinutes(dtStartShow) + timeToMinutes(dtEndShow)));
                     let codeShow = dtCode ? dtCode : detectDowntimeCode(remark);
-                    let descShow = remark !== '' ? `${remark} (${rawPartNo})` : `เครื่องจักรหยุดทำงาน (${rawPartNo})`;
+                    let descShow = remark !== '' ? remark : `เครื่องจักรหยุดทำงาน`;
 
                     totalDowntimeMinutes += dtTimeMin;
 
