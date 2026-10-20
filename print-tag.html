@@ -419,7 +419,7 @@
             "743L5 5EK0A": { partName: " BRKT-FR SEAT MTG, LH  ", qty: 50, code: "TMC024" }
         };
 
-        function getUrlParams() {
+       function getUrlParams() {
             const params = new URLSearchParams(window.location.search);
             const pNo = params.get('partNo') || '55366-KK020';
             
@@ -458,6 +458,21 @@
 
                 const currentQty = (i === totalTags && totalOrder % stdPack !== 0) ? (totalOrder % stdPack) : stdPack;
 
+                // กำหนดเงื่อนไขแปลงชื่อบริษัท/ลูกค้าตาม Code อัตโนมัติ
+                let tagCode = data.code ? String(data.code) : "STEM";
+                let companyName = "STEM"; 
+                if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
+                    companyName = "FTS";
+                } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
+                    companyName = "TMC";
+                } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
+                    companyName = "MSFT";
+                } else if (tagCode.includes("TH") || tagCode.startsWith("H")) {
+                    companyName = "TH";
+                } else {
+                    companyName = "STEM";
+                }
+
                 const tagCard = document.createElement('div');
                 tagCard.className = 'tag-card';
                 tagCard.innerHTML = `
@@ -468,7 +483,6 @@
                         </tr>
                         <tr>
                             <td style="font-size: 14px; height: 18px;">Part Name</td>
-                            <!-- ถอด fw-bold ออก ให้เป็นตัวหนังสือธรรมดา -->
                             <td colspan="3" style="font-size: 14px;">${data.partName}</td>
                         </tr>
                         <tr>
@@ -492,7 +506,7 @@
                             <td class="fw-bold text-center" style="font-size: 10px;">STAM QC Receiving</td>
                         </tr>
 
-                        <!-- แถวที่ 2: ช่องว่างสำหรับปั๊มตรา (ขยายความสูงเป็น 34px) -->
+                        <!-- แถวที่ 2: ช่องว่างสำหรับปั๊มตรา -->
                         <tr style="height: 34px;">
                             <td></td>
                             <td></td>
@@ -508,9 +522,9 @@
                             <td style="font-size: 9px;">by.</td>
                         </tr>
 
-                        <!-- แถวที่ 4: โซนบาร์โค้ด (ลดความสูงเหลือ 26px) -->
+                        <!-- แถวที่ 4: โซนบาร์โค้ด -->
                         <tr style="height: 26px;">
-                            <td class="logo-stem">STEM</td>
+                            <td class="logo-stem">${companyName}</td>
                             <td colspan="3" class="barcode-container">
                                 <svg id="barcode_${i}"></svg>
                             </td>
@@ -520,15 +534,21 @@
 
                 currentContainer.appendChild(tagCard);
 
-                setTimeout(() => {
-                    JsBarcode(`#barcode_${i}`, data.partNo, {
-                        format: "CODE128",
-                        height: 20,
-                        width: 1.3,
-                        displayValue: false,
-                        margin: 0
-                    });
-                }, 50);
+                // สั่งรันบาร์โค้ดแบบปลอดภัย
+                setTimeout(((index, partNoVal) => {
+                    return () => {
+                        const svgElement = document.getElementById(`barcode_${index}`);
+                        if (svgElement) {
+                            JsBarcode(svgElement, partNoVal, {
+                                format: "CODE128",
+                                height: 20,
+                                width: 1.3,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        }
+                    };
+                })(i, data.partNo), 50);
             }
         }
 
