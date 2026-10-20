@@ -5345,16 +5345,20 @@ document.addEventListener('click', function(e) {
 });
 
 // ==========================================================
-// 📌 ฟังก์ชันบังคับเปิด-ปิดกล่องเฉพาะหน้า Dashboard
+// 📌 ฟังก์ชันบังคับเปิด-ปิดกล่องเฉพาะหน้า Dashboard เท่านั้น
 // ==========================================================
 function updateDashboardVisibility() {
+    // 🔍 ระบุ ID ของกล่องให้ตรงกับในไฟล์ HTML ของพี่มิว (ใส่เผื่อไว้ทั้งสองชื่อกันพลาด)
     let box = document.getElementById('customerSummaryBox') || document.getElementById('stockSummaryBox');
     if (!box) return;
 
     let dashTab = document.getElementById('tab-dash');
     
-    if (dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'))) {
-        box.style.display = 'flex';
+    // เช็คว่าหน้าปัจจุบันอยู่หน้า Dashboard หรือไม่
+    let isDashboardActive = dashTab && (dashTab.classList.contains('active') || dashTab.classList.contains('show'));
+
+    if (isDashboardActive) {
+        box.style.display = 'flex'; // แสดงเฉพาะหน้า Dashboard
         if (typeof renderCustomerDefectPPM === 'function') {
             if (!window._isRenderingCustomerPpm) {
                 window._isRenderingCustomerPpm = true;
@@ -5365,14 +5369,16 @@ function updateDashboardVisibility() {
             }
         }
     } else {
-        box.style.display = 'none';
+        box.style.display = 'none'; // ซ่อนทันทีเมื่ออยู่หน้าอื่น (เช่น หน้าบันทึกยอด, Q-Gate, ฯลฯ)
     }
 }
 
+// สั่งทำงานทุกครั้งที่มีการคลิกเปลี่ยนแท็บเมนู
 document.addEventListener('click', function(e) {
     setTimeout(updateDashboardVisibility, 100);
 });
 
+// ตรวจสอบสถานะทุกๆ 0.5 วินาที เพื่อป้องกันการหลุดไปโผล่หน้าอื่น
 setInterval(updateDashboardVisibility, 500);
 // ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
 document.addEventListener('change', function(e) {
