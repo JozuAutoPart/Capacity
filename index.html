@@ -5283,7 +5283,7 @@ function renderCustomerDefectPPM() {
 
     const defaultCustomers = ['STEM-A', 'STEM-B', 'TMC', 'FTS', 'MSFT', 'OTHERS'];
 
-    // Map Part No. -> Customer
+    // 1. Map Part No. -> Customer (จับคู่ชื่อลูกค้าแบบยืดหยุ่น)
     const partToCustomerMap = {};
     masterDb.forEach(m => {
         let vals = Object.values(m);
@@ -5296,34 +5296,40 @@ function renderCustomerDefectPPM() {
             }
         });
         if (!cust && vals.length > 3) cust = String(vals[3] || '').trim();
-        if (!cust || cust === 'undefined') cust = 'OTHERS';
+        cust = cust.toUpperCase();
+
+        let matchedCust = 'OTHERS';
+        if (cust.includes('STEM-A') || cust.includes('STEM A')) matchedCust = 'STEM-A';
+        else if (cust.includes('STEM-B') || cust.includes('STEM B')) matchedCust = 'STEM-B';
+        else if (cust.includes('STEM')) matchedCust = 'STEM-A';
+        else if (cust.includes('TMC')) matchedCust = 'TMC';
+        else if (cust.includes('FTS')) matchedCust = 'FTS';
+        else if (cust.includes('MSFT')) matchedCust = 'MSFT';
 
         if (pNo && !/\s\d+\/\d+$/.test(pNo)) {
-            partToCustomerMap[pNo] = cust.toUpperCase();
+            partToCustomerMap[pNo] = matchedCust;
         }
     });
 
-    // --------------------------------------------------------
-    // 1. เรนเดอร์ข้อมูลในตาราง (เฉพาะเดือนปัจจุบัน)
-    // --------------------------------------------------------
+    // 2. เรนเดอร์ข้อมูลในตาราง (เฉพาะเดือนปัจจุบัน)
     const customerStats = {};
     defaultCustomers.forEach(c => {
         customerStats[c] = { deliveryQty: 0 };
     });
 
     deliveryData.forEach(d => {
-        let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || '').trim();
+        let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || d['deliveryDate'] || '').trim();
         let isCurrentMonth = false;
 
         if (dateStr) {
-            if (dateStr.startsWith(currentMonthKey)) {
+            if (dateStr.includes(`${currentYear}-${String(currentMonthNum).padStart(2, '0')}`) ||
+                dateStr.includes(`${String(currentMonthNum).padStart(2, '0')}/${currentYear}`) ||
+                dateStr.includes(`${currentYear}/${String(currentMonthNum).padStart(2, '0')}`)) {
                 isCurrentMonth = true;
             } else {
                 let dObj = new Date(dateStr);
                 if (!isNaN(dObj.getTime())) {
-                    let dYear = dObj.getFullYear();
-                    let dMonth = String(dObj.getMonth() + 1).padStart(2, '0');
-                    if (`${dYear}-${dMonth}` === currentMonthKey) {
+                    if (dObj.getFullYear() === currentYear && (dObj.getMonth() + 1) === currentMonthNum) {
                         isCurrentMonth = true;
                     }
                 }
@@ -5334,8 +5340,8 @@ function renderCustomerDefectPPM() {
 
         if (isCurrentMonth) {
             let pNo = String(d.partNo || d['Part No.'] || d['part_no'] || '').trim().toUpperCase();
-            let cust = (partToCustomerMap[pNo] || 'OTHERS').toUpperCase();
-            let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || 0));
+            let cust = partToCustomerMap[pNo] || 'OTHERS';
+            let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || d['ยอดส่งมอบ'] || 0));
 
             if (!customerStats[cust]) customerStats[cust] = { deliveryQty: 0 };
             customerStats[cust].deliveryQty += (isNaN(qty) ? 0 : qty);
@@ -5383,38 +5389,32 @@ function renderCustomerDefectPPM() {
         });
     }
 
-    // --------------------------------------------------------
-    // 2. คำนวณและวาดกราฟสะสม 12 เดือน (ม.ค. - ธ.ค. ของปีปัจจุบัน)
-    // --------------------------------------------------------
+    // 3. คำนวณและวาดกราฟสะสม 12 เดือน (ม.ค. - ธ.ค. ของปีปัจจุบัน)
     const monthlyDelivery = new Array(12).fill(0);
     const monthlyClaimNg = new Array(12).fill(0);
     const monthLabels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
-    // รวมยอด Delivery 12 เดือนของปีนี้
     deliveryData.forEach(d => {
-        let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || '').trim();
+        let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || d['deliveryDate'] || '').trim();
         if (dateStr) {
             let dObj = new Date(dateStr);
             if (!isNaN(dObj.getTime()) && dObj.getFullYear() === currentYear) {
                 let mIndex = dObj.getMonth();
-                let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || 0));
+                let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || d['ยอดส่งมอบ'] || 0));
                 monthlyDelivery[mIndex] += (isNaN(qty) ? 0 : qty);
             }
         }
     });
 
-    // รวมยอด NG หลุดหาลูกค้า 12 เดือนของปีนี้
     for (let m = 0; m < 12; m++) {
         let mStr = String(m + 1).padStart(2, '0');
         let monthKey = `${currentYear}-${mStr}`;
-        
         defaultCustomers.forEach(cust => {
             let claimNgQty = parseInt(localStorage.getItem(`customer_claim_ng_${cust}_${monthKey}`)) || 0;
             monthlyClaimNg[m] += claimNgQty;
         });
     }
 
-    // คำนวณ PPM แต่ละเดือน
     const monthlyPpmValues = [];
     const bgColors = [];
 
@@ -5422,7 +5422,6 @@ function renderCustomerDefectPPM() {
         let delQty = monthlyDelivery[i];
         let ngQty = monthlyClaimNg[i];
         let ppm = delQty > 0 ? (ngQty / delQty) * 1000000 : 0;
-        
         monthlyPpmValues.push(Number(ppm.toFixed(2)));
         bgColors.push(ppm > 0 ? '#ef4444' : '#10b981');
     }
@@ -5511,7 +5510,6 @@ document.addEventListener('click', function(e) {
 
 setInterval(updateDashboardVisibility, 500);
 setTimeout(renderCustomerDefectPPM, 2000);
-
 // ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'bmImageInput') {
