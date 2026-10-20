@@ -215,15 +215,15 @@
             </div>
         </div>
     </div>
-        <!-- ========================================================== -->
-<!-- 📌 ส่วน HTML: กล่องกราฟ PPM สะสม 12 เดือน & ตารางกรอกยอด NG รายเดือน -->
+      <!-- ========================================================== -->
+<!-- 📌 ส่วน HTML: กล่องกราฟ PPM สะสม 12 เดือน (Combo Chart) -->
 <!-- ========================================================== -->
 <div id="customerSummaryBox" class="row mt-3" style="display: none;">
-    <!-- ฝั่งซ้าย: กราฟแท่งแสดง PPM สะสมรายเดือน (12 เดือน) -->
+    <!-- ฝั่งซ้าย: กราฟผสม PPM และ ยอดส่งมอบ 12 เดือน -->
     <div class="col-md-5 mb-3">
         <div class="card bg-dark text-white p-3 border-secondary shadow h-100">
             <h6 class="text-warning fw-bold mb-3">
-                <i class="fas fa-chart-bar me-2"></i> สถิติ Defect PPM สะสมรายเดือน (12 เดือน)
+                <i class="fas fa-chart-line me-2"></i> สถิติ Defect PPM และยอดส่งมอบสะสม (12 เดือน)
             </h6>
             <div style="height: 250px; position: relative;">
                 <canvas id="customerPpmChart"></canvas>
@@ -231,7 +231,7 @@
         </div>
     </div>
 
-    <!-- ฝั่งขวา: ตารางสรุปคุณภาพ + ช่องกรอก NG หลุดหาลูกค้าประจำเดือน -->
+    <!-- ฝั่งขวา: ตารางสรุปคุณภาพ + ช่องกรอก NG หลุดหาลูกค้า -->
     <div class="col-md-7 mb-3">
         <div class="card bg-dark text-white p-3 border-secondary shadow h-100">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -5203,7 +5203,7 @@ function getActivePartsMap() {
     return activePartsSet;
 }
 // ==========================================================
-// 📌 JavaScript แก้ไขปัญหาตัวเลขเด้งกลับเป็น 0 และหยุดการรีเซ็ตซ้ำซ้อน
+// 📌 ส่วน JavaScript: ออกแบบกราฟใหม่ มีตัวเลขแสดงบนหัวแท่ง + กราฟเส้นยอดส่งมอบ
 // ==========================================================
 
 let isCustomerClaimUnlocked = false;
@@ -5216,7 +5216,6 @@ function getCurrentMonthKey() {
     return `${year}-${month}`;
 }
 
-// 🔓 ปลดล็อกระบบกรอกข้อมูล
 function requestUnlockCustomerClaim() {
     const btnIcon = document.getElementById('unlockClaimIcon');
     const btnText = document.getElementById('unlockClaimText');
@@ -5242,7 +5241,6 @@ function requestUnlockCustomerClaim() {
     }
 }
 
-// 💾 บันทึกยอด NG หลุดหาลูกค้า
 function updateCustomerClaimData(customerName, value) {
     let ngVal = parseInt(value) || 0;
     if (ngVal < 0) ngVal = 0;
@@ -5252,7 +5250,6 @@ function updateCustomerClaimData(customerName, value) {
     renderCustomerDefectPPM();
 }
 
-// 📌 ฟังก์ชันหลักเรนเดอร์ข้อมูล (ปับปรุงความเสถียร ไม่ให้ข้อมูลกระโดด)
 function renderCustomerDefectPPM() {
     let canvasElement = document.getElementById('customerPpmChart');
     if (!canvasElement) return;
@@ -5260,7 +5257,7 @@ function renderCustomerDefectPPM() {
     let masterDb = window.masterPartsDatabase || window.masterParts || [];
     let deliveryData = window.deliveries || (typeof deliveries !== 'undefined' ? deliveries : []);
 
-    const currentMonthKey = getCurrentMonthKey(); // เช่น "2026-10"
+    const currentMonthKey = getCurrentMonthKey();
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonthNum = now.getMonth() + 1;
@@ -5309,7 +5306,7 @@ function renderCustomerDefectPPM() {
         }
     });
 
-    // 2. คำนวณยอด Delivery เฉพาะเดือนปัจจุบัน (ป้องกันข้อมูลเป็น 0)
+    // 2. เรนเดอร์ข้อมูลลงในตาราง
     const customerStats = {};
     defaultCustomers.forEach(c => { customerStats[c] = { deliveryQty: 0 }; });
 
@@ -5318,7 +5315,6 @@ function renderCustomerDefectPPM() {
         let isCurrentMonth = false;
 
         if (dateStr) {
-            // เช็คว่าตรงกับปีและเดือนปัจจุบันไหม
             if (dateStr.includes(`${currentYear}-${String(currentMonthNum).padStart(2, '0')}`) ||
                 dateStr.includes(`${String(currentMonthNum).padStart(2, '0')}/${currentYear}`) ||
                 dateStr.includes(`${currentYear}/${String(currentMonthNum).padStart(2, '0')}`)) {
@@ -5332,7 +5328,6 @@ function renderCustomerDefectPPM() {
                 }
             }
         } else {
-            // ถ้าไม่มีฟิลด์วันที่ ให้ถือว่าเป็นข้อมูลปัจจุบันเพื่อป้องกันยอดหาย
             isCurrentMonth = true;
         }
 
@@ -5346,7 +5341,6 @@ function renderCustomerDefectPPM() {
         }
     });
 
-    // เรนเดอร์ลงตาราง
     const tableBody = document.getElementById('customerPpmTableBody');
     if (tableBody) {
         tableBody.innerHTML = '';
@@ -5388,7 +5382,7 @@ function renderCustomerDefectPPM() {
         });
     }
 
-    // 3. วาดกราฟสะสม 12 เดือน
+    // 3. คำนวณและออกแบบกราฟผสม (Combo Chart: PPM + Delivery Qty) 12 เดือน
     const monthlyDelivery = new Array(12).fill(0);
     const monthlyClaimNg = new Array(12).fill(0);
     const monthLabels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -5438,14 +5432,15 @@ function renderCustomerDefectPPM() {
         let ppm = delQty > 0 ? (ngQty / delQty) * 1000000 : 0;
         
         monthlyPpmValues.push(Number(ppm.toFixed(2)));
+
         if (ppm > 0) {
-            bgColors.push('#ef4444');
+            bgColors.push('#ef4444');      // สีแดงเมื่อมี NG
             borderColors.push('#b91c1c');
         } else if (delQty > 0) {
-            bgColors.push('rgba(16, 185, 129, 0.6)');
-            borderColors.push('#10b981');
+            bgColors.push('#10b981');      // สีเขียวสดเมื่อส่งมอบผ่านเกณฑ์ 0 PPM
+            borderColors.push('#059669');
         } else {
-            bgColors.push('rgba(255, 255, 255, 0.05)');
+            bgColors.push('rgba(255, 255, 255, 0.1)');
             borderColors.push('rgba(255, 255, 255, 0.2)');
         }
     }
@@ -5454,48 +5449,111 @@ function renderCustomerDefectPPM() {
         window.customerPpmChartInstance.destroy();
     }
 
+    // Custom Plugin เขียนวาดตัวเลขบนหัวแท่งกราฟให้อัตโนมัติ
+    const drawDataLabelsPlugin = {
+        id: 'drawDataLabelsPlugin',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            chart.data.datasets.forEach((dataset, datasetIndex) => {
+                if (dataset.type === 'bar') {
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    meta.data.forEach((bar, index) => {
+                        const val = dataset.data[index];
+                        if (val > 0 || monthlyDelivery[index] > 0) {
+                            ctx.save();
+                            ctx.fillStyle = val > 0 ? '#ff6b6b' : '#a7f3d0';
+                            ctx.font = 'bold 10px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            // แสดงตัวเลขค่า PPM บนหัวแท่งกราฟ
+                            ctx.fillText(`${val} PPM`, bar.x, bar.y - 2);
+                            ctx.restore();
+                        }
+                    });
+                }
+            });
+        }
+    };
+
     let ctx = canvasElement.getContext('2d');
     window.customerPpmChartInstance = new Chart(ctx, {
-        type: 'bar',
         data: {
             labels: monthLabels,
-            datasets: [{
-                label: `PPM สะสม ปี ${currentYear}`,
-                data: monthlyPpmValues,
-                backgroundColor: bgColors,
-                borderColor: borderColors,
-                borderWidth: 1.5,
-                borderRadius: 4
-            }]
+            datasets: [
+                {
+                    type: 'bar',
+                    label: `PPM สะสม (${currentYear})`,
+                    data: monthlyPpmValues,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
+                    borderWidth: 1.5,
+                    borderRadius: 4,
+                    yAxisID: 'y'
+                },
+                {
+                    type: 'line',
+                    label: 'ยอดส่งมอบรวม (ชิ้น)',
+                    data: monthlyDelivery,
+                    borderColor: '#f59e0b',
+                    backgroundColor: '#f59e0b',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }
+            ]
         },
+        plugins: [drawDataLabelsPlugin],
         options: {
             animation: false,
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: true, labels: { color: '#ffffff', font: { size: 11 } } },
+                legend: {
+                    display: true,
+                    labels: { color: '#ffffff', font: { size: 10 } }
+                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             let idx = context.dataIndex;
-                            return [
-                                `PPM สะสมรวม: ${context.raw}`,
-                                `ยอดส่งมอบรวม: ${monthlyDelivery[idx].toLocaleString()} ชิ้น`,
-                                `NG หลุดรวม: ${monthlyClaimNg[idx].toLocaleString()} ชิ้น`
-                            ];
+                            if (context.dataset.type === 'bar') {
+                                return `PPM: ${context.raw} (NG: ${monthlyClaimNg[idx]} ชิ้น)`;
+                            } else {
+                                return `ยอดส่งมอบ: ${context.raw.toLocaleString()} ชิ้น`;
+                            }
                         }
                     }
                 }
             },
             scales: {
                 y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
                     beginAtZero: true,
-                    ticks: { color: '#ffffff' },
+                    ticks: { color: '#ef4444', font: { size: 10 } },
                     grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                    title: { display: true, text: 'PPM', color: '#ffffff' }
+                    title: { display: true, text: 'PPM', color: '#ef4444', font: { size: 10 } }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    ticks: { 
+                        color: '#f59e0b', 
+                        font: { size: 9 },
+                        callback: function(val) {
+                            return val >= 1000000 ? (val/1000000).toFixed(1) + 'M' : (val >= 1000 ? (val/1000).toFixed(0) + 'k' : val);
+                        }
+                    },
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Delivery Qty', color: '#f59e0b', font: { size: 10 } }
                 },
                 x: {
-                    ticks: { color: '#ffffff' },
+                    ticks: { color: '#ffffff', font: { size: 10 } },
                     grid: { display: false }
                 }
             }
@@ -5503,7 +5561,6 @@ function renderCustomerDefectPPM() {
     });
 }
 
-// 📌 ควบคุมการแสดงผลเฉพาะเมื่อกดเลือกหน้า Dashboard (เอา setInterval ออก ป้องกันตารางกระพริบหรือข้อมูลดีดกลับ)
 function updateDashboardVisibility() {
     let box = document.getElementById('customerSummaryBox');
     if (!box) return;
@@ -5527,7 +5584,6 @@ document.addEventListener('click', function(e) {
     setTimeout(updateDashboardVisibility, 100);
 });
 
-// เรียกทำงานทันทีเมื่อโหลดหน้าเว็บเสร็จ
 setTimeout(renderCustomerDefectPPM, 1000);
     
 // ฟังก์ชันแสดงตัวอย่างรูปถ่ายปัญหา
