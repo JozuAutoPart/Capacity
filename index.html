@@ -5254,6 +5254,10 @@ function updateCustomerClaimData(customerName, value) {
 }
 
 // 📌 ฟังก์ชันคำนวณ PPM เรนเดอร์ตาราง และวาดกราฟสะสม 12 เดือน
+// ==========================================================
+// 📌 แก้ไขสูตรคำนวณ PPM กราฟสะสม 12 เดือน + ปรับแกน Y อัตโนมัติ
+// ==========================================================
+
 function renderCustomerDefectPPM() {
     let canvasElement = document.getElementById('customerPpmChart');
     if (!canvasElement) return;
@@ -5266,7 +5270,6 @@ function renderCustomerDefectPPM() {
     const currentYear = now.getFullYear();
     const currentMonthNum = now.getMonth() + 1;
 
-    // หัวตารางแสดงเดือนปัจจุบัน
     const titleElem = document.getElementById('customerPpmMonthTitle');
     if (titleElem) {
         titleElem.innerText = `(ประจำเดือน ${currentMonthNum}/${currentYear})`;
@@ -5283,7 +5286,7 @@ function renderCustomerDefectPPM() {
 
     const defaultCustomers = ['STEM-A', 'STEM-B', 'TMC', 'FTS', 'MSFT', 'OTHERS'];
 
-    // 1. Map Part No. -> Customer (จับคู่ชื่อลูกค้าแบบยืดหยุ่น)
+    // 1. Map Part No. -> Customer
     const partToCustomerMap = {};
     masterDb.forEach(m => {
         let vals = Object.values(m);
@@ -5311,11 +5314,9 @@ function renderCustomerDefectPPM() {
         }
     });
 
-    // 2. เรนเดอร์ข้อมูลในตาราง (เฉพาะเดือนปัจจุบัน)
+    // 2. คำนวณตารางประจำเดือนปัจจุบัน
     const customerStats = {};
-    defaultCustomers.forEach(c => {
-        customerStats[c] = { deliveryQty: 0 };
-    });
+    defaultCustomers.forEach(c => { customerStats[c] = { deliveryQty: 0 }; });
 
     deliveryData.forEach(d => {
         let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || d['deliveryDate'] || '').trim();
@@ -5389,7 +5390,7 @@ function renderCustomerDefectPPM() {
         });
     }
 
-    // 3. คำนวณและวาดกราฟสะสม 12 เดือน (ม.ค. - ธ.ค. ของปีปัจจุบัน)
+    // 3. คำนวณข้อมูลกราฟ 12 เดือน (แยกตามเดือนอย่างแม่นยำ)
     const monthlyDelivery = new Array(12).fill(0);
     const monthlyClaimNg = new Array(12).fill(0);
     const monthLabels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -5397,9 +5398,27 @@ function renderCustomerDefectPPM() {
     deliveryData.forEach(d => {
         let dateStr = String(d.date || d['Date'] || d['วันที่'] || d['created_at'] || d['deliveryDate'] || '').trim();
         if (dateStr) {
-            let dObj = new Date(dateStr);
-            if (!isNaN(dObj.getTime()) && dObj.getFullYear() === currentYear) {
-                let mIndex = dObj.getMonth();
+            let mIndex = -1;
+            // เช็คเดือนจาก string ตรงๆ
+            for (let m = 1; m <= 12; m++) {
+                let mTwoDigit = String(m).padStart(2, '0');
+                if (dateStr.includes(`${currentYear}-${mTwoDigit}`) || 
+                    dateStr.includes(`${mTwoDigit}/${currentYear}`) || 
+                    dateStr.includes(`${currentYear}/${mTwoDigit}`)) {
+                    mIndex = m - 1;
+                    break;
+                }
+            }
+
+            // ถ้าไม่เจอ string ให้ parse ผ่าน Date object
+            if (mIndex === -1) {
+                let dObj = new Date(dateStr);
+                if (!isNaN(dObj.getTime()) && dObj.getFullYear() === currentYear) {
+                    mIndex = dObj.getMonth();
+                }
+            }
+
+            if (mIndex >= 0 && mIndex < 12) {
                 let qty = Number(d.qty !== undefined ? d.qty : (d['Delivery Qty'] || d['Qty'] || d['ยอดส่งมอบ'] || 0));
                 monthlyDelivery[mIndex] += (isNaN(qty) ? 0 : qty);
             }
@@ -5417,13 +5436,25 @@ function renderCustomerDefectPPM() {
 
     const monthlyPpmValues = [];
     const bgColors = [];
+    const borderColors = [];
 
     for (let i = 0; i < 12; i++) {
         let delQty = monthlyDelivery[i];
         let ngQty = monthlyClaimNg[i];
         let ppm = delQty > 0 ? (ngQty / delQty) * 1000000 : 0;
+        
         monthlyPpmValues.push(Number(ppm.toFixed(2)));
-        bgColors.push(ppm > 0 ? '#ef4444' : '#10b981');
+
+        if (ppm > 0) {
+            bgColors.push('#ef4444');
+            borderColors.push('#b91c1c');
+        } else if (delQty > 0) {
+            bgColors.push('rgba(16, 185, 129, 0.6)');
+            borderColors.push('#10b981');
+        } else {
+            bgColors.push('rgba(255, 255, 255, 0.05)');
+            borderColors.push('rgba(255, 255, 255, 0.2)');
+        }
     }
 
     if (window.customerPpmChartInstance instanceof Chart) {
@@ -5439,6 +5470,8 @@ function renderCustomerDefectPPM() {
                 label: `PPM สะสม ปี ${currentYear}`,
                 data: monthlyPpmValues,
                 backgroundColor: bgColors,
+                borderColor: borderColors,
+                borderWidth: 1.5,
                 borderRadius: 4
             }]
         },
@@ -5449,16 +5482,16 @@ function renderCustomerDefectPPM() {
             plugins: {
                 legend: { 
                     display: true,
-                    labels: { color: '#ffffff', font: { size: 12 } }
+                    labels: { color: '#ffffff', font: { size: 11 } }
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
                             let idx = context.dataIndex;
                             return [
-                                `PPM: ${context.raw}`,
-                                `ยอดส่งมอบ: ${monthlyDelivery[idx].toLocaleString()} ชิ้น`,
-                                `NG หลุด: ${monthlyClaimNg[idx].toLocaleString()} ชิ้น`
+                                `PPM สะสมรวม: ${context.raw}`,
+                                `ยอดส่งมอบรวม: ${monthlyDelivery[idx].toLocaleString()} ชิ้น`,
+                                `NG หลุดรวม: ${monthlyClaimNg[idx].toLocaleString()} ชิ้น`
                             ];
                         }
                     }
@@ -5467,6 +5500,7 @@ function renderCustomerDefectPPM() {
             scales: {
                 y: {
                     beginAtZero: true,
+                    // ไม่ล็อก max เพื่อให้แกน Y ขยายตามค่า PPM จริงอัตโนมัติ
                     ticks: { color: '#ffffff' },
                     grid: { color: 'rgba(255, 255, 255, 0.1)' },
                     title: { display: true, text: 'PPM', color: '#ffffff' }
