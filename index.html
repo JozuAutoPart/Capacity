@@ -2493,7 +2493,7 @@ function exportFilteredProductionReport() {
     window.open('print-production.html', '_blank');
 }
 // ==========================================
-// 📌 ระบบจัดการ Q-Gate Inspection & History (สมบูรณ์และเสถียร 100%)
+// 📌 ระบบจัดการ Q-Gate Inspection & History (แก้ปัญหาตัวอักษรตัวแรกหาย 100%)
 // ==========================================
 
 // 🔒 ตัวแปรระบบล็อกคีย์มือและรหัสผ่านสำหรับปลดล็อก
@@ -2541,7 +2541,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (ระบบ Buffer ป้องกันอักษรตัวแรกหลุดหายและแปลง Barcode อัตโนมัติ)
+// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (แก้ปัญหาอักษรตัวแรกหลุดและแปลง Barcode อัตโนมัติ)
 let qgateLastKeyTime = 0;
 let qgateScanTimeout = null;
 let qgateScannedChars = "";
@@ -2559,6 +2559,10 @@ document.addEventListener('DOMContentLoaded', () => {
         qgateInputEl.addEventListener('keydown', function(e) {
             if (isQGateManualUnlocked) return; // ถ้าปลดล็อกแล้ว ให้พิมพ์ได้ปกติ
             if (e.key === 'Tab' || e.key === 'Escape') return;
+
+            let currentTime = Date.now();
+            let timeDiff = currentTime - qgateLastKeyTime;
+            qgateLastKeyTime = currentTime;
 
             // 🎯 กรณีเครื่องสแกนส่งสัญญาณจบชุด (Enter)
             if (e.key === 'Enter') {
@@ -2662,12 +2666,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // ⛔ ตรวจจับการพิมพ์มือ (ถ้าพิมพ์ช้ากว่า 50ms)
-            let currentTime = Date.now();
-            let timeDiff = currentTime - qgateLastKeyTime;
-            qgateLastKeyTime = currentTime;
-
-            if (timeDiff > 50 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
+            // ⛔ ตรวจจับการพิมพ์มือ (เช็คเฉพาะเมื่อเริ่มมีตัวอักษรสะสมในชุดแล้วพิมพ์ช้ากว่า 50ms)
+            if (qgateScannedChars.length > 0 && timeDiff > 50 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
                 e.preventDefault();
                 qgateScannedChars = "";
                 this.value = "";
