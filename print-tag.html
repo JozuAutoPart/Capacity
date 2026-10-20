@@ -418,7 +418,19 @@
             "743L4 5EK0A": { partName: "BRKT-FR SEAT MTG, RH  ", qty: 50, code: "TMC023" },
             "743L5 5EK0A": { partName: " BRKT-FR SEAT MTG, LH  ", qty: 50, code: "TMC024" }
         };
-
+  // กำหนดเงื่อนไขเปลี่ยนชื่อบริษัทตาม Code (STEM, FTS, TMC, MSFT, TH)
+            let companyName = "STEM"; 
+            if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
+                companyName = "FTS";
+            } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
+                companyName = "TMC";
+            } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
+                companyName = "MSFT";
+            } else if (tagCode.includes("TH") || tagCode.startsWith("H")) {
+                companyName = "TH";
+            } else {
+                companyName = "STEM";
+            }
         function getUrlParams() {
             const params = new URLSearchParams(window.location.search);
             const pNo = params.get('partNo') || '55366-KK020';
