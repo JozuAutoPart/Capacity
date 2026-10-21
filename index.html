@@ -1256,59 +1256,64 @@ if (dashDiffBalanceEl) {
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
 
-    // คำนวณข้อมูลแยกตามรายเดือน 12 เดือนจากข้อมูลจริง
+    // กรองข้อมูล actuals และ qgate ตาม Line ที่ผู้ใช้คลิกเลือก (currentFilterLine)
     let monthlyProdArr = new Array(12).fill(0);
     let monthlyNgArr = new Array(12).fill(0);
 
-    // ประมวลผลยอดผลิตรายเดือนจาก actuals
-    if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
-        actuals.forEach(a => {
-            let aPart = String(a["Part No."] || a.partNo || '').trim();
-            if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
+    const filteredActuals = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals.filter(a => {
+        if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
+        let alineRaw = a["Line/MC"] || a.line || a.Line || '';
+        let aline = String(String(alineRaw).split('/')[0] || '').trim();
+        return aline === String(currentFilterLine).trim();
+    }) : [];
 
-            let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
-            let monthIndex = 9; // ค่าเริ่มต้นเดือน ต.ค. (index 9)
-            if (dateVal) {
-                let d = new Date(dateVal);
-                if (!isNaN(d.getTime())) {
-                    monthIndex = d.getMonth(); // 0 = ม.ค., 9 = ต.ค.
-                }
+    filteredActuals.forEach(a => {
+        let aPart = String(a["Part No."] || a.partNo || '').trim();
+        if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
+
+        let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
+        let monthIndex = 9; // ค่าเริ่มต้นเดือน ต.ค.
+        if (dateVal) {
+            let d = new Date(dateVal);
+            if (!isNaN(d.getTime())) {
+                monthIndex = d.getMonth();
             }
+        }
 
-            let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
-            let val = Number(rawQty) || 0;
-            monthlyProdArr[monthIndex] += val;
-        });
-    } else {
-        monthlyProdArr[9] = totalProduction;
-    }
+        let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
+        let val = Number(rawQty) || 0;
+        monthlyProdArr[monthIndex] += val;
+    });
 
-    // ประมวลผลของเสียรายเดือนจาก qgate
-    if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        qgate.forEach(q => {
-            let dateVal = q["Date"] || q.date || q.Timestamp || q.timestamp || '';
-            let monthIndex = 9;
-            if (dateVal) {
-                let d = new Date(dateVal);
-                if (!isNaN(d.getTime())) {
-                    monthIndex = d.getMonth();
-                }
+    const filteredQGate = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate.filter(q => {
+        if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
+        let qLineRaw = q.line || q['Line/MC'] || q.Line || '';
+        let qLine = String(qLineRaw).toLowerCase().trim();
+        let targetLine = String(currentFilterLine).toLowerCase().trim();
+        return qLine.includes(targetLine) || targetLine.includes(qLine);
+    }) : [];
+
+    filteredQGate.forEach(q => {
+        let dateVal = q["Date"] || q.date || q.Timestamp || q.timestamp || '';
+        let monthIndex = 9;
+        if (dateVal) {
+            let d = new Date(dateVal);
+            if (!isNaN(d.getTime())) {
+                monthIndex = d.getMonth();
             }
-            let rawNg = q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] !== undefined ? q['NG Qty'] : (q.ng || q.NG || 0));
-            monthlyNgArr[monthIndex] += Number(rawNg) || 0;
-        });
-    } else {
-        monthlyNgArr[9] = totalNg;
-    }
+        }
+        let rawNg = q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] !== undefined ? q['NG Qty'] : (q.ng || q.NG || 0));
+        monthlyNgArr[monthIndex] += Number(rawNg) || 0;
+    });
 
-    // ดึงข้อมูลเฉพาะของ "เดือนปัจจุบัน" มาแสดงในการ์ดขวามือ
-    const currentMonthIndex = new Date().getMonth(); // เดือนปัจจุบันของระบบ (เช่น 9 สำหรับ ตุลาคม)
-    let currentMonthProd = monthlyProdArr[currentMonthIndex] > 0 ? monthlyProdArr[currentMonthIndex] : (monthlyProdArr[9] || totalProduction);
+    // ดึงข้อมูลเฉพาะของ "เดือนปัจจุบัน" ตาม Line ที่เลือก
+    const currentMonthIndex = new Date().getMonth(); 
+    let currentMonthProd = monthlyProdArr[currentMonthIndex] > 0 ? monthlyProdArr[currentMonthIndex] : totalProduction;
     let currentMonthNg = monthlyNgArr[currentMonthIndex] !== undefined ? monthlyNgArr[currentMonthIndex] : totalNg;
 
     const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
 
-    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ (ยอดเดือนปัจจุบัน)
+    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ (เฉพาะ Line ที่เลือก)
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
@@ -1333,7 +1338,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     }
 
-    // วาดกราฟแท่งผสมรายเดือน 12 เดือน (Combo Chart)
+    // วาดกราฟแท่งผสมรายเดือน 12 เดือน (Combo Chart) ตาม Line ที่เลือก
     const canvasEl = document.getElementById('defectPpmChart');
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
@@ -1410,7 +1415,8 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
             }
         }
     });
-}       // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
+}       
+    // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
 // กำหนดสัดส่วน Stroke ต่อชั่วโมง (สามารถปรับเปลี่ยนตามหน้างานจริงได้ครับ เช่น 1 ชั่วโมงทำได้กี่ Stroke)
