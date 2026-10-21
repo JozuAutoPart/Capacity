@@ -2857,7 +2857,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // ⛔ ตรวจจับการพิมพ์มือ (เช็คเฉพาะเมื่อเริ่มมีตัวอักษรสะสมในชุดแล้วพิมพ์ช้ากว่า 50ms)
+            // ⛔ ตรวจจับการพิมพ์มือ
             if (qgateScannedChars.length > 0 && timeDiff > 50 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
                 e.preventDefault();
                 qgateScannedChars = "";
@@ -2866,10 +2866,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             }
 
-            // สะสมตัวอักษรสำหรับเครื่องสแกน
             if (e.key.length === 1) {
                 qgateScannedChars += e.key;
-                
                 clearTimeout(qgateScanTimeout);
                 qgateScanTimeout = setTimeout(() => {
                     qgateScannedChars = "";
@@ -3029,7 +3027,7 @@ function submitQGateTransaction(e) {
         window.qgate = [newItem];
     }
 
-    // 🔑 สำคัญ: บันทึกข้อมูลลงใน localStorage ทันที เพื่อให้หน้ารายงานประจำวันอ่านข้อมูลได้
+    // บันทึกข้อมูลลงใน localStorage ทันที
     localStorage.setItem('qgate', JSON.stringify(window.qgate));
 
     renderQGate();
@@ -3059,7 +3057,7 @@ function submitQGateTransaction(e) {
     }
 }
 
-// 📌 ฟังก์ชันบันทึกเวลากิจกรรมอื่นๆ (Non-Inspection Time / Downtime)
+// 📌 ฟังก์ชันบันทึกเวลากิจกรรมอื่นๆ
 function submitQGateOtherTransaction(e) {
     e.preventDefault();
 
@@ -3099,7 +3097,7 @@ function submitQGateOtherTransaction(e) {
     document.getElementById('qgateOtherForm').reset();
 }
 
-// ฟังก์ชันลบรายการ Q-Gate แบบใส่รหัสผ่าน
+// ฟังก์ชันลบรายการ Q-Gate
 function deleteQGateItem(id) {
     let password = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบข้อมูล Q-Gate:");
     
@@ -3119,7 +3117,7 @@ function deleteQGateItem(id) {
     }
 }
 
-// ฟังก์ชันโหลด Part No. จาก Stock WIP มาแสดงที่หน้า Q-Gate
+// ฟังก์ชันโหลด Part No. จาก Stock WIP
 function checkAndLoadWipForQGate() {
     const selectPart = document.getElementById('qgatePartNo');
     if (!selectPart) return;
@@ -3345,6 +3343,25 @@ if (typeof window.originalRenderQGate === 'undefined') {
         renderQGateSafetyStockList();
     };
 }
+
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงานแบบชัวร์ 100% (แก้ปัญหา ReferenceError และชื่อไฟล์ GitHub)
+window.openQGateReport = function() {
+    const dateEl = document.getElementById('filterQGateDate');
+    const inspectorEl = document.getElementById('filterQGateInspector');
+    
+    const selectedDate = dateEl ? dateEl.value.trim() : '';
+    const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
+
+    const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
+    
+    console.log("Opening report page:", reportUrl);
+
+    const win = window.open(reportUrl, '_blank');
+
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+        window.location.href = reportUrl;
+    }
+};
 
 document.addEventListener("DOMContentLoaded", function() {
     setTimeout(renderQGateSafetyStockList, 1000);
