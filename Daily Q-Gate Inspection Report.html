@@ -35,7 +35,6 @@
         .table-bordered, .table-bordered th, .table-bordered td {
             border-color: #000 !important;
         }
-        /* ปุ่มลอยสำหรับสั่งพิมพ์และปิด (ซ่อนตอนปริ้นท์) */
         .floating-buttons {
             position: fixed;
             top: 20px;
@@ -71,8 +70,8 @@
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
             <div>
-                <h5 class="fw-bold m-0">บริษัท โยสุ ออโต้ พาร์ท จำกัด </h5>
-                <small class="text-muted">(Jozu Auto Part Co., Ltd.)</small>
+                <h5 class="fw-bold m-0">บริษัท โจชู ออโต้ พาร์ท จำกัด (Jozu Auto Part Co., Ltd.)</h5>
+                <small class="text-muted">ระบบบริหารจัดการคุณภาพ และการตรวจสอบสินค้า (Q-Gate Inspection System)</small>
             </div>
             <div class="text-end">
                 <h4 class="fw-bold m-0 text-uppercase">ใบรายงานการตรวจสอบ Q-Gate ประจำวัน</h4>
@@ -168,85 +167,39 @@
     </div>
 
     <!-- JavaScript Script -->
- <!-- JavaScript Script -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date') || '';
             const paramInspector = urlParams.get('inspector') || '';
 
-            // แสดงวันที่และพนักงานที่หัวกระดาษ
             document.getElementById('lblDate').innerText = paramDate ? paramDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-            // 1. ดึงข้อมูลจากหน้าหลัก (window.opener) ก่อน ถ้าไม่มีค่อยดึงจาก LocalStorage
+            // ดึงข้อมูลทั้งหมดจาก LocalStorage ที่หน้าหลักใช้อยู่ (รองรับทุกชื่อคีย์)
             let qgateData = [];
             try {
-                if (window.opener && window.opener.qgate && Array.isArray(window.opener.qgate) && window.opener.qgate.length > 0) {
-                    qgateData = window.opener.qgate;
-                } else if (window.opener && window.opener.localStorage) {
-                    let mainLocal = window.opener.localStorage.getItem('qgate') || window.opener.localStorage.getItem('qgate_logs');
-                    if (mainLocal) qgateData = JSON.parse(mainLocal);
-                }
-            } catch (e) {
-                console.log("Cannot access opener:", e);
-            }
-
-            if (qgateData.length === 0) {
                 qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+            } catch (e) {
+                qgateData = [];
             }
 
-            // 2. ฟังก์ชันแปลงวันที่ทุกรูปแบบให้อยู่ในฟอร์แมต YYYY-MM-DD เพื่อใช้เปรียบเทียบ
-            function normalizeDateStr(rawDate) {
-                if (!rawDate) return '';
-                let str = String(rawDate).trim();
-                
-                // ถ้าเป็น ISO Date สตรีม เช่น 2026-10-21T00:00:00.000Z
-                if (str.includes('T')) {
-                    str = str.split('T')[0];
-                }
-                
-                // ถ้าเป็น YYYY-MM-DD
-                if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-                    return str.substring(0, 10);
-                }
-                
-                // ถ้าเป็น DD/MM/YYYY
-                if (str.includes('/')) {
-                    let parts = str.split('/');
-                    if (parts.length === 3) {
-                        let day = parts[0].padStart(2, '0');
-                        let month = parts[1].padStart(2, '0');
-                        let year = parts[2];
-                        return `${year}-${month}-${day}`;
-                    }
-                }
-
-                // พยายามแปลงผ่าน Date Object
-                const d = new Date(rawDate);
-                if (!isNaN(d.getTime())) {
-                    const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-                    return localD.toISOString().split('T')[0];
-                }
-
-                return str;
-            }
-
-            const cleanTargetDate = normalizeDateStr(paramDate);
-            const cleanTargetIns = paramInspector.trim().toLowerCase();
-
-            // 3. กรองข้อมูลแบบสม่ำเสมอ
+            // กรองข้อมูลโดยเทียบวันที่ (10 หลักแรก) และชื่อพนักงานแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
             let filtered = qgateData.filter(q => {
-                let itemDate = normalizeDateStr(q.date || q.Date || q.created_at);
-                let itemIns = String(q.inspector || q.opName || q.OP || q.empId || q.inspectorName || '').trim().toLowerCase();
+                let qDate = '';
+                if (q.date) {
+                    qDate = String(q.date).substring(0, 10);
+                }
+                
+                let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
 
-                let matchDate = !cleanTargetDate || itemDate === cleanTargetDate || itemDate.includes(cleanTargetDate);
-                let matchIns = !cleanTargetIns || itemIns === cleanTargetIns || itemIns.includes(cleanTargetIns);
+                let matchDate = !paramDate || qDate === paramDate;
+                let matchIns = !paramInspector || qIns.toLowerCase() === paramInspector.toLowerCase();
 
                 return matchDate && matchIns;
             });
 
-            // 4. วาดตารางตรวจชิ้นงาน
+            // 1. วาดตารางตรวจชิ้นงาน
             const tblInsp = document.getElementById('tblInspectionBody');
             tblInsp.innerHTML = '';
 
@@ -254,12 +207,12 @@
             let currentLine = '-';
 
             if (filtered.length === 0) {
-                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไขที่เลือก</td></tr>';
+                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ' + paramDate + ', พนักงาน: ' + paramInspector + ')</td></tr>';
             } else {
                 filtered.forEach((item, index) => {
-                    let qty = Number(item.totalQty !== undefined ? item.totalQty : (item.qty || item['Check Qty'] || 0));
-                    let ng = Number(item.ngQty !== undefined ? item.ngQty : (item.ng || 0));
-                    let pass = Number(item.passQty !== undefined ? item.passQty : (qty - ng));
+                    let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
+                    let ng = Number(item.ngQty || item.ng || 0);
+                    let pass = Number(item.passQty || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
                     
                     if (item.line || item.Line) currentLine = item.line || item.Line;
@@ -284,24 +237,12 @@
 
             document.getElementById('lblLine').innerText = currentLine;
 
-            // 5. วาดตารางกิจกรรมอื่นๆ (Non-Inspection)
-            let otherData = [];
-            try {
-                if (window.opener && window.opener.localStorage) {
-                    let oLocal = window.opener.localStorage.getItem('qgate_other_logs');
-                    if (oLocal) otherData = JSON.parse(oLocal);
-                }
-            } catch (e) {}
-            if (otherData.length === 0) {
-                otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
-            }
-
+            // 2. วาดตารางกิจกรรมอื่นๆ
+            let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
             let filteredOther = otherData.filter(o => {
-                let oDate = normalizeDateStr(o.date);
-                let oIns = String(o.inspector || '').trim().toLowerCase();
-                let matchDate = !cleanTargetDate || oDate === cleanTargetDate;
-                let matchIns = !cleanTargetIns || oIns === cleanTargetIns;
-                return matchDate && matchIns;
+                let oDate = o.date ? String(o.date).substring(0, 10) : '';
+                let oIns = String(o.inspector || '').trim();
+                return (!paramDate || oDate === paramDate) && (!paramInspector || oIns.toLowerCase() === paramInspector.toLowerCase());
             });
 
             const tblOther = document.getElementById('tblOtherActivityBody');
@@ -323,7 +264,7 @@
                 });
             }
 
-            // 6. สรุปผลยอดรวม
+            // 3. สรุปผลยอดรวม
             document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
             document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
             document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
