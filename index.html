@@ -2877,7 +2877,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 📌 ฟังก์ชันอัปเดตรายชื่อ Inspector ใส่ Dropdown กรอง
-// 📌 ฟังก์ชันอัปเดตรายชื่อ Inspector ใส่ Dropdown กรอง
 function updateQGateInspectorDropdown() {
     const sel = document.getElementById('filterQGateInspector');
     if (!sel) return;
@@ -2889,7 +2888,6 @@ function updateQGateInspectorDropdown() {
         qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
     }
 
-    // ดึงค่าจากฟิลด์ inspector ตรงๆ ตามโครงสร้างจริง
     let inspectors = qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean);
     let uniqueInspectors = [...new Set(inspectors)].sort();
 
@@ -2981,7 +2979,8 @@ function renderQGate() {
         }
     }
 }
-// ฟังก์ชันบันทึกข้อมูล Q-Gate
+
+// 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate (พร้อมเซฟลง localStorage อัตโนมัติเพื่อให้หน้ารายงานดึงข้อมูลได้ทันที)
 function submitQGateTransaction(e) {
     e.preventDefault();
     
@@ -3021,9 +3020,15 @@ function submitQGateTransaction(e) {
         passQty: passQty
     };
 
-    if (typeof qgate !== 'undefined') {
+    if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
         qgate.unshift(newItem);
+    } else {
+        window.qgate = [newItem];
     }
+
+    // 🔑 สำคัญ: บันทึกข้อมูลลงใน localStorage ทันที เพื่อให้หน้ารายงานประจำวันอ่านข้อมูลได้
+    localStorage.setItem('qgate', JSON.stringify(window.qgate));
+
     renderQGate();
     updateQGateInspectorDropdown();
 
@@ -3038,6 +3043,8 @@ function submitQGateTransaction(e) {
     
     const wipHint = document.getElementById('qgateWipHint');
     if(wipHint) wipHint.innerText = '';
+
+    alert("✅ บันทึกผลการตรวจ Q-Gate สำเร็จ!");
 
     if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
         fetch(GOOGLE_SCRIPT_URL, {
@@ -3065,11 +3072,10 @@ function submitQGateOtherTransaction(e) {
         return;
     }
 
-    // คำนวณเวลาสะสมเป็นนาที
     let [startH, startM] = startTime.split(':').map(Number);
     let [endH, endM] = endTime.split(':').map(Number);
     let durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-    if (durationMinutes < 0) durationMinutes += 24 * 60; // ข้ามวัน
+    if (durationMinutes < 0) durationMinutes += 24 * 60;
 
     const newOtherItem = {
         id: Date.now(),
@@ -3097,6 +3103,7 @@ function deleteQGateItem(id) {
     if (password === "1234") {
         if (typeof qgate !== 'undefined') {
             qgate = qgate.filter(item => item.id !== id);
+            localStorage.setItem('qgate', JSON.stringify(qgate));
         }
         renderQGate();
         updateQGateInspectorDropdown();
