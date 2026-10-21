@@ -178,12 +178,22 @@
     <!-- JavaScript Script -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้ (YYYY-MM-DD)
+            // 📌 รับค่า URL Parameters ที่ส่งมาจากหน้าหลัก (date และ inspector)
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramDate = urlParams.get('date');
+            const paramInspector = urlParams.get('inspector');
+
+            // ตั้งค่าวันที่
             const today = new Date().toISOString().split('T')[0];
-            document.getElementById('reportDate').value = today;
+            document.getElementById('reportDate').value = paramDate || today;
             
             // โหลดรายชื่อพนักงานใส่ Dropdown
             populateInspectors();
+
+            // ถ้ามีพนักงานส่งมา ให้เลือกพนักงานนั้นทันที
+            if (paramInspector) {
+                document.getElementById('reportInspector').value = paramInspector;
+            }
 
             // โหลดข้อมูลรายงาน
             loadReportData();
@@ -193,9 +203,7 @@
             const sel = document.getElementById('reportInspector');
             if (!sel) return;
 
-            // ดึงข้อมูลจาก LocalStorage (รองรับทั้ง 'qgate' และ 'qgate_logs')
             let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-            
             let inspectors = [...new Set(qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean))];
             
             sel.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
@@ -214,7 +222,6 @@
             document.getElementById('lblDate').innerText = selectedDate ? selectedDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = selectedInspector || 'พนักงานทั้งหมด';
 
-            // ดึงข้อมูลจาก LocalStorage
             let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
 
             // กรองข้อมูลตามวันที่และพนักงาน
@@ -246,7 +253,7 @@
             let currentLine = '-';
 
             if (filtered.length === 0) {
-                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลการตรวจสอบในช่วงเวลานี้</td></tr>';
+                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไขที่เลือก</td></tr>';
             } else {
                 filtered.forEach((item, index) => {
                     let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
