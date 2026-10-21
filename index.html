@@ -833,28 +833,6 @@
     </div>
 </div>
 
-<!-- Script ประกาศฟังก์ชันเปิดรายงานเข้า window โดยตรง -->
-<script>
-    window.openQGateReport = function() {
-        const dateEl = document.getElementById('filterQGateDate');
-        const inspectorEl = document.getElementById('filterQGateInspector');
-        
-        const selectedDate = dateEl ? dateEl.value.trim() : '';
-        const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
-
-        // พาธชื่อไฟล์ตรงกับที่มีใน GitHub (%20)
-        const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
-        
-        console.log("Opening report page:", reportUrl);
-
-        const win = window.open(reportUrl, '_blank');
-
-        // หากโดน Pop-up blocker ของเบราว์เซอร์กั้น ให้เปิดในหน้าปัจจุบันทันที
-        if (!win || win.closed || typeof win.closed === 'undefined') {
-            window.location.href = reportUrl;
-        }
-    };
-</script>
             <!-- TAB 6: STOCK WIP & FG -->
             <div class="tab-pane fade" id="tab-stock">
                 <div class="row g-3">
@@ -3355,18 +3333,20 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงานแบบชัวร์ 100% (ผูกเข้ากับ window ป้องกัน Error "is not defined")
 window.openQGateReport = function() {
-    const dateEl = document.getElementById('filterQGateDate');
-    const inspectorEl = document.getElementById('filterQGateInspector');
+    // ดึงค่าวันที่และชื่อพนักงานจากช่องตัวกรองบนหน้าจอ ณ ปัจจุบัน
+    const dateEl = document.getElementById('filterQGateDate') || document.getElementById('qgateDate');
+    const inspectorEl = document.getElementById('filterQGateInspector') || document.getElementById('qgateInspector');
     
     const selectedDate = dateEl ? dateEl.value.trim() : '';
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
+    // ประกอบ URL พร้อมแนบพารามิเตอร์ date และ inspector
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
     
-    console.log("Opening report page:", reportUrl);
+    console.log("กำลังเปิดหน้ารายงานพร้อมพารามิเตอร์:", reportUrl);
 
+    // เปิดหน้าต่างรายงานใหม่
     const win = window.open(reportUrl, '_blank');
 
     if (!win || win.closed || typeof win.closed === 'undefined') {
