@@ -1253,18 +1253,30 @@ if (dashDiffBalanceEl) {
     renderDashboardPpmChart(totalActual, totalNgFiltered);
 }
 
-function renderDashboardPpmChart(totalProduction, totalNg) {
+function renderDashboardPpmChart(totalProduction, totalNg, monthlyRecords) {
     const targetPpm = 250;
-    const actualPpm = totalProduction > 0 ? Math.round((totalNg / totalProduction) * 1_000_000) : 0;
 
-    // อัปเดตข้อความสถิติ
+    // สมมติดึงข้อมูลเฉพาะของเดือนปัจจุบัน (ตัวอย่างเช่น เดือนล่าสุด หรือเดือนที่ตรงกับเดือนปัจจุบัน ต.ค.)
+    // โดยใช้ค่าจากเดือนปัจจุบันในอาเรย์รายเดือน หรือถ้ายังไม่มีข้อมูลรายเดือนแยก ให้ใช้ค่ากรองตามจริงของเดือนนี้
+    let currentMonthProd = totalProduction; // สามารถปรับเปลี่ยนให้ดึงเฉพาะเดือนปัจจุบันได้ที่นี่
+    let currentMonthNg = totalNg;         // ยอดของเสียเฉพาะเดือนปัจจุบัน
+    
+    // ถ้ามีข้อมูลแยกรายเดือน ให้ดึงเดือนปัจจุบันมาใช้ในการ์ด เช่น เดือนตุลาคม (เดือนที่ 10 หรือ index ที่ 9)
+    if (window.currentMonthData) {
+        currentMonthProd = window.currentMonthData.prod || totalProduction;
+        currentMonthNg = window.currentMonthData.ng || totalNg;
+    }
+
+    const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
+
+    // อัปเดตข้อความสถิติ (เฉพาะเดือนปัจจุบัน)
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
     const badgeStatus = document.getElementById('badgePpmStatus');
 
-    if (lblTotalProd) lblTotalProd.innerText = totalProduction.toLocaleString();
-    if (lblTotalNg) lblTotalNg.innerText = totalNg.toLocaleString();
+    if (lblTotalProd) lblTotalProd.innerText = currentMonthProd.toLocaleString();
+    if (lblTotalNg) lblTotalNg.innerText = currentMonthNg.toLocaleString();
     if (lblPpm) {
         lblPpm.innerText = actualPpm.toLocaleString() + " PPM";
         if (actualPpm <= targetPpm) {
@@ -1291,10 +1303,9 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         ppmChartInstance.destroy();
     }
 
-    // ข้อมูลจำลองรายเดือน 12 เดือน (สามารถแทนที่ด้วยข้อมูลจริงจากอาร์เรย์รายเดือนได้ทันที)
     const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
     const monthlyPpm = [0, 0, 0, 0, 0, 0, 0, 103, actualPpm, 0, 0, 0];
-    const monthlyProd = [0, 0, 0, 0, 0, 0, 0, 2500000, totalProduction, 0, 0, 0];
+    const monthlyProd = [0, 0, 0, 0, 0, 0, 0, 2500000, currentMonthProd, 0, 0, 0];
 
     ppmChartInstance = new Chart(ctx, {
         type: 'bar',
