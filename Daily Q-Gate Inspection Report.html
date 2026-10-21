@@ -162,7 +162,7 @@
 
    <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // 1. อ่านค่า Date และ Inspector จาก URL ที่ส่งมาจากหน้าหลัก
+            // 1. อ่านค่า Date และ Inspector จาก URL
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date') || '';
             const paramInspector = urlParams.get('inspector') || '';
@@ -171,22 +171,12 @@
             document.getElementById('lblDate').innerText = paramDate ? paramDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-            // 3. ดึงข้อมูลจาก localStorage ที่หน้าหลักบันทึกไว้
+            // 3. ดึงข้อมูลจาก localStorage
             let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
 
-            // 4. กรองข้อมูลตาม Date และ Inspector ที่ส่งมา
+            // 4. กรองข้อมูลแบบยืดหยุ่น (เทียบรหัสพนักงานและวันที่ตัดเอาเฉพาะ 10 หลักแรก YYYY-MM-DD)
             let filtered = qgateData.filter(q => {
-                let qDate = '';
-                if (q.date) {
-                    const d = new Date(q.date);
-                    if (!isNaN(d.getTime())) {
-                        const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-                        qDate = localD.toISOString().split('T')[0];
-                    } else {
-                        qDate = String(q.date).substring(0, 10);
-                    }
-                }
-
+                let qDate = q.date ? String(q.date).substring(0, 10) : '';
                 let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
 
                 let matchDate = !paramDate || qDate === paramDate;
@@ -236,8 +226,10 @@
             // 6. วาดตารางกิจกรรมอื่นๆ (Non-Inspection)
             let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
             let filteredOther = otherData.filter(o => {
-                let matchDate = !paramDate || o.date === paramDate;
-                let matchIns = !paramInspector || String(o.inspector || '').trim().toLowerCase() === paramInspector.toLowerCase();
+                let oDate = o.date ? String(o.date).substring(0, 10) : '';
+                let oIns = String(o.inspector || '').trim();
+                let matchDate = !paramDate || oDate === paramDate;
+                let matchIns = !paramInspector || oIns.toLowerCase() === paramInspector.toLowerCase();
                 return matchDate && matchIns;
             });
 
