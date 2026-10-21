@@ -58,11 +58,11 @@
             <div class="d-flex align-items-center gap-3">
                 <div class="input-group input-group-sm" style="width: 220px;">
                     <span class="input-group-text bg-secondary text-white border-secondary">เลือกวันที่:</span>
-                    <input type="date" id="reportDate" class="form-control" onchange="loadReportData()">
+                    <input type="date" id="reportDate" class="form-control" onchange="loadReportDataFromCloud()">
                 </div>
                 <div class="input-group input-group-sm" style="width: 260px;">
                     <span class="input-group-text bg-secondary text-white border-secondary">พนักงานตรวจ:</span>
-                    <select id="reportInspector" class="form-select" onchange="loadReportData()">
+                    <select id="reportInspector" class="form-select" onchange="loadReportDataFromCloud()">
                         <option value="">-- แสดงทั้งหมด --</option>
                     </select>
                 </div>
@@ -79,8 +79,8 @@
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
             <div>
-                <h5 class="fw-bold m-0">บริษัท โยสุ ออโต้ พาร์ท จำกัด (Jozu Auto Part Co., Ltd.)</h5>
-                <small class="text-muted">ร(Q-Gate Inspection Report)</small>
+                <h5 class="fw-bold m-0">บริษัท โจชู ออโต้ พาร์ท จำกัด (Jozu Auto Part Co., Ltd.)</h5>
+                <small class="text-muted">ระบบบริหารจัดการคุณภาพ และการตรวจสอบสินค้า (Q-Gate Inspection System)</small>
             </div>
             <div class="text-end">
                 <h4 class="fw-bold m-0 text-uppercase">ใบรายงานการตรวจสอบ Q-Gate ประจำวัน</h4>
@@ -111,7 +111,7 @@
                     </tr>
                 </thead>
                 <tbody id="tblInspectionBody">
-                    <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูลจาก Google Sheets...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -177,34 +177,49 @@
 
     <!-- JavaScript Script -->
     <script>
+        // ใช้ URL Google Script ตัวเดียวกับหน้าหลัก
+        const GOOGLE_SCRIPT_URL = typeof window.GOOGLE_SCRIPT_URL !== 'undefined' ? window.GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbw.../exec";
+
         document.addEventListener("DOMContentLoaded", function() {
-            // 📌 รับค่า URL Parameters ที่ส่งมาจากหน้าหลัก (date และ inspector)
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date');
             const paramInspector = urlParams.get('inspector');
 
-            // ตั้งค่าวันที่
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('reportDate').value = paramDate || today;
-            
-            // โหลดรายชื่อพนักงานใส่ Dropdown
-            populateInspectors();
 
-            // ถ้ามีพนักงานส่งมา ให้เลือกพนักงานนั้นทันที
-            if (paramInspector) {
-                document.getElementById('reportInspector').value = paramInspector;
-            }
-
-            // โหลดข้อมูลรายงาน
-            loadReportData();
+            // ดึงข้อมูลสดจาก Cloud มาเรนเดอร์ลงใบรายงาน
+            fetchReportData(paramInspector);
         });
 
-        function populateInspectors() {
+        function fetchReportData(targetInspector) {
+            if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('AKfycbw...')) {
+                fetch(GOOGLE_SCRIPT_URL + '?action=getQgate')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            window.reportFullData = data;
+                        } else {
+                            window.reportFullData = [];
+                        }
+                        processReport(targetInspector);
+                    })
+                    .catch(err => {
+                        console.error("Cloud fetch error, using local storage:", err);
+                        window.reportFullData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+                        processReport(targetInspector);
+                    });
+            } else {
+                window.reportFullData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+                processReport(targetInspector);
+            }
+        }
+
+        function processReport(targetInspector) {
             const sel = document.getElementById('reportInspector');
             if (!sel) return;
 
-            let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-            let inspectors = [...new Set(qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean))].sort();
+            let inspectors = [...new Set(window.reportFullData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean))].sort();
             
             sel.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
             inspectors.forEach(ins => {
@@ -213,18 +228,23 @@
                 opt.textContent = ins;
                 sel.appendChild(opt);
             });
+
+            if (targetInspector) {
+                sel.value = targetInspector;
+            }
+
+            loadReportDataFromCloud();
         }
 
-        function loadReportData() {
+        function loadReportDataFromCloud() {
             const selectedDate = document.getElementById('reportDate').value;
             const selectedInspector = document.getElementById('reportInspector').value;
 
             document.getElementById('lblDate').innerText = selectedDate ? selectedDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = selectedInspector || 'พนักงานทั้งหมด';
 
-            let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+            let qgateData = window.reportFullData || JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
 
-            // กรองข้อมูลตามวันที่และพนักงาน
             let filtered = qgateData.filter(q => {
                 let qDate = '';
                 if (q.date) {
