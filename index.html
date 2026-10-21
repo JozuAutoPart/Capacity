@@ -692,7 +692,7 @@
 
                     <div class="mb-3">
                         <label class="form-label text-warning small"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No. (บังคับสแกน)</label>
-                        <input type="text" id="qgatePartSearch" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดจาก Tag ที่นี่..." autocomplete="off">
+                        <input type="text" id="qgatePartSearch" class="form-control form-control-sm bg-dark text-warning border-warning" placeholder="คลิกยิงบาร์โค้ดจาก Tag ที่นี่..." autocomplete="off">
                     </div>
 
                     <div class="mb-2">
@@ -755,59 +755,59 @@
         </div>
 
         <!-- 2. ตรงกลาง: ตารางประวัติการตรวจ Q-Gate พร้อมแถบกรองและปุ่มพิมพ์รายงาน -->
-<div class="col-md-5">
-    <div class="card p-3 shadow-sm bg-dark text-white">
-        <!-- แถบ Filter และ ปุ่มควบคุม (จัดระเบียบใหม่ไม่ให้เบียดกัน) -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom border-secondary">
-            <h5 class="m-0 fs-6 text-warning"><i class="fas fa-history me-1"></i>ประวัติการตรวจ Q-Gate</h5>
-            
-            <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
-                <!-- ตัวเลือกกรองวันที่ -->
-                <div class="input-group input-group-sm" style="width: auto;">
-                    <span class="input-group-text bg-secondary text-white border-secondary px-1" style="font-size: 11px;">วันที่</span>
-                    <input type="date" id="filterQGateDate" class="form-control form-control-sm bg-dark text-white border-secondary" style="font-size: 11px; width: 120px;" onchange="filterQGateHistory()">
-                </div>
-                
-                <!-- ตัวเลือกกรองพนักงาน (ขยายความกว้างให้พอดี ไม่โดนบีบ) -->
-                <div class="input-group input-group-sm" style="width: auto;">
-                    <span class="input-group-text bg-secondary text-white border-secondary px-1" style="font-size: 11px;">พนักงาน</span>
-                    <select id="filterQGateInspector" class="form-select form-select-sm bg-dark text-white border-secondary" style="font-size: 11px; min-width: 150px; z-index: 10;" onchange="filterQGateHistory()">
-                        <option value="">-- พนักงานทั้งหมด --</option>
-                    </select>
+        <div class="col-md-5">
+            <div class="card p-3 shadow-sm bg-dark text-white">
+                <!-- แถบ Filter และ ปุ่มควบคุม -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 pb-2 border-bottom border-secondary">
+                    <h5 class="m-0 fs-6 text-warning"><i class="fas fa-history me-1"></i>ประวัติการตรวจ Q-Gate</h5>
+                    
+                    <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
+                        <!-- ตัวเลือกกรองวันที่ -->
+                        <div class="input-group input-group-sm" style="width: auto;">
+                            <span class="input-group-text bg-secondary text-white border-secondary px-1" style="font-size: 11px;">วันที่</span>
+                            <input type="date" id="filterQGateDate" class="form-control form-control-sm bg-dark text-white border-secondary" style="font-size: 11px; width: 120px;" onchange="filterQGateHistory()">
+                        </div>
+                        
+                        <!-- ตัวเลือกกรองพนักงาน -->
+                        <div class="input-group input-group-sm" style="width: auto;">
+                            <span class="input-group-text bg-secondary text-white border-secondary px-1" style="font-size: 11px;">พนักงาน</span>
+                            <select id="filterQGateInspector" class="form-select form-select-sm bg-dark text-white border-secondary" style="font-size: 11px; min-width: 150px; z-index: 10;" onchange="filterQGateHistory()">
+                                <option value="">-- พนักงานทั้งหมด --</option>
+                            </select>
+                        </div>
+
+                        <!-- ปุ่มพิมพ์ใบรายงาน (อัปเดตให้ส่งค่าพารามิเตอร์) -->
+                        <button onclick="openQGateReport()" class="btn btn-primary btn-sm py-1 px-2" style="font-size: 11px;" title="พิมพ์ใบรายงานประจำวัน">
+                            <i class="fas fa-print me-1"></i> พิมพ์รายงาน
+                        </button>
+
+                        <!-- ปุ่ม Export Excel -->
+                        <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm py-1 px-2" style="font-size: 11px;" title="Export Excel">
+                            <i class="fas fa-file-excel me-1"></i> Export
+                        </button>
+                    </div>
                 </div>
 
-                <!-- ปุ่มพิมพ์ใบรายงาน -->
-                <a href="Daily Q-Gate Inspection Report.html" target="_blank" class="btn btn-primary btn-sm py-1 px-2" style="font-size: 11px;" title="พิมพ์ใบรายงานประจำวัน">
-                    <i class="fas fa-print me-1"></i> พิมพ์รายงาน
-                </a>
-
-                <!-- ปุ่ม Export Excel -->
-                <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm py-1 px-2" style="font-size: 11px;" title="Export Excel">
-                    <i class="fas fa-file-excel me-1"></i> Export
-                </button>
+                <!-- ตารางประวัติ -->
+                <div class="table-responsive" style="max-height: 720px; overflow-y: auto; overflow-x: auto;">
+                    <table class="table table-dark table-hover align-middle m-0" style="font-size: 12px;">
+                        <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
+                            <tr>
+                                <th>วันที่ตรวจ</th>
+                                <th>เวลา</th>
+                                <th>พนักงาน</th>
+                                <th>Part No.</th>
+                                <th>ยอดตรวจ</th>
+                                <th>NG</th>
+                                <th>ผ่าน (Pass)</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qgateHistoryTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
-
-        <!-- ตารางประวัติ -->
-        <div class="table-responsive" style="max-height: 720px; overflow-y: auto; overflow-x: auto;">
-            <table class="table table-dark table-hover align-middle m-0" style="font-size: 12px;">
-                <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
-                    <tr>
-                        <th>วันที่ตรวจ</th>
-                        <th>เวลา</th>
-                        <th>พนักงาน</th>
-                        <th>Part No.</th>
-                        <th>ยอดตรวจ</th>
-                        <th>NG</th>
-                        <th>ผ่าน (Pass)</th>
-                        <th class="text-center">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody id="qgateHistoryTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
 
         <!-- 3. ฝั่งขวา: รายการ Part No. ที่ต่ำกว่า Safety Stock FG -->
         <div class="col-md-3">
@@ -832,6 +832,15 @@
         </div>
     </div>
 </div>
+
+<!-- Script สำหรับฟังก์ชันเปิดรายงานจากหน้าหลัก -->
+<script>
+function openQGateReport() {
+    const selectedDate = document.getElementById('filterQGateDate').value;
+    const selectedInspector = document.getElementById('filterQGateInspector').value;
+    const reportUrl = `Daily Q-Gate Inspection Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
+    window.open(reportUrl, '_blank');
+}
             <!-- TAB 6: STOCK WIP & FG -->
             <div class="tab-pane fade" id="tab-stock">
                 <div class="row g-3">
