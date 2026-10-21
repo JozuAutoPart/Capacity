@@ -1256,10 +1256,10 @@ if (dashDiffBalanceEl) {
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
 
-    // กรองข้อมูล actuals และ qgate ตาม Line ที่ผู้ใช้คลิกเลือก (currentFilterLine)
     let monthlyProdArr = new Array(12).fill(0);
     let monthlyNgArr = new Array(12).fill(0);
 
+    // 1. กรองยอดผลิต (Actuals) ตาม Line ที่เลือก
     const filteredActuals = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals.filter(a => {
         if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
         let alineRaw = a["Line/MC"] || a.line || a.Line || '';
@@ -1275,22 +1275,20 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         let monthIndex = 9; // ค่าเริ่มต้นเดือน ต.ค.
         if (dateVal) {
             let d = new Date(dateVal);
-            if (!isNaN(d.getTime())) {
-                monthIndex = d.getMonth();
-            }
+            if (!isNaN(d.getTime())) monthIndex = d.getMonth();
         }
 
         let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
-        let val = Number(rawQty) || 0;
-        monthlyProdArr[monthIndex] += val;
+        monthlyProdArr[monthIndex] += Number(rawQty) || 0;
     });
 
+    // 2. กรองของเสีย (Q-Gate) ตาม Line ที่เลือก (แก้ไขการเทียบชื่อ Line ให้แม่นยำขึ้น)
     const filteredQGate = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate.filter(q => {
         if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
         let qLineRaw = q.line || q['Line/MC'] || q.Line || '';
-        let qLine = String(qLineRaw).toLowerCase().trim();
+        let qLine = String(qLineRaw).split('/')[0].toLowerCase().trim();
         let targetLine = String(currentFilterLine).toLowerCase().trim();
-        return qLine.includes(targetLine) || targetLine.includes(qLine);
+        return qLine === targetLine || qLine.includes(targetLine) || targetLine.includes(qLine);
     }) : [];
 
     filteredQGate.forEach(q => {
@@ -1298,22 +1296,22 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         let monthIndex = 9;
         if (dateVal) {
             let d = new Date(dateVal);
-            if (!isNaN(d.getTime())) {
-                monthIndex = d.getMonth();
-            }
+            if (!isNaN(d.getTime())) monthIndex = d.getMonth();
         }
-        let rawNg = q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] !== undefined ? q['NG Qty'] : (q.ng || q.NG || 0));
+        let rawNg = q.ngQty !== undefined ? q.ngQty : 
+                   (q['NG Qty'] !== undefined ? q['NG Qty'] : 
+                   (q.ng !== undefined ? q.ng : 
+                   (q.NG !== undefined ? q.NG : (q.qtyNg || 0))));
         monthlyNgArr[monthIndex] += Number(rawNg) || 0;
     });
 
-    // ดึงข้อมูลเฉพาะของ "เดือนปัจจุบัน" ตาม Line ที่เลือก
-    const currentMonthIndex = new Date().getMonth(); 
-    let currentMonthProd = monthlyProdArr[currentMonthIndex] > 0 ? monthlyProdArr[currentMonthIndex] : totalProduction;
-    let currentMonthNg = monthlyNgArr[currentMonthIndex] !== undefined ? monthlyNgArr[currentMonthIndex] : totalNg;
+    // 3. ดึงข้อมูลเฉพาะของเดือนปัจจุบัน (เดือน ต.ค. / index 9) ตาม Line ที่เลือก
+    let currentMonthProd = monthlyProdArr[9] > 0 ? monthlyProdArr[9] : totalProduction;
+    let currentMonthNg = monthlyNgArr[9];
 
     const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
 
-    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ (เฉพาะ Line ที่เลือก)
+    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
@@ -1338,7 +1336,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     }
 
-    // วาดกราฟแท่งผสมรายเดือน 12 เดือน (Combo Chart) ตาม Line ที่เลือก
+    // 4. วาดกราฟ Combo Chart รายเดือน 12 เดือน ตาม Line ที่เลือก
     const canvasEl = document.getElementById('defectPpmChart');
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
@@ -1415,7 +1413,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
             }
         }
     });
-}       
+}     
     // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
