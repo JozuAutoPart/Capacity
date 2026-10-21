@@ -241,12 +241,16 @@
             loadReportData();
         });
 
-        function populateInspectors() {
+     function populateInspectors() {
             const sel = document.getElementById('reportInspector');
-            let qgateData = JSON.parse(localStorage.getItem('qgate_logs') || '[]');
+            if (!sel) return;
+
+            // แก้ไขให้ดึงจาก LocalStorage Key 'qgate' เป็นหลัก
+            let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
             
             let inspectors = [...new Set(qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean))];
             
+            sel.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
             inspectors.forEach(ins => {
                 let opt = document.createElement('option');
                 opt.value = ins;
@@ -259,14 +263,25 @@
             const selectedDate = document.getElementById('reportDate').value;
             const selectedInspector = document.getElementById('reportInspector').value;
 
-            document.getElementById('lblDate').innerText = selectedDate || 'ทั้งหมด';
+            document.getElementById('lblDate').innerText = selectedDate ? selectedDate.split('-').reverse().join('/') : 'ทั้งหมด';
             document.getElementById('lblInspector').innerText = selectedInspector || 'พนักงานทั้งหมด';
 
-            let qgateData = JSON.parse(localStorage.getItem('qgate_logs') || '[]');
+            // แก้ไขให้ดึงจาก LocalStorage Key 'qgate' เป็นหลัก
+            let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
 
             // กรองข้อมูลตามวันที่และพนักงาน
             let filtered = qgateData.filter(q => {
-                let qDate = q.date || q.Date || '';
+                let qDate = '';
+                if (q.date) {
+                    const d = new Date(q.date);
+                    if (!isNaN(d.getTime())) {
+                        const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                        qDate = localD.toISOString().split('T')[0];
+                    } else {
+                        qDate = String(q.date).substring(0, 10);
+                    }
+                }
+
                 let qIns = q.inspector || q.opName || q.OP || '';
 
                 let matchDate = !selectedDate || qDate === selectedDate;
@@ -286,10 +301,10 @@
                 tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted">ไม่มีข้อมูลการตรวจสอบ</td></tr>';
             } else {
                 filtered.forEach((item, index) => {
-                    let qty = Number(item.totalQty || item.qty || 0);
+                    let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
                     let ng = Number(item.ngQty || item.ng || 0);
                     let pass = Number(item.passQty || (qty - ng) || 0);
-                    let timeRange = (item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-');
+                    let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
                     
                     if (item.line || item.Line) currentLine = item.line || item.Line;
 
@@ -313,7 +328,7 @@
 
             document.getElementById('lblLine').innerText = currentLine;
 
-            // 2. วาดตารางกิจกรรมอื่นๆ (ดึงจาก localstorage non_inspection_logs)
+            // 2. วาดตารางกิจกรรมอื่นๆ
             let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
             let filteredOther = otherData.filter(o => {
                 let matchDate = !selectedDate || o.date === selectedDate;
