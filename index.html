@@ -2658,7 +2658,7 @@ function exportFilteredProductionReport() {
     window.open('print-production.html', '_blank');
 }
 // ==========================================
-// 📌 ระบบจัดการ Q-Gate Inspection & History (แก้ปัญหาตัวอักษรตัวแรกหาย 100%)
+// 📌 ระบบจัดการ Q-Gate Inspection & History (พร้อมระบบกิจกรรมอื่นๆ และตัวกรอง)
 // ==========================================
 
 // 🔒 ตัวแปรระบบล็อกคีย์มือและรหัสผ่านสำหรับปลดล็อก
@@ -2699,8 +2699,11 @@ function requestUnlockQGateManual() {
 document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
+    if(document.getElementById('filterQGateDate')) document.getElementById('filterQGateDate').value = today;
     
     renderQGate();
+    updateQGateInspectorDropdown();
+    
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
     }
@@ -2853,15 +2856,61 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate
+// ฟังก์ชันอัปเดตรายชื่อ Inspector ใส่ Dropdown กรอง
+function updateQGateInspectorDropdown() {
+    const sel = document.getElementById('filterQGateInspector');
+    if (!sel) return;
+
+    let qgateData = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate : [];
+    let inspectors = [...new Set(qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean))];
+    
+    let currentVal = sel.value;
+    sel.innerHTML = '<option value="">-- พนักงานทั้งหมด --</option>';
+    inspectors.forEach(ins => {
+        sel.innerHTML += `<option value="${ins}">${ins}</option>`;
+    });
+    sel.value = currentVal;
+}
+
+// ฟังก์ชันกรองตารางประวัติ Q-Gate ตามวันที่และพนักงาน
+function filterQGateHistory() {
+    renderQGate();
+}
+
+// ฟังก์ชันแสดงผลและโหลดตารางประวัติ Q-Gate (รองรับการกรอง)
 function renderQGate() {
-    const qgateHistory = (qgate || []).slice().reverse().slice(0, 100);
+    const filterDate = document.getElementById('filterQGateDate')?.value || '';
+    const filterInspector = document.getElementById('filterQGateInspector')?.value || '';
+
+    let qgateList = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate : [];
+
+    // กรองข้อมูลตามเงื่อนไข
+    let filtered = qgateList.filter(item => {
+        let displayDate = '';
+        if (item.date) {
+            const d = new Date(item.date);
+            if (!isNaN(d.getTime())) {
+                const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                displayDate = localD.toISOString().split('T')[0];
+            } else {
+                displayDate = String(item.date).substring(0, 10);
+            }
+        }
+        let ins = item.inspector || item.opName || item.OP || '';
+
+        let matchDate = !filterDate || displayDate === filterDate;
+        let matchIns = !filterInspector || ins === filterInspector;
+
+        return matchDate && matchIns;
+    });
+
+    const qgateHistory = filtered.slice().reverse().slice(0, 100);
     const historyBody = document.getElementById('qgateHistoryTableBody');
     
     if(historyBody) {
         historyBody.innerHTML = '';
         if(qgateHistory.length === 0) {
-            historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
+            historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">ยังไม่มีประวัติการตรวจ Q-Gate ตามเงื่อนไข</td></tr>`;
         } else {
             qgateHistory.forEach(item => {
                 let displayDate = '';
@@ -2936,8 +2985,12 @@ function submitQGateTransaction(e) {
         passQty: passQty
     };
 
-    qgate.unshift(newItem);
+    if (typeof qgate !== 'undefined') {
+        qgate.unshift(newItem);
+    }
     renderQGate();
+    updateQGateInspectorDropdown();
+
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
     }
@@ -2960,13 +3013,57 @@ function submitQGateTransaction(e) {
     }
 }
 
+// 📌 ฟังก์ชันบันทึกเวลากิจกรรมอื่นๆ (Non-Inspection Time / Downtime)
+function submitQGateOtherTransaction(e) {
+    e.preventDefault();
+
+    const startTime = document.getElementById('otherStartTime').value;
+    const endTime = document.getElementById('otherEndTime').value;
+    const activityType = document.getElementById('otherActivityType').value;
+    const remark = document.getElementById('otherRemark').value.trim();
+    const inspector = document.getElementById('qgateInspector').value.trim() || 'General';
+    const currentDate = document.getElementById('qgateDate').value || new Date().toISOString().split('T')[0];
+
+    if (!startTime || !endTime) {
+        alert("กรุณาระบุเวลาเริ่มต้นและเวลาสิ้นสุดกิจกรรม!");
+        return;
+    }
+
+    // คำนวณเวลาสะสมเป็นนาที
+    let [startH, startM] = startTime.split(':').map(Number);
+    let [endH, endM] = endTime.split(':').map(Number);
+    let durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    if (durationMinutes < 0) durationMinutes += 24 * 60; // ข้ามวัน
+
+    const newOtherItem = {
+        id: Date.now(),
+        date: currentDate,
+        startTime: startTime,
+        endTime: endTime,
+        inspector: inspector,
+        activityType: activityType,
+        remark: remark,
+        durationMinutes: durationMinutes
+    };
+
+    let otherLogs = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
+    otherLogs.unshift(newOtherItem);
+    localStorage.setItem('qgate_other_logs', JSON.stringify(otherLogs));
+
+    alert("✅ บันทึกกิจกรรมนอกเวลาตรวจเรียบร้อยแล้ว!");
+    document.getElementById('qgateOtherForm').reset();
+}
+
 // ฟังก์ชันลบรายการ Q-Gate แบบใส่รหัสผ่าน
 function deleteQGateItem(id) {
     let password = prompt("กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อยืนยันการลบข้อมูล Q-Gate:");
     
     if (password === "1234") {
-        qgate = qgate.filter(item => item.id !== id);
+        if (typeof qgate !== 'undefined') {
+            qgate = qgate.filter(item => item.id !== id);
+        }
         renderQGate();
+        updateQGateInspectorDropdown();
         if (typeof checkAndLoadWipForQGate === 'function') {
             checkAndLoadWipForQGate();
         }
