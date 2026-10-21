@@ -58,11 +58,11 @@
             <div class="d-flex align-items-center gap-3">
                 <div class="input-group input-group-sm" style="width: 220px;">
                     <span class="input-group-text bg-secondary text-white border-secondary">เลือกวันที่:</span>
-                    <input type="date" id="reportDate" class="form-control" onchange="loadReportDataFromCloud()">
+                    <input type="date" id="reportDate" class="form-control" onchange="loadReportData()">
                 </div>
                 <div class="input-group input-group-sm" style="width: 260px;">
                     <span class="input-group-text bg-secondary text-white border-secondary">พนักงานตรวจ:</span>
-                    <select id="reportInspector" class="form-select" onchange="loadReportDataFromCloud()">
+                    <select id="reportInspector" class="form-select" onchange="loadReportData()">
                         <option value="">-- แสดงทั้งหมด --</option>
                     </select>
                 </div>
@@ -111,7 +111,7 @@
                     </tr>
                 </thead>
                 <tbody id="tblInspectionBody">
-                    <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูลจาก Google Sheets...</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -177,8 +177,7 @@
 
     <!-- JavaScript Script -->
     <script>
-        // ใช้ URL Google Script ตัวเดียวกับหน้าหลัก
-        const GOOGLE_SCRIPT_URL = typeof window.GOOGLE_SCRIPT_URL !== 'undefined' ? window.GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbw.../exec";
+        window.reportFullData = [];
 
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -188,34 +187,29 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('reportDate').value = paramDate || today;
 
-            // ดึงข้อมูลสดจาก Cloud มาเรนเดอร์ลงใบรายงาน
-            fetchReportData(paramInspector);
-        });
-
-        function fetchReportData(targetInspector) {
-            if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('AKfycbw...')) {
-                fetch(GOOGLE_SCRIPT_URL + '?action=getQgate')
-                    .then(response => response.json())
+            // 1. ดึงข้อมูลจากหน้าหลัก (window.opener.qgate) ก่อน ถ้าไม่มีค่อยดึงจากหน้าเว็บตัวเองหรือ Cloud
+            if (window.opener && window.opener.qgate && Array.isArray(window.opener.qgate) && window.opener.qgate.length > 0) {
+                window.reportFullData = window.opener.qgate;
+                initReport(paramInspector);
+            } else if (typeof window.GOOGLE_SCRIPT_URL !== 'undefined' && window.GOOGLE_SCRIPT_URL) {
+                fetch(window.GOOGLE_SCRIPT_URL + '?action=getQgate')
+                    .then(res => res.json())
                     .then(data => {
-                        if (Array.isArray(data)) {
-                            window.reportFullData = data;
-                        } else {
-                            window.reportFullData = [];
-                        }
-                        processReport(targetInspector);
+                        window.reportFullData = Array.isArray(data) ? data : [];
+                        initReport(paramInspector);
                     })
                     .catch(err => {
-                        console.error("Cloud fetch error, using local storage:", err);
-                        window.reportFullData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-                        processReport(targetInspector);
+                        console.error("Fetch error:", err);
+                        window.reportFullData = JSON.parse(localStorage.getItem('qgate') || '[]');
+                        initReport(paramInspector);
                     });
             } else {
-                window.reportFullData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-                processReport(targetInspector);
+                window.reportFullData = JSON.parse(localStorage.getItem('qgate') || '[]');
+                initReport(paramInspector);
             }
-        }
+        });
 
-        function processReport(targetInspector) {
+        function initReport(targetInspector) {
             const sel = document.getElementById('reportInspector');
             if (!sel) return;
 
@@ -233,19 +227,17 @@
                 sel.value = targetInspector;
             }
 
-            loadReportDataFromCloud();
+            loadReportData();
         }
 
-        function loadReportDataFromCloud() {
+        function loadReportData() {
             const selectedDate = document.getElementById('reportDate').value;
             const selectedInspector = document.getElementById('reportInspector').value;
 
             document.getElementById('lblDate').innerText = selectedDate ? selectedDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = selectedInspector || 'พนักงานทั้งหมด';
 
-            let qgateData = window.reportFullData || JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-
-            let filtered = qgateData.filter(q => {
+            let filtered = window.reportFullData.filter(q => {
                 let qDate = '';
                 if (q.date) {
                     const d = new Date(q.date);
