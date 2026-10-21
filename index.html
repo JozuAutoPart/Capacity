@@ -4318,7 +4318,6 @@ function clearAllData() {
 // 📌 ระบบจัดการ Material (รับ - จ่าย - สต็อก)
 // ==========================================
 
-// ตัวแปรเก็บข้อมูล Mapping กลาง
 let partTypeMapping = {};
 let materialHistory = typeof bms !== 'undefined' ? bms : [];
 
@@ -4369,11 +4368,14 @@ document.addEventListener("DOMContentLoaded", async function() {
         console.error("ไม่สามารถโหลดฐานข้อมูลจากไฟล์ Tag ได้:", error);
     }
 
-    // 3. โหลดประวัติและสต็อกคงเหลือ (พร้อมรันเลข IC No. ล่าสุด)
+    // 3. แสดง IC No. เบื้องต้นทันทีที่โหลดหน้าเว็บ
+    updateIcNoInput();
+
+    // 4. โหลดประวัติสต็อก
     loadMaterialStock();
 });
 
-// 📌 ฟังก์ชันสร้าง IC No. อัตโนมัติ 7 หลัก (ปี 2 หลัก + เดือน 2 หลัก + รันนิ่ง 3 หลัก เช่น 2610001)
+// 📌 ฟังก์ชันคำนวณและดึง IC No. ล่าสุดจากทุกแหล่ง (รวม Google Sheets & LocalStorage)
 function generateAutoIcNo() {
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
@@ -4382,32 +4384,33 @@ function generateAutoIcNo() {
 
     let maxSeq = 0;
 
-    // รวบรวมข้อมูลรายการทั้งหมดจากทุกแหล่ง (bms, materialHistory, LocalStorage)
+    // ตรวจสอบจาก LocalStorage ที่จำไว้ล่าสุด
+    const lastSavedIc = localStorage.getItem('last_mat_ic_no');
+    if (lastSavedIc && lastSavedIc.startsWith(prefix)) {
+        let seqPart = parseInt(lastSavedIc.slice(4), 10);
+        if (!isNaN(seqPart) && seqPart > maxSeq) {
+            maxSeq = seqPart;
+        }
+    }
+
+    // รวมข้อมูลย้อนหลังทั้งหมด (จาก Google Sheets / BMS)
     let allData = [];
-    
     if (typeof bms !== 'undefined' && Array.isArray(bms)) {
         allData = allData.concat(bms);
     }
     if (typeof materialHistory !== 'undefined' && Array.isArray(materialHistory)) {
         allData = allData.concat(materialHistory);
     }
-    
-    try {
-        const localBms = localStorage.getItem('bms') || localStorage.getItem('materialHistory');
-        if (localBms) {
-            const parsed = JSON.parse(localBms);
-            if (Array.isArray(parsed)) allData = allData.concat(parsed);
-        }
-    } catch(e) {
-        console.warn("ไม่สามารถอ่าน LocalStorage ได้:", e);
-    }
 
-    // ค้นหาเลขรันนิ่งสูงสุดของเดือนปัจจุบัน
+    // ค้นหาลำดับรันนิ่งสูงสุดในเดือนนั้น
     allData.forEach(item => {
-        if (item && item.icNo) {
-            const cleanIc = String(item.icNo).trim();
-            if (cleanIc.startsWith(prefix)) {
-                let seqPart = parseInt(cleanIc.slice(4), 10);
+        if (item) {
+            // เช็คทั้งฟิลด์ icNo และ F/G จากชีตกรณีดึงจาก Google Sheets
+            let icVal = item.icNo || item.ic_no || item[5] || item[4] || '';
+            icVal = String(icVal).trim();
+            
+            if (icVal.startsWith(prefix)) {
+                let seqPart = parseInt(icVal.slice(4), 10);
                 if (!isNaN(seqPart) && seqPart > maxSeq) {
                     maxSeq = seqPart;
                 }
@@ -4417,6 +4420,15 @@ function generateAutoIcNo() {
 
     let nextSeq = String(maxSeq + 1).padStart(3, '0');
     return prefix + nextSeq;
+}
+
+// 📌 ฟังก์ชันสำหรับสั่งอัปเดตช่อง IC No. บนหน้าฟอร์ม
+function updateIcNoInput() {
+    const typeSelect = document.getElementById('matType');
+    const icInput = document.getElementById('matIcNo');
+    if (icInput && (!typeSelect || typeSelect.value === 'IN')) {
+        icInput.value = generateAutoIcNo();
+    }
 }
 
 // 📌 สลับการแสดงผลฟิลด์ฟอร์มตามประเภท รับเข้า หรือ จ่ายออก
@@ -4433,7 +4445,7 @@ function toggleMatFormFields() {
         if(document.getElementById('matSupplier')) document.getElementById('matSupplier').required = true;
         if(document.getElementById('matReceiver')) document.getElementById('matReceiver').required = true;
         if(document.getElementById('matRequester')) document.getElementById('matRequester').required = false;
-        if(document.getElementById('matIcNo')) document.getElementById('matIcNo').value = generateAutoIcNo();
+        updateIcNoInput();
     } else {
         if(lblDate) lblDate.innerText = "วันที่จ่าย";
         inGroups.forEach(el => el.style.display = 'none');
@@ -4464,6 +4476,11 @@ function submitMaterialTransaction(e) {
         const supplier = document.getElementById('matSupplier').value;
         const receiver = document.getElementById('matReceiver').value;
         detailInfo = `Supplier: ${supplier} | ผู้รับ: ${receiver}`;
+        
+        // 💡 บันทึกเลข IC No. ล่าสุดลง LocalStorage ไว้เพื่อไม่ให้หลุดตอนเปิดปิดเว็บใหม่
+        if (icNo && icNo !== '-') {
+            localStorage.setItem('last_mat_ic_no', icNo);
+        }
     } else {
         const requester = document.getElementById('matRequester').value;
         detailInfo = `ผู้เบิก: ${requester}`;
@@ -4492,11 +4509,8 @@ function submitMaterialTransaction(e) {
     toggleMatFormFields();
     document.getElementById('matDate').value = new Date().toISOString().split('T')[0];
     
-    // อัปเดตรัน IC No. ถัดไป
-    if(document.getElementById('matIcNo')) {
-        document.getElementById('matIcNo').value = generateAutoIcNo();
-    }
-    
+    // อัปเดตรัน IC No. ถัดไปทันที
+    updateIcNoInput();
     loadMaterialStock();
 }
 
@@ -4508,12 +4522,8 @@ function loadMaterialStock() {
         materialHistory = bms;
     }
 
-    // อัปเดตรันเลข IC No. ในฟอร์มทันทีที่ประวัติถูกดึงเข้ามาเสร็จ
-    const typeSelect = document.getElementById('matType');
-    const icInput = document.getElementById('matIcNo');
-    if (icInput && (!typeSelect || typeSelect.value === 'IN')) {
-        icInput.value = generateAutoIcNo();
-    }
+    // 💡 เมื่อข้อมูล bms โหลดเข้ามาถึงหน้าเว็บแล้ว ให้คำนวณรัน IC No. ล่าสุดทันที
+    updateIcNoInput();
 
     // 1. คำนวณสต็อกคงเหลือ
     materialHistory.forEach(item => {
