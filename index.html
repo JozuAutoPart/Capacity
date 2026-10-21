@@ -838,7 +838,10 @@
 function openQGateReport() {
     const selectedDate = document.getElementById('filterQGateDate').value;
     const selectedInspector = document.getElementById('filterQGateInspector').value;
-    const reportUrl = `Daily Q-Gate Inspection Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
+    
+    // 📌 แก้ไขชื่อไฟล์ให้ตรงกับชื่อจริงที่มีเครื่องหมาย %20 และขีดกลาง (-)
+    const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
+    
     window.open(reportUrl, '_blank');
 }
             <!-- TAB 6: STOCK WIP & FG -->
