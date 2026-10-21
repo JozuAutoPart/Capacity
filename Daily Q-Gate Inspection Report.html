@@ -160,21 +160,28 @@
         </div>
     </div>
 
-   <script>
+  <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // 1. อ่านค่า Date และ Inspector จาก URL
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date') || '';
             const paramInspector = urlParams.get('inspector') || '';
 
-            // 2. แสดงค่าที่หัวกระดาษรายงาน
             document.getElementById('lblDate').innerText = paramDate ? paramDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-            // 3. ดึงข้อมูลจาก localStorage
-            let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+            // 🔍 ดึงข้อมูลจากหน้าหลัก (window.opener) ก่อน ถ้าไม่มีค่อยดึงจาก localStorage
+            let qgateData = [];
+            if (window.opener && window.opener.qgate && Array.isArray(window.opener.qgate) && window.opener.qgate.length > 0) {
+                qgateData = window.opener.qgate;
+            } else {
+                qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+            }
 
-            // 4. กรองข้อมูลแบบยืดหยุ่น (เทียบรหัสพนักงานและวันที่ตัดเอาเฉพาะ 10 หลักแรก YYYY-MM-DD)
+            // ถ้าใน localStorage ของหน้าหลักยังไม่มี ให้ดึงจากตัวแปร global อื่นๆ ถ้ามี
+            if (qgateData.length === 0 && typeof qgate !== 'undefined' && Array.isArray(qgate)) {
+                qgateData = qgate;
+            }
+
             let filtered = qgateData.filter(q => {
                 let qDate = q.date ? String(q.date).substring(0, 10) : '';
                 let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
@@ -185,7 +192,7 @@
                 return matchDate && matchIns;
             });
 
-            // 5. วาดตารางตรวจชิ้นงาน
+            // 1. วาดตารางตรวจชิ้นงาน
             const tblInsp = document.getElementById('tblInspectionBody');
             tblInsp.innerHTML = '';
 
@@ -193,7 +200,7 @@
             let currentLine = '-';
 
             if (filtered.length === 0) {
-                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไขที่เลือก</td></tr>';
+                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไขที่เลือก (โปรดเปิดหน้ารายงานจากปุ่มในหน้าหลัก)</td></tr>';
             } else {
                 filtered.forEach((item, index) => {
                     let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
@@ -223,7 +230,7 @@
 
             document.getElementById('lblLine').innerText = currentLine;
 
-            // 6. วาดตารางกิจกรรมอื่นๆ (Non-Inspection)
+            // 2. วาดตารางกิจกรรมอื่นๆ
             let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
             let filteredOther = otherData.filter(o => {
                 let oDate = o.date ? String(o.date).substring(0, 10) : '';
@@ -252,7 +259,7 @@
                 });
             }
 
-            // 7. สรุปผลยอดรวม
+            // 3. สรุปผลยอดรวม
             document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
             document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
             document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
