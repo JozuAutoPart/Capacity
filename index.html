@@ -3355,7 +3355,7 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงานแบบชัวร์ 100% (แก้ปัญหา ReferenceError และชื่อไฟล์ GitHub)
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงานแบบชัวร์ 100% (ผูกเข้ากับ window ป้องกัน Error "is not defined")
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
