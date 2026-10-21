@@ -1,1 +1,353 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Q-Gate Inspection Report - Jozu Auto Part</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #000;
+        }
 
+        .paper-a4 {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm;
+            margin: 10px auto;
+            background: #ffffff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.15);
+        }
+
+        .report-header {
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        .company-logo {
+            max-height: 50px;
+        }
+
+        .table-report {
+            border: 1px solid #000 !important;
+            font-size: 13px;
+        }
+
+        .table-report th, .table-report td {
+            border: 1px solid #000 !important;
+            padding: 5px 8px;
+            vertical-align: middle;
+        }
+
+        .table-report th {
+            background-color: #e2e8f0 !important;
+            color: #000;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .summary-box {
+            border: 1px solid #000;
+            padding: 10px;
+            background-color: #f1f5f9;
+            font-size: 13px;
+        }
+
+        .signature-table td {
+            height: 60px;
+            vertical-align: bottom;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        /* สำหรับสั่งพิมพ์ / Print CSS */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: #fff;
+            }
+            .paper-a4 {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- แถบควบคุมด้านบน (ซ่อนเมื่อกดพิมพ์) -->
+    <div class="container no-print mt-3 mb-3">
+        <div class="card bg-dark text-white p-3 shadow-sm">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label text-warning mb-1">เลือกวันที่:</label>
+                    <input type="date" id="reportDate" class="form-control form-control-sm" onchange="loadReportData()">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-warning mb-1">เลือกพนักงานตรวจ (Inspector):</label>
+                    <select id="reportInspector" class="form-select form-select-sm" onchange="loadReportData()">
+                        <option value="">-- แสดงทั้งหมด --</option>
+                    </select>
+                </div>
+                <div class="col-md-5 text-end pt-3">
+                    <button class="btn btn-primary btn-sm me-2" onclick="window.print()">
+                        <i class="bi bi-printer-fill me-1"></i> สั่งพิมพ์ใบรายงาน (Print / PDF)
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="window.close()">
+                        <i class="bi bi-x-circle me-1"></i> ปิดหน้านี้
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- กระดาษแบบฟอร์ม A4 -->
+    <div class="paper-a4">
+        
+        <!-- Header รายงาน -->
+        <div class="report-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <img src="Jozu.png" alt="Company Logo" class="company-logo" onerror="this.style.display='none'">
+                <div>
+                    <h5 class="fw-bold mb-0">บริษัท โจซู ออโต้ พาร์ท จำกัด (Jozu Auto Part Co., Ltd.)</h5>
+                    <small class="text-muted">ระบบบริหารจัดการคุณภาพ และการตรวจสอบสินค้า (Q-Gate Inspection System)</small>
+                </div>
+            </div>
+            <div class="text-end">
+                <h6 class="fw-bold text-decoration-underline mb-1">ใบรายงานการตรวจสอบ Q-Gate ประจำวัน</h6>
+                <small class="fw-bold">FM-QA-012 Rev.01</small>
+            </div>
+        </div>
+
+        <!-- รายละเอียดข้อมูลทั่วไป -->
+        <div class="row g-2 mb-3 fs-6">
+            <div class="col-4"><strong>วันที่ตรวจสอบ:</strong> <span id="lblDate">-</span></div>
+            <div class="col-4"><strong>ผู้ตรวจสอบ (Inspector):</strong> <span id="lblInspector">-</span></div>
+            <div class="col-4 text-end"><strong>ประจำ Line/Machine:</strong> <span id="lblLine">-</span></div>
+        </div>
+
+        <!-- 1. ตารางบันทึกการตรวจสอบชิ้นงาน -->
+        <h6 class="fw-bold mb-1"><i class="bi bi-check2-square"></i> 1. บันทึกผลการตรวจสอบชิ้นงาน (Inspection Log)</h6>
+        <table class="table table-report mb-3">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">ลำดับ</th>
+                    <th style="width: 15%;">ช่วงเวลา</th>
+                    <th style="width: 25%;">Part No. (รหัสชิ้นงาน)</th>
+                    <th style="width: 12%;">จำนวนตรวจ</th>
+                    <th style="width: 12%;">ผ่าน (Pass)</th>
+                    <th style="width: 12%;">เสีย (NG)</th>
+                    <th style="width: 19%;">รายละเอียด/อาการเสีย</th>
+                </tr>
+            </thead>
+            <tbody id="tblInspectionBody">
+                <tr><td colspan="7" class="text-center text-muted">ไม่มีข้อมูลการตรวจสอบ</td></tr>
+            </tbody>
+        </table>
+
+        <!-- 2. ตารางบันทึกช่วงเวลากิจกรรมอื่นๆ (Non-Inspection Time Log) -->
+        <h6 class="fw-bold mb-1"><i class="bi bi-clock-history"></i> 2. บันทึกช่วงเวลากิจกรรมอื่นๆ (Non-Inspection / Downtime Log)</h6>
+        <table class="table table-report mb-3">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">ลำดับ</th>
+                    <th style="width: 18%;">ช่วงเวลา (เริ่ม - สิ้นสุด)</th>
+                    <th style="width: 22%;">ประเภทกิจกรรม</th>
+                    <th style="width: 40%;">รายละเอียดการปฏิบัติงาน / เหตุผล</th>
+                    <th style="width: 15%;">เวลาสะสม (นาที)</th>
+                </tr>
+            </thead>
+            <tbody id="tblOtherActivityBody">
+                <tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>
+            </tbody>
+        </table>
+
+        <!-- 3. สรุปผลยอดรวมภาพรวมประจำวัน -->
+        <div class="summary-box rounded mb-4">
+            <div class="row text-center fw-bold">
+                <div class="col-3 border-end border-dark">
+                    <div>ยอดตรวจรวมทั้งหมด</div>
+                    <div class="fs-5 text-primary" id="sumTotal">0 ชิ้น</div>
+                </div>
+                <div class="col-3 border-end border-dark">
+                    <div>จำนวนที่ผ่าน (Pass)</div>
+                    <div class="fs-5 text-success" id="sumPass">0 ชิ้น</div>
+                </div>
+                <div class="col-3 border-end border-dark">
+                    <div>จำนวนของเสีย (NG)</div>
+                    <div class="fs-5 text-danger" id="sumNg">0 ชิ้น</div>
+                </div>
+                <div class="col-3">
+                    <div>อัตราของเสีย (Defect Ratio)</div>
+                    <div class="fs-5" id="sumPpm">0 PPM</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ช่องลงนามท้ายรายงาน -->
+        <table class="table table-report signature-table mt-4">
+            <thead>
+                <tr>
+                    <th style="width: 33%;">ผู้บันทึกข้อมูล (Inspector)</th>
+                    <th style="width: 33%;">หัวหน้างาน (Leader / Supervisor)</th>
+                    <th style="width: 34%;">ผู้จัดการฝ่ายคุณภาพ (QA Manager)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <br><br>
+                        (......................................................)<br>
+                        วันที่ ....... / ....... / .......
+                    </td>
+                    <td>
+                        <br><br>
+                        (......................................................)<br>
+                        วันที่ ....... / ....... / .......
+                    </td>
+                    <td>
+                        <br><br>
+                        (......................................................)<br>
+                        วันที่ ....... / ....... / .......
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+    <!-- JavaScript สำหรับดึงข้อมูลมาแสดงผล -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reportDate').value = today;
+            
+            // โหลดรายชื่อ Inspector ใส่ Dropdown
+            populateInspectors();
+
+            // โหลดข้อมูลรายงาน
+            loadReportData();
+        });
+
+        function populateInspectors() {
+            const sel = document.getElementById('reportInspector');
+            let qgateData = JSON.parse(localStorage.getItem('qgate_logs') || '[]');
+            
+            let inspectors = [...new Set(qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean))];
+            
+            inspectors.forEach(ins => {
+                let opt = document.createElement('option');
+                opt.value = ins;
+                opt.textContent = ins;
+                sel.appendChild(opt);
+            });
+        }
+
+        function loadReportData() {
+            const selectedDate = document.getElementById('reportDate').value;
+            const selectedInspector = document.getElementById('reportInspector').value;
+
+            document.getElementById('lblDate').innerText = selectedDate || 'ทั้งหมด';
+            document.getElementById('lblInspector').innerText = selectedInspector || 'พนักงานทั้งหมด';
+
+            let qgateData = JSON.parse(localStorage.getItem('qgate_logs') || '[]');
+
+            // กรองข้อมูลตามวันที่และพนักงาน
+            let filtered = qgateData.filter(q => {
+                let qDate = q.date || q.Date || '';
+                let qIns = q.inspector || q.opName || q.OP || '';
+
+                let matchDate = !selectedDate || qDate === selectedDate;
+                let matchIns = !selectedInspector || qIns === selectedInspector;
+
+                return matchDate && matchIns;
+            });
+
+            // 1. วาดตารางตรวจชิ้นงาน
+            const tblInsp = document.getElementById('tblInspectionBody');
+            tblInsp.innerHTML = '';
+
+            let totalQty = 0, totalPass = 0, totalNg = 0;
+            let currentLine = '-';
+
+            if (filtered.length === 0) {
+                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted">ไม่มีข้อมูลการตรวจสอบ</td></tr>';
+            } else {
+                filtered.forEach((item, index) => {
+                    let qty = Number(item.totalQty || item.qty || 0);
+                    let ng = Number(item.ngQty || item.ng || 0);
+                    let pass = Number(item.passQty || (qty - ng) || 0);
+                    let timeRange = (item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-');
+                    
+                    if (item.line || item.Line) currentLine = item.line || item.Line;
+
+                    totalQty += qty;
+                    totalPass += pass;
+                    totalNg += ng;
+
+                    tblInsp.innerHTML += `
+                        <tr>
+                            <td class="text-center">${index + 1}</td>
+                            <td class="text-center">${timeRange}</td>
+                            <td><strong>${item.partNo || item['Part No.'] || '-'}</strong></td>
+                            <td class="text-end">${qty.toLocaleString()}</td>
+                            <td class="text-end text-success">${pass.toLocaleString()}</td>
+                            <td class="text-end text-danger">${ng.toLocaleString()}</td>
+                            <td>${item.remark || item.ngReason || '-'}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            document.getElementById('lblLine').innerText = currentLine;
+
+            // 2. วาดตารางกิจกรรมอื่นๆ (ดึงจาก localstorage non_inspection_logs)
+            let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
+            let filteredOther = otherData.filter(o => {
+                let matchDate = !selectedDate || o.date === selectedDate;
+                let matchIns = !selectedInspector || o.inspector === selectedInspector;
+                return matchDate && matchIns;
+            });
+
+            const tblOther = document.getElementById('tblOtherActivityBody');
+            tblOther.innerHTML = '';
+
+            if (filteredOther.length === 0) {
+                tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
+            } else {
+                filteredOther.forEach((o, index) => {
+                    tblOther.innerHTML += `
+                        <tr>
+                            <td class="text-center">${index + 1}</td>
+                            <td class="text-center">${o.startTime} - ${o.endTime}</td>
+                            <td><strong>${o.activityType || '-'}</strong></td>
+                            <td>${o.remark || '-'}</td>
+                            <td class="text-center">${o.durationMinutes || '-'} นาที</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // 3. สรุปผลยอดรวม
+            document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
+            document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
+            document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
+
+            let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
+            document.getElementById('sumPpm').innerText = ppm.toLocaleString() + ' PPM';
+        }
+    </script>
+</body>
+</html>
