@@ -3335,22 +3335,24 @@ if (typeof window.originalRenderQGate === 'undefined') {
 
 // 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงานแบบชัวร์ 100% (ผูกเข้ากับ window ป้องกัน Error "is not defined")
 window.openQGateReport = function() {
-    const dateEl = document.getElementById('filterQGateDate');
-    const inspectorEl = document.getElementById('filterQGateInspector');
-    
-    const selectedDate = dateEl ? dateEl.value.trim() : '';
-    const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
+        const dateEl = document.getElementById('filterQGateDate');
+        const inspectorEl = document.getElementById('filterQGateInspector');
+        
+        const selectedDate = dateEl ? dateEl.value.trim() : '';
+        const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
-    
-    console.log("Opening report page:", reportUrl);
+        // พาธชื่อไฟล์ตรงกับที่มีใน GitHub (%20)
+        const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
+        
+        console.log("Opening report page:", reportUrl);
 
-    const win = window.open(reportUrl, '_blank');
+        const win = window.open(reportUrl, '_blank');
 
-    if (!win || win.closed || typeof win.closed === 'undefined') {
-        window.location.href = reportUrl;
-    }
-};
+        // หากโดน Pop-up blocker ของเบราว์เซอร์กั้น ให้เปิดในหน้าปัจจุบันทันที
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+            window.location.href = reportUrl;
+        }
+    };
 
 document.addEventListener("DOMContentLoaded", function() {
     setTimeout(renderQGateSafetyStockList, 1000);
