@@ -2670,7 +2670,7 @@ function exportFilteredProductionReport() {
     window.open('print-production.html', '_blank');
 }
 // ==========================================
-// 📌 ระบบจัดการ Q-Gate Inspection & History (พร้อมระบบกิจกรรมอื่นๆ และตัวกรอง)
+// 📌 ระบบจัดการ Q-Gate Inspection & History (ดึงข้อมูลตรงจาก Google Sheets)
 // ==========================================
 
 // 🔒 ตัวแปรระบบล็อกคีย์มือและรหัสผ่านสำหรับปลดล็อก
@@ -2707,21 +2707,53 @@ function requestUnlockQGateManual() {
     }
 }
 
-// ตั้งค่าเมื่อโหลดหน้าเว็บเสร็จ
+// ตั้งค่าเมื่อโหลดหน้าเว็บเสร็จ (สั่งดึงข้อมูลจาก Cloud ทันที)
 document.addEventListener("DOMContentLoaded", function() {
     const today = new Date().toISOString().split('T')[0];
     if(document.getElementById('qgateDate')) document.getElementById('qgateDate').value = today;
     if(document.getElementById('filterQGateDate')) document.getElementById('filterQGateDate').value = today;
     
-    renderQGate();
-    updateQGateInspectorDropdown();
+    // โหลดข้อมูลสดจาก Google Sheets มาเก็บไว้ใน window.qgate แล้วเรนเดอร์หน้าจอ
+    fetchQGateCloudDataAndRender();
     
     if (typeof checkAndLoadWipForQGate === 'function') {
         checkAndLoadWipForQGate();
     }
 });
 
-// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate (แก้ปัญหาอักษรตัวแรกหลุดและแปลง Barcode อัตโนมัติ)
+// 📌 ฟังก์ชันดึงข้อมูล Q-Gate จาก Google Sheets (Cloud)
+function fetchQGateCloudDataAndRender() {
+    if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
+        const historyBody = document.getElementById('qgateHistoryTableBody');
+        if (historyBody) historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">กำลังโหลดข้อมูลจาก Google Sheets...</td></tr>`;
+
+        fetch(GOOGLE_SCRIPT_URL + '?action=getQgate')
+            .then(response => response.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    window.qgate = data;
+                    localStorage.setItem('qgate', JSON.stringify(data)); // สำรองไว้ในเครื่อง
+                }
+                renderQGate();
+                updateQGateInspectorDropdown();
+            })
+            .catch(err => {
+                console.error("Error fetching cloud qgate data:", err);
+                // Fallback ดึงจาก localStorage ถ้าต่อเน็ตไม่ได้
+                let localData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+                window.qgate = localData;
+                renderQGate();
+                updateQGateInspectorDropdown();
+            });
+    } else {
+        let localData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+        window.qgate = localData;
+        renderQGate();
+        updateQGateInspectorDropdown();
+    }
+}
+
+// 📌 ฟังก์ชันรองรับการยิงบาร์โค้ดหน้า Q-Gate
 let qgateLastKeyTime = 0;
 let qgateScanTimeout = null;
 let qgateScannedChars = "";
@@ -2735,27 +2767,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const partSelectEl = document.getElementById('qgatePartNo');
 
     if (qgateInputEl && partSelectEl) {
-
         qgateInputEl.addEventListener('keydown', function(e) {
-            if (isQGateManualUnlocked) return; // ถ้าปลดล็อกแล้ว ให้พิมพ์ได้ปกติ
+            if (isQGateManualUnlocked) return;
             if (e.key === 'Tab' || e.key === 'Escape') return;
 
             let currentTime = Date.now();
             let timeDiff = currentTime - qgateLastKeyTime;
             qgateLastKeyTime = currentTime;
 
-            // 🎯 กรณีเครื่องสแกนส่งสัญญาณจบชุด (Enter)
             if (e.key === 'Enter') {
                 e.preventDefault();
                 clearTimeout(qgateScanTimeout);
                 
                 let rawBarcode = qgateScannedChars.trim() || qgateInputEl.value.trim();
-                qgateScannedChars = ""; // ล้างค่า Buffer
+                qgateScannedChars = "";
                 if (!rawBarcode) return;
                 
                 let scannedCode = rawBarcode;
 
-                // แกะรหัสจากลิงก์ URL บาร์โค้ด หรือตัดจุดออก
                 if (rawBarcode.includes('partNo=')) {
                     try {
                         let urlParams = new URLSearchParams(rawBarcode.includes('?') ? rawBarcode.split('?')[1] : rawBarcode);
@@ -2769,7 +2798,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     scannedCode = rawBarcode.replace(/[\.]+$/, '').trim();
                 }
 
-                // 🔍 ค้นหาและแปลง Barcode เป็น Part No. ตัวจริงจาก Master Parts Database
                 let resolvedPartNo = scannedCode;
                 const masterDb = window.masterPartsDatabase || window.masterParts || [];
                 
@@ -2788,11 +2816,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 let targetClean = resolvedPartNo;
-
-                // 🧹 เคลียร์ช่องยิงบาร์โค้ดให้สะอาดทันที
                 qgateInputEl.value = '';
 
-                // ปลดล็อก Dropdown ชั่วคราวเพื่อเลือกพาร์ท
                 partSelectEl.disabled = false;
                 let cleanTargetLower = targetClean.toLowerCase();
                 let matchedValue = "";
@@ -2824,14 +2849,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     partSelectEl.disabled = true;
                 }
 
-                // สั่งอัปเดตข้อมูลภาพและยอด WIP ทันที
                 partSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
 
                 if (typeof playBeep === 'function') {
                     playBeep('success');
                 }
 
-                // โฟกัสไปช่องจำนวนตรวจ
                 setTimeout(() => {
                     const inspectQtyInput = document.getElementById('qgateTotalQty') || 
                                             document.querySelector('input[name="inspectQty"]') || 
@@ -2841,12 +2864,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         inspectQtyInput.select();
                     }
                 }, 100);
-
-                console.log("🎯 Q-Gate แปลงบาร์โค้ดสำเร็จ:", targetClean);
                 return;
             }
 
-            // ⛔ ตรวจจับการพิมพ์มือ
             if (qgateScannedChars.length > 0 && timeDiff > 50 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
                 e.preventDefault();
                 qgateScannedChars = "";
@@ -2959,7 +2979,7 @@ function renderQGate() {
                         <td class="text-danger">${(item.ngQty || 0).toLocaleString()}</td>
                         <td class="text-success fw-bold">${(item.passQty || 0).toLocaleString()}</td>
                         <td class="text-center">
-                            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteQGateItem(${item.id})" title="ลบรายการนี้">
+                            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteQGateItem(${item.id || 0})" title="ลบรายการนี้">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </td>
@@ -2970,7 +2990,7 @@ function renderQGate() {
     }
 }
 
-// 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate (พร้อมเซฟลง localStorage อัตโนมัติเพื่อให้หน้ารายงานดึงข้อมูลได้ทันที)
+// 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate
 function submitQGateTransaction(e) {
     e.preventDefault();
     
@@ -3016,7 +3036,6 @@ function submitQGateTransaction(e) {
         window.qgate = [newItem];
     }
 
-    // บันทึกข้อมูลลงใน localStorage ทันที
     localStorage.setItem('qgate', JSON.stringify(window.qgate));
 
     renderQGate();
@@ -3040,6 +3059,8 @@ function submitQGateTransaction(e) {
         fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify({ action: 'saveQgate', data: newItem })
+        }).then(() => {
+            fetchQGateCloudDataAndRender(); // ดึงข้อมูลสดจากชีทอัปเดตทันทีหลังเซฟ
         }).catch(err => console.error("Cloud sync error:", err));
     } else if (typeof saveAll === 'function') {
         saveAll('saveQgate', newItem);
@@ -3333,26 +3354,24 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงานแบบชัวร์ 100% (ผูกเข้ากับ window ป้องกัน Error "is not defined")
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงานแบบชัวร์ 100%
 window.openQGateReport = function() {
-        const dateEl = document.getElementById('filterQGateDate');
-        const inspectorEl = document.getElementById('filterQGateInspector');
-        
-        const selectedDate = dateEl ? dateEl.value.trim() : '';
-        const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
+    const dateEl = document.getElementById('filterQGateDate');
+    const inspectorEl = document.getElementById('filterQGateInspector');
+    
+    const selectedDate = dateEl ? dateEl.value.trim() : '';
+    const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-        // พาธชื่อไฟล์ตรงกับที่มีใน GitHub (%20)
-        const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
-        
-        console.log("Opening report page:", reportUrl);
+    const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
+    
+    console.log("Opening report page:", reportUrl);
 
-        const win = window.open(reportUrl, '_blank');
+    const win = window.open(reportUrl, '_blank');
 
-        // หากโดน Pop-up blocker ของเบราว์เซอร์กั้น ให้เปิดในหน้าปัจจุบันทันที
-        if (!win || win.closed || typeof win.closed === 'undefined') {
-            window.location.href = reportUrl;
-        }
-    };
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+        window.location.href = reportUrl;
+    }
+};
 
 document.addEventListener("DOMContentLoaded", function() {
     setTimeout(renderQGateSafetyStockList, 1000);
