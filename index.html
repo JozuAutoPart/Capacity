@@ -3358,12 +3358,17 @@ if (typeof window.originalRenderQGate === 'undefined') {
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
-    
+
     const selectedDate = dateEl ? dateEl.value.trim() : '';
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
+    // 📌 เพิ่มบรรทัดนี้: บันทึกข้อมูล qgate ลง localStorage ให้หน้ารายงานอ่าน
+    if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
+        localStorage.setItem('qgateReportData', JSON.stringify(qgate));
+    }
+
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
-    
+
     console.log("Opening report page:", reportUrl);
 
     const win = window.open(reportUrl, '_blank');
@@ -3376,6 +3381,8 @@ window.openQGateReport = function() {
 document.addEventListener("DOMContentLoaded", function() {
     setTimeout(renderQGateSafetyStockList, 1000);
 });
+
+    
 // --- TAB 6: STOCK WIP & FG ---
 function getFgBalances() {
     const fgMap = {};
