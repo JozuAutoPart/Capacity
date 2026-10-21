@@ -1255,14 +1255,12 @@ if (dashDiffBalanceEl) {
 
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
-
-    // 1. ดึงเดือนปัจจุบันของระบบ (0 = ม.ค., 9 = ต.ค. 2026)
-    const currentMonthIndex = new Date().getMonth(); 
+    const currentMonthIndex = new Date().getMonth(); // เดือนปัจจุบัน (เช่น ต.ค.)
 
     let monthlyProdArr = new Array(12).fill(0);
     let monthlyNgArr = new Array(12).fill(0);
 
-    // 2. กรองข้อมูล Actuals รายเดือนเฉพาะ Line ที่เลือก
+    // 1. กรองยอดผลิตรายเดือนเฉพาะ Line ที่เลือก
     const filteredActuals = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals.filter(a => {
         if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
         let alineRaw = a["Line/MC"] || a.line || a.Line || '';
@@ -1275,7 +1273,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
 
         let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
-        let monthIndex = currentMonthIndex; // ค่าเริ่มต้นเดือนปัจจุบัน
+        let monthIndex = currentMonthIndex;
         if (dateVal) {
             let d = new Date(dateVal);
             if (!isNaN(d.getTime())) monthIndex = d.getMonth();
@@ -1285,7 +1283,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         monthlyProdArr[monthIndex] += Number(rawQty) || 0;
     });
 
-    // 3. กรองข้อมูล Q-Gate (ของเสีย) รายเดือนเฉพาะ Line ที่เลือก
+    // 2. กรองยอดของเสีย (Q-Gate) รายเดือนเฉพาะ Line ที่เลือก (แยกตาม Line จริงๆ ตรงนี้เลย)
     const filteredQGate = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate.filter(q => {
         if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
         let qLineRaw = q.line || q['Line/MC'] || q.Line || '';
@@ -1308,20 +1306,20 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         monthlyNgArr[monthIndex] += Number(rawNg) || 0;
     });
 
-    // 4. ดึงเฉพาะยอดของ "เดือนปัจจุบัน" (ตาม Line ที่เลือก) มาแสดงในการ์ดขวามือ
+    // 3. ดึงยอดเฉพาะ "เดือนปัจจุบัน" ตาม Line ที่เลือกมาแสดงในการ์ดขวามือ
     let currentMonthProd = monthlyProdArr[currentMonthIndex] > 0 ? monthlyProdArr[currentMonthIndex] : totalProduction;
-    let currentMonthNg = monthlyNgArr[currentMonthIndex];
+    let currentMonthNg = monthlyNgArr[currentMonthIndex]; // ยอดของเสียเฉพาะ Line ที่เลือกในเดือนนี้
 
     const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
 
-    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ (ยอดผลิต, ของเสีย, PPM ประจำเดือนปัจจุบัน)
+    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
     const badgeStatus = document.getElementById('badgePpmStatus');
 
     if (lblTotalProd) lblTotalProd.innerText = Number(currentMonthProd).toLocaleString();
-    if (lblTotalNg) lblTotalNg.innerText = Number(currentMonthNg).toLocaleString();
+    if (lblTotalNg) lblTotalNg.innerText = Number(currentMonthNg).toLocaleString(); // แสดงยอด NG แยกตาม Line
     if (lblPpm) {
         lblPpm.innerText = actualPpm.toLocaleString() + " PPM";
         if (actualPpm <= targetPpm) {
@@ -1339,7 +1337,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     }
 
-    // 5. วาดกราฟ Combo Chart 12 เดือน
+    // 4. วาดกราฟ Combo Chart 12 เดือน
     const canvasEl = document.getElementById('defectPpmChart');
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
