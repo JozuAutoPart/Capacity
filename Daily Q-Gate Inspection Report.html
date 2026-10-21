@@ -52,21 +52,6 @@
 </head>
 <body>
 
-    <!-- แถบเมนูด้านบน (ซ่อนตอนสั่งพิมพ์) -->
-    <div class="no-print bg-dark text-white p-3 mb-3 shadow-sm sticky-top">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-3">
-                <div class="input-group input-group-sm" style="width: 220px;">
-                    <span class="input-group-text bg-secondary text-white border-secondary">เลือกวันที่:</span>
-                    <input type="date" id="reportDate" class="form-control" onchange="loadReportData()">
-                </div>
-                <div class="input-group input-group-sm" style="width: 260px;">
-                    <span class="input-group-text bg-secondary text-white border-secondary">พนักงานตรวจ:</span>
-                    <select id="reportInspector" class="form-select" onchange="loadReportData()">
-                        <option value="">-- แสดงทั้งหมด --</option>
-                    </select>
-                </div>
-            </div>
             <div class="d-flex gap-2">
                 <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="fas fa-print me-1"></i> สั่งพิมพ์ใบรายงาน (Print / PDF)</button>
                 <button onclick="window.close()" class="btn btn-secondary btn-sm"><i class="fas fa-times me-1"></i> ปิดหน้านี้</button>
@@ -175,8 +160,11 @@
         </div>
     </div>
 
-    <!-- JavaScript Script -->
-   <script>
+   <!-- JavaScript Script -->
+    <script>
+        // 🔗 ใส่ URL Google Apps Script ของพี่มิวที่นี่ (ตัวเดียวกับหน้าหลัก)
+        const GOOGLE_SCRIPT_URL = "ใส่_URL_Google_Script_ของพี่มิวตรงนี้"; 
+
         window.reportFullData = [];
 
         document.addEventListener("DOMContentLoaded", function() {
@@ -187,28 +175,45 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('reportDate').value = paramDate || today;
 
-            // ดึงข้อมูลจากหน้าหลัก หรือ localStorage ทันที
-            let rawData = [];
-            if (window.opener && window.opener.qgate && Array.isArray(window.opener.qgate)) {
-                rawData = window.opener.qgate;
+            // โหลดข้อมูล (ลองดึงจาก localStorage ก่อน ถ้าไม่มีให้ดึงจาก Cloud Google Sheets)
+            let localData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+            
+            if (localData.length > 0) {
+                window.reportFullData = localData;
+                initReport(paramInspector);
             } else {
-                rawData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+                fetchDataFromCloud(paramInspector);
+            }
+        });
+
+        function fetchDataFromCloud(targetInspector) {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('ใส่_URL')) {
+                window.reportFullData = [];
+                initReport(targetInspector);
+                return;
             }
 
-            window.reportFullData = rawData;
-            console.log("Q-Gate Report Raw Data:", window.reportFullData); // เช็กข้อมูลใน F12 Console
-
-            initReport(paramInspector);
-        });
+            fetch(GOOGLE_SCRIPT_URL + '?action=getQgate')
+                .then(res => res.json())
+                .then(data => {
+                    window.reportFullData = Array.isArray(data) ? data : [];
+                    localStorage.setItem('qgate', JSON.stringify(window.reportFullData));
+                    initReport(targetInspector);
+                })
+                .catch(err => {
+                    console.error("Fetch cloud error:", err);
+                    window.reportFullData = [];
+                    initReport(targetInspector);
+                });
+        }
 
         function initReport(targetInspector) {
             const sel = document.getElementById('reportInspector');
             if (!sel) return;
 
-            // ค้นหาชื่อพนักงานจากทุกคีย์ที่เป็นไปได้
             let inspectors = [];
             window.reportFullData.forEach(q => {
-                let name = q.inspector || q.opName || q.OP || q.empId || q.employee || q.worker || '';
+                let name = q.inspector || q.opName || q.OP || q.empId || '';
                 if (name) inspectors.push(String(name).trim());
             });
             let uniqueInspectors = [...new Set(inspectors)].sort();
@@ -247,10 +252,9 @@
                     }
                 }
 
-                let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.employee || q.worker || '').trim();
+                let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
 
                 let matchDate = !selectedDate || qDate === selectedDate;
-                // เปรียบเทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่ เพื่อป้องกันปัญหารหัสพนักงาน
                 let matchIns = !selectedInspector || qIns.toLowerCase() === selectedInspector.toLowerCase();
 
                 return matchDate && matchIns;
@@ -294,7 +298,7 @@
 
             document.getElementById('lblLine').innerText = currentLine;
 
-            // 2. วาดตารางกิจกรรมอื่นๆ
+            // 2. วาดตารางกิจกรรมอื่นๆ (Non-Inspection)
             let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
             let filteredOther = otherData.filter(o => {
                 let matchDate = !selectedDate || o.date === selectedDate;
