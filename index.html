@@ -652,11 +652,12 @@
 <!-- TAB: Q-GATE INSPECTION -->
 <div class="tab-pane fade" id="tab-qgate">
     <div class="row g-3">
-        <!-- 1. ฝั่งซ้าย: ฟอร์มบันทึกผลตรวจ Q-Gate -->
+        <!-- 1. ฝั่งซ้าย: ฟอร์มบันทึกผลตรวจ Q-Gate และกิจกรรมอื่นๆ -->
         <div class="col-md-4">
-            <div class="card p-3 border-start border-4 border-warning shadow-sm bg-dark text-white">
+            <!-- ฟอร์มตรวจชิ้นงานปกติ -->
+            <div class="card p-3 border-start border-4 border-warning shadow-sm bg-dark text-white mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 text-warning"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
+                    <h5 class="mb-0 text-warning" style="font-size: 15px;"><i class="fas fa-clipboard-check me-2"></i>บันทึกผลการตรวจ Q-Gate</h5>
                     <div class="d-flex align-items-center gap-2">
                         <!-- ปุ่มปลดล็อกสำหรับหัวหน้างาน -->
                         <button type="button" class="btn btn-outline-warning btn-sm py-0 px-2" onclick="requestUnlockQGateManual()" title="ปลดล็อกพิมพ์มือ">
@@ -696,7 +697,6 @@
 
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจาก WIP)</label>
-                        <!-- กำหนด disabled ไว้เริ่มต้น บังคับสแกน -->
                         <select id="qgatePartNo" class="form-select form-select-sm bg-dark text-white border-secondary" disabled required>
                             <option value="">-- กรุณาสแกนบาร์โค้ดจาก Tag --</option>
                         </select>
@@ -717,18 +717,68 @@
                     </button>
                 </form>
             </div>
+
+            <!-- ฟอร์มเสริม: บันทึกเวลากิจกรรมอื่นๆ (Non-Inspection Time) -->
+            <div class="card p-3 border-start border-4 border-info shadow-sm bg-dark text-white">
+                <h6 class="mb-2 text-info" style="font-size: 14px;"><i class="fas fa-clock me-1"></i> บันทึกกิจกรรมนอกเวลาตรวจ</h6>
+                <form id="qgateOtherForm" onsubmit="submitQGateOtherTransaction(event)">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small">เวลาเริ่ม</label>
+                            <input type="time" id="otherStartTime" class="form-control form-control-sm bg-dark text-white border-secondary" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">เวลาสิ้นสุด</label>
+                            <input type="time" id="otherEndTime" class="form-control form-control-sm bg-dark text-white border-secondary" required>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">ประเภทกิจกรรม</label>
+                        <select id="otherActivityType" class="form-select form-select-sm bg-dark text-white border-secondary" required>
+                            <option value="">-- เลือกกิจกรรม --</option>
+                            <option value="ช่วยงานไลน์อื่น">ช่วยงานไลน์อื่น</option>
+                            <option value="ประชุม / อบรม">ประชุม / อบรม</option>
+                            <option value="ซ่อมบำรุง / รอเครื่องจักร">ซ่อมบำรุง / รอเครื่องจักร</option>
+                            <option value="กิจกรรม 5S / ทำความสะอาด">กิจกรรม 5S / ทำความสะอาด</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">รายละเอียด / หมายเหตุ</label>
+                        <input type="text" id="otherRemark" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="ระบุรายละเอียด...">
+                    </div>
+                    <button type="submit" class="btn btn-info btn-sm w-100 text-dark fw-bold">
+                        <i class="fas fa-plus-circle me-1"></i> บันทึกกิจกรรมอื่นๆ
+                    </button>
+                </form>
+            </div>
         </div>
 
-        <!-- 2. ตรงกลาง: ตารางประวัติการตรวจ Q-Gate -->
+        <!-- 2. ตรงกลาง: ตารางประวัติการตรวจ Q-Gate พร้อมแถบกรองและปุ่มพิมพ์รายงาน -->
         <div class="col-md-5">
             <div class="card p-3 shadow-sm bg-dark text-white">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <h5 class="m-0 fs-6"><i class="fas fa-history me-1"></i>ประวัติการตรวจ Q-Gate</h5>
-                    <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm py-0 px-2" style="font-size: 12px;">
-                        <i class="fas fa-file-excel me-1"></i> Export (.xlsx)
-                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- ตัวเลือกกรองวันที่ -->
+                        <input type="date" id="filterQGateDate" class="form-control form-control-sm bg-dark text-white border-secondary" style="width: 130px; font-size: 11px;" onchange="filterQGateHistory()">
+                        
+                        <!-- ตัวเลือกกรองพนักงาน -->
+                        <select id="filterQGateInspector" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 130px; font-size: 11px;" onchange="filterQGateHistory()">
+                            <option value="">-- พนักงานทั้งหมด --</option>
+                        </select>
+
+                        <!-- ปุ่มพิมพ์ใบรายงาน -->
+                        <a href="Daily Q-Gate Inspection Report.html" target="_blank" class="btn btn-primary btn-sm py-0 px-2" style="font-size: 11px;" title="พิมพ์ใบรายงานประจำวัน">
+                            <i class="fas fa-print me-1"></i> พิมพ์รายงาน
+                        </a>
+
+                        <button onclick="exportQgateToExcel()" class="btn btn-success btn-sm py-0 px-2" style="font-size: 11px;" title="Export Excel">
+                            <i class="fas fa-file-excel"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
+                <div class="table-responsive" style="max-height: 720px; overflow-y: auto;">
                     <table class="table table-dark table-hover align-middle m-0" style="font-size: 12px;">
                         <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
                             <tr>
@@ -756,7 +806,7 @@
                         <i class="fas fa-exclamation-triangle me-1"></i> ต่ำกว่า Safety Stock FG
                     </h6>
                 </div>
-                <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
+                <div class="table-responsive" style="max-height: 780px; overflow-y: auto;">
                     <table class="table table-dark table-sm align-middle m-0" style="font-size: 12px;">
                         <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
                             <tr>
