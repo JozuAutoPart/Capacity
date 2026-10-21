@@ -1253,23 +1253,62 @@ if (dashDiffBalanceEl) {
     renderDashboardPpmChart(totalActual, totalNgFiltered);
 }
 
-function renderDashboardPpmChart(totalProduction, totalNg, monthlyRecords) {
+function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
 
-    // สมมติดึงข้อมูลเฉพาะของเดือนปัจจุบัน (ตัวอย่างเช่น เดือนล่าสุด หรือเดือนที่ตรงกับเดือนปัจจุบัน ต.ค.)
-    // โดยใช้ค่าจากเดือนปัจจุบันในอาเรย์รายเดือน หรือถ้ายังไม่มีข้อมูลรายเดือนแยก ให้ใช้ค่ากรองตามจริงของเดือนนี้
-    let currentMonthProd = totalProduction; // สามารถปรับเปลี่ยนให้ดึงเฉพาะเดือนปัจจุบันได้ที่นี่
-    let currentMonthNg = totalNg;         // ยอดของเสียเฉพาะเดือนปัจจุบัน
-    
-    // ถ้ามีข้อมูลแยกรายเดือน ให้ดึงเดือนปัจจุบันมาใช้ในการ์ด เช่น เดือนตุลาคม (เดือนที่ 10 หรือ index ที่ 9)
-    if (window.currentMonthData) {
-        currentMonthProd = window.currentMonthData.prod || totalProduction;
-        currentMonthNg = window.currentMonthData.ng || totalNg;
+    // คำนวณข้อมูลแยกตามรายเดือน 12 เดือนจากข้อมูลจริง
+    let monthlyProdArr = new Array(12).fill(0);
+    let monthlyNgArr = new Array(12).fill(0);
+
+    // ประมวลผลยอดผลิตรายเดือนจาก actuals
+    if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+        actuals.forEach(a => {
+            let aPart = String(a["Part No."] || a.partNo || '').trim();
+            if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
+
+            let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
+            let monthIndex = 9; // ค่าเริ่มต้นเดือน ต.ค. (index 9)
+            if (dateVal) {
+                let d = new Date(dateVal);
+                if (!isNaN(d.getTime())) {
+                    monthIndex = d.getMonth(); // 0 = ม.ค., 9 = ต.ค.
+                }
+            }
+
+            let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
+            let val = Number(rawQty) || 0;
+            monthlyProdArr[monthIndex] += val;
+        });
+    } else {
+        monthlyProdArr[9] = totalProduction;
     }
+
+    // ประมวลผลของเสียรายเดือนจาก qgate
+    if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
+        qgate.forEach(q => {
+            let dateVal = q["Date"] || q.date || q.Timestamp || q.timestamp || '';
+            let monthIndex = 9;
+            if (dateVal) {
+                let d = new Date(dateVal);
+                if (!isNaN(d.getTime())) {
+                    monthIndex = d.getMonth();
+                }
+            }
+            let rawNg = q.ngQty !== undefined ? q.ngQty : (q['NG Qty'] !== undefined ? q['NG Qty'] : (q.ng || q.NG || 0));
+            monthlyNgArr[monthIndex] += Number(rawNg) || 0;
+        });
+    } else {
+        monthlyNgArr[9] = totalNg;
+    }
+
+    // ดึงข้อมูลเฉพาะของ "เดือนปัจจุบัน" มาแสดงในการ์ดขวามือ
+    const currentMonthIndex = new Date().getMonth(); // เดือนปัจจุบันของระบบ (เช่น 9 สำหรับ ตุลาคม)
+    let currentMonthProd = monthlyProdArr[currentMonthIndex] > 0 ? monthlyProdArr[currentMonthIndex] : (monthlyProdArr[9] || totalProduction);
+    let currentMonthNg = monthlyNgArr[currentMonthIndex] !== undefined ? monthlyNgArr[currentMonthIndex] : totalNg;
 
     const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
 
-    // อัปเดตข้อความสถิติ (เฉพาะเดือนปัจจุบัน)
+    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ (ยอดเดือนปัจจุบัน)
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
@@ -1294,7 +1333,7 @@ function renderDashboardPpmChart(totalProduction, totalNg, monthlyRecords) {
         }
     }
 
-    // วาดกราฟแท่งผสมรายเดือน 12 เดือน (Combo Chart: Bar PPM + Line Production)
+    // วาดกราฟแท่งผสมรายเดือน 12 เดือน (Combo Chart)
     const canvasEl = document.getElementById('defectPpmChart');
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
@@ -1304,8 +1343,7 @@ function renderDashboardPpmChart(totalProduction, totalNg, monthlyRecords) {
     }
 
     const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-    const monthlyPpm = [0, 0, 0, 0, 0, 0, 0, 103, actualPpm, 0, 0, 0];
-    const monthlyProd = [0, 0, 0, 0, 0, 0, 0, 2500000, currentMonthProd, 0, 0, 0];
+    const monthlyPpm = monthlyProdArr.map((prod, idx) => prod > 0 ? Math.round((monthlyNgArr[idx] / prod) * 1_000_000) : 0);
 
     ppmChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -1322,7 +1360,7 @@ function renderDashboardPpmChart(totalProduction, totalNg, monthlyRecords) {
                 },
                 {
                     label: 'ยอดผลิตรวม (ชิ้น)',
-                    data: monthlyProd,
+                    data: monthlyProdArr,
                     type: 'line',
                     borderColor: '#fbbf24',
                     backgroundColor: '#fbbf24',
@@ -1372,8 +1410,7 @@ function renderDashboardPpmChart(totalProduction, totalNg, monthlyRecords) {
             }
         }
     });
-}
-       // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
+}       // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
 // กำหนดสัดส่วน Stroke ต่อชั่วโมง (สามารถปรับเปลี่ยนตามหน้างานจริงได้ครับ เช่น 1 ชั่วโมงทำได้กี่ Stroke)
