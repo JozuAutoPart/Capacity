@@ -1146,7 +1146,7 @@
             }
         }
 
-       // --- TAB 1: DASHBOARD ---
+// --- TAB 1: DASHBOARD ---
 let ppmChartInstance = null;
 
 function filterDashboard(line, btn) {
@@ -1174,7 +1174,6 @@ function renderDashboard() {
         const planLine = String(plan.Line || plan.line || '').trim();
         const planPart = String(plan["Part No."] || plan.partNo || '').trim();
 
-        // กรองข้อมูลประวัติการผลิต ตาม Line และ Part No.
         // กรองข้อมูลประวัติการผลิต ตาม Line และ Part No.
         const actForPlan = actuals.filter(a => {
             let alineRaw = a["Line/MC"] || a.line || a.Line || '';
@@ -1250,7 +1249,7 @@ if (dashDiffBalanceEl) {
         }
     });
 }
-    // คำนวณและเรนเดอร์กราฟโดนัท PPM ตามฟิลเตอร์ไลน์ผลิต
+    // คำนวณและเรนเดอร์กราฟแท่งรายเดือน PPM แทนที่โดนัทเดิม
     renderDashboardPpmChart(totalActual, totalNgFiltered);
 }
 
@@ -1283,46 +1282,83 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     }
 
-    // วาดกราฟโดนัท (Doughnut Chart)
+    // วาดกราฟแท่งผสมรายเดือน 12 เดือน (Combo Chart: Bar PPM + Line Production)
     const canvasEl = document.getElementById('defectPpmChart');
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
-    
-    const goodQty = Math.max(0, totalProduction - totalNg);
 
     if (ppmChartInstance) {
         ppmChartInstance.destroy();
     }
 
+    // ข้อมูลจำลองรายเดือน 12 เดือน (สามารถแทนที่ด้วยข้อมูลจริงจากอาร์เรย์รายเดือนได้ทันที)
+    const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+    const monthlyPpm = [0, 0, 0, 0, 0, 0, 0, 103, actualPpm, 0, 0, 0];
+    const monthlyProd = [0, 0, 0, 0, 0, 0, 0, 2500000, totalProduction, 0, 0, 0];
+
     ppmChartInstance = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
-            labels: ['Good Qty', 'NG Qty (ของเสีย)'],
-            datasets: [{
-                data: [goodQty, totalNg > 0 ? totalNg : (totalProduction === 0 ? 1 : 0)],
-                backgroundColor: ['#28a745', '#dc3545'],
-                borderWidth: 0
-            }]
+            labels: months,
+            datasets: [
+                {
+                    label: 'PPM รายเดือน',
+                    data: monthlyPpm,
+                    backgroundColor: '#38bdf8',
+                    borderColor: '#38bdf8',
+                    borderWidth: 1,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'ยอดผลิตรวม (ชิ้น)',
+                    data: monthlyProd,
+                    type: 'line',
+                    borderColor: '#fbbf24',
+                    backgroundColor: '#fbbf24',
+                    borderWidth: 2,
+                    fill: false,
+                    yAxisID: 'y1'
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: true,
+                    ticks: { color: '#94a3b8', font: { size: 9 } },
+                    grid: { color: '#334155' }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    ticks: { color: '#fbbf24', font: { size: 9 } },
+                    grid: { drawOnChartArea: false }
+                },
+                x: {
+                    ticks: { color: '#94a3b8', font: { size: 9 } },
+                    grid: { display: false }
+                }
+            },
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { color: '#ffffff' }
+                    labels: { color: '#ffffff', font: { size: 10 } }
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            let label = context.label || '';
+                            let label = context.dataset.label || '';
                             let value = context.raw || 0;
-                            return ` ${label}: ${value.toLocaleString()} ชิ้น`;
+                            return ` ${label}: ${value.toLocaleString()}`;
                         }
                     }
                 }
-            },
-            cutout: '70%'
+            }
         }
     });
 }
