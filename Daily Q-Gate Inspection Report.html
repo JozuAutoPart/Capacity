@@ -102,7 +102,7 @@
                     </tr>
                 </thead>
                 <tbody id="tblInspectionBody">
-                    <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted">กำลังดึงข้อมูลจาก Google Sheets...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -168,6 +168,9 @@
 
     <!-- JavaScript Script -->
     <script>
+        // 🔑 นำ URL ของ Web App (Google Apps Script) จากหน้าหลักมาใส่ที่นี่
+        const GOOGLE_SCRIPT_URL = "วาง_URL_Google_Apps_Script_ของพี่มิวตรงนี้";
+
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date') || '';
@@ -176,21 +179,37 @@
             document.getElementById('lblDate').innerText = paramDate ? paramDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-            // ดึงข้อมูลทั้งหมดจาก LocalStorage ที่หน้าหลักใช้อยู่ (รองรับทุกชื่อคีย์)
-            let qgateData = [];
-            try {
-                qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-            } catch (e) {
-                qgateData = [];
+            // ดึงข้อมูลจาก Google Sheets ตาม action=getQgate ที่มีใน Apps Script ของพี่มิว
+            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith("http")) {
+                fetch(GOOGLE_SCRIPT_URL + '?action=getQgate')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            processAndRender(data, paramDate, paramInspector);
+                        } else {
+                            fetchLocal(paramDate, paramInspector);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Cloud fetch error:", err);
+                        fetchLocal(paramDate, paramInspector);
+                    });
+            } else {
+                fetchLocal(paramDate, paramInspector);
             }
+        });
 
-            // กรองข้อมูลโดยเทียบวันที่ (10 หลักแรก) และชื่อพนักงานแบบไม่สนตัวพิมพ์เล็ก-ใหญ่
+        function fetchLocal(paramDate, paramInspector) {
+            let localData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+            processAndRender(localData, paramDate, paramInspector);
+        }
+
+        function processAndRender(qgateData, paramDate, paramInspector) {
             let filtered = qgateData.filter(q => {
-                let qDate = '';
-                if (q.date) {
-                    qDate = String(q.date).substring(0, 10);
-                }
-                
+                let qDate = q.date || q.Date || '';
+                if (qDate.includes('T')) qDate = qDate.split('T')[0];
+                qDate = String(qDate).trim().substring(0, 10);
+
                 let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
 
                 let matchDate = !paramDate || qDate === paramDate;
@@ -199,7 +218,6 @@
                 return matchDate && matchIns;
             });
 
-            // 1. วาดตารางตรวจชิ้นงาน
             const tblInsp = document.getElementById('tblInspectionBody');
             tblInsp.innerHTML = '';
 
@@ -207,7 +225,7 @@
             let currentLine = '-';
 
             if (filtered.length === 0) {
-                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ' + paramDate + ', พนักงาน: ' + paramInspector + ')</td></tr>';
+                tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
             } else {
                 filtered.forEach((item, index) => {
                     let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
@@ -237,7 +255,7 @@
 
             document.getElementById('lblLine').innerText = currentLine;
 
-            // 2. วาดตารางกิจกรรมอื่นๆ
+            // กรองกิจกรรมอื่นๆ (Non-Inspection)
             let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
             let filteredOther = otherData.filter(o => {
                 let oDate = o.date ? String(o.date).substring(0, 10) : '';
@@ -264,14 +282,14 @@
                 });
             }
 
-            // 3. สรุปผลยอดรวม
+            // สรุปยอดรวม
             document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
             document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
             document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
 
             let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
             document.getElementById('sumPpm').innerText = ppm.toLocaleString() + ' PPM';
-        });
+        }
     </script>
 </body>
 </html>
