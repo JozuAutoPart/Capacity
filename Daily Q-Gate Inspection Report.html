@@ -177,30 +177,34 @@
 
     <!-- JavaScript Script -->
     <script>
-      document.addEventListener("DOMContentLoaded", function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paramDate = urlParams.get('date');
-    const paramInspector = urlParams.get('inspector');
+        document.addEventListener("DOMContentLoaded", function() {
+            // 📌 รับค่า URL Parameters ที่ส่งมาจากหน้าหลัก (date และ inspector)
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramDate = urlParams.get('date');
+            const paramInspector = urlParams.get('inspector');
 
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('reportDate').value = paramDate || today;
-    
-    populateInspectors();
+            // ตั้งค่าวันที่
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reportDate').value = paramDate || today;
+            
+            // โหลดรายชื่อพนักงานใส่ Dropdown
+            populateInspectors();
 
-    // เซ็ตค่าพนักงานจาก URL ให้เรียบร้อยก่อน
-    if (paramInspector) {
-        document.getElementById('reportInspector').value = paramInspector;
-    }
+            // ถ้ามีพนักงานส่งมา ให้เลือกพนักงานนั้นทันที
+            if (paramInspector) {
+                document.getElementById('reportInspector').value = paramInspector;
+            }
 
-    // 📌 ย้ายมาไว้บรรทัดสุดท้าย เพื่อให้โหลดข้อมูลตามพนักงานและวันที่ ที่ถูกเลือกเสร็จสมบูรณ์
-    loadReportData();
-});
+            // โหลดข้อมูลรายงาน
+            loadReportData();
+        });
+
         function populateInspectors() {
             const sel = document.getElementById('reportInspector');
             if (!sel) return;
 
             let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-            let inspectors = [...new Set(qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean))];
+            let inspectors = [...new Set(qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean))].sort();
             
             sel.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
             inspectors.forEach(ins => {
