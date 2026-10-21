@@ -259,17 +259,18 @@
             });
         }
 
-        function loadReportData() {
+       function loadReportData() {
             const selectedDate = document.getElementById('reportDate').value;
             const selectedInspector = document.getElementById('reportInspector').value;
 
-            document.getElementById('lblDate').innerText = selectedDate ? selectedDate.split('-').reverse().join('/') : 'ทั้งหมด';
+            document.getElementById('lblDate').innerText = selectedDate ? selectedDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = selectedInspector || 'พนักงานทั้งหมด';
 
-            // แก้ไขให้ดึงจาก LocalStorage Key 'qgate' เป็นหลัก
+            // ดึงข้อมูลจาก LocalStorage
             let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+            console.log("Q-Gate Data loaded in report:", qgateData); // เช็คข้อมูลใน F12 Console
 
-            // กรองข้อมูลตามวันที่และพนักงาน
+            // กรองข้อมูล (ถ้าไม่เลือกวันที่ จะแสดงทั้งหมด)
             let filtered = qgateData.filter(q => {
                 let qDate = '';
                 if (q.date) {
@@ -298,7 +299,7 @@
             let currentLine = '-';
 
             if (filtered.length === 0) {
-                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted">ไม่มีข้อมูลการตรวจสอบ</td></tr>';
+                tblInsp.innerHTML = '<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลการตรวจสอบ (ลองล้างวันที่ในช่องค้นหาเพื่อดูข้อมูลทั้งหมด)</td></tr>';
             } else {
                 filtered.forEach((item, index) => {
                     let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
@@ -337,10 +338,11 @@
             });
 
             const tblOther = document.getElementById('tblOtherActivityBody');
+            tblOther.innerHTML = `;`;
             tblOther.innerHTML = '';
 
             if (filteredOther.length === 0) {
-                tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
+                tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่น</td></tr>';
             } else {
                 filteredOther.forEach((o, index) => {
                     tblOther.innerHTML += `
