@@ -2867,37 +2867,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 📌 ฟังก์ชันอัปเดตรายชื่อ Inspector ใส่ Dropdown กรอง (ดึงจากทั้ง LocalStorage, qgate array และ Master)
+// 📌 ฟังก์ชันอัปเดตรายชื่อ Inspector ใส่ Dropdown กรอง
 function updateQGateInspectorDropdown() {
     const sel = document.getElementById('filterQGateInspector');
     if (!sel) return;
 
-    // 1. ดึงข้อมูลจากตัวแปร qgate หรือ LocalStorage
     let qgateData = [];
     if (typeof qgate !== 'undefined' && Array.isArray(qgate) && qgate.length > 0) {
         qgateData = qgate;
     } else {
-        qgateData = JSON.parse(localStorage.getItem('qgate_logs') || localStorage.getItem('qgate') || '[]');
+        qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
     }
 
-    // 2. ดึงรายชื่อพนักงานจากประวัติ Q-Gate
+    // ดึงค่าจากฟิลด์ inspector ตรงๆ ตามโครงสร้างจริง
     let inspectors = qgateData.map(q => q.inspector || q.opName || q.OP || '').filter(Boolean);
-
-    // 3. ดึงรายชื่อพนักงานเพิ่มจาก Master Parts Database (กรณีมีรายชื่อผู้ตรวจใน Master)
-    const masterDb = window.masterPartsDatabase || window.masterParts || [];
-    masterDb.forEach(m => {
-        Object.keys(m).forEach(k => {
-            let lk = String(k).toLowerCase().trim();
-            if (lk.includes('inspector') || lk === 'ผู้ตรวจสอบ' || lk === 'p') {
-                if (m[k] && m[k] !== 'undefined') inspectors.push(m[k]);
-            }
-        });
-    });
-
-    // ตัดชื่อที่ซ้ำกันออก
     let uniqueInspectors = [...new Set(inspectors)].sort();
 
-    // 4. บันทึกค่าเดิมที่เลือกไว้ก่อนยัด Option ใหม่
     let currentVal = sel.value;
     sel.innerHTML = '<option value="">-- พนักงานทั้งหมด --</option>';
 
@@ -2913,9 +2898,8 @@ function updateQGateInspectorDropdown() {
     }
 }
 
-// 📌 ฟังก์ชันเรนเดอร์ข้อมูลหน้า Q-Gate (พร้อมสั่งอัปเดตรายชื่อพนักงานอัตโนมัติ)
+// 📌 ฟังก์ชันเรนเดอร์ข้อมูลหน้า Q-Gate
 function renderQGate() {
-    // อัปเดตรายชื่อพนักงานใน Dropdown ทุกครั้งที่โหลด/เรนเดอร์ข้อมูล
     updateQGateInspectorDropdown();
 
     const filterDate = document.getElementById('filterQGateDate')?.value || '';
@@ -2925,10 +2909,9 @@ function renderQGate() {
     if (typeof qgate !== 'undefined' && Array.isArray(qgate) && qgate.length > 0) {
         qgateList = qgate;
     } else {
-        qgateList = JSON.parse(localStorage.getItem('qgate_logs') || localStorage.getItem('qgate') || '[]');
+        qgateList = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
     }
 
-    // กรองข้อมูลตามเงื่อนไข วันที่ และ พนักงาน
     let filtered = qgateList.filter(item => {
         let displayDate = '';
         if (item.date) {
@@ -2954,7 +2937,7 @@ function renderQGate() {
     if(historyBody) {
         historyBody.innerHTML = '';
         if(qgateHistory.length === 0) {
-            historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจ Q-Gate ตามเงื่อนไขที่เลือก</td></tr>`;
+            historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
             qgateHistory.forEach(item => {
                 let displayDate = '';
@@ -2973,9 +2956,9 @@ function renderQGate() {
                         <td>${displayDate}</td>
                         <td><small class="text-warning">${item.timeRange || '-'}</small></td>
                         <td>${item.inspector || '-'}</td>
-                        <td class="fw-bold">${item.partNo || item['Part No.'] || '-'}</td>
-                        <td>${(item.totalQty || item.qty || 0).toLocaleString()}</td>
-                        <td class="text-danger">${(item.ngQty || item.ng || 0).toLocaleString()}</td>
+                        <td class="fw-bold">${item.partNo || '-'}</td>
+                        <td>${(item.totalQty || 0).toLocaleString()}</td>
+                        <td class="text-danger">${(item.ngQty || 0).toLocaleString()}</td>
                         <td class="text-success fw-bold">${(item.passQty || 0).toLocaleString()}</td>
                         <td class="text-center">
                             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteQGateItem(${item.id})" title="ลบรายการนี้">
@@ -2988,14 +2971,6 @@ function renderQGate() {
         }
     }
 }
-
-// 📌 เรียกอัปเดตเมื่อโหลดหน้าเว็บเสร็จ
-document.addEventListener("DOMContentLoaded", function() {
-    setTimeout(() => {
-        updateQGateInspectorDropdown();
-        renderQGate();
-    }, 500); // หน่วงเวลา 0.5 วินาทีเพื่อให้ LocalStorage และ Master Data โหลดเสร็จเรียบร้อย
-});
 // ฟังก์ชันบันทึกข้อมูล Q-Gate
 function submitQGateTransaction(e) {
     e.preventDefault();
