@@ -161,11 +161,7 @@
         </div>
     </div>
 
-    <!-- JavaScript Script -->
-    <script>
-        // 🔑 นำ URL ของ Web App (Google Apps Script) จากหน้าหลักมาใส่ที่นี่
-        const GOOGLE_SCRIPT_URL = "วาง_URL_Google_Apps_Script_ของพี่มิวตรงนี้";
-
+<script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date') || '';
@@ -174,32 +170,15 @@
             document.getElementById('lblDate').innerText = paramDate ? paramDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-            // ดึงข้อมูลจาก Google Sheets ตาม action=getQgate ที่มีใน Apps Script ของพี่มิว
-            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith("http")) {
-                fetch(GOOGLE_SCRIPT_URL + '?action=getQgate')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (Array.isArray(data)) {
-                            processAndRender(data, paramDate, paramInspector);
-                        } else {
-                            fetchLocal(paramDate, paramInspector);
-                        }
-                    })
-                    .catch(err => {
-                        console.error("Cloud fetch error:", err);
-                        fetchLocal(paramDate, paramInspector);
-                    });
-            } else {
-                fetchLocal(paramDate, paramInspector);
+            // 📌 ดึงข้อมูลจาก localStorage ที่ส่งมาจากหน้าหลัก
+            let qgateData = [];
+            try {
+                qgateData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
+            } catch (e) {
+                qgateData = [];
             }
-        });
 
-        function fetchLocal(paramDate, paramInspector) {
-            let localData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-            processAndRender(localData, paramDate, paramInspector);
-        }
-
-        function processAndRender(qgateData, paramDate, paramInspector) {
+            // กรองข้อมูลตามวันที่และพนักงาน
             let filtered = qgateData.filter(q => {
                 let qDate = q.date || q.Date || '';
                 if (qDate.includes('T')) qDate = qDate.split('T')[0];
@@ -250,33 +229,6 @@
 
             document.getElementById('lblLine').innerText = currentLine;
 
-            // กรองกิจกรรมอื่นๆ (Non-Inspection)
-            let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
-            let filteredOther = otherData.filter(o => {
-                let oDate = o.date ? String(o.date).substring(0, 10) : '';
-                let oIns = String(o.inspector || '').trim();
-                return (!paramDate || oDate === paramDate) && (!paramInspector || oIns.toLowerCase() === paramInspector.toLowerCase());
-            });
-
-            const tblOther = document.getElementById('tblOtherActivityBody');
-            tblOther.innerHTML = '';
-
-            if (filteredOther.length === 0) {
-                tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่น</td></tr>';
-            } else {
-                filteredOther.forEach((o, index) => {
-                    tblOther.innerHTML += `
-                        <tr>
-                            <td class="text-center">${index + 1}</td>
-                            <td class="text-center">${o.startTime} - ${o.endTime}</td>
-                            <td><strong>${o.activityType || '-'}</strong></td>
-                            <td>${o.remark || '-'}</td>
-                            <td class="text-center">${o.durationMinutes || '-'} นาที</td>
-                        </tr>
-                    `;
-                });
-            }
-
             // สรุปยอดรวม
             document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
             document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
@@ -284,7 +236,7 @@
 
             let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
             document.getElementById('sumPpm').innerText = ppm.toLocaleString() + ' PPM';
-        }
+        });
     </script>
 </body>
 </html>
