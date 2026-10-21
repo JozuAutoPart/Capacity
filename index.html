@@ -4394,28 +4394,53 @@ document.addEventListener("DOMContentLoaded", async function() {
     loadMaterialStock();
 });
 
-// ฟังก์ชันสร้าง IC No. อัตโนมัติ 7 หลัก (ปี2หลัก + เดือน2หลัก + รันนิ่ง 3 หลัก เช่น 2609001)
+// 📌 ฟังก์ชันสร้าง IC No. อัตโนมัติ (ตรวจเช็คจากทุกแหล่งข้อมูล)
 function generateAutoIcNo() {
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const prefix = yy + mm;
+    const prefix = yy + mm; // เช่น 2610
 
     let maxSeq = 0;
+
+    // 1. รวมแหล่งข้อมูลทั้งหมดที่มีอยู่ (bms, materialHistory, และ LocalStorage)
+    let allData = [];
+    
+    if (typeof bms !== 'undefined' && Array.isArray(bms)) {
+        allData = allData.concat(bms);
+    }
     if (typeof materialHistory !== 'undefined' && Array.isArray(materialHistory)) {
-        materialHistory.forEach(item => {
-            if (item.icNo && item.icNo.startsWith(prefix)) {
-                let seqPart = parseInt(item.icNo.slice(4), 10);
+        allData = allData.concat(materialHistory);
+    }
+    
+    // ดึงจาก LocalStorage เผื่อไว้กรณีข้อมูลในหน่วยความจำยังไม่มา
+    try {
+        const localBms = localStorage.getItem('bms') || localStorage.getItem('materialHistory');
+        if (localBms) {
+            const parsed = JSON.parse(localBms);
+            if (Array.isArray(parsed)) allData = allData.concat(parsed);
+        }
+    } catch(e) {
+        console.warn("ไม่สามารถอ่าน LocalStorage ได้:", e);
+    }
+
+    // 2. วนลูปหา IC No. ล่าสุดของเดือนนั้นๆ
+    allData.forEach(item => {
+        if (item && item.icNo) {
+            const cleanIc = String(item.icNo).trim();
+            if (cleanIc.startsWith(prefix)) {
+                // ดึง 3 หลักสุดท้ายมาแปลงเป็นตัวเลข
+                let seqPart = parseInt(cleanIc.slice(4), 10);
                 if (!isNaN(seqPart) && seqPart > maxSeq) {
                     maxSeq = seqPart;
                 }
             }
-        });
-    }
+        }
+    });
+
     let nextSeq = String(maxSeq + 1).padStart(3, '0');
     return prefix + nextSeq;
 }
-
 // สลับการแสดงผลฟิลด์ฟอร์มตามประเภท รับเข้า หรือ จ่ายออก
 function toggleMatFormFields() {
     const type = document.getElementById('matType').value;
@@ -4492,6 +4517,7 @@ function submitMaterialTransaction(e) {
 }
 
 // ฟังก์ชันคำนวณและแสดงผลสต็อกคงเหลือ รวมถึงประวัติ
+// 📌 ปรับปรุงฟังก์ชัน loadMaterialStock ให้ช่วยรีเฟรช IC No. บนหน้าฟอร์มใหม่อัตโนมัติเมื่อดึงข้อมูลเสร็จ
 function loadMaterialStock() {
     let stockMap = {};
     
@@ -4499,11 +4525,21 @@ function loadMaterialStock() {
         materialHistory = bms;
     }
 
+    // 💡 รันสร้าง IC No. ใหม่หลังจากข้อมูล bms โหลดเสร็จแล้ว
+    const typeSelect = document.getElementById('matType');
+    const icInput = document.getElementById('matIcNo');
+    if (icInput && (!typeSelect || typeSelect.value === 'IN')) {
+        icInput.value = generateAutoIcNo();
+    }
+
+    // --- โค้ดส่วนแสดงผลสต็อกเดิมของคุณ ---
     materialHistory.forEach(item => {
-        let key = item.partNo + "||" + item.typeSize;
+        let typeSize = item.typeSize || (typeof partTypeMapping !== 'undefined' ? partTypeMapping[item.partNo] : '') || '-';
+        let key = item.partNo;
         let unit = item.unit || 'Sheet';
+
         if(!stockMap[key]) {
-            stockMap[key] = { partNo: item.partNo, icNo: item.icNo || '', typeSize: item.typeSize, unit: unit, in: 0, out: 0 };
+            stockMap[key] = { partNo: item.partNo, icNo: item.icNo || '', typeSize: typeSize, unit: unit, in: 0, out: 0 };
         }
         if(item.icNo && item.icNo !== '-') stockMap[key].icNo = item.icNo;
 
@@ -4556,6 +4592,7 @@ function loadMaterialStock() {
                 let rawDate = item.date || '';
                 let cleanDate = rawDate ? rawDate.split('T')[0] : '';
                 let itemUnit = item.unit || 'Sheet';
+                let typeSize = item.typeSize || (typeof partTypeMapping !== 'undefined' ? partTypeMapping[item.partNo] : '') || '-';
                 
                 historyBody.innerHTML += `
                     <tr>
@@ -4563,11 +4600,11 @@ function loadMaterialStock() {
                         <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
                         <td class="fw-bold">${item.partNo || ''}</td>
                         <td><strong>${item.icNo || '-'}</strong></td>
-                        <td>${item.typeSize || ''}</td>
+                        <td>${typeSize}</td>
                         <td class="fw-bold">${Number(item.qty || 0).toLocaleString()} ${itemUnit}</td>
                         <td><small class="text-muted">${item.detail || ''}</small></td>
                         <td class="text-center">
-                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(item.icNo || '')}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(item.typeSize || '')}', '${encodeURIComponent(itemUnit)}', '${encodeURIComponent(cleanDate)}')" title="พิมพ์ Tag วัสดุนี้">
+                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(item.icNo || '')}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(typeSize)}', '${encodeURIComponent(itemUnit)}', '${encodeURIComponent(cleanDate)}')" title="พิมพ์ Tag วัสดุนี้">
                                 <i class="fas fa-print"></i>
                             </button>
                             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialHistory(${index})" title="ลบรายการนี้">
@@ -4580,7 +4617,6 @@ function loadMaterialStock() {
         }
     }
 }
-
 // ฟังก์ชันพิมพ์ Tag เฉพาะรายการในประวัติ
 function printSpecificMaterialTag(partNo, icNo, qty, typeSize, unit, date) {
     const url = `print-tag-material.html?partNo=${partNo}&icNo=${icNo || '-'}&qty=${qty}&type=${typeSize}&unit=${unit || 'Sheet'}&date=${date || ''}`;
