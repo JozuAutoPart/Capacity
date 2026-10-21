@@ -160,87 +160,22 @@
         </div>
     </div>
 
-   <!-- JavaScript Script -->
-    <script>
-        // 🔗 ใส่ URL Google Apps Script ของพี่มิวที่นี่ (ตัวเดียวกับหน้าหลัก)
-        const GOOGLE_SCRIPT_URL = "ใส่_URL_Google_Script_ของพี่มิวตรงนี้"; 
-
-        window.reportFullData = [];
-
+   <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // 1. อ่านค่า Date และ Inspector จาก URL ที่ส่งมาจากหน้าหลัก
             const urlParams = new URLSearchParams(window.location.search);
-            const paramDate = urlParams.get('date');
-            const paramInspector = urlParams.get('inspector');
+            const paramDate = urlParams.get('date') || '';
+            const paramInspector = urlParams.get('inspector') || '';
 
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('reportDate').value = paramDate || today;
+            // 2. แสดงค่าที่หัวกระดาษรายงาน
+            document.getElementById('lblDate').innerText = paramDate ? paramDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
+            document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-            // โหลดข้อมูล (ลองดึงจาก localStorage ก่อน ถ้าไม่มีให้ดึงจาก Cloud Google Sheets)
-            let localData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-            
-            if (localData.length > 0) {
-                window.reportFullData = localData;
-                initReport(paramInspector);
-            } else {
-                fetchDataFromCloud(paramInspector);
-            }
-        });
+            // 3. ดึงข้อมูลจาก localStorage ที่หน้าหลักบันทึกไว้
+            let qgateData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
 
-        function fetchDataFromCloud(targetInspector) {
-            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('ใส่_URL')) {
-                window.reportFullData = [];
-                initReport(targetInspector);
-                return;
-            }
-
-            fetch(GOOGLE_SCRIPT_URL + '?action=getQgate')
-                .then(res => res.json())
-                .then(data => {
-                    window.reportFullData = Array.isArray(data) ? data : [];
-                    localStorage.setItem('qgate', JSON.stringify(window.reportFullData));
-                    initReport(targetInspector);
-                })
-                .catch(err => {
-                    console.error("Fetch cloud error:", err);
-                    window.reportFullData = [];
-                    initReport(targetInspector);
-                });
-        }
-
-        function initReport(targetInspector) {
-            const sel = document.getElementById('reportInspector');
-            if (!sel) return;
-
-            let inspectors = [];
-            window.reportFullData.forEach(q => {
-                let name = q.inspector || q.opName || q.OP || q.empId || '';
-                if (name) inspectors.push(String(name).trim());
-            });
-            let uniqueInspectors = [...new Set(inspectors)].sort();
-            
-            sel.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
-            uniqueInspectors.forEach(ins => {
-                let opt = document.createElement('option');
-                opt.value = ins;
-                opt.textContent = ins;
-                sel.appendChild(opt);
-            });
-
-            if (targetInspector) {
-                sel.value = targetInspector;
-            }
-
-            loadReportData();
-        }
-
-        function loadReportData() {
-            const selectedDate = document.getElementById('reportDate').value;
-            const selectedInspector = document.getElementById('reportInspector').value;
-
-            document.getElementById('lblDate').innerText = selectedDate ? selectedDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
-            document.getElementById('lblInspector').innerText = selectedInspector || 'พนักงานทั้งหมด';
-
-            let filtered = window.reportFullData.filter(q => {
+            // 4. กรองข้อมูลตาม Date และ Inspector ที่ส่งมา
+            let filtered = qgateData.filter(q => {
                 let qDate = '';
                 if (q.date) {
                     const d = new Date(q.date);
@@ -254,13 +189,13 @@
 
                 let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
 
-                let matchDate = !selectedDate || qDate === selectedDate;
-                let matchIns = !selectedInspector || qIns.toLowerCase() === selectedInspector.toLowerCase();
+                let matchDate = !paramDate || qDate === paramDate;
+                let matchIns = !paramInspector || qIns.toLowerCase() === paramInspector.toLowerCase();
 
                 return matchDate && matchIns;
             });
 
-            // 1. วาดตารางตรวจชิ้นงาน
+            // 5. วาดตารางตรวจชิ้นงาน
             const tblInsp = document.getElementById('tblInspectionBody');
             tblInsp.innerHTML = '';
 
@@ -298,11 +233,11 @@
 
             document.getElementById('lblLine').innerText = currentLine;
 
-            // 2. วาดตารางกิจกรรมอื่นๆ (Non-Inspection)
+            // 6. วาดตารางกิจกรรมอื่นๆ (Non-Inspection)
             let otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
             let filteredOther = otherData.filter(o => {
-                let matchDate = !selectedDate || o.date === selectedDate;
-                let matchIns = !selectedInspector || String(o.inspector || '').trim().toLowerCase() === selectedInspector.toLowerCase();
+                let matchDate = !paramDate || o.date === paramDate;
+                let matchIns = !paramInspector || String(o.inspector || '').trim().toLowerCase() === paramInspector.toLowerCase();
                 return matchDate && matchIns;
             });
 
@@ -325,14 +260,14 @@
                 });
             }
 
-            // 3. สรุปผลยอดรวม
+            // 7. สรุปผลยอดรวม
             document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
             document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
             document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
 
             let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
             document.getElementById('sumPpm').innerText = ppm.toLocaleString() + ' PPM';
-        }
+        });
     </script>
 </body>
 </html>
