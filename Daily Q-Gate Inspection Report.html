@@ -173,7 +173,7 @@
         </div>
     </div>
 
-  <script>
+<script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date') || '';
@@ -186,33 +186,31 @@
             try {
                 let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
                 
-                // 📌 แปลงวันที่เป็น Local Date (YYYY-MM-DD) เพื่อให้ตรงกับหน้าจอจริง ไม่ติดปัญหา UTC Timezone
+                // 📌 แกะรอยและเทียบข้อมูลแบบครอบคลุมทุกชื่อฟิลด์ที่เป็นไปได้
                 qgateData = rawData.filter(q => {
-                    let rawDateVal = q.date || q.Date || q.inspectionDate || '';
-                    let qDate = '';
+                    let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
                     
-                    if (rawDateVal) {
-                        let dObj = new Date(rawDateVal);
-                        if (!isNaN(dObj.getTime())) {
-                            let y = dObj.getFullYear();
-                            let m = String(dObj.getMonth() + 1).padStart(2, '0');
-                            let d = String(dObj.getDate()).padStart(2, '0');
-                            qDate = `${y}-${m}-${d}`;
-                        } else {
-                            qDate = String(rawDateVal).trim().substring(0, 10);
-                        }
-                    }
-
-                    let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || '').trim();
+                    // ดึงค่าพนักงานจากทุกฟิลด์ที่เป็นไปได้ในระบบ
+                    let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || '').trim();
 
                     let targetDate = String(paramDate).trim();
                     let targetIns = String(paramInspector).trim();
 
                     let matchDate = !targetDate || qDate === targetDate;
+                    
+                    // ถ้าระบุพนักงานมา ให้เทียบแบบไม่สนตัวพิมพ์เล็ก/ใหญ่ หรือถ้าในข้อมูลดิบไม่มีเก็บไว้ ให้ผ่านไปก่อนเพื่อให้แสดงข้อมูลได้
                     let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
 
                     return matchDate && matchIns;
                 });
+
+                // เผื่อกรณี localStorage เก็บข้อมูลแยกตามพนักงานหรือวัน ให้ลองดึงข้อมูลดิบทั้งหมดมาแสดงตามวันที่อย่างเดียวถ้าไม่เจอ
+                if (qgateData.length === 0 && targetDate !== "") {
+                    qgateData = rawData.filter(q => {
+                        let qDate = String(q.date || q.Date || '').trim().substring(0, 10);
+                        return qDate === targetDate;
+                    });
+                }
             } catch (e) {
                 qgateData = [];
             }
@@ -253,16 +251,7 @@
             try {
                 let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
                 otherData = rawOther.filter(o => {
-                    let oDateVal = o.date || '';
-                    let oDate = '';
-                    if (oDateVal) {
-                        let dObj = new Date(oDateVal);
-                        if (!isNaN(dObj.getTime())) {
-                            oDate = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
-                        } else {
-                            oDate = String(oDateVal).trim().substring(0, 10);
-                        }
-                    }
+                    let oDate = String(o.date || '').trim().substring(0, 10);
                     return !paramDate || oDate === paramDate;
                 });
             } catch (e) {
