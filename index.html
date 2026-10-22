@@ -2455,9 +2455,9 @@ function renderActuals() {
     if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
 }
 
-// 📌 ฟังก์ชันช่วยจัดรูปแบบวันที่ (ฉบับแก้ขาด)
+// ฟังก์ชันช่วยจัดรูปแบบวันที่
 function parseDateString(dateStr) {
-    if (!dateStr) return "";
+    if (!dateStr) return "0000-00-00";
     let cleanStr = String(dateStr).split('T')[0].trim();
     
     if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(cleanStr)) {
@@ -2475,7 +2475,6 @@ function parseDateString(dateStr) {
     }
     return cleanStr;
 }
-
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
 function loadAllData() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
