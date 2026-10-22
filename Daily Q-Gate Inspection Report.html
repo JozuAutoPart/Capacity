@@ -190,10 +190,21 @@
                 qgateData = [];
             }
 
+            // 📌 แก้ไขฟังก์ชันการกรองวันที่ให้เทียบค่าแบบตรงตัว YYYY-MM-DD
             let filtered = qgateData.filter(q => {
                 let qDate = q.date || q.Date || '';
                 if (qDate.includes('T')) qDate = qDate.split('T')[0];
                 qDate = String(qDate).trim().substring(0, 10);
+
+                // แปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอเพื่อความชัวร์
+                if (qDate.includes('/')) {
+                    let parts = qDate.split('/');
+                    if (parts[0].length === 4) {
+                        qDate = `${parts[0]}-${parts[1]}-${parts[2]}`;
+                    } else {
+                        qDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    }
+                }
 
                 let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
 
