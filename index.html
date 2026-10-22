@@ -3354,7 +3354,7 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงานแบบชัวร์ 100%
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน กรองเฉพาะข้อมูลที่เลือกแบบชัวร์ๆ
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
@@ -3370,9 +3370,19 @@ window.openQGateReport = function() {
 
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // 📌 เพิ่มบรรทัดนี้: บันทึกข้อมูล qgate ลง localStorage ให้หน้ารายงานอ่าน
+    // 📌 กรองเฉพาะข้อมูล qgate ที่ตรงกับวันที่และพนักงานที่เลือกในตารางหน้าหลักตอนนี้
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        localStorage.setItem('qgateReportData', JSON.stringify(qgate));
+        let filteredReportData = qgate.filter(item => {
+            let itemDate = String(item.date || item.Date || '').trim().substring(0, 10);
+            let itemIns = String(item.inspector || item.opName || item.OP || item.empId || '').trim();
+            
+            let matchDate = !selectedDate || itemDate === selectedDate;
+            let matchIns = !selectedInspector || itemIns.toLowerCase() === selectedInspector.toLowerCase();
+            return matchDate && matchIns;
+        });
+
+        // บันทึกเฉพาะข้อมูลที่กรองแล้วส่งไปให้หน้ารายงานแสดงผล
+        localStorage.setItem('qgateReportData', JSON.stringify(filteredReportData));
     }
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
@@ -3385,10 +3395,6 @@ window.openQGateReport = function() {
         window.location.href = reportUrl;
     }
 };
-
-document.addEventListener("DOMContentLoaded", function() {
-    setTimeout(renderQGateSafetyStockList, 1000);
-});
 
     
 // --- TAB 6: STOCK WIP & FG ---
