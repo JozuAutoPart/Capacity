@@ -3354,36 +3354,30 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน ใช้ค่าสตริงวันที่ตรงๆ ไม่ผ่านการแปลงใดๆ เพื่อป้องกันวันเพี้ยน
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
 
-    // ดึงค่าสตริงวันที่ตรงๆ จากช่องเลือกวันที่ (เช่น '2026-10-22') โดยไม่ผ่าน Date Object
-    const selectedDate = dateEl ? dateEl.value.trim() : '';
+    const selectedDate = dateEl ? dateEl.value.trim() : ''; // เช่น '2026-10-19'
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // บันทึกข้อมูล qgate ลง localStorage
+    // 📌 กรองข้อมูลจาก qgate ดิบๆ ตรงนั้นเลย แล้วยัดใส่ localStorage ส่งไปหน้ารายงาน
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        // กรองเฉพาะวันที่เลือกส่งไปให้หน้ารายงาน
-        let filteredData = qgate.filter(item => {
-            let itemDate = String(item.date || item.Date || '').trim().substring(0, 10);
+        let exactFilteredData = qgate.filter(item => {
+            let itemDate = parseDateString(item.date || item.Date || item.inspectionDate || '');
             let itemIns = String(item.inspector || item.opName || item.OP || item.empId || '').trim();
             
             let matchDate = !selectedDate || itemDate === selectedDate;
-            let matchIns = !selectedInspector || itemIns.toLowerCase() === selectedInspector.toLowerCase();
+            let matchIns = !selectedInspector || selectedInspector === 'ทั้งหมด' || itemIns.toLowerCase() === selectedInspector.toLowerCase();
             return matchDate && matchIns;
         });
 
-        localStorage.setItem('qgateReportData', JSON.stringify(filteredData));
+        localStorage.setItem('qgateReportData', JSON.stringify(exactFilteredData));
     }
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
 
-    console.log("Opening report page:", reportUrl);
-
     const win = window.open(reportUrl, '_blank');
-
     if (!win || win.closed || typeof win.closed === 'undefined') {
         window.location.href = reportUrl;
     }
