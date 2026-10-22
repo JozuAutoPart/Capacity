@@ -78,7 +78,6 @@
             </div>
             <div class="text-end">
                 <h4 class="fw-bold m-0 text-dark" style="font-size: 20px; line-height: 1.2; letter-spacing: 0.3px;">ใบรายงานการตรวจสอบ Q-GATE ประจำวัน</h4>
-                <!-- 📌 เปลี่ยนข้อความภาษาอังกฤษเป็นสีดำ -->
                 <div class="fw-bold text-dark" style="font-size: 14px;">Daily Q-Gate Inspection Report</div>
             </div>
         </div>
@@ -149,7 +148,7 @@
             </div>
         </div>
 
-        <!-- Signatures: 📌 ขยับช่องเซ็นลงมาติดตัวหนังสือ -->
+        <!-- Signatures -->
         <div class="row text-center mt-5 pt-5">
             <div class="col-4">
                 <p class="mb-1">(.........................................................)</p>
@@ -168,7 +167,7 @@
             </div>
         </div>
 
-        <!-- 📌 เปลี่ยนรหัสเอกสารด้านล่างขวาสุดเป็นสีดำ -->
+        <!-- รหัสเอกสารด้านล่างขวาสุด -->
         <div class="text-end mt-4">
             <small class="fw-bold text-dark">J-F-QC-012 Rev.00 Ref.01-Nov-26</small>
         </div>
@@ -185,44 +184,32 @@
 
             let qgateData = [];
             try {
-                qgateData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
+                // ดึงข้อมูลทั้งหมดจาก localStorage มาตรวจสอบ
+                let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
+                
+                // 📌 กรองข้อมูลทันทีโดยจับคู่เฉพาะวันที่และพนักงานที่ตรงกับ URL parameter เท่านั้น (ป้องกันข้อมูลวันอื่นหลุดมาปน)
+                qgateData = rawData.filter(q => {
+                    let qDate = String(q.date || q.Date || '').trim().substring(0, 10);
+                    let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
+
+                    let matchDate = !paramDate || qDate === paramDate;
+                    let matchIns = !paramInspector || qIns.toLowerCase() === paramInspector.toLowerCase();
+
+                    return matchDate && matchIns;
+                });
             } catch (e) {
                 qgateData = [];
             }
-
-            // 📌 แก้ไขฟังก์ชันการกรองวันที่ให้เทียบค่าแบบตรงตัว YYYY-MM-DD
-            let filtered = qgateData.filter(q => {
-                let qDate = q.date || q.Date || '';
-                if (qDate.includes('T')) qDate = qDate.split('T')[0];
-                qDate = String(qDate).trim().substring(0, 10);
-
-                // แปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอเพื่อความชัวร์
-                if (qDate.includes('/')) {
-                    let parts = qDate.split('/');
-                    if (parts[0].length === 4) {
-                        qDate = `${parts[0]}-${parts[1]}-${parts[2]}`;
-                    } else {
-                        qDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    }
-                }
-
-                let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
-
-                let matchDate = !paramDate || qDate === paramDate;
-                let matchIns = !paramInspector || qIns.toLowerCase() === paramInspector.toLowerCase();
-
-                return matchDate && matchIns;
-            });
 
             const tblInsp = document.getElementById('tblInspectionBody');
             tblInsp.innerHTML = '';
 
             let totalQty = 0, totalPass = 0, totalNg = 0;
 
-            if (filtered.length === 0) {
+            if (qgateData.length === 0) {
                 tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
             } else {
-                filtered.forEach((item, index) => {
+                qgateData.forEach((item, index) => {
                     let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
                     let ng = Number(item.ngQty || item.ng || 0);
                     let pass = Number(item.passQty || (qty - ng) || 0);
@@ -248,23 +235,23 @@
 
             let otherData = [];
             try {
-                otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
+                let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
+                otherData = rawOther.filter(o => {
+                    let oDate = String(o.date || '').trim().substring(0, 10);
+                    let oIns = String(o.inspector || '').trim();
+                    return (!paramDate || oDate === paramDate) && (!paramInspector || oIns.toLowerCase() === paramInspector.toLowerCase());
+                });
             } catch (e) {
                 otherData = [];
             }
-            let filteredOther = otherData.filter(o => {
-                let oDate = o.date ? String(o.date).substring(0, 10) : '';
-                let oIns = String(o.inspector || '').trim();
-                return (!paramDate || oDate === paramDate) && (!paramInspector || oIns.toLowerCase() === paramInspector.toLowerCase());
-            });
 
             const tblOther = document.getElementById('tblOtherActivityBody');
             tblOther.innerHTML = '';
 
-            if (filteredOther.length === 0) {
+            if (otherData.length === 0) {
                 tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
             } else {
-                filteredOther.forEach((o, index) => {
+                otherData.forEach((o, index) => {
                     tblOther.innerHTML += `
                         <tr>
                             <td class="text-center">${index + 1}</td>
