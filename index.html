@@ -3354,7 +3354,7 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน บันทึกข้อมูลลง localStorage แบบชัวร์ 100%
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน: กรองข้อมูลเฉพาะวันที่และพนักงานที่เลือกส่งไปให้หน้ารายงานแบบชัวร์ๆ
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
@@ -3370,9 +3370,19 @@ window.openQGateReport = function() {
 
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // 📌 บันทึกข้อมูล qgate ทั้งหมดลง localStorage ให้หน้ารายงานนำไปกรองแสดงผล
+    // 📌 กรองเฉพาะข้อมูลของวันที่และพนักงานที่เลือกในหน้าหลักตอนนี้ ส่งไปให้หน้ารายงาน
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        localStorage.setItem('qgateReportData', JSON.stringify(qgate));
+        let exactFilteredData = qgate.filter(item => {
+            let itemDate = String(item.date || item.Date || '').trim().substring(0, 10);
+            let itemIns = String(item.inspector || item.opName || item.OP || item.empId || '').trim();
+            
+            let matchDate = !selectedDate || itemDate === selectedDate;
+            let matchIns = !selectedInspector || itemIns.toLowerCase() === selectedInspector.toLowerCase();
+            return matchDate && matchIns;
+        });
+
+        // บันทึกเฉพาะข้อมูลที่ถูกต้องตามวันที่เลือกไว้ใน qgateReportData
+        localStorage.setItem('qgateReportData', JSON.stringify(exactFilteredData));
     }
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
