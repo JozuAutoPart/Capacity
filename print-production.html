@@ -194,14 +194,13 @@
         return 'M/C';
     }
 
-    // 📌 ตารางฝังค่า CT ประจำ Part No. หลัก (ตัดพวก 1/4, 1/2 ออกอัตโนมัติ)
     const embeddedCtTable = {
         "55347-KK080": 2.89,
         "55342-BZ060": 2.88,
         "17141-0C080": 3.00,
         "76344-4JG1A": 2.50,
         "76224-4JA0A": 8,
-        "17154-0T040": 8, // เพิ่มเติมพาร์ทตามต้องการ
+        "17154-0T040": 8,
     };
 
     function getEmbeddedCT(rawPartNo) {
@@ -229,7 +228,24 @@
             document.getElementById('sign-operator').innerText = operatorName;
         }
 
-        let reportDate = localStorage.getItem('productionReportDate') || new Date().toISOString().split('T')[0];
+        // 📌 แก้ไขจุดดึงวันที่ ให้แปลงเป็น Local Date ตรงๆ ป้องกันวันเหลื่อม 1 วัน
+        let rawStoredDate = localStorage.getItem('productionReportDate') || '';
+        let reportDate = '';
+        if (rawStoredDate) {
+            let dObj = new Date(rawStoredDate);
+            if (!isNaN(dObj.getTime())) {
+                let y = dObj.getFullYear();
+                let m = String(dObj.getMonth() + 1).padStart(2, '0');
+                let d = String(dObj.getDate()).padStart(2, '0');
+                reportDate = `${y}-${m}-${d}`;
+            } else {
+                reportDate = rawStoredDate.trim().substring(0, 10);
+            }
+        } else {
+            let today = new Date();
+            reportDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        }
+        
         document.getElementById('sign-date').innerText = reportDate;
 
         if (reportData.length > 0) {
@@ -257,7 +273,6 @@
 
                 let rawPartNo = item.partNo || '-';
                 
-                // ⏱️ ดึง CT โดยตัดคำต่อท้ายอัตโนมัติ
                 let embeddedCt = getEmbeddedCT(rawPartNo);
                 let ctSeconds = embeddedCt > 0 ? embeddedCt : (item.ct ? parseFloat(item.ct) : 6);
 
@@ -275,7 +290,6 @@
 
                 let remark = (item.remark && item.remark !== '-') ? item.remark.trim() : '';
 
-                // --- 1. สรุปภาพรวมการผลิต ---
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${index + 1}</td>
@@ -291,7 +305,6 @@
                 `;
                 summaryTbody.appendChild(tr);
 
-                // --- 2. DOWNTIME RECORD (เอาวงเล็บ Part No. ออกแล้ว) ---
                 let dtStartShow = item.dtStart || startTime;
                 let dtEndShow = item.dtEnd || endTime;
                 let dtMins = Number(item.downtimeMins || 0);
@@ -316,7 +329,6 @@
                     `;
                 }
 
-                // --- 3. DEFECT & SCRAP ANALYSIS ---
                 if (ngQty > 0) {
                     let defectDesc = remark !== '' ? remark : 'งานเสียจากการผลิต';
                     ngRowsHtml += `
@@ -331,7 +343,6 @@
                 }
             });
 
-            // อัปเดตตารางสรุป
             document.getElementById('totalTarget').innerText = totalTarget.toLocaleString();
             document.getElementById('totalActual').innerText = totalActual.toLocaleString();
             document.getElementById('totalOk').innerText = totalOk.toLocaleString();
@@ -339,7 +350,6 @@
             let totalAch = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) + '%' : '0%';
             document.getElementById('totalAchievement').innerText = totalAch;
 
-            // อัปเดตตารางส่วนที่ 2 (Downtime)
             const downtimeTableBody = document.getElementById('downtimeTableBody');
             const downtimeTotalTd = document.getElementById('totalDowntimeMinutes');
             if (downtimeRowsHtml !== '') {
@@ -350,7 +360,6 @@
                 if (downtimeTotalTd) downtimeTotalTd.innerText = '0 นาที';
             }
 
-            // อัปเดตตารางส่วนที่ 3 (Defect)
             const ngTableBody = document.getElementById('ngTableBody');
             if (ngRowsHtml !== '') {
                 if (ngTableBody) ngTableBody.innerHTML = ngRowsHtml;
