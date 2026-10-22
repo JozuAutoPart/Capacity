@@ -3354,25 +3354,19 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน: กรองข้อมูลเฉพาะวันที่และพนักงานที่เลือกส่งไปให้หน้ารายงานแบบชัวร์ๆ
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน ใช้ค่าสตริงวันที่ตรงๆ ไม่ผ่านการแปลงใดๆ เพื่อป้องกันวันเพี้ยน
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
 
-    let selectedDate = '';
-    if (dateEl && dateEl.value) {
-        let d = new Date(dateEl.value);
-        let year = d.getFullYear();
-        let month = String(d.getMonth() + 1).padStart(2, '0');
-        let day = String(d.getDate()).padStart(2, '0');
-        selectedDate = `${year}-${month}-${day}`;
-    }
-
+    // ดึงค่าสตริงวันที่ตรงๆ จากช่องเลือกวันที่ (เช่น '2026-10-22') โดยไม่ผ่าน Date Object
+    const selectedDate = dateEl ? dateEl.value.trim() : '';
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // 📌 กรองเฉพาะข้อมูลของวันที่และพนักงานที่เลือกในหน้าหลักตอนนี้ ส่งไปให้หน้ารายงาน
+    // บันทึกข้อมูล qgate ลง localStorage
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        let exactFilteredData = qgate.filter(item => {
+        // กรองเฉพาะวันที่เลือกส่งไปให้หน้ารายงาน
+        let filteredData = qgate.filter(item => {
             let itemDate = String(item.date || item.Date || '').trim().substring(0, 10);
             let itemIns = String(item.inspector || item.opName || item.OP || item.empId || '').trim();
             
@@ -3381,8 +3375,7 @@ window.openQGateReport = function() {
             return matchDate && matchIns;
         });
 
-        // บันทึกเฉพาะข้อมูลที่ถูกต้องตามวันที่เลือกไว้ใน qgateReportData
-        localStorage.setItem('qgateReportData', JSON.stringify(exactFilteredData));
+        localStorage.setItem('qgateReportData', JSON.stringify(filteredData));
     }
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
