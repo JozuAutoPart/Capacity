@@ -184,16 +184,19 @@
 
             let qgateData = [];
             try {
-                // ดึงข้อมูลทั้งหมดจาก localStorage มาตรวจสอบ
+                // ดึงข้อมูลจาก localStorage (รองรับทั้ง qgateReportData และ qgate)
                 let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
                 
-                // 📌 กรองข้อมูลทันทีโดยจับคู่เฉพาะวันที่และพนักงานที่ตรงกับ URL parameter เท่านั้น (ป้องกันข้อมูลวันอื่นหลุดมาปน)
+                // 📌 กรองข้อมูลอย่างเข้มงวด: ต้องตรงกับวันที่และรหัสพนักงานที่ส่งมาทาง URL เท่านั้น
                 qgateData = rawData.filter(q => {
                     let qDate = String(q.date || q.Date || '').trim().substring(0, 10);
                     let qIns = String(q.inspector || q.opName || q.OP || q.empId || '').trim();
 
-                    let matchDate = !paramDate || qDate === paramDate;
-                    let matchIns = !paramInspector || qIns.toLowerCase() === paramInspector.toLowerCase();
+                    let targetDate = String(paramDate).trim();
+                    let targetIns = String(paramInspector).trim();
+
+                    let matchDate = !targetDate || qDate === targetDate;
+                    let matchIns = !targetIns || qIns.toLowerCase() === targetIns.toLowerCase();
 
                     return matchDate && matchIns;
                 });
