@@ -67,8 +67,8 @@
 
     <!-- ส่วนเนื้อหาใบรายงาน A4 -->
     <div class="report-container">
-        <!-- Header Section Alignment Balance -->
-        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+        <!-- Header: แถบบนสุด เป็นชื่อบริษัท + หัวข้อรายงาน -->
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
             <div class="d-flex align-items-center gap-2">
                 <img src="Jozu.png" alt="Jozu Logo" style="height: 42px; width: auto; object-fit: contain;">
                 <div>
@@ -76,16 +76,17 @@
                     <small class="text-muted" style="font-size: 12px;">Jozu Auto Part Co., Ltd.</small>
                 </div>
             </div>
-            <!-- 📌 ชื่อรายงานจัดบรรทัดเดียว เรียงแนวเดียวกับชื่อบริษัทแบบสมดุล -->
+            <!-- 📌 หัวข้อใบรายงานอยู่บนสุดขวา -->
             <div class="text-end">
                 <h4 class="fw-bold m-0 text-dark text-nowrap" style="font-size: 20px; letter-spacing: 0.3px;">ใบรายงานการตรวจสอบ Q-GATE ประจำวัน</h4>
             </div>
         </div>
 
-        <!-- Meta Info -->
+        <!-- Meta Info: สลับผู้ตรวจสอบมาไว้ฝั่งขวา -->
         <div class="row mb-3 g-2 fs-6">
             <div class="col-6"><strong>วันที่ตรวจสอบ:</strong> <span id="lblDate">-</span></div>
-            <div class="col-6"><strong>ผู้ตรวจสอบ (Inspector):</strong> <span id="lblInspector">-</span></div>
+            <!-- 📌 ย้ายผู้ตรวจสอบมาไว้ตรงนี้แทนที่เดิม -->
+            <div class="col-6 text-end"><strong>ผู้ตรวจสอบ (Inspector):</strong> <span id="lblInspector">-</span></div>
         </div>
 
         <!-- 1. Inspection Log Table -->
