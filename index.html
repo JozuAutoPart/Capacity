@@ -2455,9 +2455,9 @@ function renderActuals() {
     if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
 }
 
-// ฟังก์ชันช่วยจัดรูปแบบวันที่
+// 📌 ฟังก์ชันช่วยจัดรูปแบบวันที่ (ฉบับแก้ขาด)
 function parseDateString(dateStr) {
-    if (!dateStr) return "0000-00-00";
+    if (!dateStr) return "";
     let cleanStr = String(dateStr).split('T')[0].trim();
     
     if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(cleanStr)) {
