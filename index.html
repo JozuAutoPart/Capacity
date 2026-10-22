@@ -2233,7 +2233,7 @@ function submitActual(e) {
     
     // 🗓️ ดึงวันที่ตามเวลาท้องถิ่น
     const now = new Date();
-    const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const localDateStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     const formDateVal = document.getElementById('actualDate') ? document.getElementById('actualDate').value : '';
     const finalDate = formDateVal ? formDateVal : localDateStr;
     
@@ -2318,7 +2318,7 @@ function submitActual(e) {
             document.getElementById('actualForm').reset();
             const resetNow = new Date();
             if (document.getElementById('actualDate')) {
-                document.getElementById('actualDate').value = `${resetNow.getFullYear()}-${String(resetNow.getMonth() + 1).padStart(2, '0')}-${String(resetNow.getDate()).padStart(2, '0')}`;
+                document.getElementById('actualDate').value = new Date(resetNow.getTime() - (resetNow.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             }
             if (document.getElementById('actualDtStart')) document.getElementById('actualDtStart').value = '';
             if (document.getElementById('actualDtEnd')) document.getElementById('actualDtEnd').value = '';
@@ -2393,9 +2393,13 @@ function renderActuals() {
     }
 
     const sortedActuals = [...actuals].sort((a, b) => {
-        let rawA = parseDateString(a.date || a['Date'] || '');
-        let rawB = parseDateString(b.date || b['Date'] || '');
-        return rawB.localeCompare(rawA); 
+        let rawA = a.date || a['Date'] || '';
+        let rawB = b.date || b['Date'] || '';
+        
+        let dateA = new Date(parseDateString(rawA));
+        let dateB = new Date(parseDateString(rawB));
+        
+        return dateB - dateA; 
     });
 
     const displayActuals = sortedActuals.slice(0, 100);
@@ -2403,7 +2407,17 @@ function renderActuals() {
     displayActuals.forEach((a) => {
         const originalIndex = actuals.indexOf(a);
 
-        let displayDate = parseDateString(a.date || a['Date'] || '');
+        let displayDate = '';
+        let rawDate = a.date || a['Date'] || '';
+        if (rawDate) {
+            const d = new Date(rawDate);
+            if (!isNaN(d.getTime())) {
+                const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                displayDate = localD.toISOString().split('T')[0];
+            } else {
+                displayDate = String(rawDate).substring(0, 10);
+            }
+        }
 
         const opval = a.operator || a['OP Name'] || '-';
         const lineval = a.line || a['Line/MC'] || '-';
@@ -2441,28 +2455,25 @@ function renderActuals() {
     if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
 }
 
-// 📌 ฟังก์ชันช่วยจัดรูปแบบวันที่เป็น YYYY-MM-DD ตรงๆ โดยไม่ผ่านการแปลง Date Object ป้องกันวันเหลื่อม
+// ฟังก์ชันช่วยจัดรูปแบบวันที่
 function parseDateString(dateStr) {
-    if (!dateStr) return "";
-    let str = String(dateStr).trim();
-    if (str.includes('T')) str = str.split('T')[0];
+    if (!dateStr) return "0000-00-00";
+    let cleanStr = String(dateStr).split('T')[0].trim();
     
-    // แปลง / เป็น -
-    str = str.replace(/\//g, '-');
-    let parts = str.split('-');
-    
-    if (parts.length === 3) {
-        let y = parts[0];
-        let m = parts[1].padStart(2, '0');
-        let d = parts[2].padStart(2, '0');
-        
-        // ถ้าขึ้นด้วยวัน เช่น 21-10-2026 -> แปลงเป็น 2026-10-21
-        if (y.length !== 4 && d.length === 4) {
-            return `${d}-${m}-${y.padStart(2, '0')}`;
-        }
-        return `${y}-${m}-${d}`;
+    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(cleanStr)) {
+        return cleanStr.replace(/\//g, '-');
     }
-    return str.substring(0, 10);
+    
+    let parts = cleanStr.split(/[-/]/);
+    if (parts.length === 3) {
+        if (parts[2].length === 4) {
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+        if (parts[0].length === 4) {
+            return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        }
+    }
+    return cleanStr;
 }
 
 // ฟังก์ชันสำหรับโหลดข้อมูลทั้งหมดเมื่อเปิดหน้าเว็บ
@@ -2531,7 +2542,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const reportDateEl = document.getElementById('filterReportDate');
     if (reportDateEl && !reportDateEl.value) {
         const today = new Date();
-        reportDateEl.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        reportDateEl.value = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     }
 });
 
@@ -2582,7 +2593,6 @@ function updateOperatorDropdown() {
     });
 }
 
-// 📌 ฟังก์ชันส่งข้อมูลไปยังหน้าพิมพ์รายงานแบบกรองวันที่ตรงเป๊ะ ไม่ติดปัญหา UTC
 function exportFilteredProductionReport() {
     let selectedOperator = document.getElementById('filterOperator')?.value || '';
     let selectedDate = document.getElementById('filterReportDate')?.value || '';
@@ -2590,11 +2600,11 @@ function exportFilteredProductionReport() {
 
     if (typeof actuals !== 'undefined' && Array.isArray(actuals) && actuals.length > 0) {
         actuals.forEach(item => {
-            let opName = String(item.operator || item['OP Name'] || '').trim();
+            let opName = String(item.operator || item['OP Name'] || '');
             let itemDate = parseDateString(item.date || item['Date'] || '');
 
-            // 🔍 เงื่อนไขกรอง: เทียบวันที่แบบตรงตัว ไม่แปลง Timezone
-            if (selectedOperator && selectedOperator !== 'ทุกพนักงาน' && !opName.toLowerCase().includes(selectedOperator.toLowerCase())) return;
+            // 🔍 เงื่อนไขกรอง: ถ้าเลือกพนักงานต้องตรง และถ้าเลือกวันที่ต้องตรง
+            if (selectedOperator && !opName.includes(selectedOperator)) return;
             if (selectedDate && itemDate !== selectedDate) return;
 
             let timeVal = String(item['เวลาทำงาน'] || item.timeWork || item.timeRange || '-');
@@ -3344,34 +3354,36 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน Q-Gate (ส่งข้อมูลที่กรองแล้วและเงื่อนไขไปครบถ้วน)
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน ใช้ค่าสตริงวันที่ตรงๆ ไม่ผ่านการแปลงใดๆ เพื่อป้องกันวันเพี้ยน
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
 
+    // ดึงค่าสตริงวันที่ตรงๆ จากช่องเลือกวันที่ (เช่น '2026-10-22') โดยไม่ผ่าน Date Object
     const selectedDate = dateEl ? dateEl.value.trim() : '';
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // กรองข้อมูล qgate เฉพาะวันที่และพนักงานที่เลือกในหน้าหลักตอนนี้
+    // บันทึกข้อมูล qgate ลง localStorage
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        let exactFilteredData = qgate.filter(item => {
-            let itemDate = parseDateString(item.date || item.Date || item.inspectionDate || '');
+        // กรองเฉพาะวันที่เลือกส่งไปให้หน้ารายงาน
+        let filteredData = qgate.filter(item => {
+            let itemDate = String(item.date || item.Date || '').trim().substring(0, 10);
             let itemIns = String(item.inspector || item.opName || item.OP || item.empId || '').trim();
             
             let matchDate = !selectedDate || itemDate === selectedDate;
-            let matchIns = !selectedInspector || selectedInspector === 'ทั้งหมด' || itemIns.toLowerCase() === selectedInspector.toLowerCase();
+            let matchIns = !selectedInspector || itemIns.toLowerCase() === selectedInspector.toLowerCase();
             return matchDate && matchIns;
         });
 
-        // บันทึกชุดข้อมูลที่กรองแล้วลง localStorage เพื่อให้หน้ารายงานนำไปแสดงผล
-        localStorage.setItem('qgateReportData', JSON.stringify(exactFilteredData));
+        localStorage.setItem('qgateReportData', JSON.stringify(filteredData));
     }
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
 
-    console.log("Opening Q-Gate report:", reportUrl);
+    console.log("Opening report page:", reportUrl);
 
     const win = window.open(reportUrl, '_blank');
+
     if (!win || win.closed || typeof win.closed === 'undefined') {
         window.location.href = reportUrl;
     }
