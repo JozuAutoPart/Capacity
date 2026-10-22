@@ -5617,7 +5617,7 @@ function requestUnlockCustomerClaim() {
         return;
     }
 
-    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน (9999):");
+    let inputPass = prompt("🔑 กรุณากรอกรหัสผ่านหัวหน้างาน:");
     if (inputPass === CLAIM_SUPER_PASSWORD) {
         isCustomerClaimUnlocked = true;
         if (btnIcon) btnIcon.className = "fas fa-lock-open me-1 text-warning";
