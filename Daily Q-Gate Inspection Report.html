@@ -70,11 +70,9 @@
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
             <div class="d-flex align-items-center gap-2">
-                <!-- 📌 ใส่ Logo Jozu ด้านหน้าชื่อบริษัท -->
                 <img src="Jozu.png" alt="Jozu Logo" style="height: 45px; width: auto; object-fit: contain;">
                 <div>
                     <h5 class="fw-bold m-0">บริษัท โยสุ ออโต้ พาร์ท จำกัด (Jozu Auto Part Co., Ltd.)</h5>
-                    <small class="text-muted">ระบบบริหารจัดการคุณภาพ และการตรวจสอบสินค้า (Q-Gate Inspection System)</small>
                 </div>
             </div>
             <div class="text-end">
@@ -84,9 +82,8 @@
 
         <!-- Meta Info -->
         <div class="row mb-3 g-2 fs-6">
-            <div class="col-4"><strong>วันที่ตรวจสอบ:</strong> <span id="lblDate">-</span></div>
-            <div class="col-4"><strong>ผู้ตรวจสอบ (Inspector):</strong> <span id="lblInspector">-</span></div>
-            <div class="col-4"><strong>ประจำ Line/Machine:</strong> <span id="lblLine">-</span></div>
+            <div class="col-6"><strong>วันที่ตรวจสอบ:</strong> <span id="lblDate">-</span></div>
+            <div class="col-6"><strong>ผู้ตรวจสอบ (Inspector):</strong> <span id="lblInspector">-</span></div>
         </div>
 
         <!-- 1. Inspection Log Table -->
@@ -168,7 +165,7 @@
             </div>
         </div>
 
-        <!-- 📌 รหัสเอกสารย้ายมาไว้ด้านล่างขวาสุด -->
+        <!-- รหัสเอกสารด้านล่างขวาสุด -->
         <div class="text-end mt-4">
             <small class="fw-bold text-danger">J-F-QC-012 Rev.00</small>
         </div>
@@ -183,7 +180,6 @@
             document.getElementById('lblDate').innerText = paramDate ? paramDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
             document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-            // 📌 ดึงข้อมูลจาก localStorage ที่ส่งมาจากหน้าหลัก
             let qgateData = [];
             try {
                 qgateData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
@@ -191,7 +187,6 @@
                 qgateData = [];
             }
 
-            // กรองข้อมูลตามวันที่และพนักงาน
             let filtered = qgateData.filter(q => {
                 let qDate = q.date || q.Date || '';
                 if (qDate.includes('T')) qDate = qDate.split('T')[0];
@@ -209,7 +204,6 @@
             tblInsp.innerHTML = '';
 
             let totalQty = 0, totalPass = 0, totalNg = 0;
-            let currentLine = '-';
 
             if (filtered.length === 0) {
                 tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
@@ -219,8 +213,6 @@
                     let ng = Number(item.ngQty || item.ng || 0);
                     let pass = Number(item.passQty || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
-                    
-                    if (item.line || item.Line) currentLine = item.line || item.Line;
 
                     totalQty += qty;
                     totalPass += pass;
@@ -240,9 +232,6 @@
                 });
             }
 
-            document.getElementById('lblLine').innerText = currentLine;
-
-            // กรองกิจกรรมอื่นๆ (Non-Inspection)
             let otherData = [];
             try {
                 otherData = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
@@ -274,7 +263,6 @@
                 });
             }
 
-            // สรุปยอดรวม
             document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
             document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
             document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
