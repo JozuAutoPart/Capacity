@@ -3359,7 +3359,15 @@ window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
 
-    const selectedDate = dateEl ? dateEl.value.trim() : '';
+    let selectedDate = '';
+    if (dateEl && dateEl.value) {
+        let d = new Date(dateEl.value);
+        let year = d.getFullYear();
+        let month = String(d.getMonth() + 1).padStart(2, '0');
+        let day = String(d.getDate()).padStart(2, '0');
+        selectedDate = `${year}-${month}-${day}`;
+    }
+
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
     // 📌 เพิ่มบรรทัดนี้: บันทึกข้อมูล qgate ลง localStorage ให้หน้ารายงานอ่าน
