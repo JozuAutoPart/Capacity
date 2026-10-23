@@ -1614,14 +1614,20 @@ function renderThMasterPlan() {
                 let dayStr = String(d).padStart(2, '0');
                 let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-                // ดึง Plan
-                let planVal = 0;
-                if (typeof plans !== 'undefined' && Array.isArray(plans)) {
-                    plans.forEach(p => {
-                        let pNo = String(p["Part No."] || p.partNo || '').trim();
-                        let pDate = safeParseDate(p.date || p.Date || p.planDate || '');
-                        if (pNo === partNo && pDate === dateKey) {
-                            planVal += Number(p["Plan Qty"] || p.qty || p.planQty || 0);
+                // ดึง Plan แบบเช็คช่วงวันที่ Start ถึง Finish
+            let planVal = 0;
+            if (typeof plans !== 'undefined' && Array.isArray(plans)) {
+                plans.forEach(p => {
+                    let pNo = String(p["Part No."] || p.partNo || '').trim();
+                    let pStart = safeParseDate(p.date || p.Date || p.startDate || p.start || '');
+                    let pFinish = safeParseDate(p.finishDate || p.finish || pEnd || pStart);
+                    
+                    if (pNo === partNo) {
+                        // ถ้าวันที่ในตาราง (dateKey) อยู่ในช่วง Start ถึง Finish ให้เอายอด Plan มาลง
+                        if (pStart && pFinish) {
+                            if (dateKey >= pStart && dateKey <= pFinish) {
+                                // หารเฉลี่ยตามจำนวนวัน หรือใส่ยอดเต็มตามวันที่เริ่ม (เลือกตามระบบของพี่มิวได้เลยครับ)
+                                planVal += Number(p["Plan Qty"] || p.qty || p.planQty || 0);
                         }
                     });
                 }
