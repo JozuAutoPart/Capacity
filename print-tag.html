@@ -527,23 +527,24 @@
 
                 const currentQty = (i === totalTags && totalOrder % stdPack !== 0) ? (totalOrder % stdPack) : stdPack;
 
-                // เช็ค Code เพื่อเลือกกลุ่มลูกค้า
-                let tagCode = data.code ? String(data.code) : "STEM";
-                let companyName = "STEM"; 
-                if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
-                    companyName = "FTS";
-                } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
-                    companyName = "TMC";
-                } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
-                    companyName = "MSFT";
-                } else if (tagCode.includes("TH") || tagCode.startsWith("H")) {
-                    companyName = "TH";
-                } else {
-                    companyName = "STEM";
-                }
+              // เช็ค Code เพื่อเลือกกลุ่มลูกค้าให้แม่นยำขึ้น
+    let tagCode = data.code ? String(data.code).trim().toUpperCase() : "STEM";
+    let companyName = "STEM"; 
 
-                // ดึงไฟล์รูปตามชื่อบริษัท (ถ้าไม่พบ จะใช้รูป STEM เป็นค่าเริ่มต้น)
-                let logoSrc = logoImages[companyName] || "Jozu.png";
+    if (tagCode.includes("TH") || tagCode.startsWith("TH")) {
+        companyName = "TH"; // 👈 บังคับให้งานกลุ่ม TH มาลงที่นี่เพื่อดึง "Jozu.png"
+    } else if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
+        companyName = "FTS";
+    } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
+        companyName = "TMC";
+    } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
+        companyName = "MSFT";
+    } else {
+        companyName = "STEM";
+    }
+
+    // ดึงไฟล์รูปตามชื่อบริษัท (ถ้าเป็น TH จะวิ่งไปหยิบ Jozu.png ตามที่ตั้งค่าไว้ใน logoImages)
+    let logoSrc = logoImages[companyName] || "Jozu.png";
 
                 const tagCard = document.createElement('div');
                 tagCard.className = 'tag-card';
