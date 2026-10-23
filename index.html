@@ -1074,7 +1074,8 @@
                     </div>
                 </div>
             </div>
-            <!-- 🚀 TAB: TH PARTS MASTER PLAN (แยกแสดงเฉพาะเมื่อกดเมนู TH Parts Status) -->
+            
+<!-- 🚀 TAB: TH PARTS STATUS (ฟอนต์ใหญ่ชัดเจน) -->
 <div class="tab-pane fade" id="tab-th-parts">
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
@@ -1089,10 +1090,10 @@
         </div>
         <div class="card-body p-0">
             <div class="table-responsive" style="max-height: 80vh; overflow-y: auto;">
-                <table class="table table-bordered table-sm align-middle mb-0 text-center" style="font-size: 11px; white-space: nowrap;">
+                <table class="table table-bordered table-sm align-middle mb-0 text-center" style="font-size: 13px; white-space: nowrap; border-color: #495057;">
                     <thead class="table-secondary sticky-top">
                         <tr id="thTableHeader">
-                            <!-- หัวตารางวัน 01-31 จะถูกสร้างด้วย JS -->
+                            <!-- หัวตารางสร้างด้วย JS -->
                         </tr>
                     </thead>
                     <tbody id="thMasterPlanTableBody">
@@ -1103,6 +1104,7 @@
         </div>
     </div>
 </div>
+            
 <!-- โหลด PDF.js และกำหนด Worker -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
@@ -1524,7 +1526,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (ดึง Plan ตามวันที่เริ่ม, Actual จากยอดผลิต, Delivery จากข้อมูลส่งมอบจริง)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (ฟอนต์ใหญ่ คมชัด อ่านง่าย)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1565,14 +1567,14 @@ function renderThMasterPlan() {
             "J1301-17624-KEV-9000-H1"
         ];
 
-        // 3. สร้างหัวตารางวัน (01 ถึง สิ้นเดือน)
+        // 3. สร้างหัวตารางวัน (01 ถึง สิ้นเดือน) - ขยายฟอนต์หัวตาราง
         let headerHtml = `
-            <th style="min-width: 200px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white">Part No.</th>
-            <th style="min-width: 70px; position: sticky; left: 200px; z-index: 5;" class="bg-dark text-white">Status</th>
+            <th style="min-width: 220px; font-size: 13px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white py-2">Part No.</th>
+            <th style="min-width: 80px; font-size: 13px; position: sticky; left: 220px; z-index: 5;" class="bg-dark text-white py-2">Status</th>
         `;
         for (let d = 1; d <= daysInMonth; d++) {
             let dayStr = String(d).padStart(2, '0');
-            headerHtml += `<th style="min-width: 50px;">${dayStr}</th>`;
+            headerHtml += `<th style="min-width: 55px; font-size: 13px;" class="py-2">${dayStr}</th>`;
         }
         headerRow.innerHTML = headerHtml;
 
@@ -1588,23 +1590,23 @@ function renderThMasterPlan() {
         thPartList.forEach((partNo) => {
             let planRow = document.createElement('tr');
             planRow.innerHTML = `
-                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-family: monospace; font-size: 11px;">${partNo}</td>
-                <td class="fw-bold text-primary bg-light" style="position: sticky; left: 200px; z-index: 3;">Plan</td>
+                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-3" style="position: sticky; left: 0; z-index: 3; font-family: monospace; font-size: 13px; color: #000;">${partNo}</td>
+                <td class="fw-bold text-primary bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Plan</td>
             `;
 
             let actRow = document.createElement('tr');
             actRow.innerHTML = `
-                <td class="fw-bold text-success bg-light" style="position: sticky; left: 200px; z-index: 3;">Actual</td>
+                <td class="fw-bold text-success bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Actual</td>
             `;
 
             let delivRow = document.createElement('tr');
             delivRow.innerHTML = `
-                <td class="fw-bold text-warning bg-light" style="position: sticky; left: 200px; z-index: 3;">Delivery</td>
+                <td class="fw-bold text-warning bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Delivery</td>
             `;
 
             let balRow = document.createElement('tr');
             balRow.innerHTML = `
-                <td class="fw-bold text-secondary bg-light" style="position: sticky; left: 200px; z-index: 3;">Balance</td>
+                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Balance</td>
             `;
 
             let runningBal = 0;
@@ -1613,7 +1615,7 @@ function renderThMasterPlan() {
                 let dayStr = String(d).padStart(2, '0');
                 let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-                // 📌 ดึง Plan ลงเฉพาะวันที่ตรงกับ Start Date ของแผน
+                // ดึง Plan
                 let planVal = 0;
                 if (typeof plans !== 'undefined' && Array.isArray(plans)) {
                     plans.forEach(p => {
@@ -1627,7 +1629,7 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // 📌 ดึง Actual จากยอดผลิตจริงรายวัน
+                // ดึง Actual
                 let dayActVal = 0;
                 if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                     actuals.forEach(a => {
@@ -1639,7 +1641,7 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // 📌 ดึง Delivery จากข้อมูลการส่งมอบจริงในระบบ (deliveries / deliveryData)
+                // ดึง Delivery
                 let dayDelivVal = 0;
                 const deliverySource = (typeof deliveries !== 'undefined') ? deliveries : (typeof deliveryData !== 'undefined' ? deliveryData : []);
                 if (Array.isArray(deliverySource)) {
@@ -1652,13 +1654,12 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // คำนวณ Balance สะสม
                 runningBal = runningBal + dayActVal - dayDelivVal;
 
-                planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
-                actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
-                delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
-                balRow.innerHTML += `<td class="${runningBal < 0 ? 'text-danger fw-bold' : ''}">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
+                planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
+                actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}" style="font-size: 12px;">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
+                delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}" style="font-size: 12px;">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
+                balRow.innerHTML += `<td class="${runningBal < 0 ? 'text-danger fw-bold' : ''}" style="font-size: 12px;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
             }
 
             tbody.appendChild(planRow);
