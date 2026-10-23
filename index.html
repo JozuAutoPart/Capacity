@@ -1529,7 +1529,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (ฟอนต์ใหญ่ คมชัด อ่านง่าย)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (Balance = Plan - Actual สะสม)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1570,7 +1570,7 @@ function renderThMasterPlan() {
             "J1301-17624-KEV-9000-H1"
         ];
 
-        // 3. สร้างหัวตารางวัน (01 ถึง สิ้นเดือน) - ขยายฟอนต์หัวตาราง
+        // 3. สร้างหัวตารางวัน (01 ถึง สิ้นเดือน)
         let headerHtml = `
             <th style="min-width: 220px; font-size: 13px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white py-2">Part No.</th>
             <th style="min-width: 80px; font-size: 13px; position: sticky; left: 220px; z-index: 5;" class="bg-dark text-white py-2">Status</th>
@@ -1618,7 +1618,7 @@ function renderThMasterPlan() {
                 let dayStr = String(d).padStart(2, '0');
                 let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-                // ดึง Plan
+                // ดึง Plan ตามวันที่เริ่มแผน
                 let planVal = 0;
                 if (typeof plans !== 'undefined' && Array.isArray(plans)) {
                     plans.forEach(p => {
@@ -1632,7 +1632,7 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // ดึง Actual
+                // ดึง Actual จากยอดผลิตจริงรายวัน
                 let dayActVal = 0;
                 if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                     actuals.forEach(a => {
@@ -1644,7 +1644,7 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // ดึง Delivery
+                // ดึง Delivery จากข้อมูลการส่งมอบจริง
                 let dayDelivVal = 0;
                 const deliverySource = (typeof deliveries !== 'undefined') ? deliveries : (typeof deliveryData !== 'undefined' ? deliveryData : []);
                 if (Array.isArray(deliverySource)) {
@@ -1657,12 +1657,13 @@ function renderThMasterPlan() {
                     });
                 }
 
-                runningBal = runningBal + dayActVal - dayDelivVal;
+                // 📌 คำนวณ Balance สะสม: (ยอดสะสมแผน - ยอดสะสมผลิตจริง)
+                runningBal = runningBal + planVal - dayActVal;
 
                 planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
                 actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}" style="font-size: 12px;">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
                 delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}" style="font-size: 12px;">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
-                balRow.innerHTML += `<td class="${runningBal < 0 ? 'text-danger fw-bold' : ''}" style="font-size: 12px;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
+                balRow.innerHTML += `<td class="${runningBal > 0 ? 'text-warning fw-bold' : (runningBal < 0 ? 'text-success fw-bold' : '')}" style="font-size: 12px;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
             }
 
             tbody.appendChild(planRow);
