@@ -1524,7 +1524,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (สมบูรณ์: รองรับดึง Plan จากหน้า Planning, Actual, Delivery และ Balance)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (ดึง Plan ตามวันที่เริ่ม, Actual จากยอดผลิต, Delivery จากข้อมูลส่งมอบจริง)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1613,28 +1613,21 @@ function renderThMasterPlan() {
                 let dayStr = String(d).padStart(2, '0');
                 let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-                // ดึง Plan จากตัวแปร plans (รองรับทุกชื่อฟิลด์และการเช็คช่วงวัน)
+                // 📌 ดึง Plan ลงเฉพาะวันที่ตรงกับ Start Date ของแผน
                 let planVal = 0;
                 if (typeof plans !== 'undefined' && Array.isArray(plans)) {
                     plans.forEach(p => {
-                        let pNo = String(p["Part No."] || p.partNo || p.PartNo || p.part_no || '').trim();
-                        let pStart = safeParseDate(p.Start || p.start || p.date || p.Date || p.startDate || p.start_date || '');
-                        let pFinish = safeParseDate(p.Finish || p.finish || p.finishDate || p.endDate || p.end || p.finish_date || pStart);
-                        let pQty = Number(p["Plan Qty"] || p.planQty || p.qty || p.PlanQty || p.plan_qty || 0);
+                        let pNo = String(p["Part No."] || p.partNo || p.PartNo || '').trim();
+                        let pStart = safeParseDate(p.Start || p.start || p.date || p.Date || p.startDate || '');
+                        let pQty = Number(p["Plan Qty"] || p.planQty || p.qty || 0);
 
-                        if (pNo === partNo) {
-                            if (pStart && pFinish) {
-                                if (dateKey >= pStart && dateKey <= pFinish) {
-                                    planVal += pQty;
-                                }
-                            } else if (pStart === dateKey) {
-                                planVal += pQty;
-                            }
+                        if (pNo === partNo && pStart === dateKey) {
+                            planVal += pQty;
                         }
                     });
                 }
 
-                // ดึง Actual จากยอดผลิตจริงรายวัน
+                // 📌 ดึง Actual จากยอดผลิตจริงรายวัน
                 let dayActVal = 0;
                 if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                     actuals.forEach(a => {
@@ -1646,8 +1639,20 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // Delivery (งาน TH ส่งมอบทันที เท่ากับ Actual)
-                let dayDelivVal = dayActVal;
+                // 📌 ดึง Delivery จากข้อมูลการส่งมอบจริงในระบบ (deliveries / deliveryData)
+                let dayDelivVal = 0;
+                const deliverySource = (typeof deliveries !== 'undefined') ? deliveries : (typeof deliveryData !== 'undefined' ? deliveryData : []);
+                if (Array.isArray(deliverySource)) {
+                    deliverySource.forEach(del => {
+                        let dPart = String(del.partNo || del['Part No.'] || '').trim();
+                        let dDate = safeParseDate(del.date || del['Date'] || del.deliveryDate || '');
+                        if (dPart.split(' ')[0].trim() === partNo && dDate === dateKey) {
+                            dayDelivVal += Number(del.qty || del['Delivery Qty'] || del['Qty'] || 0);
+                        }
+                    });
+                }
+
+                // คำนวณ Balance สะสม
                 runningBal = runningBal + dayActVal - dayDelivVal;
 
                 planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
