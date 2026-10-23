@@ -179,10 +179,29 @@
     const paramDate = urlParams.get('date') || '';
     const paramInspector = urlParams.get('inspector') || '';
 
-    // 📌 1. แสดงผลวันที่และชื่อผู้ตรวจบนหัวกระดาษให้ตรงเป๊ะ
-    if (paramDate) {
-        let cleanDate = String(paramDate).split('T')[0].trim();
-        let dateParts = cleanDate.split('-');
+    // 📌 ฟังก์ชันช่วยแปลงวันที่ให้เป็นรูปแบบมาตรฐาน YYYY-MM-DD เพื่อการเทียบค่าที่แม่นยำ
+    function normalizeDate(dateVal) {
+        if (!dateVal) return '';
+        let s = String(dateVal).trim();
+        if (s.includes('T')) {
+            return s.split('T')[0];
+        }
+        let d = new Date(s);
+        if (!isNaN(d.getTime())) {
+            let y = d.getFullYear();
+            let m = String(d.getMonth() + 1).padStart(2, '0');
+            let day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+        return s.substring(0, 10);
+    }
+
+    let targetDate = normalizeDate(paramDate);
+    let targetIns = String(paramInspector).trim();
+
+    // 📌 แสดงผลหัวกระดาษรายงาน
+    if (targetDate) {
+        let dateParts = targetDate.split('-');
         if (dateParts.length === 3) {
             document.getElementById('lblDate').innerText = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
         } else {
@@ -194,20 +213,12 @@
 
     document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-    let targetDate = String(paramDate).trim();
-    let targetIns = String(paramInspector).trim();
     let qgateData = [];
-
-    // 📌 2. ดึงข้อมูลจาก LocalStorage แบบ Fallback ครอบคลุมทุกคีย์
     try {
         let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
         
         qgateData = rawData.filter(q => {
-            // ดึงวันที่โดยตัดเหลือ YYYY-MM-DD
-            let rawQDate = String(q.date || q.Date || q.inspectionDate || '').trim();
-            let qDate = rawQDate.split('T')[0].substring(0, 10);
-            
-            // ดึงชื่อพนักงาน
+            let qDate = normalizeDate(q.date || q.Date || q.inspectionDate);
             let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || '').trim();
 
             let matchDate = !targetDate || qDate === targetDate;
@@ -216,11 +227,10 @@
             return matchDate && matchIns;
         });
 
-        // หากกรองพนักงานแล้วไม่เจอ ให้ถอยมากรองเฉพาะวันที่อย่างเดียว
+        // Fallback ถ้ากรองพนักงานแล้วไม่พบ ให้ดึงเฉพาะวันที่มาแสดง
         if (qgateData.length === 0 && targetDate !== "") {
             qgateData = rawData.filter(q => {
-                let rawQDate = String(q.date || q.Date || q.inspectionDate || '').trim();
-                let qDate = rawQDate.split('T')[0].substring(0, 10);
+                let qDate = normalizeDate(q.date || q.Date || q.inspectionDate);
                 return qDate === targetDate;
             });
         }
@@ -228,7 +238,6 @@
         qgateData = [];
     }
 
-    // 📌 3. แสดงผลตารางบันทึกผลการตรวจสอบ (Inspection Log)
     const tblInsp = document.getElementById('tblInspectionBody');
     if (tblInsp) tblInsp.innerHTML = '';
 
@@ -265,12 +274,12 @@
         });
     }
 
-    // 📌 4. แสดงผลตารางกิจกรรมอื่นๆ (Non-Inspection Log)
+    // กิจกรรมอื่นๆ (Non-Inspection)
     let otherData = [];
     try {
         let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
         otherData = rawOther.filter(o => {
-            let oDate = String(o.date || '').trim().split('T')[0].substring(0, 10);
+            let oDate = normalizeDate(o.date);
             return !targetDate || oDate === targetDate;
         });
     } catch (e) {
@@ -297,7 +306,7 @@
         }
     }
 
-    // 📌 5. คำนวณสรุปผลยอดรวมทั้งหมด
+    // สรุปยอดรวมท้ายตาราง
     const elSumTotal = document.getElementById('sumTotal');
     const elSumPass = document.getElementById('sumPass');
     const elSumNg = document.getElementById('sumNg');
