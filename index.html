@@ -1524,7 +1524,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (เช็คช่วงวัน Start-Finish และแสดง 22 รายการ)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (สมบูรณ์: รองรับดึง Plan จากหน้า Planning, Actual, Delivery และ Balance)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1613,21 +1613,22 @@ function renderThMasterPlan() {
                 let dayStr = String(d).padStart(2, '0');
                 let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-                // ดึง Plan จากช่วง Start ถึง Finish ของหน้า Planning
+                // ดึง Plan จากตัวแปร plans (รองรับทุกชื่อฟิลด์และการเช็คช่วงวัน)
                 let planVal = 0;
                 if (typeof plans !== 'undefined' && Array.isArray(plans)) {
                     plans.forEach(p => {
-                        let pNo = String(p["Part No."] || p.partNo || '').trim();
-                        let pStart = safeParseDate(p.date || p.Date || p.startDate || p.start || '');
-                        let pFinish = safeParseDate(p.finishDate || p.finish || p.endDate || p.end || pStart);
-                        
+                        let pNo = String(p["Part No."] || p.partNo || p.PartNo || p.part_no || '').trim();
+                        let pStart = safeParseDate(p.Start || p.start || p.date || p.Date || p.startDate || p.start_date || '');
+                        let pFinish = safeParseDate(p.Finish || p.finish || p.finishDate || p.endDate || p.end || p.finish_date || pStart);
+                        let pQty = Number(p["Plan Qty"] || p.planQty || p.qty || p.PlanQty || p.plan_qty || 0);
+
                         if (pNo === partNo) {
                             if (pStart && pFinish) {
                                 if (dateKey >= pStart && dateKey <= pFinish) {
-                                    planVal += Number(p["Plan Qty"] || p.qty || p.planQty || 0);
+                                    planVal += pQty;
                                 }
                             } else if (pStart === dateKey) {
-                                planVal += Number(p["Plan Qty"] || p.qty || p.planQty || 0);
+                                planVal += pQty;
                             }
                         }
                     });
