@@ -269,34 +269,6 @@
             </div>
         </div>
     </div>
-</div><!-- 🚀 TH Parts Master Plan Matrix (Plan vs Actual vs Delivery vs Balance) -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
-        <h6 class="mb-0">📊 TH Parts Master Plan & Daily Tracking (รายวันประจำเดือน)</h6>
-        <div>
-            <select id="thMonthSelect" class="form-select form-select-sm d-inline-block w-auto" onchange="renderThMasterPlan()">
-                <option value="2026-10">ตุลาคม 2026 (Oct)</option>
-                <option value="2026-11">พฤศจิกายน 2026 (Nov)</option>
-            </select>
-        </div>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive" style="max-height: 700px; overflow-y: auto;">
-            <table class="table table-bordered table-sm align-middle mb-0 text-center" style="font-size: 11px; white-space: nowrap;">
-                <thead class="table-secondary sticky-top">
-                    <tr id="thTableHeader">
-                        <th style="min-width: 120px;" class="bg-secondary text-white">Part No.</th>
-                        <th style="min-width: 60px;" class="bg-secondary text-white">Item</th>
-                        <th style="min-width: 70px;" class="bg-secondary text-white">Volume</th>
-                        <!-- วันที่ 1 ถึง 31 จะถูกสร้างด้วย JS อัตโนมัติ -->
-                    </tr>
-                </thead>
-                <tbody id="thMasterPlanTableBody">
-                    <tr><td colspan="35" class="text-muted py-4">กำลังโหลดข้อมูล Master Plan...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
 </div>
 
             <!-- TAB 2: CAPACITY -->
@@ -1102,6 +1074,35 @@
                     </div>
                 </div>
             </div>
+            <!-- 🚀 TAB: TH PARTS MASTER PLAN (แยกแสดงเฉพาะเมื่อกดเมนู TH Parts Status) -->
+<div class="tab-pane fade" id="tab-th-parts">
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+            <h6 class="mb-0">📊 TH Parts Master Plan & Daily Tracking (รายวันประจำเดือน)</h6>
+            <div>
+                <select id="thMonthSelect" class="form-select form-select-sm d-inline-block w-auto" onchange="renderThMasterPlan()">
+                    <option value="2026-10">ตุลาคม 2026 (Oct)</option>
+                    <option value="2026-11">พฤศจิกายน 2026 (Nov)</option>
+                    <option value="2026-12">ธันวาคม 2026 (Dec)</option>
+                </select>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 80vh; overflow-y: auto;">
+                <table class="table table-bordered table-sm align-middle mb-0 text-center" style="font-size: 11px; white-space: nowrap;">
+                    <thead class="table-secondary sticky-top">
+                        <tr id="thTableHeader">
+                            <!-- หัวตารางวัน 01-31 จะถูกสร้างด้วย JS -->
+                        </tr>
+                    </thead>
+                    <tbody id="thMasterPlanTableBody">
+                        <tr><td colspan="35" class="text-muted py-4">กำลังโหลดข้อมูล Master Plan...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- โหลด PDF.js และกำหนด Worker -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
