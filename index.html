@@ -1524,14 +1524,14 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (ตัด Volume ออก / ป้องกันการค้าง)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (เช็คช่วงวัน Start-Finish และแสดง 22 รายการ)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
         const headerRow = document.getElementById('thTableHeader');
         if (!tbody || !headerRow) return;
 
-        // 1. ดึงเดือนที่เลือก (เช่น 2026-10)
+        // 1. ดึงเดือนที่เลือก
         const monthSelect = document.getElementById('thMonthSelect');
         const selectedYearMonth = monthSelect ? monthSelect.value : '2026-10';
         const parts = selectedYearMonth.split('-');
@@ -1539,7 +1539,7 @@ function renderThMasterPlan() {
         const month = parseInt(parts[1]) || 10;
         const daysInMonth = new Date(year, month, 0).getDate();
 
-        // 2. รายการ Part No. ทั้ง 22 รายการ
+        // 2. รายการ Part No. งาน TH ทั้ง 22 รายการ
         const thPartList = [
             "J0701-17620-Z1T-8000-20",
             "J0701-17620-Z1T-8000-21",
@@ -1565,7 +1565,7 @@ function renderThMasterPlan() {
             "J1301-17624-KEV-9000-H1"
         ];
 
-        // 3. สร้างหัวตาราง (ไม่มีคอลัมน์ Volume)
+        // 3. สร้างหัวตารางวัน (01 ถึง สิ้นเดือน)
         let headerHtml = `
             <th style="min-width: 200px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white">Part No.</th>
             <th style="min-width: 70px; position: sticky; left: 200px; z-index: 5;" class="bg-dark text-white">Status</th>
@@ -1578,14 +1578,13 @@ function renderThMasterPlan() {
 
         tbody.innerHTML = '';
 
-        // Helper แปลงวันที่อย่างปลอดภัย
         const safeParseDate = (dateStr) => {
             if (typeof parseDateString === 'function') return parseDateString(dateStr);
             if (!dateStr) return '';
             return String(dateStr).split('T')[0].trim();
         };
 
-        // 4. สร้างแถวแยกราย Part No.
+        // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No.
         thPartList.forEach((partNo) => {
             let planRow = document.createElement('tr');
             planRow.innerHTML = `
@@ -1614,19 +1613,27 @@ function renderThMasterPlan() {
                 let dayStr = String(d).padStart(2, '0');
                 let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-         // ดึง Plan
+                // ดึง Plan จากช่วง Start ถึง Finish ของหน้า Planning
                 let planVal = 0;
                 if (typeof plans !== 'undefined' && Array.isArray(plans)) {
                     plans.forEach(p => {
                         let pNo = String(p["Part No."] || p.partNo || '').trim();
-                        let pDate = safeParseDate(p.date || p.Date || p.planDate || '');
-                        if (pNo === partNo && pDate === dateKey) {
-                            planVal += Number(p["Plan Qty"] || p.qty || p.planQty || 0);
+                        let pStart = safeParseDate(p.date || p.Date || p.startDate || p.start || '');
+                        let pFinish = safeParseDate(p.finishDate || p.finish || p.endDate || p.end || pStart);
+                        
+                        if (pNo === partNo) {
+                            if (pStart && pFinish) {
+                                if (dateKey >= pStart && dateKey <= pFinish) {
+                                    planVal += Number(p["Plan Qty"] || p.qty || p.planQty || 0);
+                                }
+                            } else if (pStart === dateKey) {
+                                planVal += Number(p["Plan Qty"] || p.qty || p.planQty || 0);
+                            }
                         }
                     });
                 }
 
-                // ดึง Actual
+                // ดึง Actual จากยอดผลิตจริงรายวัน
                 let dayActVal = 0;
                 if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                     actuals.forEach(a => {
@@ -1638,7 +1645,7 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // Delivery
+                // Delivery (งาน TH ส่งมอบทันที เท่ากับ Actual)
                 let dayDelivVal = dayActVal;
                 runningBal = runningBal + dayActVal - dayDelivVal;
 
@@ -1657,7 +1664,7 @@ function renderThMasterPlan() {
     } catch (err) {
         console.error("TH Master Plan Render Error:", err);
     }
-}  
+}
     // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
