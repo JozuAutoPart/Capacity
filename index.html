@@ -2162,7 +2162,7 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keydown', fun
 
     // เครื่องสแกนบาร์โค้ดส่งข้อมูลเร็วกว่า 50ms ต่อตัวอักษร
     // ถ้าระบบตรวจพบการพิมพ์ช้ากว่า 50ms (คีย์บอร์ดมนุษย์) -> บล็อกและเด้ง Pop-up Alert ทันที!
-    if (timeDiff > 50 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
+    if (timeDiff > 80 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
         e.preventDefault(); // บล็อกไม่ให้ตัวอักษรขึ้นหน้าจอ
         this.value = "";    // ล้างค่าทิ้ง
         alert("⛔ ช่องนี้บังคับใช้ 'เครื่องสแกนบาร์โค้ดจาก Tag' เท่านั้น!\n\nหากต้องการพิมพ์มือ กรุณาให้หัวหน้ากดปุ่ม 'ปลดล็อก' และใส่รหัสผ่าน");
