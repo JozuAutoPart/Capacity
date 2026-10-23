@@ -174,12 +174,12 @@
     </div>
 
 <script>
-       document.addEventListener("DOMContentLoaded", function() {
+      document.addEventListener("DOMContentLoaded", function() {
     const urlParams = new URLSearchParams(window.location.search);
     const paramDate = urlParams.get('date') || '';
     const paramInspector = urlParams.get('inspector') || '';
 
-    // 📌 จัดรูปแบบวันที่แสดงผลบนหัวรายงานให้ปลอดภัยและตรงเป๊ะตามเวลาท้องถิ่น
+    // 📌 1. แสดงผลวันที่และชื่อผู้ตรวจบนหัวกระดาษให้ตรงเป๊ะ
     if (paramDate) {
         let cleanDate = String(paramDate).split('T')[0].trim();
         let dateParts = cleanDate.split('-');
@@ -198,28 +198,29 @@
     let targetIns = String(paramInspector).trim();
     let qgateData = [];
 
+    // 📌 2. ดึงข้อมูลจาก LocalStorage แบบ Fallback ครอบคลุมทุกคีย์
     try {
-        let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
+        let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
         
-        // 📌 แกะรอยและเทียบข้อมูลแบบครอบคลุมทุกชื่อฟิลด์ที่เป็นไปได้
         qgateData = rawData.filter(q => {
-            let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
+            // ดึงวันที่โดยตัดเหลือ YYYY-MM-DD
+            let rawQDate = String(q.date || q.Date || q.inspectionDate || '').trim();
+            let qDate = rawQDate.split('T')[0].substring(0, 10);
             
-            // ดึงค่าพนักงานจากทุกฟิลด์ที่เป็นไปได้ในระบบ
+            // ดึงชื่อพนักงาน
             let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || '').trim();
 
             let matchDate = !targetDate || qDate === targetDate;
-            
-            // ถ้าระบุพนักงานมา ให้เทียบแบบไม่สนตัวพิมพ์เล็ก/ใหญ่
             let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
 
             return matchDate && matchIns;
         });
 
-        // เผื่อกรณีข้อมูลไม่ตรงเงื่อนไขพนักงาน ให้ลองดึงข้อมูลดิบทั้งหมดมาแสดงตามวันที่อย่างเดียว
+        // หากกรองพนักงานแล้วไม่เจอ ให้ถอยมากรองเฉพาะวันที่อย่างเดียว
         if (qgateData.length === 0 && targetDate !== "") {
             qgateData = rawData.filter(q => {
-                let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
+                let rawQDate = String(q.date || q.Date || q.inspectionDate || '').trim();
+                let qDate = rawQDate.split('T')[0].substring(0, 10);
                 return qDate === targetDate;
             });
         }
@@ -227,22 +228,21 @@
         qgateData = [];
     }
 
+    // 📌 3. แสดงผลตารางบันทึกผลการตรวจสอบ (Inspection Log)
     const tblInsp = document.getElementById('tblInspectionBody');
-    if (tblInsp) {
-        tblInsp.innerHTML = '';
-    }
+    if (tblInsp) tblInsp.innerHTML = '';
 
     let totalQty = 0, totalPass = 0, totalNg = 0;
 
     if (qgateData.length === 0) {
         if (tblInsp) {
-            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
+            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate || 'ทั้งหมด'}, พนักงาน: ${paramInspector || 'ทั้งหมด'})</td></tr>`;
         }
     } else {
         qgateData.forEach((item, index) => {
-            let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
-            let ng = Number(item.ngQty || item.ng || 0);
-            let pass = Number(item.passQty || (qty - ng) || 0);
+            let qty = Number(item.totalQty !== undefined ? item.totalQty : (item.qty || item['Check Qty'] || 0));
+            let ng = Number(item.ngQty !== undefined ? item.ngQty : (item.ng || 0));
+            let pass = Number(item.passQty !== undefined ? item.passQty : (qty - ng));
             let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
             totalQty += qty;
@@ -265,11 +265,12 @@
         });
     }
 
+    // 📌 4. แสดงผลตารางกิจกรรมอื่นๆ (Non-Inspection Log)
     let otherData = [];
     try {
         let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
         otherData = rawOther.filter(o => {
-            let oDate = String(o.date || '').trim().substring(0, 10);
+            let oDate = String(o.date || '').trim().split('T')[0].substring(0, 10);
             return !targetDate || oDate === targetDate;
         });
     } catch (e) {
@@ -279,7 +280,6 @@
     const tblOther = document.getElementById('tblOtherActivityBody');
     if (tblOther) {
         tblOther.innerHTML = '';
-
         if (otherData.length === 0) {
             tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
         } else {
@@ -297,6 +297,7 @@
         }
     }
 
+    // 📌 5. คำนวณสรุปผลยอดรวมทั้งหมด
     const elSumTotal = document.getElementById('sumTotal');
     const elSumPass = document.getElementById('sumPass');
     const elSumNg = document.getElementById('sumNg');
