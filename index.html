@@ -1524,6 +1524,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
     });
 }
    // 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวันสำหรับ TH Parts (Plan / Act / Del / Bal)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวันสำหรับ TH Parts ทั้ง 22 รายการ
 function renderThMasterPlan() {
     const tbody = document.getElementById('thMasterPlanTableBody');
     const headerRow = document.getElementById('thTableHeader');
@@ -1533,103 +1534,95 @@ function renderThMasterPlan() {
     const monthSelect = document.getElementById('thMonthSelect');
     const selectedYearMonth = monthSelect ? monthSelect.value : '2026-10';
     const [year, month] = selectedYearMonth.split('-').map(Number);
-
-    // หาสมการจำนวนวันในเดือนนั้นๆ
     const daysInMonth = new Date(year, month, 0).getDate();
 
-    // 2. สร้างหัวตารางวัน (1 ถึง 31)
+    // 2. รายการ Part No. งาน TH ทั้ง 22 รายการที่พี่มิวต้องการควบคุม
+    const thPartList = [
+        "J0701-17620-Z1T-8000-20",
+        "J0701-17620-Z1T-8000-21",
+        "J0701-17620-Z1T-8000-23",
+        "J0701-17620-Z1T-8000-25",
+        "J0802-17622-Z0T-8200",
+        "J0804-17625-Z4H-3000",
+        "J0803-17620-899-8000-20",
+        "J0803-17620-899-8000-21",
+        "J0803-17620-899-8000-22",
+        "J0803-17625-434-3000",
+        "J0803-17620-899-8000-23",
+        "J0804-17621-Z4H-3100",
+        "J1901-17622-Z4H-9100",
+        "J1701-17625-K59K-T110-Y1",
+        "J1201-17628-K20-9010-Y1",
+        "J1201-17623-K20-A110-Y1",
+        "12213-Z3V-0001",
+        "J1301-17625-KEV-9000-H1",
+        "J1301-17622-KEV-9000-H1",
+        "J1301-17626-KGH-6000",
+        "J1301-17623-KGH-6000-H1",
+        "J1301-17624-KEV-9000-H1"
+    ];
+
+    // 3. สร้างหัวตารางวัน (1 ถึง 31)
     let headerHtml = `
-        <th style="min-width: 130px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white">Part No.</th>
-        <th style="min-width: 65px; position: sticky; left: 130px; z-index: 5;" class="bg-dark text-white">Status</th>
-        <th style="min-width: 75px;" class="bg-dark text-white">Total Vol</th>
+        <th style="min-width: 220px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white">Part No.</th>
+        <th style="min-width: 70px; position: sticky; left: 220px; z-index: 5;" class="bg-dark text-white">Status</th>
+        <th style="min-width: 80px;" class="bg-dark text-white">Volume</th>
     `;
     for (let d = 1; d <= daysInMonth; d++) {
         let dayStr = String(d).padStart(2, '0');
-        headerHtml += `<th style="min-width: 50px;">${dayStr}</th>`;
+        headerHtml += `<th style="min-width: 55px;">${dayStr}</th>`;
     }
     headerRow.innerHTML = headerHtml;
 
-    // 3. ดึงรายการพาร์ท TH ทั้งหมดจากแผนการผลิต (หรือกำหนดรายการพาร์ท TH 20 กว่ารายการที่นี่)
-    if (typeof plans === 'undefined' || !Array.isArray(plans)) {
-        tbody.innerHTML = `<tr><td colspan="${daysInMonth + 3}" class="text-muted">ไม่พบข้อมูลแผนการผลิตในระบบ</td></tr>`;
-        return;
-    }
-
-    // กรองเฉพาะพาร์ท TH (หรือระบุรายชื่อ Part No. ของพี่มิว)
-    let thPartMap = new Map();
-    plans.forEach(p => {
-        let pNo = String(p["Part No."] || p.partNo || '').trim();
-        if (pNo.toUpperCase().includes('TH') || p.isThPart) {
-            if (!thPartMap.has(pNo)) {
-                thPartMap.set(pNo, {
-                    partNo: pNo,
-                    plans: [], // เก็บแผนรายวัน
-                });
-            }
-        }
-    });
-
-    if (thPartMap.size === 0) {
-        // กรณีเทส ถ้ายังไม่มีคำว่า TH ให้ดึงพาร์ททั้งหมดมาแสดงตัวอย่างก่อนได้
-        plans.slice(0, 15).forEach(p => {
-            let pNo = String(p["Part No."] || p.partNo || '').trim();
-            if (pNo && !thPartMap.has(pNo)) {
-                thPartMap.set(pNo, { partNo: pNo, plans: [] });
-            }
-        });
-    }
-
     tbody.innerHTML = '';
 
-    // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No. (แบ่งเป็น 4 แถวต่อพาร์ท: Plan, Actual, Delivery, Balance เหมือนใน Excel)
-    thPartMap.forEach((data, partNo) => {
-        let totalVolume = 10000; // สมมติ Volume รวม หรือคำนวณจาก Plan รวม
+    // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No. (Plan, Actual, Delivery, Balance)
+    thPartList.forEach((partNo) => {
+        let totalVolume = 12000; // ค่า Volume ตั้งต้น (สามารถเชื่อมโยงกับ Master Plan จริงได้)
 
-        // สร้างแถว PLAN
         let planRow = document.createElement('tr');
         planRow.innerHTML = `
-            <td rowspan="4" class="fw-bold bg-light align-middle" style="position: sticky; left: 0; z-index: 3;">${partNo}</td>
-            <td class="fw-bold text-primary bg-light" style="position: sticky; left: 130px; z-index: 3;">Plan</td>
+            <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-family: monospace;">${partNo}</td>
+            <td class="fw-bold text-primary bg-light" style="position: sticky; left: 220px; z-index: 3;">Plan</td>
             <td class="fw-bold">${totalVolume.toLocaleString()}</td>
         `;
 
-        // สร้างแถว ACTUAL (ผลิตจริง)
         let actRow = document.createElement('tr');
         actRow.innerHTML = `
-            <td class="fw-bold text-success bg-light" style="position: sticky; left: 130px; z-index: 3;">Actual</td>
+            <td class="fw-bold text-success bg-light" style="position: sticky; left: 220px; z-index: 3;">Actual</td>
             <td class="fw-bold text-success">-</td>
         `;
 
-        // สร้างแถว DELIVERY (ส่งมอบ)
         let delivRow = document.createElement('tr');
         delivRow.innerHTML = `
-            <td class="fw-bold text-warning bg-light" style="position: sticky; left: 130px; z-index: 3;">Delivery</td>
+            <td class="fw-bold text-warning bg-light" style="position: sticky; left: 220px; z-index: 3;">Delivery</td>
             <td class="fw-bold text-warning">-</td>
         `;
 
-        // สร้างแถว BALANCE (คงเหลือ)
         let balRow = document.createElement('tr');
         balRow.innerHTML = `
-            <td class="fw-bold text-secondary bg-light" style="position: sticky; left: 130px; z-index: 3;">Balance</td>
+            <td class="fw-bold text-secondary bg-light" style="position: sticky; left: 220px; z-index: 3;">Balance</td>
             <td class="fw-bold text-secondary">-</td>
         `;
 
         let runningBal = totalVolume;
 
-        // วนลูปเติมข้อมูลแต่ละวัน (1 ถึงสิ้นเดือน)
         for (let d = 1; d <= daysInMonth; d++) {
             let dayStr = String(d).padStart(2, '0');
-            let dateKey = `${selectedYearMonth}-${dayStr}`; // เช่น 2026-10-01
+            let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-            // ค้นหา Plan ของวันนี้
-            let dayPlanObj = plans.find(p => {
-                let pNo = String(p["Part No."] || p.partNo || '').trim();
-                let pDate = parseDateString(p.date || p.Date || '');
-                return pNo === partNo && pDate === dateKey;
-            });
-            let planVal = dayPlanObj ? Number(dayPlanObj["Plan Qty"] || dayPlanObj.qty || 0) : (d % 3 === 0 ? 350 : 0); // ค่าจำลองถ้ายังไม่มีแผนรายวัน
+            // ดึงข้อมูลแผนจากตัวแปร plans (ถ้ามี)
+            let planVal = 0;
+            if (typeof plans !== 'undefined' && Array.isArray(plans)) {
+                let foundPlan = plans.find(p => {
+                    let pNo = String(p["Part No."] || p.partNo || '').trim();
+                    let pDate = parseDateString(p.date || p.Date || '');
+                    return pNo === partNo && pDate === dateKey;
+                });
+                if (foundPlan) planVal = Number(foundPlan["Plan Qty"] || foundPlan.qty || 0);
+            }
 
-            // ค้นหา Actual ของวันนี้จาก actuals
+            // ดึงข้อมูลผลิตจริงจาก actuals
             let dayActVal = 0;
             if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                 actuals.forEach(a => {
@@ -1641,12 +1634,11 @@ function renderThMasterPlan() {
                 });
             }
 
-            // จำลองยอด Delivery (ถ้ามีข้อมูลจริงเชื่อมโยง สามารถดึงมาใส่แทนได้เลยครับ)
-            let dayDelivVal = (dayActVal > 0 && d % 2 === 0) ? dayActVal : 0; 
+            // ยอด Delivery (ดึงจากระบบ Delivery หรือสมมติเชื่อมโยงกับ Actual)
+            let dayDelivVal = (dayActVal > 0) ? dayActVal : 0; 
 
             runningBal = runningBal - dayDelivVal + dayActVal;
 
-            // เติมช่องข้อมูลรายวันลงในแต่ละแถว
             planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-10 text-primary' : ''}">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
             actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
             delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
@@ -1658,6 +1650,9 @@ function renderThMasterPlan() {
         tbody.appendChild(delivRow);
         tbody.appendChild(balRow);
     });
+
+    const timeEl = document.getElementById('thUpdateTimestamp');
+    if (timeEl) timeEl.innerText = 'อัปเดตล่าสุด: ' + new Date().toLocaleTimeString();
 }
 
 // เรียกทำงานเมื่อเปิดแท็บ
