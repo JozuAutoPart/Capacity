@@ -3539,6 +3539,7 @@ if (typeof window.originalRenderQGate === 'undefined') {
 }
 
 // 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน Q-Gate (แก้ไขให้ส่งข้อมูลแบบเสถียร 100%)
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน Q-Gate (เวอร์ชันรวบรวมข้อมูลครบถ้วน)
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
@@ -3546,17 +3547,27 @@ window.openQGateReport = function() {
     const selectedDate = dateEl ? dateEl.value.trim() : '';
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // บันทึกข้อมูล qgate ปัจจุบันไว้ใน localStorage เพื่อให้หน้ารายงานดึงไปใช้
-    let currentQGate = [];
-    if (typeof qgate !== 'undefined' && Array.isArray(qgate) && qgate.length > 0) {
-        currentQGate = qgate;
-    } else {
-        currentQGate = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+    // รวบรวมข้อมูล Q-Gate จากทุกแหล่งที่เป็นไปได้ในเครื่อง
+    let allData = [];
+    if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
+        allData = allData.concat(qgate);
     }
-    
-    // สำรองข้อมูลเต็มลง qgateReportData และ qgate
-    localStorage.setItem('qgateReportData', JSON.stringify(currentQGate));
-    localStorage.setItem('qgate', JSON.stringify(currentQGate));
+    try {
+        let localQ = JSON.parse(localStorage.getItem('qgate') || '[]');
+        if (Array.isArray(localQ)) allData = allData.concat(localQ);
+        let localLogs = JSON.parse(localStorage.getItem('qgate_logs') || '[]');
+        if (Array.isArray(localLogs)) allData = allData.concat(localLogs);
+    } catch(e) {}
+
+    // กรองข้อมูลซ้ำออก (Deduplicate)
+    let uniqueData = Array.from(Map.groupBy ? 
+        Map.groupBy(allData, item => item.id || JSON.stringify(item)).values() : 
+        allData.reduce((map, item) => map.set(item.id || JSON.stringify(item), item), new Map()).values()
+    );
+
+    // บันทึกสำรองไว้ใน localStorage ทั้งหมด
+    localStorage.setItem('qgateReportData', JSON.stringify(uniqueData));
+    localStorage.setItem('qgate', JSON.stringify(uniqueData));
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
 
