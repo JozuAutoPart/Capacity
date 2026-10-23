@@ -2197,33 +2197,36 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
             masterData = masterBarcodes;
         }
 
-        // ค้นหาใน Master Barcode Data
+       // 3. ค้นหาใน Master Barcode Data แบบระบุรหัสตรงกันเป๊ะ (Exact Match) ก่อนเสมอ
         let matchedPartNo = "";
         let foundMaster = masterData.find(item => {
             let vals = Object.values(item);
             let bCode = String(item.barcode || item['Barcode'] || vals[0] || '').trim().toUpperCase();
             let pNo = String(item.partNo || item['Part No.'] || vals[1] || '').trim().toUpperCase();
-            return bCode === searchCode || bCode === rawBarcode.toUpperCase() || pNo === searchCode;
+            // เช็คแบบตรงกันเป๊ะ 100% ป้องกันการหยิบพาร์ทขึ้นต้นคล้ายกันมาปน
+            return bCode === searchCode || bCode === rawBarcode.toUpperCase() || pNo === searchCode || pNo === rawBarcode.toUpperCase();
         });
 
         if (foundMaster) {
             matchedPartNo = String(foundMaster.partNo || foundMaster['Part No.'] || Object.values(foundMaster)[1]).trim();
         }
 
+        // ถือว่าถ้าหาไม่เจอใน Master ให้ใช้รหัสที่สแกนมาตรงๆ
         if (!matchedPartNo) {
-            matchedPartNo = searchCode;
+            matchedPartNo = searchCode || rawBarcode;
         }
 
-        // นำ Part No. ที่ได้ไปเลือกใน Dropdown ของแผนการผลิต
+        // 4. นำ Part No. ไปเลือกใน Dropdown แบบเช็คค่าตรงกันเป๊ะก่อน
         const selectPart = document.getElementById('actualPartNo');
         let foundIndex = -1;
 
         if (selectPart) {
+            // วนหาแบบตรงกันเป๊ะ (Exact Match)
             for (let i = 0; i < selectPart.options.length; i++) {
-                const optionText = selectPart.options[i].text.toUpperCase();
-                const optionValue = selectPart.options[i].value.toUpperCase();
+                const optVal = selectPart.options[i].value.trim().toUpperCase();
+                const optTxt = selectPart.options[i].text.trim().toUpperCase();
                 
-                if (optionText.includes(matchedPartNo.toUpperCase()) || optionValue.includes(matchedPartNo.toUpperCase())) {
+                if (optVal === matchedPartNo.toUpperCase() || optTxt.startsWith(matchedPartNo.toUpperCase())) {
                     foundIndex = i;
                     break;
                 }
@@ -2248,19 +2251,6 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
                 selectPart.disabled = true;
             }
         }
-
-        // สั่งเรียกฟังก์ชันเปลี่ยนพาร์ท เพื่อดึง Lot No. และค่า CT ขึ้นมาทันที
-        if (typeof onActualPartChange === 'function') {
-            onActualPartChange();
-        } else if (selectPart) {
-            selectPart.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
-        this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับบาร์โค้ดถัดไป
-        this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
-    }
-});
-
 // ฟังก์ชันช่วยแปลงเวลาเป็นนาที
 function timeToMinutes(timeStr) {
     if (!timeStr || !timeStr.includes(':')) return 0;
