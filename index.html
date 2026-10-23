@@ -2144,47 +2144,44 @@ function requestUnlockManualInput() {
     }
 }
 
-// ----------------------------------------------------
-// 🚫 ดักจับคีย์บอร์ด: ป้องกันพิมพ์มือ แต่ไม่บล็อกตัวแรกของการสแกนบาร์โค้ด
-// ----------------------------------------------------
+// ==========================================
+// --- โค้ดดักจับและสแกนบาร์โค้ด (ฉบับสมบูรณ์ ปรับแก้ปัญหายิงแล้วพาร์ทไม่เพี้ยน) ---
+// ==========================================
+
 let lastKeyTime = 0;
 
+// 1. ดักจับคีย์บอร์ด: ป้องกันพิมพ์มือ แต่ไม่บล็อกตัวแรกของการสแกนบาร์โค้ด
 document.getElementById('actualBarcodeScanner')?.addEventListener('keydown', function(e) {
-    // ถ้าปลดล็อกด้วยรหัสผ่านแล้ว อนุญาตให้พิมพ์มือได้ปกติ
     if (isManualUnlocked) return;
-
-    // อนุญาตให้ปุ่ม Tab, Esc, Enter ทำงานได้
     if (e.key === 'Tab' || e.key === 'Escape') return;
 
     const currentTime = Date.now();
     const timeDiff = currentTime - lastKeyTime;
     lastKeyTime = currentTime;
 
-    // 📌 ถ้าเว้นช่วงนานกว่า 300ms (ถือเป็นการเริ่มยิงบาร์โค้ดครั้งใหม่ หรือคลิกเริ่มยิง) -> อนุญาตให้ผ่านตัวแรกเสมอ
+    // ถ้าเว้นช่วงนานกว่า 300ms ถือเป็นการเริ่มยิงบาร์โค้ดครั้งใหม่ -> อนุญาตผ่านตัวแรกเสมอ
     if (timeDiff > 300) {
         return; 
     }
 
-    // ถ้าระหว่างตัวอักษรในชุดเดียวกันส่งมาช้ากว่า 50ms (แปลว่ามนุษย์ค่อยๆ พิมพ์คีย์บอร์ด) -> บล็อกทันที!
+    // ถ้าระหว่างตัวอักษรช้ากว่า 50ms (แปลว่ามนุษย์พิมพ์คีย์บอร์ด) -> บล็อกทันที
     if (timeDiff > 50 && e.key.length === 1 && !e.ctrlKey && !e.altKey) {
-        e.preventDefault(); // บล็อกไม่ให้ตัวอักษรขึ้นหน้าจอ
-        this.value = "";    // ล้างค่าทิ้ง
+        e.preventDefault();
+        this.value = "";    
         alert("⛔ ช่องนี้บังคับใช้ 'เครื่องสแกนบาร์โค้ดจาก Tag' เท่านั้น!\n\nหากต้องการพิมพ์มือ กรุณาให้หัวหน้ากดปุ่ม 'ปลดล็อก' และใส่รหัสผ่าน");
         return false;
     }
 });
 
-// 📌 ฟังก์ชันดักจับเมื่อยิงบาร์โค้ดสำเร็จ (ส่งค่าพรวดเดียวจบด้วย Enter)
+// 2. ฟังก์ชันดักจับเมื่อยิงบาร์โค้ดเสร็จ (กด Enter)
 document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
         let rawBarcode = this.value.trim();
         if (!rawBarcode) return;
 
-        // ตัดข้อความส่วนเกินออก (รองรับกรณีบาร์โค้ดพ่วงแท็กมาด้วย)
-        let parts = rawBarcode.split('-');
-        let searchCode = (parts.length > 1 && !isNaN(parts[parts.length - 1])) ? parts.slice(0, -1).join('-') : rawBarcode;
-        searchCode = searchCode.trim().toUpperCase();
+        // ทำความสะอาดรหัสบาร์โค้ดโดยไม่ตัดตัวอักษรหน้าทิ้ง
+        let searchCode = rawBarcode.replace(/^[^a-zA-Z0-9]+/, '').trim().toUpperCase();
 
         // ดึง Master Data จาก LocalStorage หรือ Global Variable
         let masterData = [];
@@ -2197,13 +2194,13 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
             masterData = masterBarcodes;
         }
 
-        // ค้นหาใน Master Barcode Data
+        // ค้นหาใน Master Barcode แบบ Exact Match (ป้องกันพาร์ทที่ขึ้นต้นคล้ายกันสลับกัน)
         let matchedPartNo = "";
         let foundMaster = masterData.find(item => {
             let vals = Object.values(item);
             let bCode = String(item.barcode || item['Barcode'] || vals[0] || '').trim().toUpperCase();
             let pNo = String(item.partNo || item['Part No.'] || vals[1] || '').trim().toUpperCase();
-            return bCode === searchCode || bCode === rawBarcode.toUpperCase() || pNo === searchCode;
+            return bCode === searchCode || bCode === rawBarcode.toUpperCase() || pNo === searchCode || pNo === rawBarcode.toUpperCase();
         });
 
         if (foundMaster) {
@@ -2211,25 +2208,24 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
         }
 
         if (!matchedPartNo) {
-            matchedPartNo = searchCode;
+            matchedPartNo = searchCode || rawBarcode;
         }
 
-        // นำ Part No. ที่ได้ไปเลือกใน Dropdown ของแผนการผลิต
+        // นำ Part No. ไปเลือกใน Dropdown ของแผนการผลิต
         const selectPart = document.getElementById('actualPartNo');
         let foundIndex = -1;
 
         if (selectPart) {
             for (let i = 0; i < selectPart.options.length; i++) {
-                const optionText = selectPart.options[i].text.toUpperCase();
-                const optionValue = selectPart.options[i].value.toUpperCase();
+                const optVal = selectPart.options[i].value.trim().toUpperCase();
+                const optTxt = selectPart.options[i].text.trim().toUpperCase();
                 
-                if (optionText.includes(matchedPartNo.toUpperCase()) || optionValue.includes(matchedPartNo.toUpperCase())) {
+                if (optVal === matchedPartNo.toUpperCase() || optTxt.startsWith(matchedPartNo.toUpperCase())) {
                     foundIndex = i;
                     break;
                 }
             }
 
-            // ปลดล็อกชั่วคราวเพื่อเลือกค่าใน Dropdown
             selectPart.disabled = false;
 
             if (foundIndex !== -1) {
@@ -2243,21 +2239,20 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
                 selectPart.value = matchedPartNo;
             }
 
-            // ล็อก Dropdown กลับทันทีถ้าไม่ได้ปลดล็อกคีย์มือไว้
             if (!isManualUnlocked) {
                 selectPart.disabled = true;
             }
         }
 
-        // สั่งเรียกฟังก์ชันเปลี่ยนพาร์ท เพื่อดึง Lot No. และค่า CT ขึ้นมาทันที
+        // เรียกฟังก์ชันเปลี่ยนพาร์ทเพื่อดึง Lot และ CT
         if (typeof onActualPartChange === 'function') {
             onActualPartChange();
         } else if (selectPart) {
             selectPart.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
-        this.value = ''; // เคลียร์ช่องยิงเพื่อรอรับบาร์โค้ดถัดไป
-        this.focus();    // คงโฟกัสไว้ที่ช่องสแกน
+        this.value = ''; 
+        this.focus();    
     }
 });
 
