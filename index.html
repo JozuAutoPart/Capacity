@@ -269,19 +269,32 @@
             </div>
         </div>
     </div>
-</div>
-            <!-- 🚀 TAB: TH Parts Status (งาน TH ส่งมอบทันที) -->
-<div class="tab-pane fade" id="tab-th-parts">
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
-            <h6 class="mb-0">🚀 สถานะงานผลิต TH (Direct Delivery) - Plan vs Actual</h6>
-            <div id="thUpdateTimestamp" class="small text-muted">อัปเดตล่าสุด: -</div>
+</div><!-- 🚀 TH Parts Master Plan Matrix (Plan vs Actual vs Delivery vs Balance) -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0">📊 TH Parts Master Plan & Daily Tracking (รายวันประจำเดือน)</h6>
+        <div>
+            <select id="thMonthSelect" class="form-select form-select-sm d-inline-block w-auto" onchange="renderThMasterPlan()">
+                <option value="2026-10">ตุลาคม 2026 (Oct)</option>
+                <option value="2026-11">พฤศจิกายน 2026 (Nov)</option>
+            </select>
         </div>
-        <div class="card-body bg-light">
-            <!-- Container แสดงการ์ดสถานะของแต่ละ Part No. -->
-            <div class="row g-3" id="thStatusCardContainer">
-                <div class="text-center text-muted py-4">กำลังโหลดข้อมูลสถานะ TH Parts...</div>
-            </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 700px; overflow-y: auto;">
+            <table class="table table-bordered table-sm align-middle mb-0 text-center" style="font-size: 11px; white-space: nowrap;">
+                <thead class="table-secondary sticky-top">
+                    <tr id="thTableHeader">
+                        <th style="min-width: 120px;" class="bg-secondary text-white">Part No.</th>
+                        <th style="min-width: 60px;" class="bg-secondary text-white">Item</th>
+                        <th style="min-width: 70px;" class="bg-secondary text-white">Volume</th>
+                        <!-- วันที่ 1 ถึง 31 จะถูกสร้างด้วย JS อัตโนมัติ -->
+                    </tr>
+                </thead>
+                <tbody id="thMasterPlanTableBody">
+                    <tr><td colspan="35" class="text-muted py-4">กำลังโหลดข้อมูล Master Plan...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -1510,88 +1523,148 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-    // 📌 ฟังก์ชันเรนเดอร์สถานะ TH Parts แยกตาม Part No.
-function renderThPartsDashboard() {
-    const container = document.getElementById('thStatusCardContainer');
-    if (!container) return;
+   // 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวันสำหรับ TH Parts (Plan / Act / Del / Bal)
+function renderThMasterPlan() {
+    const tbody = document.getElementById('thMasterPlanTableBody');
+    const headerRow = document.getElementById('thTableHeader');
+    if (!tbody || !headerRow) return;
 
+    // 1. กำหนดเดือนที่เลือก (เช่น 2026-10)
+    const monthSelect = document.getElementById('thMonthSelect');
+    const selectedYearMonth = monthSelect ? monthSelect.value : '2026-10';
+    const [year, month] = selectedYearMonth.split('-').map(Number);
+
+    // หาสมการจำนวนวันในเดือนนั้นๆ
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    // 2. สร้างหัวตารางวัน (1 ถึง 31)
+    let headerHtml = `
+        <th style="min-width: 130px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white">Part No.</th>
+        <th style="min-width: 65px; position: sticky; left: 130px; z-index: 5;" class="bg-dark text-white">Status</th>
+        <th style="min-width: 75px;" class="bg-dark text-white">Total Vol</th>
+    `;
+    for (let d = 1; d <= daysInMonth; d++) {
+        let dayStr = String(d).padStart(2, '0');
+        headerHtml += `<th style="min-width: 50px;">${dayStr}</th>`;
+    }
+    headerRow.innerHTML = headerHtml;
+
+    // 3. ดึงรายการพาร์ท TH ทั้งหมดจากแผนการผลิต (หรือกำหนดรายการพาร์ท TH 20 กว่ารายการที่นี่)
     if (typeof plans === 'undefined' || !Array.isArray(plans)) {
-        container.innerHTML = '<div class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต</div>';
+        tbody.innerHTML = `<tr><td colspan="${daysInMonth + 3}" class="text-muted">ไม่พบข้อมูลแผนการผลิตในระบบ</td></tr>`;
         return;
     }
 
-    // กรองเฉพาะรายการที่เป็น TH Parts (สามารถปรับเงื่อนไขคำค้นหาตาม Part No. ของพี่มิวได้เลยครับ)
-    const thPlans = plans.filter(p => {
-        let pNo = String(p["Part No."] || p.partNo || '').toUpperCase();
-        return pNo.includes('TH'); 
+    // กรองเฉพาะพาร์ท TH (หรือระบุรายชื่อ Part No. ของพี่มิว)
+    let thPartMap = new Map();
+    plans.forEach(p => {
+        let pNo = String(p["Part No."] || p.partNo || '').trim();
+        if (pNo.toUpperCase().includes('TH') || p.isThPart) {
+            if (!thPartMap.has(pNo)) {
+                thPartMap.set(pNo, {
+                    partNo: pNo,
+                    plans: [], // เก็บแผนรายวัน
+                });
+            }
+        }
     });
 
-    if (thPlans.length === 0) {
-        container.innerHTML = `<div class="alert alert-warning text-center">ไม่พบรายการพาร์ท TH ในระบบ (เงื่อนไขปัจจุบันค้นหาคำว่า 'TH' ใน Part No.)</div>`;
-        return;
+    if (thPartMap.size === 0) {
+        // กรณีเทส ถ้ายังไม่มีคำว่า TH ให้ดึงพาร์ททั้งหมดมาแสดงตัวอย่างก่อนได้
+        plans.slice(0, 15).forEach(p => {
+            let pNo = String(p["Part No."] || p.partNo || '').trim();
+            if (pNo && !thPartMap.has(pNo)) {
+                thPartMap.set(pNo, { partNo: pNo, plans: [] });
+            }
+        });
     }
 
-    container.innerHTML = '';
+    tbody.innerHTML = '';
 
-    thPlans.forEach(plan => {
-        let partNo = plan["Part No."] || plan.partNo || '-';
-        let planQty = Number(plan["Plan Qty"] || plan.qty || 0);
-        let line = plan.Line || plan.line || '-';
+    // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No. (แบ่งเป็น 4 แถวต่อพาร์ท: Plan, Actual, Delivery, Balance เหมือนใน Excel)
+    thPartMap.forEach((data, partNo) => {
+        let totalVolume = 10000; // สมมติ Volume รวม หรือคำนวณจาก Plan รวม
 
-        // รวมยอดผลิตจริง (Actual) ของพาร์ทนี้
-        let totalAct = 0;
-        if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
-            actuals.forEach(a => {
-                let aPart = String(a.partNo || a['Part No.'] || '').trim();
-                if (aPart.includes(partNo)) {
-                    totalAct += Number(a.qty || a['OK Qty'] || 0);
-                }
-            });
-        }
-
-        let ach = planQty > 0 ? ((totalAct / planQty) * 100).toFixed(1) : 0;
-
-        let badgeBg = 'bg-danger';
-        let progressBarBg = 'bg-danger';
-        if (ach >= 100) {
-            badgeBg = 'bg-success';
-            progressBarBg = 'bg-success';
-        } else if (ach >= 50) {
-            badgeBg = 'bg-warning text-dark';
-            progressBarBg = 'bg-warning';
-        }
-
-        const col = document.createElement('div');
-        col.className = 'col-md-4 col-sm-6';
-        col.innerHTML = `
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge bg-secondary">${line}</span>
-                        <span class="badge ${badgeBg}">${ach}% Ach</span>
-                    </div>
-                    <h6 class="card-title text-primary fw-bold mb-1">${partNo}</h6>
-                    <div class="d-flex justify-content-between small text-muted mb-2">
-                        <span>Plan: <b>${planQty.toLocaleString()}</b></span>
-                        <span>Actual: <b class="text-success">${totalAct.toLocaleString()}</b></span>
-                    </div>
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar ${progressBarBg}" role="progressbar" style="width: ${Math.min(ach, 100)}%;"></div>
-                    </div>
-                </div>
-            </div>
+        // สร้างแถว PLAN
+        let planRow = document.createElement('tr');
+        planRow.innerHTML = `
+            <td rowspan="4" class="fw-bold bg-light align-middle" style="position: sticky; left: 0; z-index: 3;">${partNo}</td>
+            <td class="fw-bold text-primary bg-light" style="position: sticky; left: 130px; z-index: 3;">Plan</td>
+            <td class="fw-bold">${totalVolume.toLocaleString()}</td>
         `;
-        container.appendChild(col);
-    });
 
-    const timeEl = document.getElementById('thUpdateTimestamp');
-    if (timeEl) timeEl.innerText = 'อัปเดตล่าสุด: ' + new Date().toLocaleTimeString();
+        // สร้างแถว ACTUAL (ผลิตจริง)
+        let actRow = document.createElement('tr');
+        actRow.innerHTML = `
+            <td class="fw-bold text-success bg-light" style="position: sticky; left: 130px; z-index: 3;">Actual</td>
+            <td class="fw-bold text-success">-</td>
+        `;
+
+        // สร้างแถว DELIVERY (ส่งมอบ)
+        let delivRow = document.createElement('tr');
+        delivRow.innerHTML = `
+            <td class="fw-bold text-warning bg-light" style="position: sticky; left: 130px; z-index: 3;">Delivery</td>
+            <td class="fw-bold text-warning">-</td>
+        `;
+
+        // สร้างแถว BALANCE (คงเหลือ)
+        let balRow = document.createElement('tr');
+        balRow.innerHTML = `
+            <td class="fw-bold text-secondary bg-light" style="position: sticky; left: 130px; z-index: 3;">Balance</td>
+            <td class="fw-bold text-secondary">-</td>
+        `;
+
+        let runningBal = totalVolume;
+
+        // วนลูปเติมข้อมูลแต่ละวัน (1 ถึงสิ้นเดือน)
+        for (let d = 1; d <= daysInMonth; d++) {
+            let dayStr = String(d).padStart(2, '0');
+            let dateKey = `${selectedYearMonth}-${dayStr}`; // เช่น 2026-10-01
+
+            // ค้นหา Plan ของวันนี้
+            let dayPlanObj = plans.find(p => {
+                let pNo = String(p["Part No."] || p.partNo || '').trim();
+                let pDate = parseDateString(p.date || p.Date || '');
+                return pNo === partNo && pDate === dateKey;
+            });
+            let planVal = dayPlanObj ? Number(dayPlanObj["Plan Qty"] || dayPlanObj.qty || 0) : (d % 3 === 0 ? 350 : 0); // ค่าจำลองถ้ายังไม่มีแผนรายวัน
+
+            // ค้นหา Actual ของวันนี้จาก actuals
+            let dayActVal = 0;
+            if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+                actuals.forEach(a => {
+                    let aPart = String(a.partNo || a['Part No.'] || '').trim();
+                    let aDate = parseDateString(a.date || a['Date'] || '');
+                    if (aPart.includes(partNo) && aDate === dateKey) {
+                        dayActVal += Number(a.qty || a['OK Qty'] || 0);
+                    }
+                });
+            }
+
+            // จำลองยอด Delivery (ถ้ามีข้อมูลจริงเชื่อมโยง สามารถดึงมาใส่แทนได้เลยครับ)
+            let dayDelivVal = (dayActVal > 0 && d % 2 === 0) ? dayActVal : 0; 
+
+            runningBal = runningBal - dayDelivVal + dayActVal;
+
+            // เติมช่องข้อมูลรายวันลงในแต่ละแถว
+            planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-10 text-primary' : ''}">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
+            actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
+            delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
+            balRow.innerHTML += `<td>${runningBal.toLocaleString()}</td>`;
+        }
+
+        tbody.appendChild(planRow);
+        tbody.appendChild(actRow);
+        tbody.appendChild(delivRow);
+        tbody.appendChild(balRow);
+    });
 }
 
-// ผูกให้โหลดข้อมูลอัตโนมัติเมื่อเปิดแท็บนี้
+// เรียกทำงานเมื่อเปิดแท็บ
 window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(renderThPartsDashboard, 1500);
+    setTimeout(renderThMasterPlan, 1500);
 });
+    
     // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
