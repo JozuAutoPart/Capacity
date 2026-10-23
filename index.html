@@ -145,6 +145,9 @@
             <li class="nav-item">
                 <button class="nav-link" id="die-tab" data-bs-toggle="tab" data-bs-target="#tab-die" type="button" onclick="renderDiePM();"><i class="fas fa-tools me-2"></i>Die Maintenance & PM</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="th-parts-btn" data-bs-toggle="tab" data-bs-target="#tab-th-parts" type="button" role="tab">🚀 TH Parts Status</button>
+            </li>
         </ul>
 
         <!-- Tab Contents -->
@@ -263,6 +266,21 @@
                         <!-- เรนเดอร์รายการจาก JavaScript -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+            <!-- 🚀 TAB: TH Parts Status (งาน TH ส่งมอบทันที) -->
+<div class="tab-pane fade" id="tab-th-parts">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+            <h6 class="mb-0">🚀 สถานะงานผลิต TH (Direct Delivery) - Plan vs Actual</h6>
+            <div id="thUpdateTimestamp" class="small text-muted">อัปเดตล่าสุด: -</div>
+        </div>
+        <div class="card-body bg-light">
+            <!-- Container แสดงการ์ดสถานะของแต่ละ Part No. -->
+            <div class="row g-3" id="thStatusCardContainer">
+                <div class="text-center text-muted py-4">กำลังโหลดข้อมูลสถานะ TH Parts...</div>
             </div>
         </div>
     </div>
@@ -1492,6 +1510,88 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
+    // 📌 ฟังก์ชันเรนเดอร์สถานะ TH Parts แยกตาม Part No.
+function renderThPartsDashboard() {
+    const container = document.getElementById('thStatusCardContainer');
+    if (!container) return;
+
+    if (typeof plans === 'undefined' || !Array.isArray(plans)) {
+        container.innerHTML = '<div class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต</div>';
+        return;
+    }
+
+    // กรองเฉพาะรายการที่เป็น TH Parts (สามารถปรับเงื่อนไขคำค้นหาตาม Part No. ของพี่มิวได้เลยครับ)
+    const thPlans = plans.filter(p => {
+        let pNo = String(p["Part No."] || p.partNo || '').toUpperCase();
+        return pNo.includes('TH'); 
+    });
+
+    if (thPlans.length === 0) {
+        container.innerHTML = `<div class="alert alert-warning text-center">ไม่พบรายการพาร์ท TH ในระบบ (เงื่อนไขปัจจุบันค้นหาคำว่า 'TH' ใน Part No.)</div>`;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    thPlans.forEach(plan => {
+        let partNo = plan["Part No."] || plan.partNo || '-';
+        let planQty = Number(plan["Plan Qty"] || plan.qty || 0);
+        let line = plan.Line || plan.line || '-';
+
+        // รวมยอดผลิตจริง (Actual) ของพาร์ทนี้
+        let totalAct = 0;
+        if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+            actuals.forEach(a => {
+                let aPart = String(a.partNo || a['Part No.'] || '').trim();
+                if (aPart.includes(partNo)) {
+                    totalAct += Number(a.qty || a['OK Qty'] || 0);
+                }
+            });
+        }
+
+        let ach = planQty > 0 ? ((totalAct / planQty) * 100).toFixed(1) : 0;
+
+        let badgeBg = 'bg-danger';
+        let progressBarBg = 'bg-danger';
+        if (ach >= 100) {
+            badgeBg = 'bg-success';
+            progressBarBg = 'bg-success';
+        } else if (ach >= 50) {
+            badgeBg = 'bg-warning text-dark';
+            progressBarBg = 'bg-warning';
+        }
+
+        const col = document.createElement('div');
+        col.className = 'col-md-4 col-sm-6';
+        col.innerHTML = `
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-secondary">${line}</span>
+                        <span class="badge ${badgeBg}">${ach}% Ach</span>
+                    </div>
+                    <h6 class="card-title text-primary fw-bold mb-1">${partNo}</h6>
+                    <div class="d-flex justify-content-between small text-muted mb-2">
+                        <span>Plan: <b>${planQty.toLocaleString()}</b></span>
+                        <span>Actual: <b class="text-success">${totalAct.toLocaleString()}</b></span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar ${progressBarBg}" role="progressbar" style="width: ${Math.min(ach, 100)}%;"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(col);
+    });
+
+    const timeEl = document.getElementById('thUpdateTimestamp');
+    if (timeEl) timeEl.innerText = 'อัปเดตล่าสุด: ' + new Date().toLocaleTimeString();
+}
+
+// ผูกให้โหลดข้อมูลอัตโนมัติเมื่อเปิดแท็บนี้
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(renderThPartsDashboard, 1500);
+});
     // กำหนดค่าชั่วโมงมาตรฐานต่อเดือน
 const NORMAL_CAP_HOURS = 176;
 const OT_CAP_HOURS = 231;
