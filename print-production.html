@@ -158,10 +158,10 @@
         if (totalMinutes <= 0) return 0;
 
         const break1Start = 12 * 60;      // 12:00
-        const break1End = 12 * 60 + 45;   // 12:45
+        const break1End = 12 * 60 + 45;    // 12:45
 
         const break2Start = 17 * 60;      // 17:00
-        const break2End = 17 * 60 + 30;   // 17:30
+        const break2End = 17 * 60 + 30;    // 17:30
 
         let breakMinutes = 0;
 
@@ -228,25 +228,43 @@
             document.getElementById('sign-operator').innerText = operatorName;
         }
 
-        // 📌 แก้ไขจุดดึงวันที่ ให้แปลงเป็น Local Date ตรงๆ ป้องกันวันเหลื่อม 1 วัน
+        // 📌 ฟังก์ชันบวกเพิ่ม 1 วันเฉพาะสำหรับแสดงผลที่หัวกระดาษ (Date + 1)
+        function addOneDay(dateStr) {
+            if (!dateStr) return '';
+            let s = String(dateStr).trim().split('T')[0];
+            let parts = s.split('-');
+            if (parts.length === 3) {
+                let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                d.setDate(d.getDate() + 1); // บวกเพิ่ม 1 วัน
+                let y = d.getFullYear();
+                let m = String(d.getMonth() + 1).padStart(2, '0');
+                let day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+            return s;
+        }
+
+        // ดึงวันที่เดิมจาก LocalStorage แล้วทำการบวกเพิ่ม 1 วันสำหรับโชว์ที่หัวกระดาษ
         let rawStoredDate = localStorage.getItem('productionReportDate') || '';
-        let reportDate = '';
+        let baseReportDate = '';
         if (rawStoredDate) {
             let dObj = new Date(rawStoredDate);
             if (!isNaN(dObj.getTime())) {
                 let y = dObj.getFullYear();
                 let m = String(dObj.getMonth() + 1).padStart(2, '0');
                 let d = String(dObj.getDate()).padStart(2, '0');
-                reportDate = `${y}-${m}-${d}`;
+                baseReportDate = `${y}-${m}-${d}`;
             } else {
-                reportDate = rawStoredDate.trim().substring(0, 10);
+                baseReportDate = rawStoredDate.trim().substring(0, 10);
             }
         } else {
             let today = new Date();
-            reportDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            baseReportDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
         
-        document.getElementById('sign-date').innerText = reportDate;
+        // แปลงแสดงผลหัวกระดาษบวก 1 วัน
+        let finalHeaderDate = addOneDay(baseReportDate);
+        document.getElementById('sign-date').innerText = finalHeaderDate;
 
         if (reportData.length > 0) {
             const summaryTbody = document.getElementById('summaryTableBody');
