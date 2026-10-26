@@ -3538,33 +3538,35 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน ใช้ค่าสตริงวันที่ตรงๆ ไม่ผ่านการแปลงใดๆ เพื่อป้องกันวันเพี้ยน
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน Q-Gate (ดึงข้อมูลจาก localStorage โดยตรง ป้องกันปัญหาตัวแปรหาไม่พบ)
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
 
-    // ดึงค่าสตริงวันที่ตรงๆ จากช่องเลือกวันที่ (เช่น '2026-10-22') โดยไม่ผ่าน Date Object
     const selectedDate = dateEl ? dateEl.value.trim() : '';
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // บันทึกข้อมูล qgate ลง localStorage
-    if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        // กรองเฉพาะวันที่เลือกส่งไปให้หน้ารายงาน
-        let filteredData = qgate.filter(item => {
-            let itemDate = String(item.date || item.Date || '').trim().substring(0, 10);
-            let itemIns = String(item.inspector || item.opName || item.OP || item.empId || '').trim();
-            
-            let matchDate = !selectedDate || itemDate === selectedDate;
-            let matchIns = !selectedInspector || itemIns.toLowerCase() === selectedInspector.toLowerCase();
-            return matchDate && matchIns;
-        });
-
-        localStorage.setItem('qgateReportData', JSON.stringify(filteredData));
+    // ดึงข้อมูลตรงจาก localStorage ของเครื่อง (รองรับทุกคีย์สำรอง)
+    let currentQGate = [];
+    try {
+        currentQGate = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+        
+        // ถ้าใน localStorage ไม่มี แต่ในตัวแปรหน้าเว็บมี ให้ดึงจากตัวแปรหน้าเว็บด้วย
+        if (currentQGate.length === 0 && typeof qgate !== 'undefined' && Array.isArray(qgate)) {
+            currentQGate = qgate;
+        }
+    } catch (e) {
+        currentQGate = [];
     }
+
+    // บันทึกสำรองลง localStorage ให้หน้ารายงาน
+    localStorage.setItem('qgateReportData', JSON.stringify(currentQGate));
+    localStorage.setItem('qgate', JSON.stringify(currentQGate));
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
 
-    console.log("Opening report page:", reportUrl);
+    console.log("🚀 ข้อมูลที่ส่งไปหน้ารายงาน:", currentQGate.length, "รายการ");
+    console.log("🌐 เปิดลิงก์:", reportUrl);
 
     const win = window.open(reportUrl, '_blank');
 
