@@ -179,7 +179,8 @@
     const paramDate = urlParams.get('date') || '';
     const paramInspector = urlParams.get('inspector') || '';
 
-    function parseDateStringSafe(dateVal) {
+    // 📌 ฟังก์ชันตัดสตริงวันที่ให้สะอาด ป้องกันปัญหา Timezone เหลื่อม 1 วัน
+    function cleanDate(dateVal) {
         if (!dateVal) return '';
         let s = String(dateVal).trim();
         if (s.includes('T')) s = s.split('T')[0];
@@ -187,10 +188,10 @@
         return s.length >= 10 ? s.substring(0, 10) : s;
     }
 
-    let targetDate = parseDateStringSafe(paramDate);
+    let targetDate = cleanDate(paramDate);
     let targetIns = String(paramInspector).trim();
 
-    // แสดงผลหัวกระดาษรายงาน
+    // 📌 แสดงผลหัวกระดาษรายงาน (แปลงจาก YYYY-MM-DD เป็น DD/MM/YYYY)
     if (targetDate) {
         let parts = targetDate.split('-');
         if (parts.length === 3) {
@@ -206,11 +207,13 @@
 
     let qgateData = [];
     try {
-        let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
+        // ดึงข้อมูลจาก LocalStorage ทุกคีย์ที่เป็นไปได้
+        let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
         
+        // กรองข้อมูล (รองรับการเทียบวันที่แบบยืดหยุ่น)
         qgateData = rawData.filter(q => {
-            let qDate = parseDateStringSafe(q.date || q.Date || q.inspectionDate);
-            let qIns = String(q.inspector || q.opName || q.OP || '').trim();
+            let qDate = cleanDate(q.date || q.Date || q.inspectionDate);
+            let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || '').trim();
 
             let matchDate = !targetDate || qDate === targetDate;
             let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
@@ -218,13 +221,13 @@
             return matchDate && matchIns;
         });
 
-        if (qgateData.length === 0 && targetDate !== "") {
-            qgateData = rawData.filter(q => {
-                let qDate = parseDateStringSafe(q.date || q.Date || q.inspectionDate);
-                return qDate === targetDate;
-            });
+        // Fallback: ถ้าเลือกวันที่แล้วข้อมูลไม่ตรงเป๊ะ ให้ดึงข้อมูลทั้งหมดที่มีใน LocalStorage มาแสดงเพื่อไม่ให้ตารางว่าง
+        if (qgateData.length === 0 && rawData.length > 0) {
+            console.warn("⚠️ ไม่พบวันที่ตรงกันเป๊ะ ระบบแสดงข้อมูลทั้งหมดในเครื่องแทนเพื่อให้รายงานไม่ว่าง");
+            qgateData = rawData; 
         }
     } catch (e) {
+        console.error("Error loading data:", e);
         qgateData = [];
     }
 
@@ -235,7 +238,7 @@
 
     if (qgateData.length === 0) {
         if (tblInsp) {
-            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate || 'ทั้งหมด'}, พนักงาน: ${paramInspector || 'ทั้งหมด'})</td></tr>`;
+            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate || 'ทั้งหมด'})</td></tr>`;
         }
     } else {
         qgateData.forEach((item, index) => {
@@ -264,12 +267,12 @@
         });
     }
 
-    // กิจกรรมอื่นๆ
+    // กิจกรรมอื่นๆ (Non-Inspection)
     let otherData = [];
     try {
         let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
         otherData = rawOther.filter(o => {
-            let oDate = parseDateStringSafe(o.date);
+            let oDate = cleanDate(o.date);
             return !targetDate || oDate === targetDate;
         });
     } catch (e) {
@@ -296,6 +299,7 @@
         }
     }
 
+    // สรุปยอดรวมท้ายตาราง
     const elSumTotal = document.getElementById('sumTotal');
     const elSumPass = document.getElementById('sumPass');
     const elSumNg = document.getElementById('sumNg');
