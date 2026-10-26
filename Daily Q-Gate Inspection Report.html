@@ -174,19 +174,19 @@
     </div>
 
 <script>
-      document.addEventListener("DOMContentLoaded", function() {
+     document.addEventListener("DOMContentLoaded", function() {
     const urlParams = new URLSearchParams(window.location.search);
     const paramDate = urlParams.get('date') || '';
     const paramInspector = urlParams.get('inspector') || '';
 
-    // 📌 ฟังก์ชันบวกเพิ่ม 1 วันให้อัตโนมัติ (แก้ปัญหาข้อมูลเหลื่อมกันโดยไม่ต้องแก้หน้าหลัก)
+    // 📌 ฟังก์ชันบวกเพิ่ม 1 วันให้อัตโนมัติ (ใช้ทั้งแสดงผลหัวกระดาษและค้นหาข้อมูล)
     function addOneDay(dateStr) {
         if (!dateStr) return '';
         let s = String(dateStr).trim().split('T')[0];
         let parts = s.split('-');
         if (parts.length === 3) {
             let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            d.setDate(d.getDate() + 1); // บวกเพิ่ม 1 วันเพื่อให้ตรงกับข้อมูลที่บันทึก
+            d.setDate(d.getDate() + 1); // บวกเพิ่ม 1 วัน
             let y = d.getFullYear();
             let m = String(d.getMonth() + 1).padStart(2, '0');
             let day = String(d.getDate()).padStart(2, '0');
@@ -195,14 +195,18 @@
         return s;
     }
 
-    // 1. แสดงผลหัวกระดาษรายงานตามวันที่เลือก (เช่น 23/10/2026)
-    let displayDate = paramDate.split('T')[0];
-    if (displayDate) {
-        let parts = displayDate.split('-');
+    // แปลงวันที่ +1 วัน จากที่ส่งมาจากหน้าหลัก (เช่น 23 กลายเป็น 24)
+    let rawDate = paramDate.split('T')[0];
+    let targetDate = addOneDay(rawDate); 
+    let targetIns = String(paramInspector).trim();
+
+    // 1. แสดงผลหัวกระดาษรายงาน (แสดงวันที่บวก 1 แล้ว เช่น 24/10/2026)
+    if (targetDate) {
+        let parts = targetDate.split('-');
         if (parts.length === 3) {
             document.getElementById('lblDate').innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
         } else {
-            document.getElementById('lblDate').innerText = paramDate;
+            document.getElementById('lblDate').innerText = targetDate;
         }
     } else {
         document.getElementById('lblDate').innerText = 'ทุกวันที่ (แสดงทั้งหมด)';
@@ -210,10 +214,7 @@
 
     document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-    // 2. แปลงวันที่สำหรับใช้ค้นหาข้อมูลจริงในระบบ (+1 วัน เพื่อดึงข้อมูลวันที่ 24 มาแสดง)
-    let targetDateForQuery = addOneDay(displayDate);
-    let targetIns = String(paramInspector).trim();
-
+    // 2. ค้นหาข้อมูลในระบบตามวันที่บวก 1 แล้ว
     let qgateData = [];
     try {
         let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
@@ -222,17 +223,17 @@
             let qDate = String(q.date || q.Date || q.inspectionDate || '').split('T')[0];
             let qIns = String(q.inspector || q.opName || q.OP || '').trim();
 
-            let matchDate = !targetDateForQuery || qDate === targetDateForQuery;
+            let matchDate = !targetDate || qDate === targetDate;
             let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
 
             return matchDate && matchIns;
         });
 
-        // Fallback: ถ้ายังไม่พบ ลองดึงวันที่ตรงกันแบบเป๊ะๆ เป็นสำรอง
+        // Fallback สำรอง: ถ้าไม่พบข้อมูลวันที่บวก 1 ให้ลองดึงวันที่เดิม (rawDate) มาแสดงแทนเพื่อกันตารางว่าง
         if (qgateData.length === 0 && rawData.length > 0) {
             qgateData = rawData.filter(q => {
                 let qDate = String(q.date || q.Date || q.inspectionDate || '').split('T')[0];
-                return qDate === displayDate;
+                return qDate === rawDate;
             });
         }
     } catch (e) {
@@ -246,7 +247,7 @@
 
     if (qgateData.length === 0) {
         if (tblInsp) {
-            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่ค้นหา: ${displayDate})</td></tr>`;
+            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${targetDate})</td></tr>`;
         }
     } else {
         qgateData.forEach((item, index) => {
@@ -281,7 +282,7 @@
         let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
         otherData = rawOther.filter(o => {
             let oDate = String(o.date || '').split('T')[0];
-            return !targetDateForQuery || oDate === targetDateForQuery;
+            return !targetDate || oDate === targetDate;
         });
     } catch (e) {
         otherData = [];
