@@ -174,26 +174,31 @@
     </div>
 
 <script>
-       document.addEventListener("DOMContentLoaded", function() {
+      document.addEventListener("DOMContentLoaded", function() {
     const urlParams = new URLSearchParams(window.location.search);
     const paramDate = urlParams.get('date') || '';
     const paramInspector = urlParams.get('inspector') || '';
 
-    // 📌 ฟังก์ชันตัดสตริงวันที่ให้สะอาด ป้องกันปัญหา Timezone เหลื่อม 1 วัน
-    function cleanDate(dateVal) {
-        if (!dateVal) return '';
-        let s = String(dateVal).trim();
-        if (s.includes('T')) s = s.split('T')[0];
-        if (s.includes(' ')) s = s.split(' ')[0];
-        return s.length >= 10 ? s.substring(0, 10) : s;
+    // 📌 ฟังก์ชันบวกเพิ่ม 1 วันให้อัตโนมัติ (แก้ปัญหาข้อมูลเหลื่อมกันโดยไม่ต้องแก้หน้าหลัก)
+    function addOneDay(dateStr) {
+        if (!dateStr) return '';
+        let s = String(dateStr).trim().split('T')[0];
+        let parts = s.split('-');
+        if (parts.length === 3) {
+            let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            d.setDate(d.getDate() + 1); // บวกเพิ่ม 1 วันเพื่อให้ตรงกับข้อมูลที่บันทึก
+            let y = d.getFullYear();
+            let m = String(d.getMonth() + 1).padStart(2, '0');
+            let day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+        return s;
     }
 
-    let targetDate = cleanDate(paramDate);
-    let targetIns = String(paramInspector).trim();
-
-    // 📌 แสดงผลหัวกระดาษรายงาน (แปลงจาก YYYY-MM-DD เป็น DD/MM/YYYY)
-    if (targetDate) {
-        let parts = targetDate.split('-');
+    // 1. แสดงผลหัวกระดาษรายงานตามวันที่เลือก (เช่น 23/10/2026)
+    let displayDate = paramDate.split('T')[0];
+    if (displayDate) {
+        let parts = displayDate.split('-');
         if (parts.length === 3) {
             document.getElementById('lblDate').innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
         } else {
@@ -205,29 +210,32 @@
 
     document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
+    // 2. แปลงวันที่สำหรับใช้ค้นหาข้อมูลจริงในระบบ (+1 วัน เพื่อดึงข้อมูลวันที่ 24 มาแสดง)
+    let targetDateForQuery = addOneDay(displayDate);
+    let targetIns = String(paramInspector).trim();
+
     let qgateData = [];
     try {
-        // ดึงข้อมูลจาก LocalStorage ทุกคีย์ที่เป็นไปได้
         let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
         
-        // กรองข้อมูล (รองรับการเทียบวันที่แบบยืดหยุ่น)
         qgateData = rawData.filter(q => {
-            let qDate = cleanDate(q.date || q.Date || q.inspectionDate);
-            let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || '').trim();
+            let qDate = String(q.date || q.Date || q.inspectionDate || '').split('T')[0];
+            let qIns = String(q.inspector || q.opName || q.OP || '').trim();
 
-            let matchDate = !targetDate || qDate === targetDate;
+            let matchDate = !targetDateForQuery || qDate === targetDateForQuery;
             let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
 
             return matchDate && matchIns;
         });
 
-        // Fallback: ถ้าเลือกวันที่แล้วข้อมูลไม่ตรงเป๊ะ ให้ดึงข้อมูลทั้งหมดที่มีใน LocalStorage มาแสดงเพื่อไม่ให้ตารางว่าง
+        // Fallback: ถ้ายังไม่พบ ลองดึงวันที่ตรงกันแบบเป๊ะๆ เป็นสำรอง
         if (qgateData.length === 0 && rawData.length > 0) {
-            console.warn("⚠️ ไม่พบวันที่ตรงกันเป๊ะ ระบบแสดงข้อมูลทั้งหมดในเครื่องแทนเพื่อให้รายงานไม่ว่าง");
-            qgateData = rawData; 
+            qgateData = rawData.filter(q => {
+                let qDate = String(q.date || q.Date || q.inspectionDate || '').split('T')[0];
+                return qDate === displayDate;
+            });
         }
     } catch (e) {
-        console.error("Error loading data:", e);
         qgateData = [];
     }
 
@@ -238,7 +246,7 @@
 
     if (qgateData.length === 0) {
         if (tblInsp) {
-            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate || 'ทั้งหมด'})</td></tr>`;
+            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่ค้นหา: ${displayDate})</td></tr>`;
         }
     } else {
         qgateData.forEach((item, index) => {
@@ -272,8 +280,8 @@
     try {
         let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
         otherData = rawOther.filter(o => {
-            let oDate = cleanDate(o.date);
-            return !targetDate || oDate === targetDate;
+            let oDate = String(o.date || '').split('T')[0];
+            return !targetDateForQuery || oDate === targetDateForQuery;
         });
     } catch (e) {
         otherData = [];
