@@ -175,115 +175,146 @@
 
 <script>
         document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const paramDate = urlParams.get('date') || '';
-            const paramInspector = urlParams.get('inspector') || '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramDate = urlParams.get('date') || '';
+    const paramInspector = urlParams.get('inspector') || '';
 
-            document.getElementById('lblDate').innerText = paramDate ? paramDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
-            document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
+    // 📌 ใช้ฟังก์ชันแปลงวันที่ให้ตรงกับหน้าหลัก 100% (แก้ปัญหา Timezone / UTC เหลื่อมกัน)
+    function normalizeDate(dateVal) {
+        if (!dateVal) return '';
+        let s = String(dateVal).trim();
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+            const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+            return localD.toISOString().split('T')[0];
+        }
+        return s.substring(0, 10);
+    }
 
-            let qgateData = [];
-            try {
-                let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
-                
-                // 📌 แกะรอยและเทียบข้อมูลแบบครอบคลุมทุกชื่อฟิลด์ที่เป็นไปได้
-                qgateData = rawData.filter(q => {
-                    let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
-                    
-                    // ดึงค่าพนักงานจากทุกฟิลด์ที่เป็นไปได้ในระบบ
-                    let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || '').trim();
+    let targetDate = String(paramDate).trim();
+    let targetIns = String(paramInspector).trim();
 
-                    let targetDate = String(paramDate).trim();
-                    let targetIns = String(paramInspector).trim();
+    // 📌 แสดงผลหัวกระดาษรายงาน (แปลงจาก YYYY-MM-DD เป็น DD/MM/YYYY)
+    if (targetDate) {
+        let parts = targetDate.split('-');
+        if (parts.length === 3) {
+            document.getElementById('lblDate').innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        } else {
+            document.getElementById('lblDate').innerText = paramDate;
+        }
+    } else {
+        document.getElementById('lblDate').innerText = 'ทุกวันที่ (แสดงทั้งหมด)';
+    }
 
-                    let matchDate = !targetDate || qDate === targetDate;
-                    
-                    // ถ้าระบุพนักงานมา ให้เทียบแบบไม่สนตัวพิมพ์เล็ก/ใหญ่ หรือถ้าในข้อมูลดิบไม่มีเก็บไว้ ให้ผ่านไปก่อนเพื่อให้แสดงข้อมูลได้
-                    let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
+    document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-                    return matchDate && matchIns;
-                });
+    let qgateData = [];
+    try {
+        let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
+        
+        qgateData = rawData.filter(q => {
+            let qDate = normalizeDate(q.date || q.Date || q.inspectionDate);
+            let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || '').trim();
 
-                // เผื่อกรณี localStorage เก็บข้อมูลแยกตามพนักงานหรือวัน ให้ลองดึงข้อมูลดิบทั้งหมดมาแสดงตามวันที่อย่างเดียวถ้าไม่เจอ
-                if (qgateData.length === 0 && targetDate !== "") {
-                    qgateData = rawData.filter(q => {
-                        let qDate = String(q.date || q.Date || '').trim().substring(0, 10);
-                        return qDate === targetDate;
-                    });
-                }
-            } catch (e) {
-                qgateData = [];
-            }
+            let matchDate = !targetDate || qDate === targetDate;
+            let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
 
-            const tblInsp = document.getElementById('tblInspectionBody');
-            tblInsp.innerHTML = '';
-
-            let totalQty = 0, totalPass = 0, totalNg = 0;
-
-            if (qgateData.length === 0) {
-                tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
-            } else {
-                qgateData.forEach((item, index) => {
-                    let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
-                    let ng = Number(item.ngQty || item.ng || 0);
-                    let pass = Number(item.passQty || (qty - ng) || 0);
-                    let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
-
-                    totalQty += qty;
-                    totalPass += pass;
-                    totalNg += ng;
-
-                    tblInsp.innerHTML += `
-                        <tr>
-                            <td class="text-center">${index + 1}</td>
-                            <td class="text-center">${timeRange}</td>
-                            <td><strong>${item.partNo || item['Part No.'] || '-'}</strong></td>
-                            <td class="text-end">${qty.toLocaleString()}</td>
-                            <td class="text-end text-success">${pass.toLocaleString()}</td>
-                            <td class="text-end text-danger">${ng.toLocaleString()}</td>
-                            <td>${item.remark || item.ngReason || '-'}</td>
-                        </tr>
-                    `;
-                });
-            }
-
-            let otherData = [];
-            try {
-                let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
-                otherData = rawOther.filter(o => {
-                    let oDate = String(o.date || '').trim().substring(0, 10);
-                    return !paramDate || oDate === paramDate;
-                });
-            } catch (e) {
-                otherData = [];
-            }
-
-            const tblOther = document.getElementById('tblOtherActivityBody');
-            tblOther.innerHTML = '';
-
-            if (otherData.length === 0) {
-                tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
-            } else {
-                otherData.forEach((o, index) => {
-                    tblOther.innerHTML += `
-                        <tr>
-                            <td class="text-center">${index + 1}</td>
-                            <td class="text-center">${o.startTime} - ${o.endTime}</td>
-                            <td><strong>${o.activityType || '-'}</strong></td>
-                            <td>${o.remark || '-'}</td>
-                            <td class="text-center">${o.durationMinutes || '-'} นาที</td>
-                        </tr>
-                    `;
-                });
-            }
-
-            document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
-            document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
-            document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
-
-            let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
-            document.getElementById('sumPpm').innerText = ppm.toLocaleString() + ' PPM';
+            return matchDate && matchIns;
         });
+
+        // Fallback: ถ้ากรองพนักงานแล้วไม่พบ ให้ดึงเฉพาะวันที่ตรงกันมาแสดง
+        if (qgateData.length === 0 && targetDate !== "") {
+            qgateData = rawData.filter(q => {
+                let qDate = normalizeDate(q.date || q.Date || q.inspectionDate);
+                return qDate === targetDate;
+            });
+        }
+    } catch (e) {
+        console.error("Error loading qgate report data:", e);
+        qgateData = [];
+    }
+
+    const tblInsp = document.getElementById('tblInspectionBody');
+    if (tblInsp) tblInsp.innerHTML = '';
+
+    let totalQty = 0, totalPass = 0, totalNg = 0;
+
+    if (qgateData.length === 0) {
+        if (tblInsp) {
+            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate || 'ทั้งหมด'}, พนักงาน: ${paramInspector || 'ทั้งหมด'})</td></tr>`;
+        }
+    } else {
+        qgateData.forEach((item, index) => {
+            let qty = Number(item.totalQty !== undefined ? item.totalQty : (item.qty || item['Check Qty'] || 0));
+            let ng = Number(item.ngQty !== undefined ? item.ngQty : (item.ng || 0));
+            let pass = Number(item.passQty !== undefined ? item.passQty : (qty - ng));
+            let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
+
+            totalQty += qty;
+            totalPass += pass;
+            totalNg += ng;
+
+            if (tblInsp) {
+                tblInsp.innerHTML += `
+                    <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td class="text-center">${timeRange}</td>
+                        <td><strong>${item.partNo || item['Part No.'] || '-'}</strong></td>
+                        <td class="text-end">${qty.toLocaleString()}</td>
+                        <td class="text-end text-success">${pass.toLocaleString()}</td>
+                        <td class="text-end text-danger">${ng.toLocaleString()}</td>
+                        <td>${item.remark || item.ngReason || '-'}</td>
+                    </tr>
+                `;
+            }
+        });
+    }
+
+    // กิจกรรมอื่นๆ (Non-Inspection)
+    let otherData = [];
+    try {
+        let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
+        otherData = rawOther.filter(o => {
+            let oDate = normalizeDate(o.date);
+            return !targetDate || oDate === targetDate;
+        });
+    } catch (e) {
+        otherData = [];
+    }
+
+    const tblOther = document.getElementById('tblOtherActivityBody');
+    if (tblOther) {
+        tblOther.innerHTML = '';
+        if (otherData.length === 0) {
+            tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
+        } else {
+            otherData.forEach((o, index) => {
+                tblOther.innerHTML += `
+                    <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td class="text-center">${o.startTime} - ${o.endTime}</td>
+                        <td><strong>${o.activityType || '-'}</strong></td>
+                        <td>${o.remark || '-'}</td>
+                        <td class="text-center">${o.durationMinutes || '-'} นาที</td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    // สรุปยอดรวมท้ายตาราง
+    const elSumTotal = document.getElementById('sumTotal');
+    const elSumPass = document.getElementById('sumPass');
+    const elSumNg = document.getElementById('sumNg');
+    const elSumPpm = document.getElementById('sumPpm');
+
+    if (elSumTotal) elSumTotal.innerText = totalQty.toLocaleString() + ' ชิ้น';
+    if (elSumPass) elSumPass.innerText = totalPass.toLocaleString() + ' ชิ้น';
+    if (elSumNg) elSumNg.innerText = totalNg.toLocaleString() + ' ชิ้น';
+
+    let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
+    if (elSumPpm) elSumPpm.innerText = ppm.toLocaleString() + ' PPM';
+});
     </script>
 </body>
 </html>
