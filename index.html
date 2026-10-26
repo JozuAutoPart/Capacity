@@ -3070,15 +3070,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 📌 ฟังก์ชันอ่านสตริงวันที่แบบปลอดภัย 100% (ไม่ใช้ new Date ป้องกัน Timezone เพี้ยน)
-function parseDateStringSafe(dateVal) {
-    if (!dateVal) return '';
-    let s = String(dateVal).trim();
-    if (s.includes('T')) s = s.split('T')[0];
-    if (s.includes(' ')) s = s.split(' ')[0];
-    return s.length >= 10 ? s.substring(0, 10) : s;
-}
-
 // 📌 ฟังก์ชันอัปเดตรายชื่อ Inspector ใส่ Dropdown กรอง
 function updateQGateInspectorDropdown() {
     const sel = document.getElementById('filterQGateInspector');
@@ -3109,11 +3100,11 @@ function updateQGateInspectorDropdown() {
     }
 }
 
-// 📌 ฟังก์ชันเรนเดอร์ข้อมูลหน้า Q-Gate (แก้ไขการอ่านวันที่ไม่ให้เพี้ยน)
+// 📌 ฟังก์ชันเรนเดอร์ข้อมูลหน้า Q-Gate
 function renderQGate() {
     updateQGateInspectorDropdown();
 
-    const filterDate = parseDateStringSafe(document.getElementById('filterQGateDate')?.value || '');
+    const filterDate = document.getElementById('filterQGateDate')?.value || '';
     const filterInspector = document.getElementById('filterQGateInspector')?.value || '';
 
     let qgateList = [];
@@ -3124,7 +3115,16 @@ function renderQGate() {
     }
 
     let filtered = qgateList.filter(item => {
-        let displayDate = parseDateStringSafe(item.date || item.Date || item.inspectionDate);
+        let displayDate = '';
+        if (item.date) {
+            const d = new Date(item.date);
+            if (!isNaN(d.getTime())) {
+                const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                displayDate = localD.toISOString().split('T')[0];
+            } else {
+                displayDate = String(item.date).substring(0, 10);
+            }
+        }
         let ins = item.inspector || item.opName || item.OP || '';
 
         let matchDate = !filterDate || displayDate === filterDate;
@@ -3139,10 +3139,19 @@ function renderQGate() {
     if(historyBody) {
         historyBody.innerHTML = '';
         if(qgateHistory.length === 0) {
-            historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">ยังไม่มีประวัติการตรวจ Q-Gate ตามเงื่อนไขที่เลือก</td></tr>`;
+            historyBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">ยังไม่มีประวัติการตรวจ Q-Gate</td></tr>`;
         } else {
             qgateHistory.forEach(item => {
-                let displayDate = parseDateStringSafe(item.date || item.Date || item.inspectionDate);
+                let displayDate = '';
+                if (item.date) {
+                    const d = new Date(item.date);
+                    if (!isNaN(d.getTime())) {
+                        const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                        displayDate = localD.toISOString().split('T')[0];
+                    } else {
+                        displayDate = String(item.date).substring(0, 10);
+                    }
+                }
 
                 historyBody.innerHTML += `
                     <tr>
@@ -3165,41 +3174,6 @@ function renderQGate() {
     }
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน Q-Gate (ส่งข้อมูลที่ถูกต้อง ไม่โดนตัดสลับวัน)
-window.openQGateReport = function() {
-    const dateEl = document.getElementById('filterQGateDate');
-    const inspectorEl = document.getElementById('filterQGateInspector');
-
-    const selectedDate = dateEl ? parseDateStringSafe(dateEl.value) : '';
-    const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
-
-    let currentQGate = [];
-    if (typeof qgate !== 'undefined' && Array.isArray(qgate) && qgate.length > 0) {
-        currentQGate = qgate;
-    } else {
-        currentQGate = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
-    }
-
-    // กรองข้อมูลตามเงื่อนไขเพื่อส่งให้หน้ารายงาน
-    let filteredData = currentQGate.filter(item => {
-        let itemDate = parseDateStringSafe(item.date || item.Date || item.inspectionDate);
-        let itemIns = String(item.inspector || item.opName || item.OP || '').trim();
-        
-        let matchDate = !selectedDate || itemDate === selectedDate;
-        let matchIns = !selectedInspector || itemIns.toLowerCase() === selectedInspector.toLowerCase();
-        return matchDate && matchIns;
-    });
-
-    localStorage.setItem('qgateReportData', JSON.stringify(filteredData));
-    localStorage.setItem('qgate', JSON.stringify(currentQGate));
-
-    const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
-
-    const win = window.open(reportUrl, '_blank');
-    if (!win || win.closed || typeof win.closed === 'undefined') {
-        window.location.href = reportUrl;
-    }
-};
 // 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate
 function submitQGateTransaction(e) {
     e.preventDefault();
