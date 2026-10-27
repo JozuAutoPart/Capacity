@@ -6715,6 +6715,11 @@ window.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
 });
+    // สั่งซ่อนหน้า Login ทันทีเมื่อเปิดเว็บ
+window.addEventListener('DOMContentLoaded', () => {
+    var overlay = document.getElementById('loginOverlay');
+    if (overlay) overlay.style.display = 'none';
+});
 </script>
 </body>
 </html>
