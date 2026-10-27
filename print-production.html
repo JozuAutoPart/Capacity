@@ -224,7 +224,22 @@
         }
 
         let rawOperator = localStorage.getItem('productionReportOperator') || '-';
-        
+        let targetDateFilter = localStorage.getItem('productionReportDate') || '';
+
+        // จัดรูปทรงวันที่ตัวกรองให้เป็น YYYY-MM-DD แบบปลอดภัย
+        let filterDateStr = '';
+        if (targetDateFilter) {
+            let dObj = new Date(targetDateFilter);
+            if (!isNaN(dObj.getTime())) {
+                let y = dObj.getFullYear();
+                let m = String(dObj.getMonth() + 1).padStart(2, '0');
+                let d = String(dObj.getDate()).padStart(2, '0');
+                filterDateStr = `${y}-${m}-${d}`;
+            } else {
+                filterDateStr = targetDateFilter.trim().substring(0, 10);
+            }
+        }
+
         // 📌 ฟังก์ชันจัดรูปแบบชื่อพนักงานให้ตัวอักษรแรกพิมพ์ใหญ่ ที่เหลือพิมพ์เล็กสวยงาม
         function formatOperatorName(name) {
             if (!name || name === '-' || name === 'ทั้งหมด') return name;
@@ -236,21 +251,41 @@
             document.getElementById('sign-operator').innerText = operatorName;
         }
 
-        // 📌 กรองข้อมูลพนักงานแบบไม่สนตัวพิมพ์เล็ก/ใหญ่ (Case-insensitive)
+        // 📌 กรองข้อมูลพนักงานและวันที่แบบยืดหยุ่น (ไม่สนตัวพิมพ์เล็ก/ใหญ่ และตัดเอาเฉพาะ YYYY-MM-DD มาเทียบ)
         let reportData = rawReportData.filter(item => {
-            if (!rawOperator || rawOperator === 'ทั้งหมด') return true;
-            let itemOp = String(item.operator || item.inspector || item.opName || '').trim();
-            return itemOp.toLowerCase() === rawOperator.toLowerCase();
+            // เช็คชื่อพนักงาน
+            if (rawOperator && rawOperator !== 'ทั้งหมด') {
+                let itemOp = String(
+                    item.operator || 
+                    item.inspector || 
+                    item.opName || 
+                    item.name || 
+                    item.worker || 
+                    item.employee || 
+                    item.empName || ''
+                ).trim();
+                if (itemOp.toLowerCase() !== rawOperator.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            // เช็ควันที่ (ถ้าใน item มีการเก็บฟิลด์วันที่ไว้ เช่น item.date หรือ item.reportDate)
+            let itemDate = String(item.date || item.reportDate || item.startDate || '').trim().substring(0, 10);
+            if (filterDateStr && itemDate && itemDate !== filterDateStr) {
+                return false;
+            }
+
+            return true;
         });
 
-        // 📌 ฟังก์ชันบวกเพิ่ม 1 วันเฉพาะสำหรับแสดงผลที่หัวกระดาษ (Date + 1)
+        // กำหนดวันที่โชว์บนหัวกระดาษ (บวก 1 วันตามที่ต้องการ)
         function addOneDay(dateStr) {
             if (!dateStr) return '';
             let s = String(dateStr).trim().split('T')[0];
             let parts = s.split('-');
             if (parts.length === 3) {
                 let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                d.setDate(d.getDate() + 1); // บวกเพิ่ม 1 วัน
+                d.setDate(d.getDate() + 1);
                 let y = d.getFullYear();
                 let m = String(d.getMonth() + 1).padStart(2, '0');
                 let day = String(d.getDate()).padStart(2, '0');
@@ -259,26 +294,14 @@
             return s;
         }
 
-        // ดึงวันที่เดิมจาก LocalStorage แล้วทำการบวกเพิ่ม 1 วันสำหรับโชว์ที่หัวกระดาษ
-        let rawStoredDate = localStorage.getItem('productionReportDate') || '';
-        let baseReportDate = '';
-        if (rawStoredDate) {
-            let dObj = new Date(rawStoredDate);
-            if (!isNaN(dObj.getTime())) {
-                let y = dObj.getFullYear();
-                let m = String(dObj.getMonth() + 1).padStart(2, '0');
-                let d = String(dObj.getDate()).padStart(2, '0');
-                baseReportDate = `${y}-${m}-${d}`;
-            } else {
-                baseReportDate = rawStoredDate.trim().substring(0, 10);
-            }
-        } else {
+        let finalHeaderDate = filterDateStr ? addOneDay(filterDateStr) : (() => {
             let today = new Date();
-            baseReportDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        }
-        
-        // แปลงแสดงผลหัวกระดาษบวก 1 วัน
-        let finalHeaderDate = addOneDay(baseReportDate);
+            let y = today.getFullYear();
+            let m = String(today.getMonth() + 1).padStart(2, '0');
+            let d = String(today.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        })();
+
         document.getElementById('sign-date').innerText = finalHeaderDate;
 
         if (reportData.length > 0) {
