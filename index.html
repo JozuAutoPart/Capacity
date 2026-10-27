@@ -1529,7 +1529,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (Balance = Plan - Actual สะสม)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (Balance = Plan - Actual สะสม + รองรับรูปชิ้นงาน)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1572,8 +1572,8 @@ function renderThMasterPlan() {
 
         // 3. สร้างหัวตารางวัน (01 ถึง สิ้นเดือน)
         let headerHtml = `
-            <th style="min-width: 220px; font-size: 13px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white py-2">Part No.</th>
-            <th style="min-width: 80px; font-size: 13px; position: sticky; left: 220px; z-index: 5;" class="bg-dark text-white py-2">Status</th>
+            <th style="min-width: 250px; font-size: 13px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white py-2">Part No.</th>
+            <th style="min-width: 80px; font-size: 13px; position: sticky; left: 250px; z-index: 5;" class="bg-dark text-white py-2">Status</th>
         `;
         for (let d = 1; d <= daysInMonth; d++) {
             let dayStr = String(d).padStart(2, '0');
@@ -1593,23 +1593,31 @@ function renderThMasterPlan() {
         thPartList.forEach((partNo) => {
             let planRow = document.createElement('tr');
             planRow.innerHTML = `
-                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-3" style="position: sticky; left: 0; z-index: 3; font-family: monospace; font-size: 13px; color: #000;">${partNo}</td>
-                <td class="fw-bold text-primary bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Plan</td>
+                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-size: 13px; color: #000;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <img src="images/${partNo}.png" 
+                             alt="${partNo}" 
+                             style="width: 32px; height: 32px; object-fit: contain; background: #fff; border: 1px solid #ddd; border-radius: 3px; padding: 1px; flex-shrink: 0;"
+                             onerror="this.style.display='none'">
+                        <span style="font-family: monospace; word-break: break-all;">${partNo}</span>
+                    </div>
+                </td>
+                <td class="fw-bold text-primary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Plan</td>
             `;
 
             let actRow = document.createElement('tr');
             actRow.innerHTML = `
-                <td class="fw-bold text-success bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Actual</td>
+                <td class="fw-bold text-success bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Actual</td>
             `;
 
             let delivRow = document.createElement('tr');
             delivRow.innerHTML = `
-                <td class="fw-bold text-warning bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Delivery</td>
+                <td class="fw-bold text-warning bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Delivery</td>
             `;
 
             let balRow = document.createElement('tr');
             balRow.innerHTML = `
-                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Balance</td>
+                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Balance</td>
             `;
 
             let runningBal = 0;
