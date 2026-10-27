@@ -1529,7 +1529,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (Balance = Plan - Actual สะสม + รองรับรูปชิ้นงาน)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (ดึงรูปจากหน้าหลักโดยตรง)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1595,7 +1595,7 @@ function renderThMasterPlan() {
             planRow.innerHTML = `
                 <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-size: 13px; color: #000;">
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <img src="images/${partNo}.png" 
+                        <img src="${partNo}.png" 
                              alt="${partNo}" 
                              style="width: 32px; height: 32px; object-fit: contain; background: #fff; border: 1px solid #ddd; border-radius: 3px; padding: 1px; flex-shrink: 0;"
                              onerror="this.style.display='none'">
