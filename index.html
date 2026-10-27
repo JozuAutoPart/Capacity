@@ -1537,7 +1537,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (เพิ่มเส้นคั่นระหว่าง Part ให้ชัดเจน)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (แก้ไขปัญหาวันที่ถอยหลัง 1 วันจาก Timezone)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1591,10 +1591,14 @@ function renderThMasterPlan() {
 
         tbody.innerHTML = '';
 
+        // 📌 ตัดสตริง YYYY-MM-DD ตรงๆ โดยไม่ผ่าน new Date() เพื่อป้องกันปัญหาวันที่เหลื่อม
         const safeParseDate = (dateStr) => {
-            if (typeof parseDateString === 'function') return parseDateString(dateStr);
             if (!dateStr) return '';
-            return String(dateStr).split('T')[0].trim();
+            let s = String(dateStr).trim();
+            if (s.includes('T')) {
+                return s.split('T')[0];
+            }
+            return s.substring(0, 10);
         };
 
         // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No.
