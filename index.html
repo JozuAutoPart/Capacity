@@ -1537,7 +1537,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (แก้ไขปัญหาวันที่ถอยหลัง 1 วันจาก Timezone)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (แก้ไขปัญหายอดผลิตถอยหลัง 1 วัน)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1591,14 +1591,26 @@ function renderThMasterPlan() {
 
         tbody.innerHTML = '';
 
-        // 📌 ตัดสตริง YYYY-MM-DD ตรงๆ โดยไม่ผ่าน new Date() เพื่อป้องกันปัญหาวันที่เหลื่อม
         const safeParseDate = (dateStr) => {
             if (!dateStr) return '';
-            let s = String(dateStr).trim();
-            if (s.includes('T')) {
-                return s.split('T')[0];
+            let s = String(dateStr).trim().split('T')[0].substring(0, 10);
+            return s;
+        };
+
+        // 📌 ฟังก์ชันบวกวันที่เพิ่ม 1 วันเฉพาะยอด Actual เพื่อแก้ปัญหา Timezone ดึงถอยหลัง
+        const adjustActualDate = (dateStr) => {
+            if (!dateStr) return '';
+            let s = String(dateStr).trim().split('T')[0].substring(0, 10);
+            let parts = s.split('-');
+            if (parts.length === 3) {
+                let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                d.setDate(d.getDate() + 1); // บวกชดเชย 1 วันให้ตรงกับชีท
+                let y = d.getFullYear();
+                let m = String(d.getMonth() + 1).padStart(2, '0');
+                let day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
             }
-            return s.substring(0, 10);
+            return s;
         };
 
         // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No.
@@ -1652,12 +1664,12 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // ดึง Actual จากยอดผลิตจริงรายวัน
+                // ดึง Actual จากยอดผลิตจริงรายวัน (พร้อมปรับเทียบวันที่ให้ตรงกัน)
                 let dayActVal = 0;
                 if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                     actuals.forEach(a => {
                         let aPart = String(a.partNo || a['Part No.'] || '').trim();
-                        let aDate = safeParseDate(a.date || a['Date'] || '');
+                        let aDate = adjustActualDate(a.date || a['Date'] || '');
                         if (aPart.split(' ')[0].trim() === partNo && aDate === dateKey) {
                             dayActVal += Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                         }
