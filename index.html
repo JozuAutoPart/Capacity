@@ -1529,7 +1529,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (ดึงรูปจากหน้าหลักโดยตรง)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (เพิ่มเส้นคั่นระหว่าง Part ให้ชัดเจน)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1593,7 +1593,7 @@ function renderThMasterPlan() {
         thPartList.forEach((partNo) => {
             let planRow = document.createElement('tr');
             planRow.innerHTML = `
-                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-size: 13px; color: #000;">
+                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-size: 13px; color: #000; border-bottom: 2px solid #0dcaf0;">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <img src="${partNo}.png" 
                              alt="${partNo}" 
@@ -1617,7 +1617,7 @@ function renderThMasterPlan() {
 
             let balRow = document.createElement('tr');
             balRow.innerHTML = `
-                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Balance</td>
+                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px; border-bottom: 2px solid #0dcaf0;">Balance</td>
             `;
 
             let runningBal = 0;
@@ -1668,10 +1668,10 @@ function renderThMasterPlan() {
                 // 📌 คำนวณ Balance สะสม: (ยอดสะสมแผน - ยอดสะสมผลิตจริง)
                 runningBal = runningBal + planVal - dayActVal;
 
-                planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
-                actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}" style="font-size: 12px;">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
-                delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}" style="font-size: 12px;">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
-                balRow.innerHTML += `<td class="${runningBal > 0 ? 'text-warning fw-bold' : (runningBal < 0 ? 'text-success fw-bold' : '')}" style="font-size: 12px;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
+                planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
+                actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
+                delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
+                balRow.innerHTML += `<td class="${runningBal > 0 ? 'text-warning fw-bold' : (runningBal < 0 ? 'text-success fw-bold' : '')}" style="font-size: 12px; border-bottom: 2px solid #0dcaf0;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
             }
 
             tbody.appendChild(planRow);
