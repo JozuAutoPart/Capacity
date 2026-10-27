@@ -6720,6 +6720,29 @@ window.addEventListener('DOMContentLoaded', () => {
     var overlay = document.getElementById('loginOverlay');
     if (overlay) overlay.style.display = 'none';
 });
+    // 📌 บันทึกและจำแท็บล่าสุดที่ใช้งาน (LocalStorage)
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. ดึงแท็บที่เคยเปิดค้างไว้ล่าสุด
+    let activeTabId = localStorage.getItem('activeTab');
+    if (activeTabId) {
+        let triggerEl = document.querySelector(`[href="${activeTabId}"], [data-bs-target="${activeTabId}"]`);
+        if (triggerEl) {
+            let tab = new bootstrap.Tab(triggerEl);
+            tab.show();
+        }
+    }
+
+    // 2. ดักจับเหตุการณ์เมื่อมีการเปลี่ยนแท็บ ให้บันทึกเก็บไว้
+    const tabElements = document.querySelectorAll('button[data-bs-toggle="tab"], a[data-bs-toggle="tab"]');
+    tabElements.forEach(tabEl => {
+        tabEl.addEventListener('shown.bs.tab', function (event) {
+            let target = event.target.getAttribute('href') || event.target.getAttribute('data-bs-target');
+            if (target) {
+                localStorage.setItem('activeTab', target);
+            }
+        });
+    });
+});
 </script>
 </body>
 </html>
