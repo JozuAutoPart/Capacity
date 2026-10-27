@@ -216,17 +216,32 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-        let reportData = [];
+        let rawReportData = [];
         try {
-            reportData = JSON.parse(localStorage.getItem('productionReportData') || '[]');
+            rawReportData = JSON.parse(localStorage.getItem('productionReportData') || '[]');
         } catch (e) {
-            reportData = [];
+            rawReportData = [];
         }
 
-        let operatorName = localStorage.getItem('productionReportOperator') || '-';
+        let rawOperator = localStorage.getItem('productionReportOperator') || '-';
+        
+        // 📌 ฟังก์ชันจัดรูปแบบชื่อพนักงานให้ตัวอักษรแรกพิมพ์ใหญ่ ที่เหลือพิมพ์เล็กสวยงาม
+        function formatOperatorName(name) {
+            if (!name || name === '-' || name === 'ทั้งหมด') return name;
+            return name.trim().toLowerCase().replace(/(^|\s)\S/g, l => l.toUpperCase());
+        }
+
+        let operatorName = formatOperatorName(rawOperator);
         if (operatorName && operatorName !== 'ทั้งหมด') {
             document.getElementById('sign-operator').innerText = operatorName;
         }
+
+        // 📌 กรองข้อมูลพนักงานแบบไม่สนตัวพิมพ์เล็ก/ใหญ่ (Case-insensitive)
+        let reportData = rawReportData.filter(item => {
+            if (!rawOperator || rawOperator === 'ทั้งหมด') return true;
+            let itemOp = String(item.operator || item.inspector || item.opName || '').trim();
+            return itemOp.toLowerCase() === rawOperator.toLowerCase();
+        });
 
         // 📌 ฟังก์ชันบวกเพิ่ม 1 วันเฉพาะสำหรับแสดงผลที่หัวกระดาษ (Date + 1)
         function addOneDay(dateStr) {
