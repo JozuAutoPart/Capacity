@@ -497,7 +497,7 @@
         </div>
     </div>
 </div>
-     <!-- TAB 4: ACTUAL PRODUCTION -->
+    <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -529,14 +529,13 @@
                             <input type="time" id="workEndTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
                         </div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
-                        <input type="text" id="actualOperator" class="form-control form-control-sm" placeholder="เช่น นายสมชาย (OP-01)" required>
-                    </div>
+
+                    <!-- ย้าย Line เครื่องจักรขึ้นมาก่อน เพื่อให้เลือก Line แล้วดึงชื่อพนักงานมาแสดงทันที -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small">Line เครื่องจักร</label>
-                            <select id="actualLine" class="form-select form-select-sm" onchange="checkAndLoadPlans()" required>
+                            <select id="actualLine" class="form-select form-select-sm" onchange="onActualLineChange()" required>
+                                <option value="">-- กรุณาเลือก Line --</option>
                                 <option value="Line A">Line A</option>
                                 <option value="Line Q">Line Q</option>
                                 <option value="Line C1">Line C1</option>
@@ -549,67 +548,76 @@
                             <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
                         </div>
                     </div>
+
+                    <!-- ช่องเลือกชื่อพนักงานแบบ Dropdown (เปลี่ยนจาก Input Text) -->
+                    <div class="mb-2">
+                        <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
+                        <select id="actualOperator" class="form-select form-select-sm" required>
+                            <option value="">-- กรุณาเลือก Line ก่อน --</option>
+                    </select>
+                  </div>
+
                     <div class="mb-2">
                         <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
                         <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
-                    </div>
+                  </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" disabled required>
                             <option value="">-- กรุณาสแกนบาร์โค้ด Part No. --</option>
-                        </select>
-                    </div>
+                    </select>
+                  </div>
                     <!-- ช่องแสดงค่า CT (วินาที) แบบ Auto -->
                     <div class="mb-2">
                         <label class="form-label small text-warning fw-bold"><i class="fas fa-stopwatch me-1"></i> Cycle Time (CT วินาทีต่อชิ้น)</label>
                         <input type="text" id="actualCt" class="form-control form-control-sm bg-dark text-warning fw-bold" readonly placeholder="ดึงอัตโนมัติ">
-                    </div>
+                  </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
                         <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
-                    </div>
+                  </div>
                     <div class="mb-2">
                         <label class="form-label small">Lot No.</label>
                         <input type="text" id="actualLotNo" class="form-control form-control-sm" readonly placeholder="ดึงอัตโนมัติ">
-                    </div>
+                  </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-success">ยอดผลิตดี (OK Qty -> เพิ่มเข้า WIP)</label>
                             <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
-                        </div>
-                        <div class="col-6">
+                      </div>
+                      <div class="col-6">
                             <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
-                            <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
-                        </div>
+                          <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
                     </div>
+                  </div>
 
                     <!-- ส่วนบันทึกช่วงเวลา Downtime (เวลาเริ่ม-จบที่หยุด) -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-warning">เวลาเริ่มหยุด (From)</label>
-                            <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
-                        </div>
-                        <div class="col-6">
+                          <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
+                      </div>
+                      <div class="col-6">
                             <label class="form-label small text-warning">เวลาจบที่หยุด (To)</label>
-                            <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
-                        </div>
-                    </div>
+                          <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
+                      </div>
+                  </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
-                        <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
-                            <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
-                            <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
-                            <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
-                            <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
-                            <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
-                        </select>
-                    </div>
+                      <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
+                          <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
+                        <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
+                        <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
+                        <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
+                        <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
+                    </select>
+                  </div>
 
                     <div class="mb-3">
                         <label class="form-label small">หมายเหตุ / (Remark)</label>
-                        <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น ไปทำงานอะไรที่ไม่เกี่ยวกับเครื่องจักร">
-                    </div>
-                    <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
+                      <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น ไปทำงานอะไรที่ไม่เกี่ยวกับเครื่องจักร">
+                  </div>
+                  <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
                 </form>
             </div>
         </div>
@@ -621,14 +629,14 @@
                     <!-- ส่วนเพิ่มช่องเลือกวันที่พิมพ์รายงาน และเลือกพนักงาน -->
                     <div class="d-flex align-items-center gap-2">
                         <input type="date" id="filterReportDate" class="form-control form-control-sm bg-dark text-white border-secondary" style="width: 140px;" title="เลือกวันที่ต้องการพิมพ์รายงาน">
-                        
+                         
                         <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 160px;">
                             <option value="">-- ทุกพนักงาน --</option>
-                        </select>
-                        <button type="button" onclick="exportFilteredProductionReport()" class="btn btn-success btn-sm">
+                      </select>
+                      <button type="button" onclick="exportFilteredProductionReport()" class="btn btn-success btn-sm">
                             <i class="fas fa-file-excel me-1"></i> พิมพ์ใบรายงานการผลิต
-                        </button>
-                    </div>
+                      </button>
+                  </div>
                 </div>
                 <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
                     <table class="table table-dark table-hover align-middle m-0">
@@ -648,11 +656,11 @@
                         </thead>
                         <tbody id="actualTableBody">
                         </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+                </table>
+              </div>
+          </div>
+      </div>
+  </div>
 </div>
 <!-- TAB: Q-GATE INSPECTION -->
 <div class="tab-pane fade" id="tab-qgate">
@@ -2334,7 +2342,42 @@ function checkAndLoadPlans() {
     selectPart.disabled = !isManualUnlocked;
 }
 
-// ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
+// 📌 กำหนดรายชื่อพนักงานแยกตาม Line (พี่มิวสามารถปรับแก้หรือเพิ่มชื่อพนักงานได้ตามจริงตรงนี้ครับ)
+const lineOperatorsMap = {
+    "Line A": ["Pranom", "Nannaphat", "Surisa"],
+    "Line Q": ["Operator Q1", "Operator Q2"],
+    "Line C1": ["Nwe Ni Win", "Janjira", "Chompoo", "R"],
+    "Line C2": ["Operator C2-1", "Operator C2-2"],
+    "Line C3": ["Operator C3-1", "Operator C3-2"]
+};
+
+// 📌 ฟังก์ชันเมื่อเปลี่ยน Line เครื่องจักร จะอัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติ
+function onActualLineChange() {
+    const lineSelect = document.getElementById('actualLine');
+    const operatorSelect = document.getElementById('actualOperator');
+    const selectedLine = lineSelect ? lineSelect.value : '';
+
+    // ล้างรายชื่อพนักงานเดิมออกก่อน
+    operatorSelect.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
+
+    if (selectedLine && lineOperatorsMap[selectedLine]) {
+        lineOperatorsMap[selectedLine].forEach(opName => {
+            let opt = document.createElement('option');
+            opt.value = opName;
+            opt.textContent = opName;
+            operatorSelect.appendChild(opt);
+        });
+    } else {
+        operatorSelect.innerHTML = '<option value="">-- กรุณาเลือก Line ก่อน --</option>';
+    }
+
+    // เรียกฟังก์ชันตรวจสอบและโหลดแผนงานเดิม (ถ้ามีในระบบของพี่มิว)
+    if (typeof checkAndLoadPlans === 'function') {
+        checkAndLoadPlans();
+    }
+}
+
+// 📌 ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
     if (!select || select.selectedIndex < 0) return;
@@ -2389,7 +2432,6 @@ function onActualPartChange() {
         ctInput.value = finalCt + " วินาที";
     }
 }
-
 // ฟังก์ชันบันทึกข้อมูลการผลิต (submitActual)
 function submitActual(e) {
     e.preventDefault();
