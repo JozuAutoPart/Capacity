@@ -1537,22 +1537,32 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (แก้ไขปัญหายอดผลิตถอยหลัง 1 วัน)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (รองรับดึงยอด Balance ยกมาข้ามเดือนอัตโนมัติ)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
         const headerRow = document.getElementById('thTableHeader');
         if (!tbody || !headerRow) return;
 
-        // 1. ดึงเดือนที่เลือก
+        // 1. ดึงเดือนที่เลือก (เช่น '2026-10')
         const monthSelect = document.getElementById('thMonthSelect');
         const selectedYearMonth = monthSelect ? monthSelect.value : '2026-10';
         const parts = selectedYearMonth.split('-');
-        const year = parseInt(parts[0]) || 2026;
-        const month = parseInt(parts[1]) || 10;
+        let year = parseInt(parts[0]) || 2026;
+        let month = parseInt(parts[1]) || 10;
         const daysInMonth = new Date(year, month, 0).getDate();
 
-        // 2. รายการ Part No. งาน TH ทั้ง 22 รายการ
+        // คำนวณหาเดือนก่อนหน้า (สำหรับดึงยอด Balance ยกมา)
+        let prevYear = year;
+        let prevMonth = month - 1;
+        if (prevMonth === 0) {
+            prevMonth = 12;
+            prevYear = year - 1;
+        }
+        let prevYearMonthStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+        let daysInPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
+
+        // 2. รายการ Part No. งาน TH ทั้งหมด
         const thPartList = [
             "J0701-17620-Z1T-8000-20",
             "J0701-17620-Z1T-8000-21",
@@ -1593,18 +1603,16 @@ function renderThMasterPlan() {
 
         const safeParseDate = (dateStr) => {
             if (!dateStr) return '';
-            let s = String(dateStr).trim().split('T')[0].substring(0, 10);
-            return s;
+            return String(dateStr).trim().split('T')[0].substring(0, 10);
         };
 
-        // 📌 ฟังก์ชันบวกวันที่เพิ่ม 1 วันเฉพาะยอด Actual เพื่อแก้ปัญหา Timezone ดึงถอยหลัง
         const adjustActualDate = (dateStr) => {
             if (!dateStr) return '';
             let s = String(dateStr).trim().split('T')[0].substring(0, 10);
             let parts = s.split('-');
             if (parts.length === 3) {
                 let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                d.setDate(d.getDate() + 1); // บวกชดเชย 1 วันให้ตรงกับชีท
+                d.setDate(d.getDate() + 1);
                 let y = d.getFullYear();
                 let m = String(d.getMonth() + 1).padStart(2, '0');
                 let day = String(d.getDate()).padStart(2, '0');
@@ -1615,6 +1623,35 @@ function renderThMasterPlan() {
 
         // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No.
         thPartList.forEach((partNo) => {
+            // คำนวณหายอด Balance สะสมยกมาจากเดือนก่อนหน้า (Opening Balance)
+            let initialBalance = 0;
+            for (let pd = 1; pd <= daysInPrevMonth; pd++) {
+                let pDayStr = String(pd).padStart(2, '0');
+                let pDateKey = `${prevYearMonthStr}-${pDayStr}`;
+
+                let pPlanVal = 0;
+                if (typeof plans !== 'undefined' && Array.isArray(plans)) {
+                    plans.forEach(p => {
+                        let pNo = String(p["Part No."] || p.partNo || p.PartNo || '').trim();
+                        let pStart = safeParseDate(p.Start || p.start || p.date || p.Date || p.startDate || '');
+                        let pQty = Number(p["Plan Qty"] || p.planQty || p.qty || 0);
+                        if (pNo === partNo && pStart === pDateKey) pPlanVal += pQty;
+                    });
+                }
+
+                let pActVal = 0;
+                if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+                    actuals.forEach(a => {
+                        let aPart = String(a.partNo || a['Part No.'] || '').trim();
+                        let aDate = adjustActualDate(a.date || a['Date'] || '');
+                        if (aPart.split(' ')[0].trim() === partNo && aDate === pDateKey) {
+                            pActVal += Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                        }
+                    });
+                }
+                initialBalance = initialBalance + pPlanVal - pActVal;
+            }
+
             let planRow = document.createElement('tr');
             planRow.innerHTML = `
                 <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-size: 13px; color: #000; border-bottom: 2px solid #0dcaf0;">
@@ -1644,13 +1681,12 @@ function renderThMasterPlan() {
                 <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px; border-bottom: 2px solid #0dcaf0;">Balance</td>
             `;
 
-            let runningBal = 0;
+            let runningBal = initialBalance;
 
             for (let d = 1; d <= daysInMonth; d++) {
                 let dayStr = String(d).padStart(2, '0');
                 let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-                // ดึง Plan ตามวันที่เริ่มแผน
                 let planVal = 0;
                 if (typeof plans !== 'undefined' && Array.isArray(plans)) {
                     plans.forEach(p => {
@@ -1664,7 +1700,6 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // ดึง Actual จากยอดผลิตจริงรายวัน (พร้อมปรับเทียบวันที่ให้ตรงกัน)
                 let dayActVal = 0;
                 if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                     actuals.forEach(a => {
@@ -1676,7 +1711,6 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // ดึง Delivery จากข้อมูลการส่งมอบจริง
                 let dayDelivVal = 0;
                 const deliverySource = (typeof deliveries !== 'undefined') ? deliveries : (typeof deliveryData !== 'undefined' ? deliveryData : []);
                 if (Array.isArray(deliverySource)) {
@@ -1689,7 +1723,7 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // 📌 คำนวณ Balance สะสม: (ยอดสะสมแผน - ยอดสะสมผลิตจริง)
+                // คำนวณ Balance สะสมต่อเนื่องจากเดือนก่อนหน้า
                 runningBal = runningBal + planVal - dayActVal;
 
                 planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
