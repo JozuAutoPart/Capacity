@@ -4942,7 +4942,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                             .replace(/,\s*([}\]])/g, '$1');   // ลบ comma ตัวสุดท้ายก่อนปิด }
 
                         partTypeMapping = JSON.parse(jsonString);
-                    
+                    }
                 } catch (err) {
                     try {
                         const start = content.indexOf('{');
