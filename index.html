@@ -4920,7 +4920,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         document.getElementById('matDate').value = today;
     }
     
-    // 2. ดึงข้อมูล partTypeMapping อัตโนมัติจากไฟล์ print-tag-material.html
+    // 2. ดึงข้อมูล partTypeMapping อัตโนมัติจากไฟล์ print-tag-material.html ที่รันฝังไว้
     try {
         const response = await fetch('print-tag-material.html');
         const htmlText = await response.text();
@@ -4988,7 +4988,6 @@ function generateAutoIcNo() {
     // ค้นหาลำดับรันนิ่งสูงสุดในเดือนนั้น
     allData.forEach(item => {
         if (item) {
-            // เช็คทั้งฟิลด์ icNo และ F/G จากชีตกรณีดึงจาก Google Sheets
             let icVal = item.icNo || item.ic_no || item[5] || item[4] || '';
             icVal = String(icVal).trim();
             
@@ -5060,7 +5059,6 @@ function submitMaterialTransaction(e) {
         const receiver = document.getElementById('matReceiver').value;
         detailInfo = `Supplier: ${supplier} | ผู้รับ: ${receiver}`;
         
-        // 💡 บันทึกเลข IC No. ล่าสุดลง LocalStorage ไว้เพื่อไม่ให้หลุดตอนเปิดปิดเว็บใหม่
         if (icNo && icNo !== '-') {
             localStorage.setItem('last_mat_ic_no', icNo);
         }
@@ -5092,7 +5090,6 @@ function submitMaterialTransaction(e) {
     toggleMatFormFields();
     document.getElementById('matDate').value = new Date().toISOString().split('T')[0];
     
-    // อัปเดตรัน IC No. ถัดไปทันที
     updateIcNoInput();
     loadMaterialStock();
 }
@@ -5105,7 +5102,6 @@ function loadMaterialStock() {
         materialHistory = bms;
     }
 
-    // 💡 เมื่อข้อมูล bms โหลดเข้ามาถึงหน้าเว็บแล้ว ให้คำนวณรัน IC No. ล่าสุดทันที
     updateIcNoInput();
 
     // 1. คำนวณสต็อกคงเหลือ
