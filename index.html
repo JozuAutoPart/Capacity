@@ -3018,23 +3018,17 @@ function exportFilteredProductionReport() {
         });
     }
 
-   if (reportData.length === 0) {
+    if (reportData.length === 0) {
         alert('ไม่พบข้อมูลการผลิตของวันที่ ' + (selectedDate || 'ทั้งหมด') + (selectedOperator ? ' (พนักงาน: ' + selectedOperator + ')' : '') + ' สำหรับพิมพ์รายงาน');
         return;
     }
 
-    // 📌 ดึงสตริงวันที่ตรงๆ ตัดปัญหา Timezone ดึงวันถอยหลัง
-    let formattedDate = "";
-    if (selectedDate) {
-        // ถ้าค่ามาเป็นรูปแบบ YYYY-MM-DD อยู่แล้ว ให้ใช้ค่านั้นได้เลยทันที
-        formattedDate = String(selectedDate).split('T')[0].trim();
-    }
-
     localStorage.setItem('productionReportData', JSON.stringify(reportData));
     localStorage.setItem('productionReportOperator', selectedOperator || 'ทุกพนักงาน');
-    localStorage.setItem('productionReportDate', formattedDate || '-');
+    localStorage.setItem('productionReportDate', selectedDate || '-');
 
     window.open('print-production.html', '_blank');
+}
 // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History (ดึงข้อมูลตรงจาก Google Sheets)
 // ==========================================
