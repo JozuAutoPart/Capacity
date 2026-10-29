@@ -3023,9 +3023,23 @@ function exportFilteredProductionReport() {
         return;
     }
 
+    // 📌 แปลงวันที่ให้เป็นรูปแบบ YYYY-MM-DD มาตรฐาน ป้องกันวันเหลื่อม
+    let formattedDate = "";
+    if (selectedDate) {
+        let dObj = new Date(selectedDate);
+        if (!isNaN(dObj.getTime())) {
+            let y = dObj.getFullYear();
+            let m = String(dObj.getMonth() + 1).padStart(2, '0');
+            let d = String(dObj.getDate()).padStart(2, '0');
+            formattedDate = `${y}-${m}-${d}`;
+        } else {
+            formattedDate = selectedDate;
+        }
+    }
+
     localStorage.setItem('productionReportData', JSON.stringify(reportData));
     localStorage.setItem('productionReportOperator', selectedOperator || 'ทุกพนักงาน');
-    localStorage.setItem('productionReportDate', selectedDate || '-');
+    localStorage.setItem('productionReportDate', formattedDate || '-');
 
     window.open('print-production.html', '_blank');
 }
