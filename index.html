@@ -5155,7 +5155,7 @@ function loadMaterialStock() {
         }
     }
 
-    // 3. แสดงผลตารางประวัติ 15 รายการล่าสุด
+ // 3. แสดงผลตารางประวัติ 15 รายการล่าสุด
     const historyBody = document.getElementById('matHistoryTableBody');
     if(historyBody) {
         historyBody.innerHTML = '';
@@ -5166,19 +5166,24 @@ function loadMaterialStock() {
                 let rawDate = item.date || '';
                 let cleanDate = rawDate ? rawDate.split('T')[0] : '';
                 let itemUnit = item.unit || 'Sheet';
-                let typeSize = item.typeSize || partTypeMapping[item.partNo] || '-';
                 
+                // 📌 ดึง Type/Size จาก partTypeMapping อัตโนมัติตาม Part No. ถ้าใน item ไม่มี
+                let typeSize = item.typeSize && item.typeSize !== '-' ? item.typeSize : (partTypeMapping[item.partNo] || '-');
+                
+                // 📌 เช็ค IC No. ถ้าไม่มีให้แสดงเครื่องหมายขีด หรือดึงฟิลด์สำรอง
+                let itemIcNo = item.icNo || item.ic_no || '-';
+
                 historyBody.innerHTML += `
                     <tr>
                         <td>${cleanDate}</td>
                         <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
                         <td class="fw-bold">${item.partNo || ''}</td>
-                        <td><strong>${item.icNo || '-'}</strong></td>
+                        <td><strong>${itemIcNo}</strong></td>
                         <td>${typeSize}</td>
                         <td class="fw-bold">${Number(item.qty || 0).toLocaleString()} ${itemUnit}</td>
                         <td><small class="text-muted">${item.detail || ''}</small></td>
                         <td class="text-center">
-                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(item.icNo || '')}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(typeSize)}', '${encodeURIComponent(itemUnit)}', '${encodeURIComponent(cleanDate)}')" title="พิมพ์ Tag วัสดุนี้">
+                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(itemIcNo)}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(typeSize)}', '${encodeURIComponent(itemUnit)}', '${encodeURIComponent(cleanDate)}')" title="พิมพ์ Tag วัสดุนี้">
                                 <i class="fas fa-print"></i>
                             </button>
                             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialHistory(${index})" title="ลบรายการนี้">
@@ -5190,8 +5195,6 @@ function loadMaterialStock() {
             });
         }
     }
-}
-
 // 📌 ฟังก์ชันพิมพ์ Tag เฉพาะรายการในประวัติ
 function printSpecificMaterialTag(partNo, icNo, qty, typeSize, unit, date) {
     const url = `print-tag-material.html?partNo=${partNo}&icNo=${icNo || '-'}&qty=${qty}&type=${encodeURIComponent(typeSize)}&unit=${unit || 'Sheet'}&date=${date || ''}`;
