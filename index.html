@@ -6402,8 +6402,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมโยงสูตรสต็อกตรงกับหน้า Stock WIP & FG)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -6447,7 +6446,6 @@ document.addEventListener('keypress', function(e) {
                 const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
                 if (hasProcessSuffix) return;
 
-                // แปลง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อใช้เป็นมาตรฐานกลางในการเทียบ
                 let partNo = rawPartNo.toUpperCase();
 
                 let line = 'ALL';
@@ -6472,7 +6470,7 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                // 1. คำนวณยอดผลิตเข้า (Actuals)
                 const totalIn = actuals.filter(a => {
                     let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6481,7 +6479,16 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                // 2. คำนวณยอดตัดออกไป FG / ผ่านตรวจสอบ (WIP Out / Q-Gate Passed)
+                const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : []).filter(w => {
+                    let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, w) => {
+                    let val = Number(w.qty || w['Qty'] || 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                // ถ้าไม่มี wipOuts แยก ให้ใช้ qgate แทน
                 const totalTransferred = qgate.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6490,7 +6497,9 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
+
+                // 3. คำนวณยอดส่งมอบ (Deliveries)
                 const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6499,18 +6508,18 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment - ใช้ uppercase ควบคุม
+                // 4. Manual Adjustment
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกันแบบบวกตรงๆ
-                const currentwip = (totalIn - totalTransferred) + adjustWip;
-                const currentFg = (totalTransferred - totalDelivered) + adjustFg;
+                // 5. คำนวณยอดคงเหลือ WIP และ FG ตามสูตรมาตรฐานเดียวกับหน้า Stock WIP & FG
+                const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
+                const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo, // แสดงผลตามชื่อต้นฉบับ
+                        partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal
