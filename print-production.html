@@ -529,20 +529,26 @@
             document.getElementById('sign-operator').innerText = operatorName;
         }
 
-        // 📌 แก้ไขจุดดึงวันที่ ให้แปลงเป็น Local Date ตรงๆ ป้องกันวันเหลื่อม 1 วัน
+      // 📌 ดึงวันที่แล้วบวกเพิ่ม 1 วันเฉพาะช่องแสดงผลบนหัวรายงาน
         let rawStoredDate = localStorage.getItem('productionReportDate') || '';
         let reportDate = '';
-        if (rawStoredDate) {
-            let dObj = new Date(rawStoredDate);
+        
+        if (rawStoredDate && rawStoredDate !== '-' && rawStoredDate !== 'undefined') {
+            let cleanDateStr = rawStoredDate.split('T')[0].trim();
+            let dObj = new Date(cleanDateStr);
             if (!isNaN(dObj.getTime())) {
+                // บวกเพิ่ม 1 วัน (24 ชั่วโมง) ตรงๆ
+                dObj.setDate(dObj.getDate() + 1);
                 let y = dObj.getFullYear();
                 let m = String(dObj.getMonth() + 1).padStart(2, '0');
                 let d = String(dObj.getDate()).padStart(2, '0');
                 reportDate = `${y}-${m}-${d}`;
             } else {
-                reportDate = rawStoredDate.trim().substring(0, 10);
+                reportDate = cleanDateStr;
             }
-        } else {
+        }
+        
+        if (!reportDate || reportDate === '' || reportDate === 'undefined') {
             let today = new Date();
             reportDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
