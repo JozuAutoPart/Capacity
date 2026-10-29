@@ -5370,6 +5370,7 @@ function loadAllDataFromCloud() {
                     type: item.type || item['type'] || 'IN',
                     date: item.date || item['date'] || '',
                     partNo: item.partNo || item['partNo'] || '',
+                    icNo: item.icNo || item.ic_no || item['icNo'] || item[4] || '-',
                     typeSize: item.typeSize || item['typeSize'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['qty'] || 0)),
                     detail: item.detail || item['detail'] || ''
