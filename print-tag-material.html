@@ -381,7 +381,7 @@
 
         };
    
-        const params = new URLSearchParams(window.location.search);
+     const params = new URLSearchParams(window.location.search);
         
         // จัดการวันที่ (แสดงผลเป็น ค.ศ.)
         const rawDate = params.get('date') || '';
@@ -400,7 +400,13 @@
         }
 
         const partNo = params.get('partNo') || '-';
-        const icNo = params.get('icNo') || '-';
+        
+        // 📌 ปรับปรุงการรับค่า icNo ให้ฉลาดขึ้น ถ้าส่งมาเป็น -- หรือค่าว่าง ให้แปลงเป็น - หรือดึงค่าจริงมาแสดง
+        let icNo = params.get('icNo') || '-';
+        if (!icNo || icNo === '--' || icNo === 'undefined' || icNo === 'null') {
+            icNo = '-';
+        }
+
         const qty = params.get('qty') || '0';
         const unit = params.get('unit') || 'Sheet';
 
@@ -415,7 +421,7 @@
         // แสดงผลลงในหน้า Tag
         document.getElementById('lblDate').innerText = formattedDate;
         document.getElementById('lblPartNo').innerText = partNo;
-        document.getElementById('lblIcNo').innerText = icNo;
+        document.getElementById('lblIcNo').innerText = icNo; // 📌 แสดงเลข IC ที่ผ่านการกรองแล้ว
         document.getElementById('lblType').innerText = type;
         document.getElementById('lblQty').innerText = `${Number(qty).toLocaleString()} ${unit}`;
     </script>
