@@ -3018,23 +3018,16 @@ function exportFilteredProductionReport() {
         });
     }
 
-    if (reportData.length === 0) {
+   if (reportData.length === 0) {
         alert('ไม่พบข้อมูลการผลิตของวันที่ ' + (selectedDate || 'ทั้งหมด') + (selectedOperator ? ' (พนักงาน: ' + selectedOperator + ')' : '') + ' สำหรับพิมพ์รายงาน');
         return;
     }
 
-    // 📌 แปลงวันที่ให้เป็นรูปแบบ YYYY-MM-DD มาตรฐาน ป้องกันวันเหลื่อม
+    // 📌 ดึงสตริงวันที่ตรงๆ ตัดปัญหา Timezone ดึงวันถอยหลัง
     let formattedDate = "";
     if (selectedDate) {
-        let dObj = new Date(selectedDate);
-        if (!isNaN(dObj.getTime())) {
-            let y = dObj.getFullYear();
-            let m = String(dObj.getMonth() + 1).padStart(2, '0');
-            let d = String(dObj.getDate()).padStart(2, '0');
-            formattedDate = `${y}-${m}-${d}`;
-        } else {
-            formattedDate = selectedDate;
-        }
+        // ถ้าค่ามาเป็นรูปแบบ YYYY-MM-DD อยู่แล้ว ให้ใช้ค่านั้นได้เลยทันที
+        formattedDate = String(selectedDate).split('T')[0].trim();
     }
 
     localStorage.setItem('productionReportData', JSON.stringify(reportData));
@@ -3042,7 +3035,6 @@ function exportFilteredProductionReport() {
     localStorage.setItem('productionReportDate', formattedDate || '-');
 
     window.open('print-production.html', '_blank');
-}
 // ==========================================
 // 📌 ระบบจัดการ Q-Gate Inspection & History (ดึงข้อมูลตรงจาก Google Sheets)
 // ==========================================
