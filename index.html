@@ -4935,24 +4935,12 @@ document.addEventListener("DOMContentLoaded", async function() {
                     const start = content.indexOf('{');
                     const end = content.lastIndexOf('}');
                     if (start !== -1 && end !== -1) {
-                        let jsonString = content.substring(start, end + 1);
-                        jsonString = jsonString
-                            .replace(/\/\/.*/g, '')           // ลบคอมเมนต์ //
-                            .replace(/['"]/g, '"')            // แปลง single quote เป็น double quote
-                            .replace(/,\s*([}\]])/g, '$1');   // ลบ comma ตัวสุดท้ายก่อนปิด }
-
-                        partTypeMapping = JSON.parse(jsonString);
+                        // 📌 ใช้ eval() ตรงๆ อย่างปลอดภัยผ่านวงเล็บครอบ เพื่อป้องกันปัญหา JSON.parse พังจาก Quote
+                        let jsCode = content.substring(start, end + 1);
+                        partTypeMapping = eval('(' + jsCode + ')');
                     }
                 } catch (err) {
-                    try {
-                        const start = content.indexOf('{');
-                        const end = content.lastIndexOf('}');
-                        if (start !== -1 && end !== -1) {
-                            partTypeMapping = eval('(' + content.substring(start, end + 1) + ')');
-                        }
-                    } catch (e) {
-                        console.error("เกิดข้อผิดพลาดในการโหลด partTypeMapping:", e);
-                    }
+                    console.error("เกิดข้อผิดพลาดในการโหลด partTypeMapping:", err);
                 }
             }
         });
@@ -4961,10 +4949,14 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     // 3. แสดง IC No. เบื้องต้นทันทีที่โหลดหน้าเว็บ
-    updateIcNoInput();
+    if (typeof updateIcNoInput === 'function') {
+        updateIcNoInput();
+    }
 
     // 4. โหลดประวัติสต็อก
-    loadMaterialStock();
+    if (typeof loadMaterialStock === 'function') {
+        loadMaterialStock();
+    }
 });
 
 // 📌 ฟังก์ชันคำนวณและดึง IC No. ล่าสุดจากทุกแหล่ง (รวม Google Sheets & LocalStorage)
