@@ -528,13 +528,23 @@
         if (operatorName && operatorName !== 'ทั้งหมด') {
             document.getElementById('sign-operator').innerText = operatorName;
         }
-
-        // 📌 แก้ไขจุดดึงวันที่ ให้ตัดสตริงตรงๆ ป้องกันวันเหลื่อมจาก Timezone
-        let rawStoredDate = localStorage.getItem('productionReportDate') || '';
+// 📌 บวกเพิ่ม 1 วันตรงๆ เพื่อแก้เรื่องวันที่เหลื่อม
+        let rawStoredDate = localStorage.getItem('productionReportDate'] || '';
         let reportDate = '';
         
         if (rawStoredDate && rawStoredDate !== '-' && rawStoredDate !== 'undefined') {
-            reportDate = rawStoredDate.split('T')[0].trim();
+            let cleanDateStr = rawStoredDate.split('T')[0].trim();
+            let dObj = new Date(cleanDateStr);
+            if (!isNaN(dObj.getTime())) {
+                // บวกเพิ่ม 1 วัน (24 ชั่วโมง)
+                dObj.setDate(dObj.getDate() + 1);
+                let y = dObj.getFullYear();
+                let m = String(dObj.getMonth() + 1).padStart(2, '0');
+                let d = String(dObj.getDate()).padStart(2, '0');
+                reportDate = `${y}-${m}-${d}`;
+            } else {
+                reportDate = cleanDateStr;
+            }
         }
         
         if (!reportDate || reportDate === '' || reportDate === 'undefined') {
