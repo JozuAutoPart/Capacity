@@ -4935,7 +4935,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                     const start = content.indexOf('{');
                     const end = content.lastIndexOf('}');
                     if (start !== -1 && end !== -1) {
-                        // 📌 ใช้ eval() ตรงๆ อย่างปลอดภัยผ่านวงเล็บครอบ เพื่อป้องกันปัญหา JSON.parse พังจาก Quote
                         let jsCode = content.substring(start, end + 1);
                         partTypeMapping = eval('(' + jsCode + ')');
                     }
