@@ -504,7 +504,7 @@
 "19016-Z0TX-N700-21":7.53,
     };
 
-    function getEmbeddedCT(rawPartNo) {
+     function getEmbeddedCT(rawPartNo) {
         if (!rawPartNo) return 0;
         let cleanPart = String(rawPartNo).split(' ')[0].trim().toUpperCase();
         
@@ -528,26 +528,21 @@
         if (operatorName && operatorName !== 'ทั้งหมด') {
             document.getElementById('sign-operator').innerText = operatorName;
         }
-// 📌 บวกเพิ่ม 1 วันตรงๆ เพื่อแก้เรื่องวันที่เหลื่อม
-        let rawStoredDate = localStorage.getItem('productionReportDate'] || '';
+
+        // 📌 แก้ไขจุดดึงวันที่ ให้แปลงเป็น Local Date ตรงๆ ป้องกันวันเหลื่อม 1 วัน
+        let rawStoredDate = localStorage.getItem('productionReportDate') || '';
         let reportDate = '';
-        
-        if (rawStoredDate && rawStoredDate !== '-' && rawStoredDate !== 'undefined') {
-            let cleanDateStr = rawStoredDate.split('T')[0].trim();
-            let dObj = new Date(cleanDateStr);
+        if (rawStoredDate) {
+            let dObj = new Date(rawStoredDate);
             if (!isNaN(dObj.getTime())) {
-                // บวกเพิ่ม 1 วัน (24 ชั่วโมง)
-                dObj.setDate(dObj.getDate() + 1);
                 let y = dObj.getFullYear();
                 let m = String(dObj.getMonth() + 1).padStart(2, '0');
                 let d = String(dObj.getDate()).padStart(2, '0');
                 reportDate = `${y}-${m}-${d}`;
             } else {
-                reportDate = cleanDateStr;
+                reportDate = rawStoredDate.trim().substring(0, 10);
             }
-        }
-        
-        if (!reportDate || reportDate === '' || reportDate === 'undefined') {
+        } else {
             let today = new Date();
             reportDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
