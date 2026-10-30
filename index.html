@@ -725,6 +725,26 @@
                         <input type="number" id="qgateNgQty" class="form-control form-control-sm bg-dark text-danger" placeholder="0" min="0" value="0" required>
                     </div>
 
+                    <!-- 📌 เพิ่มส่วนเลือกรายละเอียดของเสีย (NG Details Checkboxes) ตรงนี้ -->
+                    <div class="mb-3 p-2 border border-secondary rounded bg-secondary bg-opacity-10" id="ngDetailsContainer">
+                        <label class="form-label small text-warning fw-bold mb-1">
+                            <i class="fas fa-exclamation-circle me-1"></i> รายละเอียดของเสีย (NG Detail)
+                        </label>
+                        <div class="row g-1 text-light" style="font-size: 11px;">
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Scrap Mark" id="ng1"><label class="form-check-label" for="ng1">Scrap Mark</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Rust" id="ng2"><label class="form-check-label" for="ng2">Rust</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Deform" id="ng3"><label class="form-check-label" for="ng3">Deform</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Scratch" id="ng4"><label class="form-check-label" for="ng4">Scratch</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Dimension" id="ng5"><label class="form-check-label" for="ng5">Dimension</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nick" id="ng6"><label class="form-check-label" for="ng6">Nick</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Spatter" id="ng7"><label class="form-check-label" for="ng7">Spatter</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nut Off" id="ng8"><label class="form-check-label" for="ng8">Nut Off</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Missing" id="ng9"><label class="form-check-label" for="ng9">Missing</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nut Mis-Spec" id="ng10"><label class="form-check-label" for="ng10">Nut Mis-Spec</label></div></div>
+                            <div class="col-12"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Other" id="ng11"><label class="form-check-label" for="ng11">Other (อื่นๆ)</label></div></div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
                         <i class="fas fa-save me-1"></i> ยืนยันตรวจ & ตัด WIP เข้า FG
                     </button>
@@ -789,7 +809,7 @@
                             </select>
                         </div>
 
-                        <!-- ปุ่มพิมพ์ใบรายงาน (แก้ไขให้เรียกผ่าน window.openQGateReport) -->
+                        <!-- ปุ่มพิมพ์ใบรายงาน -->
                         <button type="button" onclick="window.openQGateReport()" class="btn btn-primary btn-sm py-1 px-2" style="font-size: 11px;" title="พิมพ์ใบรายงานประจำวัน">
                             <i class="fas fa-print me-1"></i> พิมพ์รายงาน
                         </button>
