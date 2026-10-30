@@ -3119,7 +3119,6 @@ function fetchQGateCloudDataAndRender() {
             })
             .catch(err => {
                 console.error("Error fetching cloud qgate data:", err);
-                // Fallback ดึงจาก localStorage ถ้าต่อเน็ตไม่ได้
                 let localData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
                 window.qgate = localData;
                 renderQGate();
@@ -3370,7 +3369,7 @@ function renderQGate() {
     }
 }
 
-// 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate
+// 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate (พร้อมดึงรายละเอียดของเสียจาก Checkboxes)
 function submitQGateTransaction(e) {
     e.preventDefault();
     
@@ -3399,6 +3398,13 @@ function submitQGateTransaction(e) {
 
     const passQty = totalQty - ngQty;
 
+    // 📌 ดึงค่ารายละเอียดของเสีย (NG Details) จาก Checkboxes ที่ติ๊กเลือก
+    let selectedNgDetails = [];
+    document.querySelectorAll('.ng-checkbox:checked').forEach(cb => {
+        selectedNgDetails.push(cb.value);
+    });
+    const ngDetailText = selectedNgDetails.length > 0 ? selectedNgDetails.join(', ') : '-';
+
     const newItem = {
         id: Date.now(),
         date: document.getElementById('qgateDate').value,
@@ -3407,7 +3413,8 @@ function submitQGateTransaction(e) {
         partNo: partNo,
         totalQty: totalQty,
         ngQty: ngQty,
-        passQty: passQty
+        passQty: passQty,
+        ngDetail: ngDetailText // 👈 บันทึกรายละเอียดอาการเสียส่งเข้า Cloud / Local
     };
 
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
@@ -3426,6 +3433,10 @@ function submitQGateTransaction(e) {
     }
 
     document.getElementById('qgateForm').reset();
+    
+    // รีเซ็ตสถานะ Checkbox ของเสียทั้งหมดกลับเป็นค่าว่าง
+    document.querySelectorAll('.ng-checkbox').forEach(cb => cb.checked = false);
+
     const nowDate = new Date();
     const localDate = new Date(nowDate.getTime() - (nowDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     document.getElementById('qgateDate').value = localDate;
@@ -3734,18 +3745,15 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน ใช้ค่าสตริงวันที่ตรงๆ ไม่ผ่านการแปลงใดๆ เพื่อป้องกันวันเพี้ยน
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
 
-    // ดึงค่าสตริงวันที่ตรงๆ จากช่องเลือกวันที่ (เช่น '2026-10-22') โดยไม่ผ่าน Date Object
     const selectedDate = dateEl ? dateEl.value.trim() : '';
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // บันทึกข้อมูล qgate ลง localStorage
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        // กรองเฉพาะวันที่เลือกส่งไปให้หน้ารายงาน
         let filteredData = qgate.filter(item => {
             let itemDate = String(item.date || item.Date || '').trim().substring(0, 10);
             let itemIns = String(item.inspector || item.opName || item.OP || item.empId || '').trim();
@@ -3759,9 +3767,6 @@ window.openQGateReport = function() {
     }
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
-
-    console.log("Opening report page:", reportUrl);
-
     const win = window.open(reportUrl, '_blank');
 
     if (!win || win.closed || typeof win.closed === 'undefined') {
