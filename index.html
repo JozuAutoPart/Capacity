@@ -2686,6 +2686,7 @@ function loadActualsFromCloud() {
 }
 
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (ฉบับแก้ไขใส่ระบบกรองวันที่สมบูรณ์)
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -2697,7 +2698,35 @@ function renderActuals() {
         return;
     }
 
-    const sortedActuals = [...actuals].sort((a, b) => {
+    // 📌 1. ดึงค่าจากช่องกรองวันที่และพนักงานด้านบนตาราง
+    const dateInputEl = document.getElementById('filterDate') || document.querySelector('input[type="date"]');
+    let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
+    let filterOperator = document.getElementById('filterOperator')?.value || '';
+
+    // 📌 2. กรองข้อมูล (Filter) ตามวันที่และพนักงานที่เลือก
+    const filteredActuals = actuals.filter(a => {
+        let rawDate = a.date || a['Date'] || '';
+        let itemDate = '';
+        if (rawDate) {
+            let dStr = String(rawDate).trim();
+            itemDate = dStr.includes('T') ? dStr.split('T')[0] : dStr.substring(0, 10);
+        }
+
+        let opName = String(a.operator || a['OP Name'] || '').trim();
+
+        let matchDate = !filterDate || itemDate === filterDate;
+        let matchOp = !filterOperator || filterOperator === '' || filterOperator === '-- ทุกพนักงาน (ทั้งหมด) --' || opName.toLowerCase() === filterOperator.toLowerCase();
+
+        return matchDate && matchOp;
+    });
+
+    if (filteredActuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">ไม่พบข้อมูลการผลิตตามวันที่เลือก (${filterDate || 'ทั้งหมด'})</td></tr>`;
+        if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
+        return;
+    }
+
+    const sortedActuals = [...filteredActuals].sort((a, b) => {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
