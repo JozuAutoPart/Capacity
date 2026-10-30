@@ -3179,6 +3179,13 @@ function exportFilteredProductionReport() {
         return;
     }
 
+    // 📌 จัดเรียงข้อมูลในรายงานตามเวลาเริ่มต้น (Start Time) จากเช้า -> เย็น เสมอ (08:00 มาก่อน 15:00)
+    reportData.sort((a, b) => {
+        let startA = a.startTime || '';
+        let startB = b.startTime || '';
+        return startA.localeCompare(startB);
+    });
+
     localStorage.setItem('productionReportData', JSON.stringify(reportData));
     localStorage.setItem('productionReportOperator', selectedOperator || 'ทุกพนักงาน');
     localStorage.setItem('productionReportDate', selectedDate || '-');
