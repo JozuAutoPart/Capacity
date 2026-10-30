@@ -2686,6 +2686,9 @@ function loadActualsFromCloud() {
 }
 
 // ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
+// ==========================================
+// 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (ฉบับแก้ไขรองรับ Filter วันที่ & พนักงาน)
+// ==========================================
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -2697,7 +2700,40 @@ function renderActuals() {
         return;
     }
 
-    const sortedActuals = [...actuals].sort((a, b) => {
+    // 📌 1. ดึงค่าจากตัวกรอง (Filter) ด้านบนตาราง
+    const filterDate = document.getElementById('filterDate')?.value || ''; // วันที่เลือก (เช่น 2026-10-30)
+    const filterOperator = document.getElementById('filterOperator')?.value || ''; // พนักงานที่เลือก
+
+    // 📌 2. กรองข้อมูล (Filter) ตามวันที่และพนักงาน
+    const filteredActuals = actuals.filter(a => {
+        let rawDate = a.date || a['Date'] || '';
+        let itemDate = '';
+        if (rawDate) {
+            const d = new Date(rawDate);
+            if (!isNaN(d.getTime())) {
+                const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+                itemDate = localD.toISOString().split('T')[0];
+            } else {
+                itemDate = String(rawDate).substring(0, 10);
+            }
+        }
+
+        let opName = String(a.operator || a['OP Name'] || '').trim();
+
+        let matchDate = !filterDate || itemDate === filterDate;
+        let matchOp = !filterOperator || opName.toLowerCase() === filterOperator.toLowerCase();
+
+        return matchDate && matchOp;
+    });
+
+    if (filteredActuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">ไม่พบข้อมูลการผลิตตามเงื่อนไขวันที่เลือก</td></tr>`;
+        if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
+        return;
+    }
+
+    // เรียงลำดับจากใหม่ไปเก่า
+    const sortedActuals = [...filteredActuals].sort((a, b) => {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
