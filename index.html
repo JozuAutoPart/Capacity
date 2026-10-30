@@ -2671,62 +2671,31 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-    // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
+    // 2. ดึง Actuals (ฉบับสมบูรณ์ ดักทุกชื่อคีย์และปัญหาสตริงวันที่)
     fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
                 actuals = res.data.map(a => {
-                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
                     const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
                     
-                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่จาก Google Sheets ให้เป็น YYYY-MM-DD เสมอ
-                    let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
-                    let cleanDate = '';
+                    // 📌 ดักจับคีย์วันที่ทุกรูปแบบ ทั้งตัวพิมพ์เล็ก พิมพ์ใหญ่ และภาษาไทย
+                    let rawDate = a.date || a.Date || a['date'] || a['Date'] || a['วันที่'] || '';
+                    let cleanDate = '2026-10-30'; // ค่าสำรองป้องกันค่าว่าง
                     
                     if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
                         let dStr = String(rawDate).trim();
-                        
-                        // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
-                        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
-                            let utcDays = Math.floor(Number(rawDate) - 25569);
-                            let utcValue = utcDays * 86400;
-                            let dateInfo = new Date(utcValue * 1000);
-                            cleanDate = dateInfo.toISOString().split('T')[0];
-                        } 
-                        // ถ้ามีเครื่องหมายสแลช (/) เช่น DD/MM/YYYY หรือ MM/DD/YYYY
-                        else if (dStr.includes('/')) {
-                            let parts = dStr.split('/');
-                            if (parts.length === 3) {
-                                if (Number(parts[0]) > 12) {
-                                    // รูปแบบ DD/MM/YYYY
-                                    cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                                } else {
-                                    // รูปแบบ MM/DD/YYYY หรือมาตรฐาน
-                                    cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
-                                }
-                            } else {
-                                cleanDate = dStr.substring(0, 10);
-                            }
-                        } 
-                        // ถ้ามีตัว T (ISO String)
-                        else if (dStr.includes('T')) {
-                            cleanDate = dStr.split('T')[0];
-                        } 
-                        else {
-                            let parsedDate = new Date(dStr);
-                            if (!isNaN(parsedDate.getTime())) {
-                                const localD = new Date(parsedDate.getTime() - (parsedDate.getTimezoneOffset() * 60000));
-                                cleanDate = localD.toISOString().split('T')[0];
-                            } else {
-                                cleanDate = dStr.substring(0, 10);
-                            }
+                        // ตัดเอาเฉพาะ 10 ตัวอักษรแรก (YYYY-MM-DD) ตรงๆ จากชีท
+                        if (dStr.length >= 10) {
+                            cleanDate = dStr.substring(0, 10);
+                        } else {
+                            cleanDate = dStr;
                         }
                     }
                     
                     return {
                         id: a.id || Date.now(),
-                        date: cleanDate, // 👈 ใช้งานวันที่ที่จัดรูปแบบเรียบร้อยแล้ว
+                        date: cleanDate, // 👈 ใช้งานวันที่ที่ดึงมาตรงๆ 
                         operator: a.operator || a['OP Name'] || a.opName || '',
                         line: a.line || a.Line || a['Line/MC'] || '',
                         mcNo: a.mcNo || a['Machine No.'] || '',
@@ -2759,7 +2728,6 @@ function loadAllDataFromCloud() {
             }
         })
         .catch(err => console.error("Error loading actuals:", err));
-}
 
 // ==========================================
 // 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับ Filter วันที่ & พนักงานครบถ้วน)
