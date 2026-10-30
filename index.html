@@ -2424,28 +2424,31 @@ const lineOperatorsMap = {
 
 // 📌 ฟังก์ชันเมื่อเปลี่ยน Line เครื่องจักร จะอัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติ
 function onActualLineChange() {
-    const lineSelect = document.getElementById('actualLine');
-    const operatorSelect = document.getElementById('actualOperator');
-    const selectedLine = lineSelect ? lineSelect.value : '';
-
-    // ล้างรายชื่อพนักงานเดิมออกก่อน
-    operatorSelect.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
-
-    if (selectedLine && lineOperatorsMap[selectedLine]) {
-        lineOperatorsMap[selectedLine].forEach(opName => {
-            let opt = document.createElement('option');
-            opt.value = opName;
-            opt.textContent = opName;
-            operatorSelect.appendChild(opt);
+    const lineSel = document.getElementById('actualLine').value;
+    const opDatalist = document.getElementById('actualOperatorOptions');
+    const opInput = document.getElementById('actualOperator');
+    
+    if (!opDatalist) return;
+    opDatalist.innerHTML = '';
+    
+    // ดึงรายชื่อจาก lineOperatorsMap ตาม Line ที่เลือก
+    let operators = (typeof lineOperatorsMap !== 'undefined' && lineOperatorsMap[lineSel]) ? lineOperatorsMap[lineSel] : [];
+    
+    // ถ้าไม่ได้เลือก Line เฉพาะ ให้ดึงรายชื่อทั้งหมดมารวมกัน
+    if (!lineSel && typeof lineOperatorsMap !== 'undefined') {
+        operators = [];
+        Object.values(lineOperatorsMap).forEach(list => {
+            list.forEach(name => {
+                if (!operators.includes(name)) operators.push(name);
+            });
         });
-    } else {
-        operatorSelect.innerHTML = '<option value="">-- กรุณาเลือก Line ก่อน --</option>';
     }
 
-    // เรียกฟังก์ชันตรวจสอบและโหลดแผนงานเดิม (ถ้ามีในระบบของพี่มิว)
-    if (typeof checkAndLoadPlans === 'function') {
-        checkAndLoadPlans();
-    }
+    operators.forEach(name => {
+        let opt = document.createElement('option');
+        opt.value = name;
+        opDatalist.appendChild(opt);
+    });
 }
 
 // 📌 ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
