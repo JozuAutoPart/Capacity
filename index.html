@@ -2764,10 +2764,25 @@ function loadAllDataFromCloud() {
 // ==========================================
 // 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับ Filter วันที่ & พนักงานครบถ้วน)
 // ==========================================
+// ==========================================
+// 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (ฉบับสมบูรณ์ ป้องกันตารางว่างตอน F5)
+// ==========================================
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
+
+    // 📌 ดึงค่าช่องกรองวันที่ และกำหนดค่าเริ่มต้นเป็นวันนี้ทันทีถ้ายังว่าง
+    const dateInputEl = document.getElementById('filterDate') || document.querySelector('input[type="date"]');
+    
+    let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
+    if (!filterDate && dateInputEl) {
+        const todayStr = new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        dateInputEl.value = todayStr;
+        filterDate = todayStr;
+    }
+
+    let filterOperator = document.getElementById('filterOperator')?.value || '';
 
     if (typeof actuals === 'undefined' || !actuals || actuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
@@ -2775,12 +2790,7 @@ function renderActuals() {
         return;
     }
 
-    // 📌 ดึงค่าจากช่องกรองวันที่และพนักงานด้านบนตาราง
-    const dateInputEl = document.getElementById('filterDate') || document.querySelector('input[type="date"]');
-    let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
-    let filterOperator = document.getElementById('filterOperator')?.value || '';
-
-    // 📌 กรองข้อมูลตามวันที่และพนักงาน (เทียบชื่อแบบยืดหยุ่น ป้องกันปัญหาช่องว่างและตัวพิมพ์)
+    // 📌 กรองข้อมูลตามวันที่และพนักงาน (เทียบชื่อแบบยืดหยุ่น)
     const filteredActuals = actuals.filter(a => {
         let rawDate = a.date || a['Date'] || '';
         let itemDate = '';
@@ -2812,8 +2822,8 @@ function renderActuals() {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
-        let dateA = new Date(parseDateString(rawA));
-        let dateB = new Date(parseDateString(rawB));
+        let dateA = new Date(parseDateString ? parseDateString(rawA) : rawA);
+        let dateB = new Date(parseDateString ? parseDateString(rawB) : rawB);
         
         return dateB - dateA; 
     });
