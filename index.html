@@ -497,7 +497,7 @@
         </div>
     </div>
 </div>
-     <!-- TAB 4: ACTUAL PRODUCTION -->
+    <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -529,14 +529,13 @@
                             <input type="time" id="workEndTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
                         </div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
-                        <input type="text" id="actualOperator" class="form-control form-control-sm" placeholder="เช่น นายสมชาย (OP-01)" required>
-                    </div>
+
+                    <!-- ย้าย Line เครื่องจักรขึ้นมาก่อน เพื่อให้เลือก Line แล้วดึงชื่อพนักงานมาแสดงทันที -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small">Line เครื่องจักร</label>
-                            <select id="actualLine" class="form-select form-select-sm" onchange="checkAndLoadPlans()" required>
+                            <select id="actualLine" class="form-select form-select-sm" onchange="onActualLineChange()" required>
+                                <option value="">-- กรุณาเลือก Line --</option>
                                 <option value="Line A">Line A</option>
                                 <option value="Line Q">Line Q</option>
                                 <option value="Line C1">Line C1</option>
@@ -549,67 +548,76 @@
                             <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
                         </div>
                     </div>
+
+                    <!-- ช่องเลือกชื่อพนักงานแบบ Dropdown (เปลี่ยนจาก Input Text) -->
+                    <div class="mb-2">
+                        <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
+                        <select id="actualOperator" class="form-select form-select-sm" required>
+                            <option value="">-- กรุณาเลือก Line ก่อน --</option>
+                    </select>
+                  </div>
+
                     <div class="mb-2">
                         <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
                         <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
-                    </div>
+                  </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" disabled required>
                             <option value="">-- กรุณาสแกนบาร์โค้ด Part No. --</option>
-                        </select>
-                    </div>
+                    </select>
+                  </div>
                     <!-- ช่องแสดงค่า CT (วินาที) แบบ Auto -->
                     <div class="mb-2">
                         <label class="form-label small text-warning fw-bold"><i class="fas fa-stopwatch me-1"></i> Cycle Time (CT วินาทีต่อชิ้น)</label>
                         <input type="text" id="actualCt" class="form-control form-control-sm bg-dark text-warning fw-bold" readonly placeholder="ดึงอัตโนมัติ">
-                    </div>
+                  </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
                         <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
-                    </div>
+                  </div>
                     <div class="mb-2">
                         <label class="form-label small">Lot No.</label>
                         <input type="text" id="actualLotNo" class="form-control form-control-sm" readonly placeholder="ดึงอัตโนมัติ">
-                    </div>
+                  </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-success">ยอดผลิตดี (OK Qty -> เพิ่มเข้า WIP)</label>
                             <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
-                        </div>
-                        <div class="col-6">
+                      </div>
+                      <div class="col-6">
                             <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
-                            <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
-                        </div>
+                          <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
                     </div>
+                  </div>
 
                     <!-- ส่วนบันทึกช่วงเวลา Downtime (เวลาเริ่ม-จบที่หยุด) -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-warning">เวลาเริ่มหยุด (From)</label>
-                            <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
-                        </div>
-                        <div class="col-6">
+                          <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
+                      </div>
+                      <div class="col-6">
                             <label class="form-label small text-warning">เวลาจบที่หยุด (To)</label>
-                            <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
-                        </div>
-                    </div>
+                          <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
+                      </div>
+                  </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
-                        <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
-                            <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
-                            <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
-                            <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
-                            <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
-                            <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
-                        </select>
-                    </div>
+                      <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
+                          <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
+                        <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
+                        <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
+                        <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
+                        <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
+                    </select>
+                  </div>
 
                     <div class="mb-3">
                         <label class="form-label small">หมายเหตุ / (Remark)</label>
-                        <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น ไปทำงานอะไรที่ไม่เกี่ยวกับเครื่องจักร">
-                    </div>
-                    <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
+                      <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น ไปทำงานอะไรที่ไม่เกี่ยวกับเครื่องจักร">
+                  </div>
+                  <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
                 </form>
             </div>
         </div>
@@ -621,14 +629,14 @@
                     <!-- ส่วนเพิ่มช่องเลือกวันที่พิมพ์รายงาน และเลือกพนักงาน -->
                     <div class="d-flex align-items-center gap-2">
                         <input type="date" id="filterReportDate" class="form-control form-control-sm bg-dark text-white border-secondary" style="width: 140px;" title="เลือกวันที่ต้องการพิมพ์รายงาน">
-                        
+                         
                         <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 160px;">
                             <option value="">-- ทุกพนักงาน --</option>
-                        </select>
-                        <button type="button" onclick="exportFilteredProductionReport()" class="btn btn-success btn-sm">
+                      </select>
+                      <button type="button" onclick="exportFilteredProductionReport()" class="btn btn-success btn-sm">
                             <i class="fas fa-file-excel me-1"></i> พิมพ์ใบรายงานการผลิต
-                        </button>
-                    </div>
+                      </button>
+                  </div>
                 </div>
                 <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
                     <table class="table table-dark table-hover align-middle m-0">
@@ -648,11 +656,11 @@
                         </thead>
                         <tbody id="actualTableBody">
                         </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+                </table>
+              </div>
+          </div>
+      </div>
+  </div>
 </div>
 <!-- TAB: Q-GATE INSPECTION -->
 <div class="tab-pane fade" id="tab-qgate">
@@ -715,6 +723,26 @@
                     <div class="mb-2">
                         <label class="form-label small text-danger">ของเสีย (NG Qty)</label>
                         <input type="number" id="qgateNgQty" class="form-control form-control-sm bg-dark text-danger" placeholder="0" min="0" value="0" required>
+                    </div>
+
+                    <!-- 📌 เพิ่มส่วนเลือกรายละเอียดของเสีย (NG Details Checkboxes) ตรงนี้ -->
+                    <div class="mb-3 p-2 border border-secondary rounded bg-secondary bg-opacity-10" id="ngDetailsContainer">
+                        <label class="form-label small text-warning fw-bold mb-1">
+                            <i class="fas fa-exclamation-circle me-1"></i> รายละเอียดของเสีย (NG Detail)
+                        </label>
+                        <div class="row g-1 text-light" style="font-size: 11px;">
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Scrap Mark" id="ng1"><label class="form-check-label" for="ng1">Scrap Mark</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Rust" id="ng2"><label class="form-check-label" for="ng2">Rust</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Deform" id="ng3"><label class="form-check-label" for="ng3">Deform</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Scratch" id="ng4"><label class="form-check-label" for="ng4">Scratch</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Dimension" id="ng5"><label class="form-check-label" for="ng5">Dimension</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nick/Over" id="ng6"><label class="form-check-label" for="ng6">Nick/Over</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Spatter" id="ng7"><label class="form-check-label" for="ng7">Spatter</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nut Off" id="ng8"><label class="form-check-label" for="ng8">Nut Off</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Missing" id="ng9"><label class="form-check-label" for="ng9">Missing</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nut Mis-Spec" id="ng10"><label class="form-check-label" for="ng10">Nut Mis-Spec</label></div></div>
+                            <div class="col-12"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Other" id="ng11"><label class="form-check-label" for="ng11">Other (อื่นๆ)</label></div></div>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-warning btn-sm w-100 text-dark fw-bold mt-2">
@@ -781,7 +809,7 @@
                             </select>
                         </div>
 
-                        <!-- ปุ่มพิมพ์ใบรายงาน (แก้ไขให้เรียกผ่าน window.openQGateReport) -->
+                        <!-- ปุ่มพิมพ์ใบรายงาน -->
                         <button type="button" onclick="window.openQGateReport()" class="btn btn-primary btn-sm py-1 px-2" style="font-size: 11px;" title="พิมพ์ใบรายงานประจำวัน">
                             <i class="fas fa-print me-1"></i> พิมพ์รายงาน
                         </button>
@@ -1529,22 +1557,32 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (Balance = Plan - Actual สะสม)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (รองรับดึงยอด Balance ยกมาข้ามเดือนอัตโนมัติ)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
         const headerRow = document.getElementById('thTableHeader');
         if (!tbody || !headerRow) return;
 
-        // 1. ดึงเดือนที่เลือก
+        // 1. ดึงเดือนที่เลือก (เช่น '2026-10')
         const monthSelect = document.getElementById('thMonthSelect');
         const selectedYearMonth = monthSelect ? monthSelect.value : '2026-10';
         const parts = selectedYearMonth.split('-');
-        const year = parseInt(parts[0]) || 2026;
-        const month = parseInt(parts[1]) || 10;
+        let year = parseInt(parts[0]) || 2026;
+        let month = parseInt(parts[1]) || 10;
         const daysInMonth = new Date(year, month, 0).getDate();
 
-        // 2. รายการ Part No. งาน TH ทั้ง 22 รายการ
+        // คำนวณหาเดือนก่อนหน้า (สำหรับดึงยอด Balance ยกมา)
+        let prevYear = year;
+        let prevMonth = month - 1;
+        if (prevMonth === 0) {
+            prevMonth = 12;
+            prevYear = year - 1;
+        }
+        let prevYearMonthStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+        let daysInPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
+
+        // 2. รายการ Part No. งาน TH ทั้งหมด
         const thPartList = [
             "J0701-17620-Z1T-8000-20",
             "J0701-17620-Z1T-8000-21",
@@ -1572,8 +1610,8 @@ function renderThMasterPlan() {
 
         // 3. สร้างหัวตารางวัน (01 ถึง สิ้นเดือน)
         let headerHtml = `
-            <th style="min-width: 220px; font-size: 13px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white py-2">Part No.</th>
-            <th style="min-width: 80px; font-size: 13px; position: sticky; left: 220px; z-index: 5;" class="bg-dark text-white py-2">Status</th>
+            <th style="min-width: 250px; font-size: 13px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white py-2">Part No.</th>
+            <th style="min-width: 80px; font-size: 13px; position: sticky; left: 250px; z-index: 5;" class="bg-dark text-white py-2">Status</th>
         `;
         for (let d = 1; d <= daysInMonth; d++) {
             let dayStr = String(d).padStart(2, '0');
@@ -1584,41 +1622,91 @@ function renderThMasterPlan() {
         tbody.innerHTML = '';
 
         const safeParseDate = (dateStr) => {
-            if (typeof parseDateString === 'function') return parseDateString(dateStr);
             if (!dateStr) return '';
-            return String(dateStr).split('T')[0].trim();
+            return String(dateStr).trim().split('T')[0].substring(0, 10);
+        };
+
+        const adjustActualDate = (dateStr) => {
+            if (!dateStr) return '';
+            let s = String(dateStr).trim().split('T')[0].substring(0, 10);
+            let parts = s.split('-');
+            if (parts.length === 3) {
+                let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                d.setDate(d.getDate() + 1);
+                let y = d.getFullYear();
+                let m = String(d.getMonth() + 1).padStart(2, '0');
+                let day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+            return s;
         };
 
         // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No.
         thPartList.forEach((partNo) => {
+            // คำนวณหายอด Balance สะสมยกมาจากเดือนก่อนหน้า (Opening Balance)
+            let initialBalance = 0;
+            for (let pd = 1; pd <= daysInPrevMonth; pd++) {
+                let pDayStr = String(pd).padStart(2, '0');
+                let pDateKey = `${prevYearMonthStr}-${pDayStr}`;
+
+                let pPlanVal = 0;
+                if (typeof plans !== 'undefined' && Array.isArray(plans)) {
+                    plans.forEach(p => {
+                        let pNo = String(p["Part No."] || p.partNo || p.PartNo || '').trim();
+                        let pStart = safeParseDate(p.Start || p.start || p.date || p.Date || p.startDate || '');
+                        let pQty = Number(p["Plan Qty"] || p.planQty || p.qty || 0);
+                        if (pNo === partNo && pStart === pDateKey) pPlanVal += pQty;
+                    });
+                }
+
+                let pActVal = 0;
+                if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
+                    actuals.forEach(a => {
+                        let aPart = String(a.partNo || a['Part No.'] || '').trim();
+                        let aDate = adjustActualDate(a.date || a['Date'] || '');
+                        if (aPart.split(' ')[0].trim() === partNo && aDate === pDateKey) {
+                            pActVal += Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                        }
+                    });
+                }
+                initialBalance = initialBalance + pPlanVal - pActVal;
+            }
+
             let planRow = document.createElement('tr');
             planRow.innerHTML = `
-                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-3" style="position: sticky; left: 0; z-index: 3; font-family: monospace; font-size: 13px; color: #000;">${partNo}</td>
-                <td class="fw-bold text-primary bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Plan</td>
+                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-size: 13px; color: #000; border-bottom: 2px solid #0dcaf0;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <img src="${partNo}.png" 
+                             alt="${partNo}" 
+                             style="width: 32px; height: 32px; object-fit: contain; background: #fff; border: 1px solid #ddd; border-radius: 3px; padding: 1px; flex-shrink: 0;"
+                             onerror="this.style.display='none'">
+                        <span style="font-family: monospace; word-break: break-all;">${partNo}</span>
+                    </div>
+                </td>
+                <td class="fw-bold text-primary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Plan</td>
             `;
 
             let actRow = document.createElement('tr');
             actRow.innerHTML = `
-                <td class="fw-bold text-success bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Actual</td>
+                <td class="fw-bold text-success bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Actual</td>
             `;
 
             let delivRow = document.createElement('tr');
             delivRow.innerHTML = `
-                <td class="fw-bold text-warning bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Delivery</td>
+                <td class="fw-bold text-warning bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Delivery</td>
             `;
 
             let balRow = document.createElement('tr');
             balRow.innerHTML = `
-                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Balance</td>
+                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px; border-bottom: 2px solid #0dcaf0;">Balance</td>
             `;
 
-            let runningBal = 0;
+            let runningBal = initialBalance;
 
             for (let d = 1; d <= daysInMonth; d++) {
                 let dayStr = String(d).padStart(2, '0');
                 let dateKey = `${selectedYearMonth}-${dayStr}`;
 
-                // ดึง Plan ตามวันที่เริ่มแผน
                 let planVal = 0;
                 if (typeof plans !== 'undefined' && Array.isArray(plans)) {
                     plans.forEach(p => {
@@ -1632,19 +1720,17 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // ดึง Actual จากยอดผลิตจริงรายวัน
                 let dayActVal = 0;
                 if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                     actuals.forEach(a => {
                         let aPart = String(a.partNo || a['Part No.'] || '').trim();
-                        let aDate = safeParseDate(a.date || a['Date'] || '');
+                        let aDate = adjustActualDate(a.date || a['Date'] || '');
                         if (aPart.split(' ')[0].trim() === partNo && aDate === dateKey) {
                             dayActVal += Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                         }
                     });
                 }
 
-                // ดึง Delivery จากข้อมูลการส่งมอบจริง
                 let dayDelivVal = 0;
                 const deliverySource = (typeof deliveries !== 'undefined') ? deliveries : (typeof deliveryData !== 'undefined' ? deliveryData : []);
                 if (Array.isArray(deliverySource)) {
@@ -1657,13 +1743,13 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // 📌 คำนวณ Balance สะสม: (ยอดสะสมแผน - ยอดสะสมผลิตจริง)
+                // คำนวณ Balance สะสมต่อเนื่องจากเดือนก่อนหน้า
                 runningBal = runningBal + planVal - dayActVal;
 
-                planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
-                actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}" style="font-size: 12px;">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
-                delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}" style="font-size: 12px;">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
-                balRow.innerHTML += `<td class="${runningBal > 0 ? 'text-warning fw-bold' : (runningBal < 0 ? 'text-success fw-bold' : '')}" style="font-size: 12px;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
+                planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
+                actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
+                delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
+                balRow.innerHTML += `<td class="${runningBal > 0 ? 'text-warning fw-bold' : (runningBal < 0 ? 'text-success fw-bold' : '')}" style="font-size: 12px; border-bottom: 2px solid #0dcaf0;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
             }
 
             tbody.appendChild(planRow);
@@ -2326,7 +2412,42 @@ function checkAndLoadPlans() {
     selectPart.disabled = !isManualUnlocked;
 }
 
-// ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
+// 📌 กำหนดรายชื่อพนักงานแยกตาม Line (พี่มิวสามารถปรับแก้หรือเพิ่มชื่อพนักงานได้ตามจริงตรงนี้ครับ)
+const lineOperatorsMap = {
+    "Line A": ["ทอง ใจดี", "รัตนาภรณ์ แสนปาน", "Nang Shan Khit", "Myint Shwe Aye", "Htint Aung Lin"],
+    "Line Q": ["บุญมา ภูมิประพันธ์", "สิทธิชัย เมืองโคตร", "นันท์ภัส อินคำ", "ชุติกาญณ์ บัวยิ้ม", "ประนอม ขุมทอง", "เบ็ญจมาศ วงค์สิงห์", "สุกัญญา นาแถมนาค", "Kyaw Hteet Aung","Myo Min Chay", "Zaw Naing Tun", "Shine Wai Aung", "Aung Tay Zay Linn", "Nyi Win Naung"],
+    "Line C1": ["จักรพันธ์ ฉลาบคำ", "วิกานดา บุตรทอง", "รัตนา แสงเจริญ", "สุริสา จันทร์สวน", "ชุมพู แก้วแบน", "Oo Myo Than", "Nwe Ni Win", "Maung Htel Aung", "Yu Wai Wai Hteet","ภัทรภรณ์ ผิดสด", "Myint Win Chay", "จันจิรา นาสมคิด", "ปาณิสรา โคตรสขึง","วันดี แซ่ฉั่น"],
+    "Line C2": ["ปรีชา มะปรางค์", "กัลยา จังอินทร์", "Thant Zin Aung", "อรดี ตุนาหงัน", "Nyan Lin Soe", "Myo Min Chay", "Zaw Naing Tun", "Shine Wai Aung", "Aung Tay Zay Linn", "Nyi Win Naung"],
+    "Line C3": ["ภัทรภรณ์ ผิดสด", "Myint Win Chay", "จันจิรา นาสมคิด", "ปาณิสรา โคตรสขึง", "Maung Htel Aung","รัตนา แสงเจริญ","วันดี แซ่ฉั่น","ประนอม ขุมทอง", "เบ็ญจมาศ วงค์สิงห์", "สุกัญญา นาแถมนาค",],
+};
+
+// 📌 ฟังก์ชันเมื่อเปลี่ยน Line เครื่องจักร จะอัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติ
+function onActualLineChange() {
+    const lineSelect = document.getElementById('actualLine');
+    const operatorSelect = document.getElementById('actualOperator');
+    const selectedLine = lineSelect ? lineSelect.value : '';
+
+    // ล้างรายชื่อพนักงานเดิมออกก่อน
+    operatorSelect.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
+
+    if (selectedLine && lineOperatorsMap[selectedLine]) {
+        lineOperatorsMap[selectedLine].forEach(opName => {
+            let opt = document.createElement('option');
+            opt.value = opName;
+            opt.textContent = opName;
+            operatorSelect.appendChild(opt);
+        });
+    } else {
+        operatorSelect.innerHTML = '<option value="">-- กรุณาเลือก Line ก่อน --</option>';
+    }
+
+    // เรียกฟังก์ชันตรวจสอบและโหลดแผนงานเดิม (ถ้ามีในระบบของพี่มิว)
+    if (typeof checkAndLoadPlans === 'function') {
+        checkAndLoadPlans();
+    }
+}
+
+// 📌 ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
     if (!select || select.selectedIndex < 0) return;
@@ -2381,7 +2502,6 @@ function onActualPartChange() {
         ctInput.value = finalCt + " วินาที";
     }
 }
-
 // ฟังก์ชันบันทึกข้อมูลการผลิต (submitActual)
 function submitActual(e) {
     e.preventDefault();
@@ -2523,49 +2643,127 @@ function submitActual(e) {
     });
 }
 
-// ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
-function loadActualsFromCloud() {
+// ==========================================
+// 📌 ฟังก์ชันโหลดข้อมูลทั้งหมดจาก Google Sheets (ฉบับสมบูรณ์แก้ปัญหา F5 แล้วหาย)
+// ==========================================
+function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
-    
+
+    // 1. ดึง Plans
+    fetch(scriptUrl + "?action=getPlans")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                plans = res.data.map(p => ({
+                    id: p.id || Date.now(),
+                    Start: p.Start || p['Start'] || p['วันที่เริ่มต้น'] || '',
+                    Finish: p.Finish || p['Finish'] || p['วันที่สิ้นสุด'] || '',
+                    Line: p.Line || p['Line'] || p['line'] || '',
+                    "Part No.": p["Part No."] || p.partNo || p['partNo'] || '',
+                    "Lot No.": p["Lot No."] || p.lotNo || p['lotNo'] || '',
+                    "Plan Qty": Number(p["Plan Qty"] !== undefined ? p["Plan Qty"] : (p.planQty || p['ยอดแผน'] || 0))
+                }));
+
+                if (typeof renderPlans === 'function') renderPlans();
+                if (typeof renderDashboard === 'function') renderDashboard();
+            }
+        })
+        .catch(err => console.error("Error loading plans:", err));
+
+    // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
     fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                actuals = res.data.map(item => {
-                    const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || item['Start'] || '-';
+                actuals = res.data.map(a => {
+                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
+                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+                    
+                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่จาก Google Sheets ให้เป็น YYYY-MM-DD เสมอ
+                    let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
+                    let cleanDate = '';
+                    
+                    if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
+                        let dStr = String(rawDate).trim();
+                        
+                        // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
+                        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
+                            let utcDays = Math.floor(Number(rawDate) - 25569);
+                            let utcValue = utcDays * 86400;
+                            let dateInfo = new Date(utcValue * 1000);
+                            cleanDate = dateInfo.toISOString().split('T')[0];
+                        } 
+                        // ถ้ามีเครื่องหมายสแลช (/) เช่น DD/MM/YYYY หรือ MM/DD/YYYY
+                        else if (dStr.includes('/')) {
+                            let parts = dStr.split('/');
+                            if (parts.length === 3) {
+                                if (Number(parts[0]) > 12) {
+                                    // รูปแบบ DD/MM/YYYY
+                                    cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                } else {
+                                    // รูปแบบ MM/DD/YYYY หรือมาตรฐาน
+                                    cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                                }
+                            } else {
+                                cleanDate = dStr.substring(0, 10);
+                            }
+                        } 
+                        // ถ้ามีตัว T (ISO String)
+                        else if (dStr.includes('T')) {
+                            cleanDate = dStr.split('T')[0];
+                        } 
+                        else {
+                            let parsedDate = new Date(dStr);
+                            if (!isNaN(parsedDate.getTime())) {
+                                const localD = new Date(parsedDate.getTime() - (parsedDate.getTimezoneOffset() * 60000));
+                                cleanDate = localD.toISOString().split('T')[0];
+                            } else {
+                                cleanDate = dStr.substring(0, 10);
+                            }
+                        }
+                    }
                     
                     return {
-                        id: item.id || Date.now(),
-                        date: item.date || item['Date'] || '',
-                        operator: item.operator || item['OP Name'] || '',
-                        line: item.line || item['Line/MC'] || '',
-                        mcNo: item.mcNo || item['Machine No.'] || '',
-                        partNo: item.partNo || item['Part No.'] || '',
-                        lotNo: item.lotNo || item['Lot No.'] || '',
-                        qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
-                        ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+                        id: a.id || Date.now(),
+                        date: cleanDate, // 👈 ใช้งานวันที่ที่จัดรูปแบบเรียบร้อยแล้ว
+                        operator: a.operator || a['OP Name'] || a.opName || '',
+                        line: a.line || a.Line || a['Line/MC'] || '',
+                        mcNo: a.mcNo || a['Machine No.'] || '',
+                        partNo: a.partNo || a['Part No.'] || '',
+                        lotNo: a.lotNo || a['Lot No.'] || '',
+                        qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                        ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
+                        
+                        // ฟิลด์เวลาทำงาน
                         "เวลาทำงาน": timeVal,
                         timework: timeVal,
                         TimeWork: timeVal,
                         timeRange: timeVal,
-                        remark: item.remark || item['Remark'] || '-',
-                        dtStart: item.dtStart || item['DtStart'] || '',
-                        dtEnd: item.dtEnd || item['DtEnd'] || '',
-                        downtimeMins: Number(item.downtimeMins || item['Downtime Mins'] || 0),
-                        downtimeCode: item.downtimeCode || item['Downtime Code'] || '',
-                        ct: Number(item.ct || item['CT'] || 6)
+                        
+                        remark: a.remark || a.Remark || '-',
+                        dtStart: a.dtStart || a['DtStart'] || '',
+                        dtEnd: a.dtEnd || a['DtEnd'] || '',
+                        downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
+                        downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
+                        ct: Number(a.ct || a['CT'] || 6)
                     };
                 });
-                
+
                 renderActuals();
-                if (typeof renderCapacity === 'function') renderCapacity();
+                renderDashboard();
+                if (typeof renderCapacity === 'function') { renderCapacity(); }
+                if (typeof renderStock === 'function') renderStock();
+                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+                if (typeof renderDiePM === 'function') renderDiePM();
             }
         })
-        .catch(err => console.error("Error loading Actuals:", err));
+        .catch(err => console.error("Error loading actuals:", err));
 }
 
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
+// ==========================================
+// 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับ Filter วันที่ & พนักงานครบถ้วน)
+// ==========================================
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -2577,7 +2775,40 @@ function renderActuals() {
         return;
     }
 
-    const sortedActuals = [...actuals].sort((a, b) => {
+    // 📌 ดึงค่าจากช่องกรองวันที่และพนักงานด้านบนตาราง
+    const dateInputEl = document.getElementById('filterDate') || document.querySelector('input[type="date"]');
+    let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
+    let filterOperator = document.getElementById('filterOperator')?.value || '';
+
+    // 📌 กรองข้อมูลตามวันที่และพนักงาน (เทียบชื่อแบบยืดหยุ่น ป้องกันปัญหาช่องว่างและตัวพิมพ์)
+    const filteredActuals = actuals.filter(a => {
+        let rawDate = a.date || a['Date'] || '';
+        let itemDate = '';
+        if (rawDate) {
+            let dStr = String(rawDate).trim();
+            itemDate = dStr.includes('T') ? dStr.split('T')[0] : dStr.substring(0, 10);
+        }
+
+        let opName = String(a.operator || a['OP Name'] || '').trim().toLowerCase();
+        let selectedOp = String(filterOperator || '').trim().toLowerCase();
+
+        let matchDate = !filterDate || itemDate === filterDate;
+        let matchOp = !filterOperator || 
+                      selectedOp === '' || 
+                      selectedOp.includes('ทุกพนักงาน') || 
+                      selectedOp.includes('all') || 
+                      opName === selectedOp;
+
+        return matchDate && matchOp;
+    });
+
+    if (filteredActuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">ไม่พบข้อมูลการผลิตตามวันที่เลือก (${filterDate || 'ทั้งหมด'})</td></tr>`;
+        if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
+        return;
+    }
+
+    const sortedActuals = [...filteredActuals].sort((a, b) => {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
@@ -2750,7 +2981,83 @@ function playSystemBeep() {
         console.log("Audio not supported");
     }
 }
+// 📌 ฟังก์ชันกรองตารางประวัติการผลิตตามพนักงานและวันที่ที่เลือก
+function filterActualsTable() {
+    const selectedOperator = document.getElementById('filterOperator')?.value || '';
+    const selectedDate = document.getElementById('filterReportDate')?.value || '';
+    
+    const tbody = document.getElementById('actualTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
 
+    if (typeof actuals === 'undefined' || !actuals || actuals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
+        return;
+    }
+
+    // กรองข้อมูลตามเงื่อนไข
+    const filtered = actuals.filter(a => {
+        let opName = String(a.operator || a['OP Name'] || '').trim();
+        let itemDate = parseDateString(a.date || a['Date'] || '');
+
+        let matchOp = !selectedOperator || opName.includes(selectedOperator);
+        let matchDate = !selectedDate || itemDate === selectedDate;
+
+        return matchOp && matchDate;
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ไม่พบประวัติการผลิตตามเงื่อนไขที่เลือก</td></tr>`;
+        return;
+    }
+
+    // แสดงผลข้อมูลที่กรองแล้ว
+    filtered.forEach((a) => {
+        const originalIndex = actuals.indexOf(a);
+
+        let displayDate = '';
+        let rawDate = a.date || a['Date'] || '';
+        if (rawDate) {
+            let d = new Date(rawDate);
+            if (!isNaN(d.getTime())) {
+                displayDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            } else {
+                displayDate = String(rawDate).substring(0, 10);
+            }
+        }
+
+        const opval = a.operator || a['OP Name'] || '-';
+        const lineval = a.line || a['Line/MC'] || '-';
+        const mcval = a.mcNo || a['Machine No.'] || '';
+        const partval = a.partNo || a['Part No.'] || '-';
+        const lotval = a.lotNo || a['Lot No.'] || '-';
+        let rawTime = a['เวลาทำงาน'] || a.timework || a.timeWork || a.TimeWork || a.timeRange;
+        const timeworkval = (rawTime && String(rawTime).trim() !== '' && String(rawTime).trim() !== 'undefined' && String(rawTime).trim() !== '-') ? String(rawTime).trim() : '-';
+        const qtyval = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+        const ngval = Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0));
+        const remarkval = a.remark || a['Remark'] || '-';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${displayDate}</td>
+            <td class="text-warning small fw-bold" style="white-space: nowrap;">${timeworkval}</td>
+            <td>${opval}</td>
+            <td><span class="badge bg-secondary">${lineval}</span>${mcval ? ' / ' + mcval : ''}</td>
+            <td class="fw-bold text-info">${partval}</td>
+            <td>${lotval}</td>
+            <td class="text-success fw-bold">${qtyval.toLocaleString()}</td>
+            <td class="text-danger">${ngval.toLocaleString()}</td>
+            <td class="small text-muted">${remarkval}</td>
+            <td class="text-center">
+                <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteActuals(${originalIndex})" title="ลบรายการ">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 // ==========================================
 // 🚀 ฟังก์ชันจัดการพนักงานและเชื่อมโยงไปหน้าพิมพ์ใบรายงาน
 // ==========================================
@@ -2923,7 +3230,6 @@ function fetchQGateCloudDataAndRender() {
             })
             .catch(err => {
                 console.error("Error fetching cloud qgate data:", err);
-                // Fallback ดึงจาก localStorage ถ้าต่อเน็ตไม่ได้
                 let localData = JSON.parse(localStorage.getItem('qgate') || localStorage.getItem('qgate_logs') || '[]');
                 window.qgate = localData;
                 renderQGate();
@@ -3174,7 +3480,7 @@ function renderQGate() {
     }
 }
 
-// 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate
+// 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate (พร้อมดึงรายละเอียดของเสียจาก Checkboxes)
 function submitQGateTransaction(e) {
     e.preventDefault();
     
@@ -3203,6 +3509,13 @@ function submitQGateTransaction(e) {
 
     const passQty = totalQty - ngQty;
 
+    // 📌 ดึงค่ารายละเอียดของเสีย (NG Details) จาก Checkboxes ที่ติ๊กเลือก
+    let selectedNgDetails = [];
+    document.querySelectorAll('.ng-checkbox:checked').forEach(cb => {
+        selectedNgDetails.push(cb.value);
+    });
+    const ngDetailText = selectedNgDetails.length > 0 ? selectedNgDetails.join(', ') : '-';
+
     const newItem = {
         id: Date.now(),
         date: document.getElementById('qgateDate').value,
@@ -3211,7 +3524,8 @@ function submitQGateTransaction(e) {
         partNo: partNo,
         totalQty: totalQty,
         ngQty: ngQty,
-        passQty: passQty
+        passQty: passQty,
+        ngDetail: ngDetailText // 👈 บันทึกรายละเอียดอาการเสียส่งเข้า Cloud / Local
     };
 
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
@@ -3230,6 +3544,10 @@ function submitQGateTransaction(e) {
     }
 
     document.getElementById('qgateForm').reset();
+    
+    // รีเซ็ตสถานะ Checkbox ของเสียทั้งหมดกลับเป็นค่าว่าง
+    document.querySelectorAll('.ng-checkbox').forEach(cb => cb.checked = false);
+
     const nowDate = new Date();
     const localDate = new Date(nowDate.getTime() - (nowDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     document.getElementById('qgateDate').value = localDate;
@@ -3538,18 +3856,15 @@ if (typeof window.originalRenderQGate === 'undefined') {
     };
 }
 
-// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน ใช้ค่าสตริงวันที่ตรงๆ ไม่ผ่านการแปลงใดๆ เพื่อป้องกันวันเพี้ยน
+// 📌 ฟังก์ชันเปิดหน้าพิมพ์รายงาน
 window.openQGateReport = function() {
     const dateEl = document.getElementById('filterQGateDate');
     const inspectorEl = document.getElementById('filterQGateInspector');
 
-    // ดึงค่าสตริงวันที่ตรงๆ จากช่องเลือกวันที่ (เช่น '2026-10-22') โดยไม่ผ่าน Date Object
     const selectedDate = dateEl ? dateEl.value.trim() : '';
     const selectedInspector = inspectorEl ? inspectorEl.value.trim() : '';
 
-    // บันทึกข้อมูล qgate ลง localStorage
     if (typeof qgate !== 'undefined' && Array.isArray(qgate)) {
-        // กรองเฉพาะวันที่เลือกส่งไปให้หน้ารายงาน
         let filteredData = qgate.filter(item => {
             let itemDate = String(item.date || item.Date || '').trim().substring(0, 10);
             let itemIns = String(item.inspector || item.opName || item.OP || item.empId || '').trim();
@@ -3563,9 +3878,6 @@ window.openQGateReport = function() {
     }
 
     const reportUrl = `Daily%20Q-Gate%20Inspection%20Report.html?date=${encodeURIComponent(selectedDate)}&inspector=${encodeURIComponent(selectedInspector)}`;
-
-    console.log("Opening report page:", reportUrl);
-
     const win = window.open(reportUrl, '_blank');
 
     if (!win || win.closed || typeof win.closed === 'undefined') {
@@ -4762,7 +5074,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                         let jsonString = content.substring(start, end + 1);
                         jsonString = jsonString
                             .replace(/\/\/.*/g, '')           // ลบคอมเมนต์ //
-                            .replace(/['"]/g, '"')            // แปลง single quote เป็น double quote
+                            .replace(/'/g, '"')               // แปลง single quote เป็น double quote
                             .replace(/,\s*([}\]])/g, '$1');   // ลบ comma ตัวสุดท้ายก่อนปิด }
 
                         partTypeMapping = JSON.parse(jsonString);
@@ -4784,10 +5096,23 @@ document.addEventListener("DOMContentLoaded", async function() {
         console.error("ไม่สามารถโหลดฐานข้อมูลจากไฟล์ Tag ได้:", error);
     }
 
-    // 3. แสดง IC No. เบื้องต้นทันทีที่โหลดหน้าเว็บ
+    // 3. ผูกอีเวนต์เมื่อพิมพ์ Part No. ให้วิ่งดึง Type / Size มาใส่ช่อง input ให้อัตโนมัติ (แต่พนักงานคีย์แก้เองได้)
+    const partNoInput = document.getElementById('matPartNo');
+    const typeSizeInput = document.getElementById('matTypeSize');
+
+    if (partNoInput && typeSizeInput) {
+        partNoInput.addEventListener('input', function() {
+            const partNo = this.value.trim();
+            if (partTypeMapping[partNo]) {
+                typeSizeInput.value = partTypeMapping[partNo];
+            }
+        });
+    }
+
+    // 4. แสดง IC No. เบื้องต้นทันทีที่โหลดหน้าเว็บ
     updateIcNoInput();
 
-    // 4. โหลดประวัติสต็อก
+    // 5. โหลดประวัติสต็อก
     loadMaterialStock();
 });
 
@@ -4821,7 +5146,6 @@ function generateAutoIcNo() {
     // ค้นหาลำดับรันนิ่งสูงสุดในเดือนนั้น
     allData.forEach(item => {
         if (item) {
-            // เช็คทั้งฟิลด์ icNo และ F/G จากชีตกรณีดึงจาก Google Sheets
             let icVal = item.icNo || item.ic_no || item[5] || item[4] || '';
             icVal = String(icVal).trim();
             
@@ -4881,8 +5205,12 @@ function submitMaterialTransaction(e) {
     const partNo = document.getElementById('matPartNo').value.trim();
     const icNo = type === 'IN' ? (document.getElementById('matIcNo') ? document.getElementById('matIcNo').value.trim() : generateAutoIcNo()) : '-';
     
-    // ดึง Spec / Size จาก partTypeMapping โดยอัตโนมัติ
-    const typeSize = partTypeMapping[partNo] || '-';
+    // 💡 ดึง Spec / Size จากช่อง input (ที่ผู้ใช้คีย์แก้เองหรือดึงออโต้)
+    const typeSizeInput = document.getElementById('matTypeSize');
+    let typeSize = typeSizeInput ? typeSizeInput.value.trim() : '';
+    if (!typeSize || typeSize === '-') {
+        typeSize = partTypeMapping[partNo] || '-';
+    }
     
     const qty = parseInt(document.getElementById('matQty').value);
     const unit = document.getElementById('matUnit') ? document.getElementById('matUnit').value : 'Sheet';
@@ -4893,7 +5221,6 @@ function submitMaterialTransaction(e) {
         const receiver = document.getElementById('matReceiver').value;
         detailInfo = `Supplier: ${supplier} | ผู้รับ: ${receiver}`;
         
-        // 💡 บันทึกเลข IC No. ล่าสุดลง LocalStorage ไว้เพื่อไม่ให้หลุดตอนเปิดปิดเว็บใหม่
         if (icNo && icNo !== '-') {
             localStorage.setItem('last_mat_ic_no', icNo);
         }
@@ -4925,7 +5252,6 @@ function submitMaterialTransaction(e) {
     toggleMatFormFields();
     document.getElementById('matDate').value = new Date().toISOString().split('T')[0];
     
-    // อัปเดตรัน IC No. ถัดไปทันที
     updateIcNoInput();
     loadMaterialStock();
 }
@@ -4938,7 +5264,6 @@ function loadMaterialStock() {
         materialHistory = bms;
     }
 
-    // 💡 เมื่อข้อมูล bms โหลดเข้ามาถึงหน้าเว็บแล้ว ให้คำนวณรัน IC No. ล่าสุดทันที
     updateIcNoInput();
 
     // 1. คำนวณสต็อกคงเหลือ
@@ -5003,19 +5328,20 @@ function loadMaterialStock() {
                 let rawDate = item.date || '';
                 let cleanDate = rawDate ? rawDate.split('T')[0] : '';
                 let itemUnit = item.unit || 'Sheet';
-                let typeSize = item.typeSize || partTypeMapping[item.partNo] || '-';
+                let typeSize = item.typeSize && item.typeSize !== '-' ? item.typeSize : (partTypeMapping[item.partNo] || '-');
+                let itemIcNo = item.icNo || '-';
                 
                 historyBody.innerHTML += `
                     <tr>
                         <td>${cleanDate}</td>
                         <td><span class="badge ${item.type === 'IN' ? 'bg-success' : 'bg-danger'}">${item.type === 'IN' ? 'รับเข้า' : 'จ่ายออก'}</span></td>
                         <td class="fw-bold">${item.partNo || ''}</td>
-                        <td><strong>${item.icNo || '-'}</strong></td>
+                        <td><strong>${itemIcNo}</strong></td>
                         <td>${typeSize}</td>
                         <td class="fw-bold">${Number(item.qty || 0).toLocaleString()} ${itemUnit}</td>
                         <td><small class="text-muted">${item.detail || ''}</small></td>
                         <td class="text-center">
-                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(item.icNo || '')}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(typeSize)}', '${encodeURIComponent(itemUnit)}', '${encodeURIComponent(cleanDate)}')" title="พิมพ์ Tag วัสดุนี้">
+                            <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" onclick="printSpecificMaterialTag('${encodeURIComponent(item.partNo || '')}', '${encodeURIComponent(itemIcNo)}', '${encodeURIComponent(item.qty || 0)}', '${encodeURIComponent(typeSize)}', '${encodeURIComponent(itemUnit)}', '${encodeURIComponent(cleanDate)}')" title="พิมพ์ Tag วัสดุนี้">
                                 <i class="fas fa-print"></i>
                             </button>
                             <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteMaterialHistory(${index})" title="ลบรายการนี้">
@@ -5029,18 +5355,23 @@ function loadMaterialStock() {
     }
 }
 
-// 📌 ฟังก์ชันพิมพ์ Tag เฉพาะรายการในประวัติ
 function printSpecificMaterialTag(partNo, icNo, qty, typeSize, unit, date) {
-    const url = `print-tag-material.html?partNo=${partNo}&icNo=${icNo || '-'}&qty=${qty}&type=${encodeURIComponent(typeSize)}&unit=${unit || 'Sheet'}&date=${date || ''}`;
+    const cleanIcNo = (!icNo || icNo === '-' || icNo === '--' || icNo === 'undefined') ? '-' : icNo;
+    const cleanType = (!typeSize || typeSize === '-' || typeSize === 'undefined') ? (partTypeMapping[partNo] || '-') : typeSize;
+    
+    const url = `print-tag-material.html?partNo=${encodeURIComponent(partNo)}&icNo=${encodeURIComponent(cleanIcNo)}&qty=${qty}&type=${encodeURIComponent(cleanType)}&unit=${unit || 'Sheet'}&date=${date || ''}`;
     window.open(url, '_blank');
 }
-
-// 📌 ฟังก์ชันพิมพ์ Tag จากฟอร์มรับเข้า
 function printMaterialTag() {
     const partNo = document.getElementById('matPartNo') ? document.getElementById('matPartNo').value.trim() : '';
-    const icNo = document.getElementById('matIcNo') ? document.getElementById('matIcNo').value : generateAutoIcNo();
+    let icNo = document.getElementById('matIcNo') ? document.getElementById('matIcNo').value.trim() : generateAutoIcNo();
+    if (!icNo || icNo === '--') icNo = generateAutoIcNo();
+    
     const qty = document.getElementById('matQty') ? document.getElementById('matQty').value : '';
-    const type = partTypeMapping[partNo] || '';
+    
+    const typeSizeInput = document.getElementById('matTypeSize');
+    const type = typeSizeInput && typeSizeInput.value.trim() !== '' ? typeSizeInput.value.trim() : (partTypeMapping[partNo] || '');
+    
     const unit = document.getElementById('matUnit') ? document.getElementById('matUnit').value : 'Sheet';
     const date = document.getElementById('matDate') ? document.getElementById('matDate').value : '';
 
@@ -5088,16 +5419,46 @@ function loadAllDataFromCloud() {
         .catch(err => console.error("Error loading plans:", err));
 
    // 2. ดึง Actuals
-    fetch(scriptUrl + "?action=getActuals")
+    fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
                 actuals = res.data.map(a => {
                     // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
-                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || '-';
+                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+                    
+                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ
+                    let rawDate = a.date || a.Date || '';
+                    let cleanDate = '';
+                    
+                    if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
+                        let dStr = String(rawDate).trim();
+                        
+                        // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
+                        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
+                            let utcDays = Math.floor(Number(rawDate) - 25569);
+                            let utcValue = utcDays * 86400;
+                            let dateInfo = new Date(utcValue * 1000);
+                            cleanDate = dateInfo.toISOString().split('T')[0];
+                        } 
+                        // ถ้ามีตัว T
+                        else if (dStr.includes('T')) {
+                            cleanDate = dStr.split('T')[0];
+                        } 
+                        else {
+                            let parsedDate = new Date(dStr);
+                            if (!isNaN(parsedDate.getTime())) {
+                                const localD = new Date(parsedDate.getTime() - (parsedDate.getTimezoneOffset() * 60000));
+                                cleanDate = localD.toISOString().split('T')[0];
+                            } else {
+                                cleanDate = dStr.substring(0, 10);
+                            }
+                        }
+                    }
                     
                     return {
-                        date: a.date || a.Date || '',
+                        id: a.id || Date.now(),
+                        date: cleanDate, // 👈 ใช้งานวันที่ที่แปลงและจัดรูปแบบเรียบร้อยแล้ว
                         operator: a.operator || a['OP Name'] || a.opName || '',
                         line: a.line || a.Line || a['Line/MC'] || '',
                         mcNo: a.mcNo || a['Machine No.'] || '',
@@ -5106,12 +5467,18 @@ function loadAllDataFromCloud() {
                         qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
                         ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
                         
-                        // เพิ่มฟิลด์เวลาทำงานตรงนี้เพื่อให้เรนเดอร์ขึ้นตาราง
+                        // ฟิลด์เวลาทำงาน
                         "เวลาทำงาน": timeVal,
                         timework: timeVal,
                         TimeWork: timeVal,
+                        timeRange: timeVal,
                         
-                        remark: a.remark || a.Remark || ''
+                        remark: a.remark || a.Remark || '-',
+                        dtStart: a.dtStart || a['DtStart'] || '',
+                        dtEnd: a.dtEnd || a['DtEnd'] || '',
+                        downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
+                        downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
+                        ct: Number(a.ct || a['CT'] || 6)
                     };
                 });
 
@@ -5175,6 +5542,7 @@ function loadAllDataFromCloud() {
                     type: item.type || item['type'] || 'IN',
                     date: item.date || item['date'] || '',
                     partNo: item.partNo || item['partNo'] || '',
+                    icNo: item.icNo || item.ic_no || item['icNo'] || item[4] || '-',
                     typeSize: item.typeSize || item['typeSize'] || '',
                     qty: Number(item.qty !== undefined ? item.qty : (item['qty'] || 0)),
                     detail: item.detail || item['detail'] || ''
@@ -6226,8 +6594,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock เป็น 0 (ยึด Master เป็นหลัก และเชื่อมโยงกับยอดจริง)
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (มอง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อป้องกันพนักงานพิมพ์เล็ก-ใหญ่ปะปนกัน)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมโยงสูตรสต็อกตรงกับหน้า Stock WIP & FG)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -6271,7 +6638,6 @@ document.addEventListener('keypress', function(e) {
                 const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
                 if (hasProcessSuffix) return;
 
-                // แปลง Part No. เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อใช้เป็นมาตรฐานกลางในการเทียบ
                 let partNo = rawPartNo.toUpperCase();
 
                 let line = 'ALL';
@@ -6296,7 +6662,7 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                // 1. คำนวณยอดผลิตเข้า (Actuals)
                 const totalIn = actuals.filter(a => {
                     let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6305,7 +6671,16 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 2. คำนวณยอดผ่านตรวจสอบ (Q-Gate Passed) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                // 2. คำนวณยอดตัดออกไป FG / ผ่านตรวจสอบ (WIP Out / Q-Gate Passed)
+                const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : []).filter(w => {
+                    let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, w) => {
+                    let val = Number(w.qty || w['Qty'] || 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                // ถ้าไม่มี wipOuts แยก ให้ใช้ qgate แทน
                 const totalTransferred = qgate.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6314,7 +6689,9 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries) - แปลง Part No. เป็น uppercase ก่อนเทียบ
+                const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
+
+                // 3. คำนวณยอดส่งมอบ (Deliveries)
                 const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6323,18 +6700,18 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 4. การปรับสต็อกผ่านระบบ Manual Adjustment - ใช้ uppercase ควบคุม
+                // 4. Manual Adjustment
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG รวมกันแบบบวกตรงๆ
-                const currentwip = (totalIn - totalTransferred) + adjustWip;
-                const currentFg = (totalTransferred - totalDelivered) + adjustFg;
+                // 5. คำนวณยอดคงเหลือ WIP และ FG ตามสูตรมาตรฐานเดียวกับหน้า Stock WIP & FG
+                const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
+                const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
                 if (totalStock < minVal) {
                     lowStockList.push({
-                        partNo: rawPartNo, // แสดงผลตามชื่อต้นฉบับ
+                        partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal
@@ -6357,10 +6734,14 @@ document.addEventListener('keypress', function(e) {
                 : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
+                // 📌 ตัดจุดทศนิยมออกด้วย Math.round() ให้เหลือแต่จำนวนเต็ม
+                let cleanStock = Math.round(item.stock).toLocaleString();
+                let cleanMin = Math.round(item.min).toLocaleString();
+
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
                             <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${cleanStock} / Min: ${cleanMin}</span>
                         </span>`;
             }).join('');
 
@@ -6648,6 +7029,34 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
+});
+    // สั่งซ่อนหน้า Login ทันทีเมื่อเปิดเว็บ
+window.addEventListener('DOMContentLoaded', () => {
+    var overlay = document.getElementById('loginOverlay');
+    if (overlay) overlay.style.display = 'none';
+});
+    // 📌 บันทึกและจำแท็บล่าสุดที่ใช้งาน (LocalStorage)
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. ดึงแท็บที่เคยเปิดค้างไว้ล่าสุด
+    let activeTabId = localStorage.getItem('activeTab');
+    if (activeTabId) {
+        let triggerEl = document.querySelector(`[href="${activeTabId}"], [data-bs-target="${activeTabId}"]`);
+        if (triggerEl) {
+            let tab = new bootstrap.Tab(triggerEl);
+            tab.show();
+        }
+    }
+
+    // 2. ดักจับเหตุการณ์เมื่อมีการเปลี่ยนแท็บ ให้บันทึกเก็บไว้
+    const tabElements = document.querySelectorAll('button[data-bs-toggle="tab"], a[data-bs-toggle="tab"]');
+    tabElements.forEach(tabEl => {
+        tabEl.addEventListener('shown.bs.tab', function (event) {
+            let target = event.target.getAttribute('href') || event.target.getAttribute('data-bs-target');
+            if (target) {
+                localStorage.setItem('activeTab', target);
+            }
+        });
+    });
 });
 </script>
 </body>
