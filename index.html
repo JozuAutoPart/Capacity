@@ -6562,14 +6562,10 @@ document.addEventListener('keypress', function(e) {
                 : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
-                // 📌 ตัดจุดทศนิยมออกด้วย Math.round() ให้เหลือแต่จำนวนเต็ม
-                let cleanStock = Math.round(item.stock).toLocaleString();
-                let cleanMin = Math.round(item.min).toLocaleString();
-
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
                             <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${cleanStock} / Min: ${cleanMin}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${item.stock.toLocaleString()} / Min: ${item.min.toLocaleString()}</span>
                         </span>`;
             }).join('');
 
@@ -6589,6 +6585,7 @@ document.addEventListener('keypress', function(e) {
                 </div>
             `;
         }
+
         window.renderZeroStockPartsByLine = renderWidget;
 
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
