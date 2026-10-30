@@ -2643,9 +2643,7 @@ function submitActual(e) {
     });
 }
 
-// ==========================================
-// 📌 ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
-// ==========================================
+// ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -2657,20 +2655,9 @@ function loadActualsFromCloud() {
                 actuals = res.data.map(item => {
                     const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || item['Start'] || '-';
                     
-                    let rawDate = item.date || item['Date'] || '';
-                    let cleanDate = '';
-                    if (rawDate) {
-                        let dStr = String(rawDate).trim();
-                        if (dStr.includes('T')) {
-                            cleanDate = dStr.split('T')[0];
-                        } else {
-                            cleanDate = dStr.substring(0, 10);
-                        }
-                    }
-
                     return {
                         id: item.id || Date.now(),
-                        date: cleanDate,
+                        date: item.date || item['Date'] || '',
                         operator: item.operator || item['OP Name'] || '',
                         line: item.line || item['Line/MC'] || '',
                         mcNo: item.mcNo || item['Machine No.'] || '',
@@ -2698,9 +2685,7 @@ function loadActualsFromCloud() {
         .catch(err => console.error("Error loading Actuals:", err));
 }
 
-// ==========================================
-// 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับค้นหา ID ทุกแบบ)
-// ==========================================
+// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -2712,41 +2697,7 @@ function renderActuals() {
         return;
     }
 
-    // 📌 ค้นหาค่าจากช่องกรองวันที่โดยรอบรับทุกชื่อ ID ที่เป็นไปได้ใน HTML ของพี่มิว
-    const dateInputEl = document.getElementById('filterDate') || 
-                        document.getElementById('actualFilterDate') || 
-                        document.getElementById('dateFilter') || 
-                        document.querySelector('input[type="date"]');
-                        
-    const filterDate = dateInputEl ? dateInputEl.value : '';
-    const filterOperator = document.getElementById('filterOperator')?.value || '';
-
-    console.log("🔍 ตรวจสอบค่าช่องกรองวันที่:", filterDate, "จาก Element:", dateInputEl?.id || 'Query Selector');
-
-    // 📌 กรองข้อมูลให้ตรงกับวันที่เลือก
-    const filteredActuals = actuals.filter(a => {
-        let rawDate = a.date || a['Date'] || '';
-        let itemDate = '';
-        if (rawDate) {
-            let dStr = String(rawDate).trim();
-            itemDate = dStr.includes('T') ? dStr.split('T')[0] : dStr.substring(0, 10);
-        }
-
-        let opName = String(a.operator || a['OP Name'] || '').trim();
-
-        let matchDate = !filterDate || itemDate === filterDate;
-        let matchOp = !filterOperator || opName.toLowerCase() === filterOperator.toLowerCase();
-
-        return matchDate && matchOp;
-    });
-
-    if (filteredActuals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-3">ไม่พบข้อมูลการผลิตตามเงื่อนไขวันที่เลือก (${filterDate || 'ทั้งหมด'})</td></tr>`;
-        if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
-        return;
-    }
-
-    const sortedActuals = [...filteredActuals].sort((a, b) => {
+    const sortedActuals = [...actuals].sort((a, b) => {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
