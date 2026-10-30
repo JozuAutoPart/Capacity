@@ -5374,16 +5374,46 @@ function loadAllDataFromCloud() {
         .catch(err => console.error("Error loading plans:", err));
 
    // 2. ดึง Actuals
-    fetch(scriptUrl + "?action=getActuals")
+    fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
                 actuals = res.data.map(a => {
                     // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
-                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || '-';
+                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+                    
+                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ
+                    let rawDate = a.date || a.Date || '';
+                    let cleanDate = '';
+                    
+                    if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
+                        let dStr = String(rawDate).trim();
+                        
+                        // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
+                        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
+                            let utcDays = Math.floor(Number(rawDate) - 25569);
+                            let utcValue = utcDays * 86400;
+                            let dateInfo = new Date(utcValue * 1000);
+                            cleanDate = dateInfo.toISOString().split('T')[0];
+                        } 
+                        // ถ้ามีตัว T
+                        else if (dStr.includes('T')) {
+                            cleanDate = dStr.split('T')[0];
+                        } 
+                        else {
+                            let parsedDate = new Date(dStr);
+                            if (!isNaN(parsedDate.getTime())) {
+                                const localD = new Date(parsedDate.getTime() - (parsedDate.getTimezoneOffset() * 60000));
+                                cleanDate = localD.toISOString().split('T')[0];
+                            } else {
+                                cleanDate = dStr.substring(0, 10);
+                            }
+                        }
+                    }
                     
                     return {
-                        date: a.date || a.Date || '',
+                        id: a.id || Date.now(),
+                        date: cleanDate, // 👈 ใช้งานวันที่ที่แปลงและจัดรูปแบบเรียบร้อยแล้ว
                         operator: a.operator || a['OP Name'] || a.opName || '',
                         line: a.line || a.Line || a['Line/MC'] || '',
                         mcNo: a.mcNo || a['Machine No.'] || '',
@@ -5392,12 +5422,18 @@ function loadAllDataFromCloud() {
                         qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
                         ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
                         
-                        // เพิ่มฟิลด์เวลาทำงานตรงนี้เพื่อให้เรนเดอร์ขึ้นตาราง
+                        // ฟิลด์เวลาทำงาน
                         "เวลาทำงาน": timeVal,
                         timework: timeVal,
                         TimeWork: timeVal,
+                        timeRange: timeVal,
                         
-                        remark: a.remark || a.Remark || ''
+                        remark: a.remark || a.Remark || '-',
+                        dtStart: a.dtStart || a['DtStart'] || '',
+                        dtEnd: a.dtEnd || a['DtEnd'] || '',
+                        downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
+                        downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
+                        ct: Number(a.ct || a['CT'] || 6)
                     };
                 });
 
