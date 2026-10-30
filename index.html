@@ -3061,29 +3061,40 @@ function filterActualsTable() {
 // ==========================================
 // 🚀 ฟังก์ชันจัดการพนักงานและเชื่อมโยงไปหน้าพิมพ์ใบรายงาน
 // ==========================================
+// 📌 ฟังก์ชันอัปเดตรายชื่อพนักงานในช่องกรอง (Filter Operator Dropdown)
 function updateOperatorDropdown() {
-    let select = document.getElementById('filterOperator');
-    if (!select) return;
-    let currentValue = select.value;
-    let operators = new Set();
-    
-    document.querySelectorAll('#actualTableBody tr').forEach(row => {
-        let opCell = row.querySelectorAll('td')[2]; // OP Name อยู่คอลัมน์ที่ 3
-        if (opCell && opCell.innerText.trim() && opCell.innerText.trim() !== '-') {
-            operators.add(opCell.innerText.trim());
-        }
-    });
+    const filterOpSelect = document.getElementById('filterOperator');
+    if (!filterOpSelect) return;
 
-    select.innerHTML = '<option value="">-- ทุกพนักงาน (ทั้งหมด) --</option>';
-    operators.forEach(op => {
+    // จำค่าเดิมที่เลือกไว้ก่อนหน้า
+    const currentValue = filterOpSelect.value;
+
+    // สร้างรายชื่อพนักงานทั้งหมดจากทุก Line มารวมกันแบบไม่ซ้ำ (Unique)
+    let allOperators = [];
+    if (typeof lineOperatorsMap !== 'undefined') {
+        Object.values(lineOperatorsMap).forEach(opList => {
+            opList.forEach(name => {
+                if (!allOperators.includes(name)) {
+                    allOperators.push(name);
+                }
+            });
+        });
+    }
+
+    // ล้างและตั้งค่าเริ่มต้น
+    filterOpSelect.innerHTML = '<option value="">-- ทุกพนักงาน (ทั้งหมด) --</option>';
+
+    // เติมรายชื่อพนักงานลงไปใน Dropdown กรอง
+    allOperators.sort().forEach(opName => {
         let opt = document.createElement('option');
-        opt.value = op;
-        opt.innerText = op;
-        if (op === currentValue) opt.selected = true;
-        select.appendChild(opt);
+        opt.value = opName;
+        opt.textContent = opName;
+        filterOpSelect.appendChild(opt);
     });
-}
 
+    // คืนค่าที่เคยเลือกไว้ (ถ้ามี)
+    filterOpSelect.value = currentValue;
+}
 function exportFilteredProductionReport() {
     let selectedOperator = document.getElementById('filterOperator')?.value || '';
     let selectedDate = document.getElementById('filterReportDate')?.value || '';
