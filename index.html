@@ -2644,21 +2644,44 @@ function submitActual(e) {
 }
 
 // ==========================================
-// 📌 ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets (ฉบับสมบูรณ์ รองรับแปลงวันที่ทุกรูปแบบ)
+// 📌 ฟังก์ชันโหลดข้อมูลทั้งหมดจาก Google Sheets (ฉบับสมบูรณ์แก้ปัญหา F5 แล้วหาย)
 // ==========================================
-function loadActualsFromCloud() {
+function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
-    
+
+    // 1. ดึง Plans
+    fetch(scriptUrl + "?action=getPlans")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                plans = res.data.map(p => ({
+                    id: p.id || Date.now(),
+                    Start: p.Start || p['Start'] || p['วันที่เริ่มต้น'] || '',
+                    Finish: p.Finish || p['Finish'] || p['วันที่สิ้นสุด'] || '',
+                    Line: p.Line || p['Line'] || p['line'] || '',
+                    "Part No.": p["Part No."] || p.partNo || p['partNo'] || '',
+                    "Lot No.": p["Lot No."] || p.lotNo || p['lotNo'] || '',
+                    "Plan Qty": Number(p["Plan Qty"] !== undefined ? p["Plan Qty"] : (p.planQty || p['ยอดแผน'] || 0))
+                }));
+
+                if (typeof renderPlans === 'function') renderPlans();
+                if (typeof renderDashboard === 'function') renderDashboard();
+            }
+        })
+        .catch(err => console.error("Error loading plans:", err));
+
+    // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
     fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
         .then(res => res.json())
         .then(res => {
             if (res.status === "success" && res.data) {
-                actuals = res.data.map(item => {
-                    const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || item['Start'] || '-';
+                actuals = res.data.map(a => {
+                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
+                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
                     
-                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ
-                    let rawDate = item.date || item['Date'] || '';
+                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่จาก Google Sheets ให้เป็น YYYY-MM-DD เสมอ
+                    let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
                     let cleanDate = '';
                     
                     if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
@@ -2671,7 +2694,22 @@ function loadActualsFromCloud() {
                             let dateInfo = new Date(utcValue * 1000);
                             cleanDate = dateInfo.toISOString().split('T')[0];
                         } 
-                        // ถ้ามีตัว T หรือเครื่องหมาย Slash /
+                        // ถ้ามีเครื่องหมายสแลช (/) เช่น DD/MM/YYYY หรือ MM/DD/YYYY
+                        else if (dStr.includes('/')) {
+                            let parts = dStr.split('/');
+                            if (parts.length === 3) {
+                                if (Number(parts[0]) > 12) {
+                                    // รูปแบบ DD/MM/YYYY
+                                    cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                } else {
+                                    // รูปแบบ MM/DD/YYYY หรือมาตรฐาน
+                                    cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                                }
+                            } else {
+                                cleanDate = dStr.substring(0, 10);
+                            }
+                        } 
+                        // ถ้ามีตัว T (ISO String)
                         else if (dStr.includes('T')) {
                             cleanDate = dStr.split('T')[0];
                         } 
@@ -2685,35 +2723,42 @@ function loadActualsFromCloud() {
                             }
                         }
                     }
-
+                    
                     return {
-                        id: item.id || Date.now(),
-                        date: cleanDate, // ใช้งานวันที่ที่แปลงและจัดรูปแบบเรียบร้อยแล้ว
-                        operator: item.operator || item['OP Name'] || '',
-                        line: item.line || item['Line/MC'] || '',
-                        mcNo: item.mcNo || item['Machine No.'] || '',
-                        partNo: item.partNo || item['Part No.'] || '',
-                        lotNo: item.lotNo || item['Lot No.'] || '',
-                        qty: Number(item.qty !== undefined ? item.qty : (item['OK Qty'] || 0)),
-                        ngQty: Number(item.ngQty !== undefined ? item.ngQty : (item['NG Qty'] || 0)),
+                        id: a.id || Date.now(),
+                        date: cleanDate, // 👈 ใช้งานวันที่ที่จัดรูปแบบเรียบร้อยแล้ว
+                        operator: a.operator || a['OP Name'] || a.opName || '',
+                        line: a.line || a.Line || a['Line/MC'] || '',
+                        mcNo: a.mcNo || a['Machine No.'] || '',
+                        partNo: a.partNo || a['Part No.'] || '',
+                        lotNo: a.lotNo || a['Lot No.'] || '',
+                        qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                        ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
+                        
+                        // ฟิลด์เวลาทำงาน
                         "เวลาทำงาน": timeVal,
                         timework: timeVal,
                         TimeWork: timeVal,
                         timeRange: timeVal,
-                        remark: item.remark || item['Remark'] || '-',
-                        dtStart: item.dtStart || item['DtStart'] || '',
-                        dtEnd: item.dtEnd || item['DtEnd'] || '',
-                        downtimeMins: Number(item.downtimeMins || item['Downtime Mins'] || 0),
-                        downtimeCode: item.downtimeCode || item['Downtime Code'] || '',
-                        ct: Number(item.ct || item['CT'] || 6)
+                        
+                        remark: a.remark || a.Remark || '-',
+                        dtStart: a.dtStart || a['DtStart'] || '',
+                        dtEnd: a.dtEnd || a['DtEnd'] || '',
+                        downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
+                        downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
+                        ct: Number(a.ct || a['CT'] || 6)
                     };
                 });
-                
+
                 renderActuals();
-                if (typeof renderCapacity === 'function') renderCapacity();
+                renderDashboard();
+                if (typeof renderCapacity === 'function') { renderCapacity(); }
+                if (typeof renderStock === 'function') renderStock();
+                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+                if (typeof renderDiePM === 'function') renderDiePM();
             }
         })
-        .catch(err => console.error("Error loading Actuals:", err));
+        .catch(err => console.error("Error loading actuals:", err));
 }
 
 // ==========================================
