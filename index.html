@@ -497,7 +497,7 @@
         </div>
     </div>
 </div>
-    <!-- TAB 4: ACTUAL PRODUCTION -->
+     <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -529,13 +529,14 @@
                             <input type="time" id="workEndTime" class="form-control" style="width: 100%; padding: 8px; background: #1a1a1a; border: 1px solid #444; color: #fff; border-radius: 4px;">
                         </div>
                     </div>
-
-                    <!-- ย้าย Line เครื่องจักรขึ้นมาก่อน เพื่อให้เลือก Line แล้วดึงชื่อพนักงานมาแสดงทันที -->
+                    <div class="mb-2">
+                        <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
+                        <input type="text" id="actualOperator" class="form-control form-control-sm" placeholder="เช่น นายสมชาย (OP-01)" required>
+                    </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small">Line เครื่องจักร</label>
-                            <select id="actualLine" class="form-select form-select-sm" onchange="onActualLineChange()" required>
-                                <option value="">-- กรุณาเลือก Line --</option>
+                            <select id="actualLine" class="form-select form-select-sm" onchange="checkAndLoadPlans()" required>
                                 <option value="Line A">Line A</option>
                                 <option value="Line Q">Line Q</option>
                                 <option value="Line C1">Line C1</option>
@@ -548,76 +549,67 @@
                             <input type="text" id="actualMcNo" class="form-control form-control-sm" placeholder="ระบุ MC No." required>
                         </div>
                     </div>
-
-                    <!-- ช่องเลือกชื่อพนักงานแบบ Dropdown (เปลี่ยนจาก Input Text) -->
-                    <div class="mb-2">
-                        <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
-                        <select id="actualOperator" class="form-select form-select-sm" required>
-                            <option value="">-- กรุณาเลือก Line ก่อน --</option>
-                    </select>
-                  </div>
-
                     <div class="mb-2">
                         <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
                         <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" disabled required>
                             <option value="">-- กรุณาสแกนบาร์โค้ด Part No. --</option>
-                    </select>
-                  </div>
+                        </select>
+                    </div>
                     <!-- ช่องแสดงค่า CT (วินาที) แบบ Auto -->
                     <div class="mb-2">
                         <label class="form-label small text-warning fw-bold"><i class="fas fa-stopwatch me-1"></i> Cycle Time (CT วินาทีต่อชิ้น)</label>
                         <input type="text" id="actualCt" class="form-control form-control-sm bg-dark text-warning fw-bold" readonly placeholder="ดึงอัตโนมัติ">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
                         <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small">Lot No.</label>
                         <input type="text" id="actualLotNo" class="form-control form-control-sm" readonly placeholder="ดึงอัตโนมัติ">
-                  </div>
+                    </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-success">ยอดผลิตดี (OK Qty -> เพิ่มเข้า WIP)</label>
                             <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
-                      </div>
-                      <div class="col-6">
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
-                          <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                            <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                        </div>
                     </div>
-                  </div>
 
                     <!-- ส่วนบันทึกช่วงเวลา Downtime (เวลาเริ่ม-จบที่หยุด) -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-warning">เวลาเริ่มหยุด (From)</label>
-                          <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
-                      </div>
-                      <div class="col-6">
+                            <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small text-warning">เวลาจบที่หยุด (To)</label>
-                          <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
-                      </div>
-                  </div>
+                            <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
+                        </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
-                      <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
-                          <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
-                        <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
-                        <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
-                        <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
-                        <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
-                    </select>
-                  </div>
+                        <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
+                            <option value="">-- เลือกสาเหตุการหยุด (ถ้ามี) --</option>
+                            <option value="M/C">M/C (เครื่องจักร/แม่พิมพ์เสีย)</option>
+                            <option value="SET">SET (ตั้งเครื่อง/เปลี่ยนพิมพ์)</option>
+                            <option value="MAT">MAT (วัตถุดิบมีปัญหา/รอของ)</option>
+                            <option value="QUAL">QUAL (ปัญหาคุณภาพ/เช็กงาน)</option>
+                        </select>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label small">หมายเหตุ / (Remark)</label>
-                      <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น ไปทำงานอะไรที่ไม่เกี่ยวกับเครื่องจักร">
-                  </div>
-                  <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
+                        <input type="text" id="actualRemark" class="form-control form-control-sm" placeholder="เช่น ไปทำงานอะไรที่ไม่เกี่ยวกับเครื่องจักร">
+                    </div>
+                    <button type="submit" id="btnSubmitActual" class="btn btn-success btn-sm w-100"><i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต</button>
                 </form>
             </div>
         </div>
@@ -629,14 +621,14 @@
                     <!-- ส่วนเพิ่มช่องเลือกวันที่พิมพ์รายงาน และเลือกพนักงาน -->
                     <div class="d-flex align-items-center gap-2">
                         <input type="date" id="filterReportDate" class="form-control form-control-sm bg-dark text-white border-secondary" style="width: 140px;" title="เลือกวันที่ต้องการพิมพ์รายงาน">
-                         
+                        
                         <select id="filterOperator" class="form-select form-select-sm bg-dark text-white border-secondary" style="width: 160px;">
                             <option value="">-- ทุกพนักงาน --</option>
-                      </select>
-                      <button type="button" onclick="exportFilteredProductionReport()" class="btn btn-success btn-sm">
+                        </select>
+                        <button type="button" onclick="exportFilteredProductionReport()" class="btn btn-success btn-sm">
                             <i class="fas fa-file-excel me-1"></i> พิมพ์ใบรายงานการผลิต
-                      </button>
-                  </div>
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
                     <table class="table table-dark table-hover align-middle m-0">
@@ -656,11 +648,11 @@
                         </thead>
                         <tbody id="actualTableBody">
                         </tbody>
-                </table>
-              </div>
-          </div>
-      </div>
-  </div>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 <!-- TAB: Q-GATE INSPECTION -->
 <div class="tab-pane fade" id="tab-qgate">
@@ -1537,7 +1529,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (แก้ไขปัญหายอดผลิตถอยหลัง 1 วัน)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (Balance = Plan - Actual สะสม)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
@@ -1580,8 +1572,8 @@ function renderThMasterPlan() {
 
         // 3. สร้างหัวตารางวัน (01 ถึง สิ้นเดือน)
         let headerHtml = `
-            <th style="min-width: 250px; font-size: 13px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white py-2">Part No.</th>
-            <th style="min-width: 80px; font-size: 13px; position: sticky; left: 250px; z-index: 5;" class="bg-dark text-white py-2">Status</th>
+            <th style="min-width: 220px; font-size: 13px; position: sticky; left: 0; z-index: 5;" class="bg-dark text-white py-2">Part No.</th>
+            <th style="min-width: 80px; font-size: 13px; position: sticky; left: 220px; z-index: 5;" class="bg-dark text-white py-2">Status</th>
         `;
         for (let d = 1; d <= daysInMonth; d++) {
             let dayStr = String(d).padStart(2, '0');
@@ -1592,56 +1584,32 @@ function renderThMasterPlan() {
         tbody.innerHTML = '';
 
         const safeParseDate = (dateStr) => {
+            if (typeof parseDateString === 'function') return parseDateString(dateStr);
             if (!dateStr) return '';
-            let s = String(dateStr).trim().split('T')[0].substring(0, 10);
-            return s;
-        };
-
-        // 📌 ฟังก์ชันบวกวันที่เพิ่ม 1 วันเฉพาะยอด Actual เพื่อแก้ปัญหา Timezone ดึงถอยหลัง
-        const adjustActualDate = (dateStr) => {
-            if (!dateStr) return '';
-            let s = String(dateStr).trim().split('T')[0].substring(0, 10);
-            let parts = s.split('-');
-            if (parts.length === 3) {
-                let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                d.setDate(d.getDate() + 1); // บวกชดเชย 1 วันให้ตรงกับชีท
-                let y = d.getFullYear();
-                let m = String(d.getMonth() + 1).padStart(2, '0');
-                let day = String(d.getDate()).padStart(2, '0');
-                return `${y}-${m}-${day}`;
-            }
-            return s;
+            return String(dateStr).split('T')[0].trim();
         };
 
         // 4. วนลูปสร้างแถวข้อมูลของแต่ละ Part No.
         thPartList.forEach((partNo) => {
             let planRow = document.createElement('tr');
             planRow.innerHTML = `
-                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-2" style="position: sticky; left: 0; z-index: 3; font-size: 13px; color: #000; border-bottom: 2px solid #0dcaf0;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <img src="${partNo}.png" 
-                             alt="${partNo}" 
-                             style="width: 32px; height: 32px; object-fit: contain; background: #fff; border: 1px solid #ddd; border-radius: 3px; padding: 1px; flex-shrink: 0;"
-                             onerror="this.style.display='none'">
-                        <span style="font-family: monospace; word-break: break-all;">${partNo}</span>
-                    </div>
-                </td>
-                <td class="fw-bold text-primary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Plan</td>
+                <td rowspan="4" class="fw-bold bg-light align-middle text-start ps-3" style="position: sticky; left: 0; z-index: 3; font-family: monospace; font-size: 13px; color: #000;">${partNo}</td>
+                <td class="fw-bold text-primary bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Plan</td>
             `;
 
             let actRow = document.createElement('tr');
             actRow.innerHTML = `
-                <td class="fw-bold text-success bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Actual</td>
+                <td class="fw-bold text-success bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Actual</td>
             `;
 
             let delivRow = document.createElement('tr');
             delivRow.innerHTML = `
-                <td class="fw-bold text-warning bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px;">Delivery</td>
+                <td class="fw-bold text-warning bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Delivery</td>
             `;
 
             let balRow = document.createElement('tr');
             balRow.innerHTML = `
-                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 250px; z-index: 3; font-size: 12px; border-bottom: 2px solid #0dcaf0;">Balance</td>
+                <td class="fw-bold text-secondary bg-light py-2" style="position: sticky; left: 220px; z-index: 3; font-size: 12px;">Balance</td>
             `;
 
             let runningBal = 0;
@@ -1664,12 +1632,12 @@ function renderThMasterPlan() {
                     });
                 }
 
-                // ดึง Actual จากยอดผลิตจริงรายวัน (พร้อมปรับเทียบวันที่ให้ตรงกัน)
+                // ดึง Actual จากยอดผลิตจริงรายวัน
                 let dayActVal = 0;
                 if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                     actuals.forEach(a => {
                         let aPart = String(a.partNo || a['Part No.'] || '').trim();
-                        let aDate = adjustActualDate(a.date || a['Date'] || '');
+                        let aDate = safeParseDate(a.date || a['Date'] || '');
                         if (aPart.split(' ')[0].trim() === partNo && aDate === dateKey) {
                             dayActVal += Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
                         }
@@ -1692,10 +1660,10 @@ function renderThMasterPlan() {
                 // 📌 คำนวณ Balance สะสม: (ยอดสะสมแผน - ยอดสะสมผลิตจริง)
                 runningBal = runningBal + planVal - dayActVal;
 
-                planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
-                actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
-                delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}" style="font-size: 12px; border-bottom: 1px solid #495057;">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
-                balRow.innerHTML += `<td class="${runningBal > 0 ? 'text-warning fw-bold' : (runningBal < 0 ? 'text-success fw-bold' : '')}" style="font-size: 12px; border-bottom: 2px solid #0dcaf0;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
+                planRow.innerHTML += `<td class="${planVal > 0 ? 'bg-info bg-opacity-25 text-primary fw-bold' : ''}" style="font-size: 12px;">${planVal > 0 ? planVal.toLocaleString() : '-'}</td>`;
+                actRow.innerHTML += `<td class="${dayActVal > 0 ? 'bg-success bg-opacity-25 text-success fw-bold' : ''}" style="font-size: 12px;">${dayActVal > 0 ? dayActVal.toLocaleString() : '-'}</td>`;
+                delivRow.innerHTML += `<td class="${dayDelivVal > 0 ? 'bg-warning bg-opacity-25 text-dark fw-bold' : ''}" style="font-size: 12px;">${dayDelivVal > 0 ? dayDelivVal.toLocaleString() : '-'}</td>`;
+                balRow.innerHTML += `<td class="${runningBal > 0 ? 'text-warning fw-bold' : (runningBal < 0 ? 'text-success fw-bold' : '')}" style="font-size: 12px;">${runningBal !== 0 ? runningBal.toLocaleString() : '-'}</td>`;
             }
 
             tbody.appendChild(planRow);
@@ -2358,42 +2326,7 @@ function checkAndLoadPlans() {
     selectPart.disabled = !isManualUnlocked;
 }
 
-// 📌 กำหนดรายชื่อพนักงานแยกตาม Line (พี่มิวสามารถปรับแก้หรือเพิ่มชื่อพนักงานได้ตามจริงตรงนี้ครับ)
-const lineOperatorsMap = {
-    "Line A": ["ทอง ใจดี", "รัตนาภรณ์ แสนปาน", "แนน ซาน คิด", "เมียด ซอ เอ้", "ทิน อ่อง ลิน"],
-    "Line Q": ["บุญมา ภูมิประพันธ์", "สิทธิชัย เมืองโคตร", "นันท์ภัส อินคำ", "ชุติการญณ์ บัวยิ้ม", "ประนอม ขุมทอง", "เบ็ญจมาศ วงค์สิงห์", "สุกัญญา นาแถมนาค", "จอ แทะ อ่อง"],
-    "Line C1": ["จักรพันธ์ ฉลาบคำ", "วิกานดา บุตรทอง", "รัตนา แสงเจริญ", "สุริสา จันทร์สวน", "ชุมพู แก้วแบน", "อู", "นวย นอ วิน", "เมือง", "ยู่ เว เว แด"],
-    "Line C2": ["ปรีชา มะปรางค์", "กัลยา จงอินทร์", "ซิน", "อรดี ตุนาหงัน", "ยัน", "เมียว", "ซอล", "ซิน เว เอา", "ออง เท ซา ลิน", "งิ วิน เนือง"],
-    "Line C3": ["ภัทรภรณ์ ผิดสด", "เมี้ยะ", "จันจิรา นาสมคิด", "ปาณิสรา โคตรสขึง", "เมือง","รัตนา แสงเจริญ","วันดี แซ่ฉั่น"],
-};
-
-// 📌 ฟังก์ชันเมื่อเปลี่ยน Line เครื่องจักร จะอัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติ
-function onActualLineChange() {
-    const lineSelect = document.getElementById('actualLine');
-    const operatorSelect = document.getElementById('actualOperator');
-    const selectedLine = lineSelect ? lineSelect.value : '';
-
-    // ล้างรายชื่อพนักงานเดิมออกก่อน
-    operatorSelect.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
-
-    if (selectedLine && lineOperatorsMap[selectedLine]) {
-        lineOperatorsMap[selectedLine].forEach(opName => {
-            let opt = document.createElement('option');
-            opt.value = opName;
-            opt.textContent = opName;
-            operatorSelect.appendChild(opt);
-        });
-    } else {
-        operatorSelect.innerHTML = '<option value="">-- กรุณาเลือก Line ก่อน --</option>';
-    }
-
-    // เรียกฟังก์ชันตรวจสอบและโหลดแผนงานเดิม (ถ้ามีในระบบของพี่มิว)
-    if (typeof checkAndLoadPlans === 'function') {
-        checkAndLoadPlans();
-    }
-}
-
-// 📌 ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
+// ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
 function onActualPartChange() {
     const select = document.getElementById('actualPartNo');
     if (!select || select.selectedIndex < 0) return;
@@ -2448,6 +2381,7 @@ function onActualPartChange() {
         ctInput.value = finalCt + " วินาที";
     }
 }
+
 // ฟังก์ชันบันทึกข้อมูลการผลิต (submitActual)
 function submitActual(e) {
     e.preventDefault();
@@ -6714,34 +6648,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         })
         .catch(err => console.error("❌ โหลด Master Parts ไม่สำเร็จ:", err));
-});
-    // สั่งซ่อนหน้า Login ทันทีเมื่อเปิดเว็บ
-window.addEventListener('DOMContentLoaded', () => {
-    var overlay = document.getElementById('loginOverlay');
-    if (overlay) overlay.style.display = 'none';
-});
-    // 📌 บันทึกและจำแท็บล่าสุดที่ใช้งาน (LocalStorage)
-document.addEventListener("DOMContentLoaded", function() {
-    // 1. ดึงแท็บที่เคยเปิดค้างไว้ล่าสุด
-    let activeTabId = localStorage.getItem('activeTab');
-    if (activeTabId) {
-        let triggerEl = document.querySelector(`[href="${activeTabId}"], [data-bs-target="${activeTabId}"]`);
-        if (triggerEl) {
-            let tab = new bootstrap.Tab(triggerEl);
-            tab.show();
-        }
-    }
-
-    // 2. ดักจับเหตุการณ์เมื่อมีการเปลี่ยนแท็บ ให้บันทึกเก็บไว้
-    const tabElements = document.querySelectorAll('button[data-bs-toggle="tab"], a[data-bs-toggle="tab"]');
-    tabElements.forEach(tabEl => {
-        tabEl.addEventListener('shown.bs.tab', function (event) {
-            let target = event.target.getAttribute('href') || event.target.getAttribute('data-bs-target');
-            if (target) {
-                localStorage.setItem('activeTab', target);
-            }
-        });
-    });
 });
 </script>
 </body>
