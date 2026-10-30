@@ -2643,7 +2643,9 @@ function submitActual(e) {
     });
 }
 
-// ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets (ฉบับปรับปรุงทำความสะอาดวันที่)
+// ==========================================
+// 📌 ฟังก์ชันดึงข้อมูล Actuals จาก Google Sheets (พร้อมทำความสะอาดรูปแบบวันที่)
+// ==========================================
 function loadActualsFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
@@ -2655,7 +2657,7 @@ function loadActualsFromCloud() {
                 actuals = res.data.map(item => {
                     const timeVal = item['เวลาทำงาน'] || item['TimeWork'] || item['timework'] || item['timeRange'] || item['Start'] || '-';
                     
-                    // 📌 ทำความสะอาดรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ
+                    // ทำความสะอาดรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ
                     let rawDate = item.date || item['Date'] || '';
                     let cleanDate = '';
                     if (rawDate) {
@@ -2669,7 +2671,7 @@ function loadActualsFromCloud() {
 
                     return {
                         id: item.id || Date.now(),
-                        date: cleanDate, // 👈 ใช้ค่าวันที่ที่จัดรูปแบบแล้ว
+                        date: cleanDate,
                         operator: item.operator || item['OP Name'] || '',
                         line: item.line || item['Line/MC'] || '',
                         mcNo: item.mcNo || item['Machine No.'] || '',
@@ -2697,8 +2699,9 @@ function loadActualsFromCloud() {
         .catch(err => console.error("Error loading Actuals:", err));
 }
 
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต
-// ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (ฉบับแก้ไขใส่ระบบกรองวันที่สมบูรณ์)
+// ==========================================
+// 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับ Filter วันที่ & พนักงานครบถ้วน)
+// ==========================================
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
@@ -2710,12 +2713,12 @@ function renderActuals() {
         return;
     }
 
-    // 📌 1. ดึงค่าจากช่องกรองวันที่และพนักงานด้านบนตาราง
+    // 📌 ดึงค่าจากช่องกรองวันที่และพนักงานด้านบนตาราง
     const dateInputEl = document.getElementById('filterDate') || document.querySelector('input[type="date"]');
     let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
     let filterOperator = document.getElementById('filterOperator')?.value || '';
 
-    // 📌 2. กรองข้อมูล (Filter) ตามวันที่และพนักงานที่เลือก
+    // 📌 กรองข้อมูลตามวันที่และพนักงาน (เทียบชื่อแบบยืดหยุ่น ป้องกันปัญหาช่องว่างและตัวพิมพ์)
     const filteredActuals = actuals.filter(a => {
         let rawDate = a.date || a['Date'] || '';
         let itemDate = '';
@@ -2724,10 +2727,15 @@ function renderActuals() {
             itemDate = dStr.includes('T') ? dStr.split('T')[0] : dStr.substring(0, 10);
         }
 
-        let opName = String(a.operator || a['OP Name'] || '').trim();
+        let opName = String(a.operator || a['OP Name'] || '').trim().toLowerCase();
+        let selectedOp = String(filterOperator || '').trim().toLowerCase();
 
         let matchDate = !filterDate || itemDate === filterDate;
-        let matchOp = !filterOperator || filterOperator === '' || filterOperator === '-- ทุกพนักงาน (ทั้งหมด) --' || opName.toLowerCase() === filterOperator.toLowerCase();
+        let matchOp = !filterOperator || 
+                      selectedOp === '' || 
+                      selectedOp.includes('ทุกพนักงาน') || 
+                      selectedOp.includes('all') || 
+                      opName === selectedOp;
 
         return matchDate && matchOp;
     });
