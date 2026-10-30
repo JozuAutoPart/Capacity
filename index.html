@@ -497,7 +497,7 @@
         </div>
     </div>
 </div>
-    <!-- TAB 4: ACTUAL PRODUCTION -->
+ <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -549,59 +549,60 @@
                         </div>
                     </div>
 
-                    <!-- ช่องเลือกชื่อพนักงานแบบ Dropdown (เปลี่ยนจาก Input Text) -->
+                    <!-- ช่องเลือก/พิมพ์ชื่อพนักงาน (เปลี่ยนเป็น Input + Datalist ให้พิมพ์ได้) -->
                     <div class="mb-2">
                         <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
-                        <select id="actualOperator" class="form-select form-select-sm" required>
-                            <option value="">-- กรุณาเลือก Line ก่อน --</option>
-                    </select>
-                  </div>
+                        <input type="text" id="actualOperator" class="form-control form-control-sm" list="actualOperatorOptions" placeholder="-- เลือกหรือพิมพ์ชื่อพนักงาน --" required autocomplete="off">
+                        <datalist id="actualOperatorOptions">
+                            <!-- รายชื่อพนักงานจะถูกเติมอัตโนมัติจาก JavaScript -->
+                        </datalist>
+                    </div>
 
                     <div class="mb-2">
                         <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
                         <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" disabled required>
                             <option value="">-- กรุณาสแกนบาร์โค้ด Part No. --</option>
-                    </select>
-                  </div>
+                        </select>
+                    </div>
                     <!-- ช่องแสดงค่า CT (วินาที) แบบ Auto -->
                     <div class="mb-2">
                         <label class="form-label small text-warning fw-bold"><i class="fas fa-stopwatch me-1"></i> Cycle Time (CT วินาทีต่อชิ้น)</label>
                         <input type="text" id="actualCt" class="form-control form-control-sm bg-dark text-warning fw-bold" readonly placeholder="ดึงอัตโนมัติ">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
                         <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small">Lot No.</label>
                         <input type="text" id="actualLotNo" class="form-control form-control-sm" readonly placeholder="ดึงอัตโนมัติ">
-                  </div>
+                    </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-success">ยอดผลิตดี (OK Qty -> เพิ่มเข้า WIP)</label>
                             <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
-                      </div>
-                      <div class="col-6">
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
-                          <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                            <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                        </div>
                     </div>
-                  </div>
 
                     <!-- ส่วนบันทึกช่วงเวลา Downtime (เวลาเริ่ม-จบที่หยุด) -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-warning">เวลาเริ่มหยุด (From)</label>
-                          <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
-                      </div>
-                      <div class="col-6">
+                            <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small text-warning">เวลาจบที่หยุด (To)</label>
-                          <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
-                      </div>
-                  </div>
+                            <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
+                        </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
                       <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
