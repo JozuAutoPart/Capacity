@@ -2675,94 +2675,85 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-    // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
-    fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                actuals = res.data.map(a => {
-                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
-                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+  // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
+fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
+    .then(res => res.json())
+    .then(res => {
+        if (res.status === "success" && res.data) {
+            actuals = res.data.map(a => {
+                // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
+                const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+                
+                // 📌 ทำความสะอาดและแปลงรูปแบบวันที่จาก Google Sheets ให้เป็น YYYY-MM-DD เสมอ (ป้องกันวันเพี้ยน)
+                let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
+                let cleanDate = '';
+                
+                if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
+                    let dStr = String(rawDate).trim();
                     
-                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่จาก Google Sheets ให้เป็น YYYY-MM-DD เสมอ
-                    let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
-                    let cleanDate = '';
-                    
-                    if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
-                        let dStr = String(rawDate).trim();
-                        
-                        // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
-                        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
-                            let utcDays = Math.floor(Number(rawDate) - 25569);
-                            let utcValue = utcDays * 86400;
-                            let dateInfo = new Date(utcValue * 1000);
-                            cleanDate = dateInfo.toISOString().split('T')[0];
-                        } 
-                        // ถ้ามีเครื่องหมายสแลช (/) เช่น DD/MM/YYYY หรือ MM/DD/YYYY
-                        else if (dStr.includes('/')) {
-                            let parts = dStr.split('/');
-                            if (parts.length === 3) {
-                                if (Number(parts[0]) > 12) {
-                                    // รูปแบบ DD/MM/YYYY
-                                    cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                                } else {
-                                    // รูปแบบ MM/DD/YYYY หรือมาตรฐาน
-                                    cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
-                                }
+                    if (dStr.includes('T')) {
+                        cleanDate = dStr.split('T')[0];
+                    } else if (dStr.includes('-') && dStr.length >= 10) {
+                        cleanDate = dStr.substring(0, 10);
+                    } else if (dStr.includes('/')) {
+                        let parts = dStr.split('/');
+                        if (parts.length === 3) {
+                            if (Number(parts[0]) > 12) {
+                                // รูปแบบ DD/MM/YYYY -> YYYY-MM-DD
+                                cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                             } else {
-                                cleanDate = dStr.substring(0, 10);
+                                // รูปแบบ MM/DD/YYYY
+                                cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
                             }
-                        } 
-                        // ถ้ามีตัว T (ISO String)
-                        else if (dStr.includes('T')) {
-                            cleanDate = dStr.split('T')[0];
-                        } 
-                        else {
-                            let parsedDate = new Date(dStr);
-                            if (!isNaN(parsedDate.getTime())) {
-                                const localD = new Date(parsedDate.getTime() - (parsedDate.getTimezoneOffset() * 60000));
-                                cleanDate = localD.toISOString().split('T')[0];
-                            } else {
-                                cleanDate = dStr.substring(0, 10);
-                            }
+                        } else {
+                            cleanDate = dStr.substring(0, 10);
                         }
+                    } else if (!isNaN(rawDate) && Number(rawDate) > 30000) {
+                        // ถ้าเป็น Serial Number ของ Google Sheets
+                        let utcDays = Math.floor(Number(rawDate) - 25569);
+                        let utcValue = utcDays * 86400;
+                        let dateInfo = new Date(utcValue * 1000);
+                        cleanDate = dateInfo.toISOString().split('T')[0];
+                    } else {
+                        cleanDate = dStr.substring(0, 10);
                     }
+                }
+                
+                return {
+                    id: a.id || Date.now(),
+                    date: cleanDate, // 👈 ใช้งานวันที่ที่จัดรูปแบบเรียบร้อยแล้ว (ไม่เพี้ยน Timezone)
+                    operator: a.operator || a['OP Name'] || a.opName || '',
+                    line: a.line || a.Line || a['Line/MC'] || '',
+                    mcNo: a.mcNo || a['Machine No.'] || '',
+                    partNo: a.partNo || a['Part No.'] || '',
+                    lotNo: a.lotNo || a['Lot No.'] || '',
+                    qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                    ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
                     
-                    return {
-                        id: a.id || Date.now(),
-                        date: cleanDate, // 👈 ใช้งานวันที่ที่จัดรูปแบบเรียบร้อยแล้ว
-                        operator: a.operator || a['OP Name'] || a.opName || '',
-                        line: a.line || a.Line || a['Line/MC'] || '',
-                        mcNo: a.mcNo || a['Machine No.'] || '',
-                        partNo: a.partNo || a['Part No.'] || '',
-                        lotNo: a.lotNo || a['Lot No.'] || '',
-                        qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
-                        ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
-                        
-                        // ฟิลด์เวลาทำงาน
-                        "เวลาทำงาน": timeVal,
-                        timework: timeVal,
-                        TimeWork: timeVal,
-                        timeRange: timeVal,
-                        
-                        remark: a.remark || a.Remark || '-',
-                        dtStart: a.dtStart || a['DtStart'] || '',
-                        dtEnd: a.dtEnd || a['DtEnd'] || '',
-                        downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
-                        downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
-                        ct: Number(a.ct || a['CT'] || 6)
-                    };
-                });
+                    // ฟิลด์เวลาทำงาน
+                    "เวลาทำงาน": timeVal,
+                    timework: timeVal,
+                    TimeWork: timeVal,
+                    timeRange: timeVal,
+                    
+                    remark: a.remark || a.Remark || '-',
+                    dtStart: a.dtStart || a['DtStart'] || '',
+                    dtEnd: a.dtEnd || a['DtEnd'] || '',
+                    downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
+                    downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
+                    ct: Number(a.ct || a['CT'] || 6)
+                };
+            });
 
-                renderActuals();
-                renderDashboard();
-                if (typeof renderCapacity === 'function') { renderCapacity(); }
-                if (typeof renderStock === 'function') renderStock();
-                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-                if (typeof renderDiePM === 'function') renderDiePM();
-            }
-        })
-        .catch(err => console.error("Error loading actuals:", err));
+            renderActuals();
+            renderDashboard();
+            if (typeof renderCapacity === 'function') { renderCapacity(); }
+            if (typeof renderStock === 'function') renderStock();
+            if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+            if (typeof renderDiePM === 'function') renderDiePM();
+        }
+    })
+    .catch(err => console.error("Error loading actuals:", err));
 }
 
 // ==========================================
