@@ -2354,6 +2354,11 @@ function checkAndLoadPlans() {
     const lineSelect = document.getElementById('actualLine');
     if (!lineSelect) return;
     const line = lineSelect.value;
+    
+    // ดึงค่าวันที่ผลิตปัจจุบันจากหน้าฟอร์ม (รูปแบบ YYYY-MM-DD)
+    const productionDateEl = document.getElementById('productionDate');
+    const targetDate = productionDateEl ? productionDateEl.value : new Date().toISOString().split('T')[0];
+
     const selectPart = document.getElementById('actualPartNo');
     if (!selectPart) return;
     
@@ -2361,12 +2366,27 @@ function checkAndLoadPlans() {
 
     if (typeof plans === 'undefined' || !Array.isArray(plans)) return;
 
-    // 🛠️ ปรับแก้: ตัด / ออกทั้งสองฝั่งตอนเทียบ Line ป้องกันปัญหาหาแผนไม่เจอจนกลายเป็น "นอกแผน"
+    // 🛠️ กรองแผน: เช็กทั้ง Line และ วันที่ผลิตปัจจุบันต้องอยู่ในช่วง Start และ Finish ของแผนนั้นๆ
     const linePlans = plans.filter(p => {
         let pLineRaw = p.Line || p.line || '';
         let pLine = String(pLineRaw).split('/')[0].trim();
         let targetLine = String(line).split('/')[0].trim();
-        return pLine === targetLine;
+
+        // ดึงช่วงวันที่ของแผน Start และ Finish
+        let pStart = String(p["Start"] || p.date || '').trim().substring(0, 10);
+        let pFinish = String(p["Finish"] || p.finishDate || p["Start"] || '').trim().substring(0, 10);
+
+        let matchLine = (pLine === targetLine);
+        
+        // ถ้ามีข้อมูลช่วงวัน ให้เช็กว่า targetDate อยู่ในช่วง pStart ถึง pFinish หรือไม่
+        let matchDate = true;
+        if (pStart && pFinish) {
+            matchDate = (targetDate >= pStart && targetDate <= pFinish);
+        } else if (pStart) {
+            matchDate = (targetDate === pStart);
+        }
+
+        return matchLine && matchDate;
     });
 
     const alertBox = document.getElementById('actualAlert');
@@ -2375,7 +2395,7 @@ function checkAndLoadPlans() {
         if(alertBox) {
             alertBox.classList.remove('d-none');
             const alertTxt = document.getElementById('actualAlertText');
-            if (alertTxt) alertTxt.innerText = `ไม่มีแผนการผลิตสำหรับ ${line}`;
+            if (alertTxt) alertTxt.innerText = `ไม่มีแผนการผลิตสำหรับ ${line} ในวันที่ ${targetDate}`;
         }
     } else {
         if(alertBox) alertBox.classList.add('d-none');
@@ -2417,7 +2437,6 @@ function checkAndLoadPlans() {
     // กำหนดสถานะ disabled ตามการปลดล็อก
     selectPart.disabled = !isManualUnlocked;
 }
-
 // 📌 กำหนดรายชื่อพนักงานแยกตาม Line (พี่มิวสามารถปรับแก้หรือเพิ่มชื่อพนักงานได้ตามจริงตรงนี้ครับ)
 const lineOperatorsMap = {
     "Line A": ["ทอง ใจดี", "รัตนาภรณ์ แสนปาน", "Nang Shan Khit", "Myint Shwe Aye", "Htint Aung Lin"],
