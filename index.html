@@ -2426,7 +2426,7 @@ const lineOperatorsMap = {
     "Line C3": ["ภัทรภรณ์ ผิดสด", "Myint Win Chay", "จันจิรา นาสมคิด", "ปาณิสรา โคตรสขึง", "Maung Htel Aung","รัตนา แสงเจริญ","วันดี แซ่ฉั่น","ประนอม ขุมทอง", "เบ็ญจมาศ วงค์สิงห์", "สุกัญญา นาแถมนาค",],
 };
 
-// 📌 ฟังก์ชันเมื่อเปลี่ยน Line เครื่องจักร จะอัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติ
+// 📌 ฟังก์ชันเมื่อเปลี่ยน Line เครื่องจักร จะอัปเดตรายชื่อพนักงานและโหลดแผนของไลน์นั้นอัตโนมัติ
 function onActualLineChange() {
     const lineSel = document.getElementById('actualLine').value;
     const opDatalist = document.getElementById('actualOperatorOptions');
@@ -2453,6 +2453,11 @@ function onActualLineChange() {
         opt.value = name;
         opDatalist.appendChild(opt);
     });
+
+    // 📌 เพิ่มบรรทัดนี้: พอกดเปลี่ยน Line ปุ๊บ ให้สั่งโหลดแผนและพาร์ทของไลน์นั้นทันที
+    if (typeof checkAndLoadPlans === 'function') {
+        checkAndLoadPlans();
+    }
 }
 
 // 📌 ฟังก์ชันเมื่อเปลี่ยน Part No. จะดึง Lot No. และดึงค่า CT (วินาที) จาก Master ใน LocalStorage หรือ Global
