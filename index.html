@@ -2768,22 +2768,18 @@ function loadAllDataFromCloud() {
 // ==========================================
 // 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (รองรับ Filter วันที่ & พนักงานครบถ้วน)
 // ==========================================
-// ==========================================
-// 📌 ฟังก์ชันแสดงผลตารางประวัติการบันทึกการผลิต (ฉบับสมบูรณ์ ป้องกันตารางว่างตอน F5)
-// ==========================================
 function renderActuals() {
     const tbody = document.getElementById('actualTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // 📌 ดึงค่าจากช่องกรองวันที่ของตารางประวัติโดยตรง (ไอดี filterReportDate)
+    // 📌 ดึงค่าจากช่องกรองวันที่ของตารางประวัติ (filterReportDate)
     const dateInputEl = document.getElementById('filterReportDate') || document.getElementById('filterDate');
-    
     let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
     
-    // ถ้ายังไม่ได้เลือกวันที่เลย ให้ดึงค่าเริ่มต้นเป็นวันที่ 2026-10-30 หรือวันที่ล่าสุดที่มีข้อมูล
+    // ถ้ายังไม่ได้เลือก ให้กำหนดค่าเริ่มต้นเป็นวันที่ 2026-10-28 ตามข้อมูลล่าสุด
     if (!filterDate && dateInputEl) {
-        filterDate = '2026-10-30';
+        filterDate = '2026-10-28';
         dateInputEl.value = filterDate;
     }
 
@@ -2795,7 +2791,7 @@ function renderActuals() {
         return;
     }
 
-    // 📌 กรองข้อมูลตามวันที่และพนักงาน
+    // 📌 กรองข้อมูลตามวันที่และพนักงาน (เทียบข้อความวันที่ YYYY-MM-DD แบบตรงตัว)
     const filteredActuals = actuals.filter(a => {
         let rawDate = a.date || a['Date'] || '';
         let itemDate = '';
@@ -2823,24 +2819,12 @@ function renderActuals() {
         return;
     }
 
-    // 📌 จัดเรียงข้อมูล: เรียงวันที่ล่าสุดขึ้นก่อน และเรียงตามเวลาทำงานจากเช้าไปเย็น (Start Time)
+    // 📌 จัดเรียงข้อมูลตามเวลาทำงานจากเช้าไปเย็น (Start Time)
     const sortedActuals = [...filteredActuals].sort((a, b) => {
-        let rawA = a.date || a['Date'] || '';
-        let rawB = b.date || b['Date'] || '';
-        
-        let dateA = new Date(parseDateString ? parseDateString(rawA) : rawA);
-        let dateB = new Date(parseDateString ? parseDateString(rawB) : rawB);
-
-        if (dateB - dateA !== 0) {
-            return dateB - dateA; // เรียงตามวันที่
-        }
-
-        // ถ้าวันเดียวกัน ให้เรียงตามเวลาเริ่มต้น (Start Time) จากเช้า -> เย็น
         let timeA = String(a['เวลาทำงาน'] || a.timeWork || a.timeRange || '');
         let timeB = String(b['เวลาทำงาน'] || b.timeWork || b.timeRange || '');
         let startA = timeA.split('-')[0].trim();
         let startB = timeB.split('-')[0].trim();
-        
         return startA.localeCompare(startB);
     });
 
@@ -2852,13 +2836,8 @@ function renderActuals() {
         let displayDate = '';
         let rawDate = a.date || a['Date'] || '';
         if (rawDate) {
-            const d = new Date(rawDate);
-            if (!isNaN(d.getTime())) {
-                const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-                displayDate = localD.toISOString().split('T')[0];
-            } else {
-                displayDate = String(rawDate).substring(0, 10);
-            }
+            let dStr = String(rawDate).trim();
+            displayDate = dStr.includes('T') ? dStr.split('T')[0] : dStr.substring(0, 10);
         }
 
         const opval = a.operator || a['OP Name'] || '-';
