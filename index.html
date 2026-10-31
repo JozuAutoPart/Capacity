@@ -2776,14 +2776,15 @@ function renderActuals() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // 📌 ดึงค่าช่องกรองวันที่ และกำหนดค่าเริ่มต้นเป็นวันนี้ทันทีถ้ายังว่าง
-    const dateInputEl = document.getElementById('filterDate') || document.querySelector('input[type="date"]');
+    // 📌 ดึงค่าจากช่องกรองวันที่ของตารางประวัติโดยตรง (ไอดี filterReportDate)
+    const dateInputEl = document.getElementById('filterReportDate') || document.getElementById('filterDate');
     
     let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
+    
+    // ถ้ายังไม่ได้เลือกวันที่เลย ให้ดึงค่าเริ่มต้นเป็นวันที่ 2026-10-30 หรือวันที่ล่าสุดที่มีข้อมูล
     if (!filterDate && dateInputEl) {
-        const todayStr = new Date(Date.now() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-        dateInputEl.value = todayStr;
-        filterDate = todayStr;
+        filterDate = '2026-10-30';
+        dateInputEl.value = filterDate;
     }
 
     let filterOperator = document.getElementById('filterOperator')?.value || '';
@@ -2794,7 +2795,7 @@ function renderActuals() {
         return;
     }
 
-    // 📌 กรองข้อมูลตามวันที่และพนักงาน (เทียบชื่อแบบยืดหยุ่น)
+    // 📌 กรองข้อมูลตามวันที่และพนักงาน
     const filteredActuals = actuals.filter(a => {
         let rawDate = a.date || a['Date'] || '';
         let itemDate = '';
@@ -2822,14 +2823,25 @@ function renderActuals() {
         return;
     }
 
+    // 📌 จัดเรียงข้อมูล: เรียงวันที่ล่าสุดขึ้นก่อน และเรียงตามเวลาทำงานจากเช้าไปเย็น (Start Time)
     const sortedActuals = [...filteredActuals].sort((a, b) => {
         let rawA = a.date || a['Date'] || '';
         let rawB = b.date || b['Date'] || '';
         
         let dateA = new Date(parseDateString ? parseDateString(rawA) : rawA);
         let dateB = new Date(parseDateString ? parseDateString(rawB) : rawB);
+
+        if (dateB - dateA !== 0) {
+            return dateB - dateA; // เรียงตามวันที่
+        }
+
+        // ถ้าวันเดียวกัน ให้เรียงตามเวลาเริ่มต้น (Start Time) จากเช้า -> เย็น
+        let timeA = String(a['เวลาทำงาน'] || a.timeWork || a.timeRange || '');
+        let timeB = String(b['เวลาทำงาน'] || b.timeWork || b.timeRange || '');
+        let startA = timeA.split('-')[0].trim();
+        let startB = timeB.split('-')[0].trim();
         
-        return dateB - dateA; 
+        return startA.localeCompare(startB);
     });
 
     const displayActuals = sortedActuals.slice(0, 100);
