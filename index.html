@@ -5432,79 +5432,96 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-   // 2. ดึง Actuals
-    fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                actuals = res.data.map(a => {
-                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
-                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+// 2. ดึง Actuals
+fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
+    .then(res => res.json())
+    .then(res => {
+        if (res.status === "success" && res.data) {
+            actuals = res.data.map(a => {
+                // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
+                const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+                
+                // 📌 ทำความสะอาดและแปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ (ป้องกันวันเพี้ยนจาก Timezone)
+                let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
+                let cleanDate = '';
+                
+                if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
+                    let dStr = String(rawDate).trim();
                     
-                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ
-                    let rawDate = a.date || a.Date || '';
-                    let cleanDate = '';
-                    
-                    if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
-                        let dStr = String(rawDate).trim();
-                        
-                        // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
-                        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
-                            let utcDays = Math.floor(Number(rawDate) - 25569);
-                            let utcValue = utcDays * 86400;
-                            let dateInfo = new Date(utcValue * 1000);
-                            cleanDate = dateInfo.toISOString().split('T')[0];
-                        } 
-                        // ถ้ามีตัว T
-                        else if (dStr.includes('T')) {
-                            cleanDate = dStr.split('T')[0];
-                        } 
-                        else {
-                            let parsedDate = new Date(dStr);
-                            if (!isNaN(parsedDate.getTime())) {
-                                const localD = new Date(parsedDate.getTime() - (parsedDate.getTimezoneOffset() * 60000));
-                                cleanDate = localD.toISOString().split('T')[0];
+                    // ถ้ามีเครื่องหมาย T (ISO Format) ตัดเอาเฉพาะพาร์ทวันที่ด้านหน้าตรงๆ
+                    if (dStr.includes('T')) {
+                        cleanDate = dStr.split('T')[0];
+                    } 
+                    // ถ้ามีรูปแบบขีด - และความยาวพอดี (เช่น YYYY-MM-DD) ใช้ตรงๆ ได้เลย
+                    else if (dStr.includes('-') && dStr.length >= 10) {
+                        cleanDate = dStr.substring(0, 10);
+                    } 
+                    // ถ้ามีเครื่องหมายสแลช (/)
+                    else if (dStr.includes('/')) {
+                        let parts = dStr.split('/');
+                        if (parts.length === 3) {
+                            if (Number(parts[0]) > 12) {
+                                // รูปแบบ DD/MM/YYYY -> YYYY-MM-DD
+                                cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                             } else {
-                                cleanDate = dStr.substring(0, 10);
+                                // รูปแบบ MM/DD/YYYY -> YYYY-MM-DD
+                                cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
                             }
+                        } else {
+                            cleanDate = dStr.substring(0, 10);
                         }
+                    } 
+                    // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
+                    else if (!isNaN(rawDate) && Number(rawDate) > 30000) {
+                        let utcDays = Math.floor(Number(rawDate) - 25569);
+                        let utcValue = utcDays * 86400;
+                        let dateInfo = new Date(utcValue * 1000);
+                        // ดึงค่า UTC Date ตรงๆ เพื่อไม่ให้เวลาท้องถิ่นมาหักลบวันเพี้ยน
+                        let y = dateInfo.getUTCFullYear();
+                        let m = String(dateInfo.getUTCMonth() + 1).padStart(2, '0');
+                        let d = String(dateInfo.getUTCDate()).padStart(2, '0');
+                        cleanDate = `${y}-${m}-${d}`;
+                    } 
+                    else {
+                        cleanDate = dStr.substring(0, 10);
                     }
+                }
+                
+                return {
+                    id: a.id || Date.now(),
+                    date: cleanDate, // 👈 ใช้งานวันที่ที่แปลงและจัดรูปแบบเรียบร้อยแล้ว (ไม่เพี้ยนแน่นอน)
+                    operator: a.operator || a['OP Name'] || a.opName || '',
+                    line: a.line || a.Line || a['Line/MC'] || '',
+                    mcNo: a.mcNo || a['Machine No.'] || '',
+                    partNo: a.partNo || a['Part No.'] || '',
+                    lotNo: a.lotNo || a['Lot No.'] || '',
+                    qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                    ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
                     
-                    return {
-                        id: a.id || Date.now(),
-                        date: cleanDate, // 👈 ใช้งานวันที่ที่แปลงและจัดรูปแบบเรียบร้อยแล้ว
-                        operator: a.operator || a['OP Name'] || a.opName || '',
-                        line: a.line || a.Line || a['Line/MC'] || '',
-                        mcNo: a.mcNo || a['Machine No.'] || '',
-                        partNo: a.partNo || a['Part No.'] || '',
-                        lotNo: a.lotNo || a['Lot No.'] || '',
-                        qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
-                        ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
-                        
-                        // ฟิลด์เวลาทำงาน
-                        "เวลาทำงาน": timeVal,
-                        timework: timeVal,
-                        TimeWork: timeVal,
-                        timeRange: timeVal,
-                        
-                        remark: a.remark || a.Remark || '-',
-                        dtStart: a.dtStart || a['DtStart'] || '',
-                        dtEnd: a.dtEnd || a['DtEnd'] || '',
-                        downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
-                        downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
-                        ct: Number(a.ct || a['CT'] || 6)
-                    };
-                });
+                    // ฟิลด์เวลาทำงาน
+                    "เวลาทำงาน": timeVal,
+                    timework: timeVal,
+                    TimeWork: timeVal,
+                    timeRange: timeVal,
+                    
+                    remark: a.remark || a.Remark || '-',
+                    dtStart: a.dtStart || a['DtStart'] || '',
+                    dtEnd: a.dtEnd || a['DtEnd'] || '',
+                    downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
+                    downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
+                    ct: Number(a.ct || a['CT'] || 6)
+                };
+            });
 
-                renderActuals();
-                renderDashboard();
-                if (typeof renderCapacity === 'function') { renderCapacity(); }
-                if (typeof renderStock === 'function') renderStock();
-                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-                if (typeof renderDiePM === 'function') renderDiePM();
-            }
-        })
-        .catch(err => console.error("Error loading actuals:", err));
+            renderActuals();
+            renderDashboard();
+            if (typeof renderCapacity === 'function') { renderCapacity(); }
+            if (typeof renderStock === 'function') renderStock();
+            if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+            if (typeof renderDiePM === 'function') renderDiePM();
+        }
+    })
+    .catch(err => console.error("Error loading actuals:", err));
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
         .then(res => res.json())
