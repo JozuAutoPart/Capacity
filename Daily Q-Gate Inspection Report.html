@@ -243,15 +243,19 @@
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
-                    // 📌 ระบบค้นหาข้อความรายละเอียดอาการเสียอัตโนมัติจากทุกฟิลด์ใน item
+                   // 📌 ดึงเฉพาะฟิลด์อาการเสียจริงๆ เท่านั้น และตัดฟิลด์ที่เป็นเวลาออก
                     let ngDetail = '-';
-                    
-                    // 1. ลองเช็กจากชื่อฟิลด์ที่เป็นไปได้ทั้งหมด
                     let possibleKeys = ['ngDetail', 'ng_detail', 'ngReason', 'remark', 'defect', 'note', 'details', 'รายละเอียด / อาการเสีย', 'columnH', 'col_7'];
+                    
                     for (let key of possibleKeys) {
-                        if (item[key] && String(item[key]).trim() !== '' && String(item[key]).trim() !== '-') {
-                            ngDetail = String(item[key]).trim();
-                            break;
+                        let val = item[key];
+                        if (val !== undefined && val !== null) {
+                            let valStr = String(val).trim();
+                            // ตรวจสอบว่าต้องไม่ใช่ค่าว่าง, ไม่ใช่ขีด, และไม่ใช่รูปแบบเวลา (ไม่มีเครื่องหมาย :)
+                            if (valStr !== '' && valStr !== '-' && !valStr.includes(':')) {
+                                ngDetail = valStr;
+                                break;
+                            }
                         }
                     }
 
