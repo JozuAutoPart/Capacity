@@ -173,7 +173,7 @@
         </div>
     </div>
 
-    <script>
+  <script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date') || '';
@@ -200,7 +200,13 @@
 
             let qgateData = [];
             try {
-                let rawData = JSON.parse(localStorage.getItem('qgateReportData') || localStorage.getItem('qgate') || '[]');
+                // 📌 ดึงข้อมูลจากทุก LocalStorage Key ที่เป็นไปได้ เพื่อให้มั่นใจว่าข้อมูลไม่พลาด
+                let rawData = JSON.parse(
+                    localStorage.getItem('qgateReportData') || 
+                    localStorage.getItem('qgate') || 
+                    localStorage.getItem('qgate_logs') || 
+                    localStorage.getItem('qgateLogs') || '[]'
+                );
                 
                 qgateData = rawData.filter(q => {
                     let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
@@ -234,13 +240,13 @@
             } else {
                 qgateData.forEach((item, index) => {
                     let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
-                    let ng = Number(item.ngQty || item.ng || 0);
-                    let pass = Number(item.passQty || (qty - ng) || 0);
+                    let ng = Number(item.ngQty || item.ng || item.ngCount || 0);
+                    let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
-                    // 📌 ดึงค่ารายละเอียดของเสีย (NG Detail) ที่ติ๊กมาจากหน้าหลัก
-                    let ngDetail = item.ngDetail || item.ng_detail || item.remark || item.ngReason || '-';
-                    if (!ngDetail || ngDetail === '' || ngDetail === 'undefined') {
+                    // 📌 ปรับปรุงการดึงค่ารายละเอียดของเสีย (Column H / ngDetail) ให้ครอบคลุมทุกคีย์
+                    let ngDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || '-';
+                    if (!ngDetail || ngDetail === '' || ngDetail === 'undefined' || ngDetail === '-') {
                         ngDetail = '-';
                     }
 
