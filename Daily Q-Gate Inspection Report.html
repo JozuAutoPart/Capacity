@@ -243,14 +243,17 @@
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
-                    // 📌 ดึงค่ารายละเอียดของเสีย (Column H / ngDetail) รองรับทุกคีย์และ index ข้อมูล
-                    let ngDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item.col_7 || item.columnH || '-';
-                    if ((!ngDetail || ngDetail === '-' || ngDetail === 'undefined') && Array.isArray(item)) {
-                        ngDetail = item[7] || '-';
-                    }
-                    if (!ngDetail || ngDetail === '' || ngDetail === 'undefined') {
-                        ngDetail = '-';
-                    }
+                  // ดึงค่ารายละเอียดอาการเสีย (รองรับทั้งชื่อฟิลด์ และตำแหน่งคอลัมน์ H หรือ index ที่ 7)
+let ngDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item.col_7 || item.columnH || item['รายละเอียด / อาการเสีย'] || '-';
+
+// ถ้าข้อมูลถูกเก็บมาเป็นอาเรย์ (Array) คอลัมน์ H จะตรงกับ Index ที่ 7 พอดี
+if ((!ngDetail || ngDetail === '-' || ngDetail === 'undefined') && Array.isArray(item)) {
+    ngDetail = item[7] || '-';
+}
+
+if (!ngDetail || ngDetail === '' || ngDetail === 'undefined') {
+    ngDetail = '-';
+}
 
                     totalQty += qty;
                     totalPass += pass;
