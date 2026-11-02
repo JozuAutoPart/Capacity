@@ -234,7 +234,7 @@
 
             let totalQty = 0, totalPass = 0, totalNg = 0;
 
-            if (qgateData.length === 0) {
+          if (qgateData.length === 0) {
                 tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
             } else {
                 qgateData.forEach((item, index) => {
@@ -243,17 +243,13 @@
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
-                // 📌 ดึงค่าจากทุกชื่อฟิลด์ที่เป็นไปได้ รวมถึงชื่อภาษาไทยใน Google Sheets
+                    // 📌 ดึงค่ารายละเอียดของเสียจากทุกชื่อคีย์ที่เป็นไปได้ รวมถึงชื่อภาษาไทยใน Google Sheets
                     let ngDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item['รายละเอียด / อาการเสีย'] || '-';
                     
-                    // ถ้าข้อมูลมาเป็นอาเรย์ ให้ดึงตำแหน่ง index ที่ 7 (คอลัมน์ H)
-                    if ((!ngDetail || ngDetail === '-' || ngDetail === 'undefined') && Array.isArray(item)) {
-                        ngDetail = item[7] || '-';
-                    }
-
                     if (!ngDetail || ngDetail === '' || ngDetail === 'undefined') {
                         ngDetail = '-';
                     }
+
                     totalQty += qty;
                     totalPass += pass;
                     totalNg += ng;
