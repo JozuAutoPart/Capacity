@@ -242,23 +242,22 @@
                     let ng = Number(item.ngQty || item.ng || item.ngCount || 0);
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
-                    
-// 📌 ดึงเฉพาะค่าจากคอลัมน์ H หรือฟิลด์อาการเสียที่แท้จริงเท่านั้น
+// 📌 ดึงค่าอาการเสีย และตัดข้อความที่เป็นช่วงเวลาทิ้งทันที ห้ามนำมาแสดง
                     let ngDetail = '-';
                     
                     if (item) {
-                        // เช็กจากชื่อฟิลด์ที่เป็นอาการเสียโดยตรง
+                        // ดึงจากฟิลด์ที่เป็นไปได้ทั้งหมด
                         let rawDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item['รายละเอียด / อาการเสีย'] || item.columnH || item.col_7;
                         
                         if (rawDetail !== undefined && rawDetail !== null) {
                             let valStr = String(rawDetail).trim();
-                            // ต้องมีค่า, ไม่ใช่ขีด, และห้ามมีเครื่องหมายโคลัน (:) เพื่อป้องกันช่วงเวลา
-                            if (valStr !== '' && valStr !== '-' && !valStr.includes(':')) {
+                            
+                            // เงื่อนไขคัดกรอง: ต้องไม่ใช่ค่าว่าง, ไม่ใช่ขีด, ไม่มีเครื่องหมายโคลัน (:), และต้องไม่ตรงกับช่วงเวลาทำงาน (timeRange)
+                            if (valStr !== '' && valStr !== '-' && !valStr.includes(':') && valStr !== timeRange) {
                                 ngDetail = valStr;
                             }
                         }
                     }
-
                     // 2. ถ้ายังไม่เจอ ให้วนหาค่าที่เป็นข้อความ (String) ใน Object หรือ Array ที่ไม่ใช่ตัวเลข/วันที่/ชื่อพาร์ท/ชื่อพนักงาน
                     if (ngDetail === '-' && typeof item === 'object' && item !== null) {
                         let values = Object.values(item);
