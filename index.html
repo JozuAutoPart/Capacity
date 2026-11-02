@@ -2290,7 +2290,7 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
             masterData = masterBarcodes;
         }
 
-        // ค้นหาใน Master Barcode แบบ Exact Match (ป้องกันพาร์ทที่ขึ้นต้นคล้ายกันสลับกัน)
+        // ค้นหาใน Master Barcode แบบ Exact Match
         let matchedPartNo = "";
         let foundMaster = masterData.find(item => {
             let vals = Object.values(item);
@@ -2307,27 +2307,33 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
             matchedPartNo = searchCode || rawBarcode;
         }
 
+        // 📌 จุดสำคัญ: สั่งโหลดและอัปเดตแผนการผลิตของไลน์ปัจจุบันให้เรียบร้อยก่อนค้นหา
+        if (typeof checkAndLoadPlans === 'function') {
+            checkAndLoadPlans();
+        }
+
         // นำ Part No. ไปเลือกใน Dropdown ของแผนการผลิต
         const selectPart = document.getElementById('actualPartNo');
         let foundIndex = -1;
 
         if (selectPart) {
+            selectPart.disabled = false; // ปลดล็อกชั่วคราวเพื่อให้ระบบเลือกค่าได้
+
             for (let i = 0; i < selectPart.options.length; i++) {
                 const optVal = selectPart.options[i].value.trim().toUpperCase();
                 const optTxt = selectPart.options[i].text.trim().toUpperCase();
                 
-                if (optVal === matchedPartNo.toUpperCase() || optTxt.startsWith(matchedPartNo.toUpperCase())) {
+                // 🔍 ปรับเงื่อนไขให้ยืดหยุ่นขึ้น (เช็กทั้งค่าตรงกัน หรือข้อความมีรหัสพาร์ทนี้อยู่)
+                if (optVal === matchedPartNo.toUpperCase() || optTxt.includes(matchedPartNo.toUpperCase())) {
                     foundIndex = i;
                     break;
                 }
             }
 
-            selectPart.disabled = false;
-
             if (foundIndex !== -1) {
                 selectPart.selectedIndex = foundIndex;
             } else {
-                // กรณีไม่พบในแผน ให้เพิ่มเป็นตัวเลือก (นอกแผน)
+                // กรณีไม่พบในแผนจริงๆ ค่อยขึ้น (นอกแผน)
                 const newOpt = document.createElement('option');
                 newOpt.value = matchedPartNo;
                 newOpt.innerText = matchedPartNo + " (นอกแผน)";
