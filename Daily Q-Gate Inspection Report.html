@@ -241,12 +241,11 @@
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
-                    // 📌 ระบบดึงค่ารายละเอียดอาการเสียจากคอลัมน์ H (รองรับทั้งชื่อฟิลด์ภาษาอังกฤษ ภาษาไทย และ Array Index ที่ 7)
+                   // 📌 ดึงเฉพาะคอลัมน์ H หรือฟิลด์อาการเสียตรงๆ เท่านั้น (ห้ามดึงตัวเลขหรือเวลามาแสดง)
                     let ngDetail = '-';
                     if (item) {
                         let rawDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item['รายละเอียด / อาการเสีย'] || item.columnH || item.col_7;
                         
-                        // ถ้ายังไม่เจอ ให้ลองดึงจาก Index ที่ 7 (กรณีเก็บเป็น Array) หรือเช็กจาก Key ใน Object
                         if (!rawDetail && Array.isArray(item)) {
                             rawDetail = item[7];
                         } else if (!rawDetail && typeof item === 'object') {
@@ -258,8 +257,8 @@
 
                         if (rawDetail !== undefined && rawDetail !== null) {
                             let valStr = String(rawDetail).trim();
-                            // ตรวจสอบความถูกต้อง: ต้องมีค่า, ไม่ใช่ขีด, และห้ามเอาช่วงเวลามาแสดงเด็ดขาด
-                            if (valStr !== '' && valStr !== '-' && !valStr.includes(':') && valStr !== timeRange) {
+                            // เงื่อนไขเข้มงวด: ต้องไม่ใช่ค่าว่าง, ไม่ใช่ขีด, ห้ามมีโคลัน (:), และต้องไม่ใช่ตัวเลขล้วนๆ
+                            if (valStr !== '' && valStr !== '-' && !valStr.includes(':') && isNaN(valStr)) {
                                 ngDetail = valStr;
                             }
                         }
