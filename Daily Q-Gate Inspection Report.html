@@ -179,7 +179,6 @@
             const paramDate = urlParams.get('date') || '';
             const paramInspector = urlParams.get('inspector') || '';
 
-            // 📌 บวกเพิ่ม 1 วันเฉพาะหัวกระดาษแสดงผล
             let displayDate = paramDate;
             let targetDate = String(paramDate).trim();
 
@@ -187,7 +186,7 @@
                 let parts = targetDate.split('T')[0].split('-');
                 if (parts.length === 3) {
                     let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                    d.setDate(d.getDate() + 1); // บวกเพิ่ม 1 วัน
+                    d.setDate(d.getDate() + 1);
                     let y = d.getFullYear();
                     let m = String(d.getMonth() + 1).padStart(2, '0');
                     let day = String(d.getDate()).padStart(2, '0');
@@ -210,7 +209,6 @@
                 qgateData = rawData.filter(q => {
                     let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
                     let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || '').trim();
-
                     let targetIns = String(paramInspector).trim();
 
                     let matchDate = !targetDate || qDate === targetDate;
@@ -234,7 +232,7 @@
 
             let totalQty = 0, totalPass = 0, totalNg = 0;
 
-          if (qgateData.length === 0) {
+            if (qgateData.length === 0) {
                 tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
             } else {
                 qgateData.forEach((item, index) => {
@@ -242,31 +240,27 @@
                     let ng = Number(item.ngQty || item.ng || item.ngCount || 0);
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
-// 📌 ดึงค่าอาการเสีย และตัดข้อความที่เป็นช่วงเวลาทิ้งทันที ห้ามนำมาแสดง
+
+                    // 📌 ระบบดึงค่ารายละเอียดอาการเสียจากคอลัมน์ H (รองรับทั้งชื่อฟิลด์ภาษาอังกฤษ ภาษาไทย และ Array Index ที่ 7)
                     let ngDetail = '-';
-                    
                     if (item) {
-                        // ดึงจากฟิลด์ที่เป็นไปได้ทั้งหมด
                         let rawDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item['รายละเอียด / อาการเสีย'] || item.columnH || item.col_7;
                         
-                        if (rawDetail !== undefined && rawDetail !== null) {
-                            let valStr = String(rawDetail).trim();
-                            
-                            // เงื่อนไขคัดกรอง: ต้องไม่ใช่ค่าว่าง, ไม่ใช่ขีด, ไม่มีเครื่องหมายโคลัน (:), และต้องไม่ตรงกับช่วงเวลาทำงาน (timeRange)
-                            if (valStr !== '' && valStr !== '-' && !valStr.includes(':') && valStr !== timeRange) {
-                                ngDetail = valStr;
+                        // ถ้ายังไม่เจอ ให้ลองดึงจาก Index ที่ 7 (กรณีเก็บเป็น Array) หรือเช็กจาก Key ใน Object
+                        if (!rawDetail && Array.isArray(item)) {
+                            rawDetail = item[7];
+                        } else if (!rawDetail && typeof item === 'object') {
+                            let keys = Object.keys(item);
+                            if (keys.length > 7) {
+                                rawDetail = item[keys[7]];
                             }
                         }
-                    }
-                    // 2. ถ้ายังไม่เจอ ให้วนหาค่าที่เป็นข้อความ (String) ใน Object หรือ Array ที่ไม่ใช่ตัวเลข/วันที่/ชื่อพาร์ท/ชื่อพนักงาน
-                    if (ngDetail === '-' && typeof item === 'object' && item !== null) {
-                        let values = Object.values(item);
-                        for (let val of values) {
-                            let valStr = String(val).trim();
-                            // ถ้ามีความยาว และไม่ใช่ตัวเลขล้วน, ไม่ใช่วันที่, ไม่ใช่รหัสพาร์ท/พนักงาน
-                            if (valStr.length > 0 && isNaN(valStr) && !valStr.includes('2026-') && valStr !== item.partNo && valStr !== item.inspector) {
+
+                        if (rawDetail !== undefined && rawDetail !== null) {
+                            let valStr = String(rawDetail).trim();
+                            // ตรวจสอบความถูกต้อง: ต้องมีค่า, ไม่ใช่ขีด, และห้ามเอาช่วงเวลามาแสดงเด็ดขาด
+                            if (valStr !== '' && valStr !== '-' && !valStr.includes(':') && valStr !== timeRange) {
                                 ngDetail = valStr;
-                                break;
                             }
                         }
                     }
