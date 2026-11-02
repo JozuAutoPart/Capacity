@@ -242,19 +242,19 @@
                     let ng = Number(item.ngQty || item.ng || item.ngCount || 0);
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
-
-                   // 📌 ดึงเฉพาะฟิลด์อาการเสียจริงๆ เท่านั้น และตัดฟิลด์ที่เป็นเวลาออก
-                    let ngDetail = '-';
-                    let possibleKeys = ['ngDetail', 'ng_detail', 'ngReason', 'remark', 'defect', 'note', 'details', 'รายละเอียด / อาการเสีย', 'columnH', 'col_7'];
                     
-                    for (let key of possibleKeys) {
-                        let val = item[key];
-                        if (val !== undefined && val !== null) {
-                            let valStr = String(val).trim();
-                            // ตรวจสอบว่าต้องไม่ใช่ค่าว่าง, ไม่ใช่ขีด, และไม่ใช่รูปแบบเวลา (ไม่มีเครื่องหมาย :)
+// 📌 ดึงเฉพาะค่าจากคอลัมน์ H หรือฟิลด์อาการเสียที่แท้จริงเท่านั้น
+                    let ngDetail = '-';
+                    
+                    if (item) {
+                        // เช็กจากชื่อฟิลด์ที่เป็นอาการเสียโดยตรง
+                        let rawDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item['รายละเอียด / อาการเสีย'] || item.columnH || item.col_7;
+                        
+                        if (rawDetail !== undefined && rawDetail !== null) {
+                            let valStr = String(rawDetail).trim();
+                            // ต้องมีค่า, ไม่ใช่ขีด, และห้ามมีเครื่องหมายโคลัน (:) เพื่อป้องกันช่วงเวลา
                             if (valStr !== '' && valStr !== '-' && !valStr.includes(':')) {
                                 ngDetail = valStr;
-                                break;
                             }
                         }
                     }
