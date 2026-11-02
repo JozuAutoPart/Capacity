@@ -508,7 +508,8 @@
 "250-04T":0.6,
 "LT-25RT-15U-TTT":0.6,
     };
-function getEmbeddedCT(rawPartNo) {
+
+     function getEmbeddedCT(rawPartNo) {
         if (!rawPartNo) return 0;
         let cleanPart = String(rawPartNo).split(' ')[0].trim().toUpperCase();
         
@@ -600,9 +601,6 @@ function getEmbeddedCT(rawPartNo) {
                 totalNg += ngQty;
 
                 let remark = (item.remark && item.remark !== '-') ? item.remark.trim() : '';
-                
-                // 📌 ดึงรายละเอียดอาการเสีย (ngDetail) มาแสดงผล (ครอบคลุมทั้ง ngDetail, ng_detail, defect, remark)
-                let ngDetailVal = item.ngDetail || item.ng_detail || item.defect || remark || '-';
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -644,7 +642,7 @@ function getEmbeddedCT(rawPartNo) {
                 }
 
                 if (ngQty > 0) {
-                    let defectDesc = (ngDetailVal !== '-' && ngDetailVal !== '') ? ngDetailVal : 'งานเสียจากการผลิต';
+                    let defectDesc = remark !== '' ? remark : 'งานเสียจากการผลิต';
                     ngRowsHtml += `
                         <tr>
                             <td style="text-align: left; padding-left: 8px;"><b>${rawPartNo}</b></td>
