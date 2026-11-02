@@ -1449,9 +1449,9 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         monthlyNgArr[monthIndex] += Number(rawNg) || 0;
     });
 
-    // 4. ดึงยอดเฉพาะ "เดือนปัจจุบัน" ตาม Line ที่เลือกมาแสดงในการ์ดขวามือ
-    let currentMonthProd = monthlyProdArr[currentMonthIndex] > 0 ? monthlyProdArr[currentMonthIndex] : totalProduction;
-    let currentMonthNg = monthlyNgArr[currentMonthIndex]; // ยอดของเสียที่กรองตามพาร์ท/ไลน์แล้ว
+   // 4. ดึงยอดเฉพาะ "เดือนปัจจุบัน" ตาม Line ที่เลือกมาแสดงในการ์ดขวามือ (บังคับใช้ข้อมูลของเดือนปัจจุบันตรงๆ หากยังไม่มีการสแกน ให้เป็น 0 ทันที)
+let currentMonthProd = monthlyProdArr[currentMonthIndex] || 0;
+let currentMonthNg = monthlyNgArr[currentMonthIndex] || 0;
 
     const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
 
