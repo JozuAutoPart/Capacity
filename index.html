@@ -1403,16 +1403,25 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         return aline === String(currentFilterLine).trim();
     }) : [];
 
-    filteredActuals.forEach(a => {
+   filteredActuals.forEach(a => {
         let aPart = String(a["Part No."] || a.partNo || '').trim();
         if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
 
         let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
-        let monthIndex = currentMonthIndex;
-        if (dateVal) {
-            let d = new Date(dateVal);
-            if (!isNaN(d.getTime())) monthIndex = d.getMonth();
-        }
+        
+        // ❌ ถ้าไม่มีฟิลด์วันที่ ให้ข้ามทันที (ป้องกันไม่ให้ไปกองรวมที่เดือนปัจจุบัน)
+        if (!dateVal) return; 
+
+        let d = new Date(dateVal);
+        // ❌ ถ้าแปลงวันที่ไม่สำเร็จ ให้ข้ามทันที
+        if (isNaN(d.getTime())) return; 
+
+        let monthIndex = d.getMonth();
+        let itemYear = d.getFullYear();
+        let currentYear = new Date().getFullYear();
+
+        // (แนะนำ) เช็คเพิ่มด้วยว่าเป็นปีปัจจุบันไหม ถ้าเป็นปีเก่า (เช่น ปีที่แล้ว) ให้ข้ามด้วย เพื่อไม่ให้ยอดปีเก่ามารบกวน
+        if (itemYear !== currentYear) return;
 
         let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
         monthlyProdArr[monthIndex] += Number(rawQty) || 0;
