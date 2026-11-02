@@ -243,11 +243,29 @@
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
-                    // 📌 ดึงค่ารายละเอียดของเสียจากทุกชื่อคีย์ที่เป็นไปได้ รวมถึงชื่อภาษาไทยใน Google Sheets
-                    let ngDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item['รายละเอียด / อาการเสีย'] || '-';
+                    // 📌 ระบบค้นหาข้อความรายละเอียดอาการเสียอัตโนมัติจากทุกฟิลด์ใน item
+                    let ngDetail = '-';
                     
-                    if (!ngDetail || ngDetail === '' || ngDetail === 'undefined') {
-                        ngDetail = '-';
+                    // 1. ลองเช็กจากชื่อฟิลด์ที่เป็นไปได้ทั้งหมด
+                    let possibleKeys = ['ngDetail', 'ng_detail', 'ngReason', 'remark', 'defect', 'note', 'details', 'รายละเอียด / อาการเสีย', 'columnH', 'col_7'];
+                    for (let key of possibleKeys) {
+                        if (item[key] && String(item[key]).trim() !== '' && String(item[key]).trim() !== '-') {
+                            ngDetail = String(item[key]).trim();
+                            break;
+                        }
+                    }
+
+                    // 2. ถ้ายังไม่เจอ ให้วนหาค่าที่เป็นข้อความ (String) ใน Object หรือ Array ที่ไม่ใช่ตัวเลข/วันที่/ชื่อพาร์ท/ชื่อพนักงาน
+                    if (ngDetail === '-' && typeof item === 'object' && item !== null) {
+                        let values = Object.values(item);
+                        for (let val of values) {
+                            let valStr = String(val).trim();
+                            // ถ้ามีความยาว และไม่ใช่ตัวเลขล้วน, ไม่ใช่วันที่, ไม่ใช่รหัสพาร์ท/พนักงาน
+                            if (valStr.length > 0 && isNaN(valStr) && !valStr.includes('2026-') && valStr !== item.partNo && valStr !== item.inspector) {
+                                ngDetail = valStr;
+                                break;
+                            }
+                        }
                     }
 
                     totalQty += qty;
