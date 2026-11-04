@@ -2531,13 +2531,30 @@ function onActualPartChange() {
     }
 }
 // ฟังก์ชันบันทึกข้อมูลการผลิต (submitActual)
+// ฟังก์ชันบันทึกข้อมูลการผลิต (submitActual)
 function submitActual(e) {
     e.preventDefault();
+    
+    // 📌 ป้องกันการกดซ้ำ: ล็อกปุ่มทันทีที่กดส่ง
+    const submitBtn = document.getElementById('btnSubmitActual');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+    }
+
+    // ฟังก์ชันช่วยคืนค่าสถานะปุ่มเดิม
+    const resetButton = () => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต';
+        }
+    };
     
     // 1. ดึงค่า Part No. หลัก และ Process
     const basePartNo = document.getElementById('actualPartNo').value;
     if (!basePartNo) {
         alert("⚠️ กรุณาสแกนบาร์โค้ดเลือก Part No. ก่อนทำการบันทึก");
+        resetButton(); // คืนค่าปุ่มเมื่อติด alert
         return;
     }
 
@@ -2616,6 +2633,7 @@ function submitActual(e) {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) {
         alert("ไม่พบ GOOGLE_SCRIPT_URL");
+        resetButton(); // คืนค่าปุ่ม
         return;
     }
 
@@ -2625,6 +2643,7 @@ function submitActual(e) {
     })
     .then(response => response.json())
     .then(result => {
+        resetButton(); // คืนค่าปุ่มเมื่อทำงานเสร็จ
         if (result.status === "success") {
             if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                 actuals.unshift(actual);
@@ -2666,6 +2685,7 @@ function submitActual(e) {
         }
     })
     .catch(error => {
+        resetButton(); // คืนค่าปุ่มเมื่อเกิดข้อผิดพลาด
         console.error('Error:', error);
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
