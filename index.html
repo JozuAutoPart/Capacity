@@ -2534,10 +2534,75 @@ function onActualPartChange() {
 function submitActual(e) {
     e.preventDefault();
     
-    // 1. ดึงค่า Part No. หลัก และ Process
+    // 🛠️ ตรวจสอบก่อนเลยว่ามีการกรอกข้อมูลกิจกรรมอื่นๆ / Downtime มาหรือไม่
+    const dtStart = document.getElementById('actualDtStart')?.value || '';
+    const dtEnd = document.getElementById('actualDtEnd')?.value || '';
+    const downtimeCode = document.getElementById('actualDowntimeCode')?.value || '';
+    const remarkVal = document.getElementById('actualRemark') ? document.getElementById('actualRemark').value.trim() : '';
+
+    // ถ้ามีการเลือกช่วงเวลาและรหัส Downtime ให้บันทึกเฉพาะส่วนนี้ได้ทันที โดยไม่ต้องสน Part No. ด้านบน
+    if (dtStart && dtEnd && downtimeCode) {
+        let sMin = timeToMinutes(dtStart);
+        let eMin = timeToMinutes(dtEnd);
+        let downtimeMins = eMin >= sMin ? (eMin - sMin) : (1440 - sMin + eMin);
+
+        // 🗓️ ดึงวันที่ตามเวลาท้องถิ่น
+        const now = new Date();
+        const localDateStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        const formDateVal = document.getElementById('actualDate') ? document.getElementById('actualDate').value : '';
+        const finalDate = formDateVal ? formDateVal : localDateStr;
+
+        const downtimePayload = {
+            date: finalDate,
+            operator: document.getElementById('actualOperator').value.trim(),
+            line: document.getElementById('actualLine').value,
+            startTime: dtStart,
+            endTime: dtEnd,
+            activityType: downtimeCode,
+            remark: remarkVal,
+            durationMinutes: downtimeMins
+        };
+
+        const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+        if (!scriptUrl) {
+            alert("ไม่พบ GOOGLE_SCRIPT_URL");
+            return;
+        }
+
+        // ส่งข้อมูล Downtime ไปบันทึกที่ Apps Script (หรือบันทึกลง LocalStorage ตามโครงสร้างของพี่มิว)
+        fetch(scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'saveDowntime', data: downtimePayload })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === "success") {
+                // รีเซ็ตเฉพาะฟอร์ม Downtime
+                if (document.getElementById('actualDtStart')) document.getElementById('actualDtStart').value = '';
+                if (document.getElementById('actualDtEnd')) document.getElementById('actualDtEnd').value = '';
+                if (document.getElementById('actualDowntimeCode')) document.getElementById('actualDowntimeCode').value = '';
+                if (document.getElementById('actualRemark')) document.getElementById('actualRemark').value = '';
+
+                if (typeof checkAndLoadPlans === 'function') checkAndLoadPlans();
+                alert("บันทึกกิจกรรมอื่นๆ สำเร็จ!");
+            } else {
+                alert("บันทึกไม่สำเร็จ: " + result.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        });
+
+        return; // ตัดจบการทำงานตรงนี้เลย ไม่ต้องไปเช็ก Part No. ด้านล่างต่อ
+    }
+
+    // ==========================================
+    // 📌 โค้ดเดิม: สำหรับกรณีบันทึกผลการผลิตปกติ (ที่ต้องเช็ก Part No.)
+    // ==========================================
     const basePartNo = document.getElementById('actualPartNo').value;
     if (!basePartNo) {
-        alert("⚠️ กรุณาสแกนบาร์โค้ดเลือก Part No. ก่อนทำการบันทึก");
+        alert("⚠️ กรุณาสแกนบาร์โค้ดเลือก Part No. ก่อนทำการบันทึก (หรือกรอกข้อมูล Downtime ด้านล่างเพื่อบันทึกกิจกรรมอื่นๆ)");
         return;
     }
 
@@ -2570,18 +2635,6 @@ function submitActual(e) {
     const formDateVal = document.getElementById('actualDate') ? document.getElementById('actualDate').value : '';
     const finalDate = formDateVal ? formDateVal : localDateStr;
     
-    // 🛠️ ดึงช่วงเวลา Downtime (เวลาเริ่ม - เวลาจบ) และคำนวณนาทีอัตโนมัติ
-    const dtStart = document.getElementById('actualDtStart')?.value || '';
-    const dtEnd = document.getElementById('actualDtEnd')?.value || '';
-    const downtimeCode = document.getElementById('actualDowntimeCode')?.value || '';
-
-    let downtimeMins = 0;
-    if (dtStart && dtEnd) {
-        let sMin = timeToMinutes(dtStart);
-        let eMin = timeToMinutes(dtEnd);
-        downtimeMins = eMin >= sMin ? (eMin - sMin) : (1440 - sMin + eMin);
-    }
-
     // ⏱️ ดึงค่า CT
     let ctVal = 6;
     const ctInputVal = document.getElementById('actualCt')?.value;
@@ -2605,10 +2658,10 @@ function submitActual(e) {
         timeRange: timeRange,
         timework: timeRange,
         remark: document.getElementById('actualRemark') ? document.getElementById('actualRemark').value.trim() : '',
-        dtStart: dtStart,
-        dtEnd: dtEnd,
-        downtimeMins: downtimeMins,
-        downtimeCode: downtimeCode,
+        dtStart: '',
+        dtEnd: '',
+        downtimeMins: 0,
+        downtimeCode: '',
         ct: ctVal
     };
 
@@ -2653,9 +2706,6 @@ function submitActual(e) {
             if (document.getElementById('actualDate')) {
                 document.getElementById('actualDate').value = new Date(resetNow.getTime() - (resetNow.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
             }
-            if (document.getElementById('actualDtStart')) document.getElementById('actualDtStart').value = '';
-            if (document.getElementById('actualDtEnd')) document.getElementById('actualDtEnd').value = '';
-            if (document.getElementById('actualDowntimeCode')) document.getElementById('actualDowntimeCode').value = '';
             
             checkAndLoadPlans();
             renderActuals();
