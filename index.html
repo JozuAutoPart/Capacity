@@ -4778,7 +4778,7 @@ function renderDiePM() {
 
     // ฟังก์ชันค้นหา PM Limit จาก MasterParts โดยเช็คจากคอลัมน์ R (index 17) หรือชื่อคีย์ PM Limit
     const getPmLimitForPart = (pNo) => {
-        if (!pNo) return 40000;
+        if (!pNo) return 100000;
         
         let targetClean = cleanP(pNo);
         let foundMaster = null;
