@@ -1567,15 +1567,23 @@ let currentMonthNg = monthlyNgArr[currentMonthIndex] || 0;
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (รองรับดึงยอด Balance ยกมาข้ามเดือนอัตโนมัติ)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (รองรับดึงยอด Balance ยกมาข้ามเดือนอัตโนมัติ และอัปเดตเดือนปัจจุบันอัตโนมัติ)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
         const headerRow = document.getElementById('thTableHeader');
         if (!tbody || !headerRow) return;
 
-        // 1. ดึงเดือนที่เลือก (เช่น '2026-10')
+        // 1. ดึงเดือนที่เลือก หากยังไม่ได้เลือก ให้เซ็ตค่าเริ่มต้นเป็นเดือนปัจจุบัน (YYYY-MM) อัตโนมัติ
         const monthSelect = document.getElementById('thMonthSelect');
+        
+        if (monthSelect && !monthSelect.value) {
+            const nowInit = new Date();
+            const initY = nowInit.getFullYear();
+            const initM = String(nowInit.getMonth() + 1).padStart(2, '0');
+            monthSelect.value = `${initY}-${initM}`;
+        }
+
         const selectedYearMonth = monthSelect ? monthSelect.value : '2026-10';
         const parts = selectedYearMonth.split('-');
         let year = parseInt(parts[0]) || 2026;
