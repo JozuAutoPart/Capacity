@@ -6678,6 +6678,7 @@ document.addEventListener('keypress', function(e) {
 });
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมโยงสูตรสต็อกตรงกับหน้า Stock WIP & FG)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมโยงสูตรสต็อกตรงกับหน้า Stock WIP & FG พร้อมนับจำนวนวันที่ขาด)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -6713,6 +6714,7 @@ document.addEventListener('keypress', function(e) {
             }
 
             let lowStockList = [];
+            const todayStr = new Date().toISOString().split('T')[0]; // วันที่ปัจจุบันรูปแบบ YYYY-MM-DD
 
             masterDb.forEach(m => {
                 let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
@@ -6763,7 +6765,6 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // ถ้าไม่มี wipOuts แยก ให้ใช้ qgate แทน
                 const totalTransferred = qgate.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6787,18 +6788,38 @@ document.addEventListener('keypress', function(e) {
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG ตามสูตรมาตรฐานเดียวกับหน้า Stock WIP & FG
+                // 5. คำนวณยอดคงเหลือ WIP และ FG ตามสูตรมาตรฐาน
                 const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
                 const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
+                // 📌 ระบบติดตามจำนวนวันที่ต่ำกว่า Min ต่อเนื่อง
+                let storageKey = `low_stock_since_${partNo}`;
+                let firstLowDate = localStorage.getItem(storageKey);
+
                 if (totalStock < minVal) {
+                    // ถ้าพึ่งเริ่มต่ำกว่า Min และยังไม่มีบันทึกวันที่ ให้บันทึกวันที่ปัจจุบันเป็นวันเริ่มต้น
+                    if (!firstLowDate) {
+                        firstLowDate = todayStr;
+                        localStorage.setItem(storageKey, firstLowDate);
+                    }
+                    
+                    // คำนวณหาจำนวนวันที่ผ่านมา (แปลงเป็นจำนวนเต็มวัน)
+                    let diffTime = Math.abs(new Date(todayStr) - new Date(firstLowDate));
+                    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // นับวันแรกเป็น 1 วัน
+
                     lowStockList.push({
                         partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
-                        min: minVal
+                        min: minVal,
+                        days: diffDays
                     });
+                } else {
+                    // ถ้า Stock กลับมาปกติแล้ว ให้ลบประวัติวันออก เพื่อให้เริ่มนับใหม่รอบหน้าถ้ากลับมาต่ำกว่า Min อีก
+                    if (firstLowDate) {
+                        localStorage.removeItem(storageKey);
+                    }
                 }
             });
 
@@ -6817,14 +6838,14 @@ document.addEventListener('keypress', function(e) {
                 : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
-                // 📌 ตัดจุดทศนิยมออกด้วย Math.round() ให้เหลือแต่จำนวนเต็ม
                 let cleanStock = Math.round(item.stock).toLocaleString();
                 let cleanMin = Math.round(item.min).toLocaleString();
 
                 return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
                             <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${cleanStock} / Min: ${cleanMin}</span>
+                            <span class="badge bg-danger text-white ms-1 fw-bold"><i class="fas clock me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>
+                            <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
                         </span>`;
             }).join('');
 
