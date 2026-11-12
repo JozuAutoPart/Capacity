@@ -6678,7 +6678,7 @@ document.addEventListener('keypress', function(e) {
 });
 
 // ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมโยงสูตรสต็อกตรงกับหน้า Stock WIP & FG)
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมโยงสูตรสต็อกตรงกับหน้า Stock WIP & FG พร้อมนับจำนวนวันที่ขาด)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (แยกสถานะการกดตาม Line ใคร Line มัน)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -6714,7 +6714,7 @@ document.addEventListener('keypress', function(e) {
             }
 
             let lowStockList = [];
-            const todayStr = new Date().toISOString().split('T')[0]; // วันที่ปัจจุบันรูปแบบ YYYY-MM-DD
+            const todayStr = new Date().toISOString().split('T')[0];
 
             masterDb.forEach(m => {
                 let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
@@ -6747,7 +6747,6 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals)
                 const totalIn = actuals.filter(a => {
                     let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6756,7 +6755,6 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 2. คำนวณยอดตัดออกไป FG / ผ่านตรวจสอบ (WIP Out / Q-Gate Passed)
                 const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : []).filter(w => {
                     let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6775,7 +6773,6 @@ document.addEventListener('keypress', function(e) {
 
                 const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries)
                 const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6784,29 +6781,24 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 4. Manual Adjustment
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG ตามสูตรมาตรฐาน
                 const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
                 const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
-                // 📌 ระบบติดตามจำนวนวันที่ต่ำกว่า Min ต่อเนื่อง
                 let storageKey = `low_stock_since_${partNo}`;
                 let firstLowDate = localStorage.getItem(storageKey);
 
                 if (totalStock < minVal) {
-                    // ถ้าพึ่งเริ่มต่ำกว่า Min และยังไม่มีบันทึกวันที่ ให้บันทึกวันที่ปัจจุบันเป็นวันเริ่มต้น
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
-                    // คำนวณหาจำนวนวันที่ผ่านมา (แปลงเป็นจำนวนเต็มวัน)
                     let diffTime = Math.abs(new Date(todayStr) - new Date(firstLowDate));
-                    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // นับวันแรกเป็น 1 วัน
+                    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
                     lowStockList.push({
                         partNo: rawPartNo,
@@ -6816,7 +6808,6 @@ document.addEventListener('keypress', function(e) {
                         days: diffDays
                     });
                 } else {
-                    // ถ้า Stock กลับมาปกติแล้ว ให้ลบประวัติวันออก เพื่อให้เริ่มนับใหม่รอบหน้าถ้ากลับมาต่ำกว่า Min อีก
                     if (firstLowDate) {
                         localStorage.removeItem(storageKey);
                     }
@@ -6841,10 +6832,21 @@ document.addEventListener('keypress', function(e) {
                 let cleanStock = Math.round(item.stock).toLocaleString();
                 let cleanMin = Math.round(item.min).toLocaleString();
 
-                return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
-                            <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
+                // 📌 แยก Key ตามชื่อ Line และ Part No. (ใครไลน์มันอย่างแท้จริง)
+                let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
+                let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
+                let isProducing = localStorage.getItem(storageKey) === 'true';
+
+                let bgStyle = isProducing ? 'background-color: #0f2d1e !important; border-color: #198754 !important;' : 'background-color: #2b0c0c !important;';
+                let statusBadge = isProducing ? 
+                    `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
+                    `<span class="badge bg-danger text-white ms-1 fw-bold"><i class="fas clock me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
+
+                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
+                            <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
+                            <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-danger text-white ms-1 fw-bold"><i class="fas clock me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>
+                            ${statusBadge}
                             <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
                         </span>`;
             }).join('');
@@ -6858,6 +6860,7 @@ document.addEventListener('keypress', function(e) {
                     <h6 class="text-danger fw-bold mb-2">
                         <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                         <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
+                        <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. ของแต่ละ Line เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
                         ${badgesHtml}
@@ -6865,6 +6868,29 @@ document.addEventListener('keypress', function(e) {
                 </div>
             `;
         }
+
+        // 📌 ฟังก์ชันบันทึกสถานะแยกตาม Line ใคร Line มัน
+        window.toggleLineProducingStatus = function(lineName, partNo) {
+            let key = `producing_${lineName}_${partNo}`;
+            let currentVal = localStorage.getItem(key) === 'true';
+            localStorage.setItem(key, !currentVal);
+            
+            // ดึงค่าปัจจุบันที่กำลังเลือกดู Line อยู่มารีเฟรช
+            let activeLineBtn = document.querySelector('.btn-group .active, .btn.btn-primary, button[style*="background"]');
+            // หรือเรียกใช้ผ่านฟังก์ชันเรนเดอร์โดยอ้างอิงจาก Line ที่เปิดอยู่
+            if (typeof window.renderZeroStockPartsByLine === 'function') {
+                // เช็คจากหัวข้อปัจจุบันใน container
+                let titleEl = document.querySelector('#zeroStockListContainer h6');
+                let currentLine = 'ALL';
+                if (titleEl && titleEl.textContent.includes('ไลน์:')) {
+                    let parts = titleEl.textContent.split('ไลน์:');
+                    if (parts[1]) currentLine = parts[1].split('(')[0].trim();
+                }
+                window.renderZeroStockPartsByLine(currentLine);
+            } else {
+                location.reload();
+            }
+        };
 
         window.renderZeroStockPartsByLine = renderWidget;
 
