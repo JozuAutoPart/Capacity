@@ -6677,8 +6677,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมโยงสูตรสต็อกตรงกับหน้า Stock WIP & FG)
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (แยกสถานะการกดตาม Line ใคร Line มัน)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (คลิกปุ๊บเปลี่ยนสถานะทันทีแบบ Real-time)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -6698,12 +6697,19 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
+        // 📌 ตัวแปรจำสถานะ Line ปัจจุบันที่ผู้ใช้งานกำลังเลือกดูอยู่
+        let currentActiveLine = 'ALL';
+
         function renderWidget(selectedLine = 'ALL') {
+            if (selectedLine !== undefined && selectedLine !== null) {
+                currentActiveLine = selectedLine;
+            }
+            
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
             if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 if (cachedLowStockList.length > 0) {
-                    displayWidget(cachedLowStockList, selectedLine);
+                    displayWidget(cachedLowStockList, currentActiveLine);
                 } else {
                     container.innerHTML = `
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
@@ -6819,7 +6825,7 @@ document.addEventListener('keypress', function(e) {
                 isInitialized = true;
             }
 
-            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, selectedLine);
+            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
         }
 
         function displayWidget(list, selectedLine) {
@@ -6832,7 +6838,6 @@ document.addEventListener('keypress', function(e) {
                 let cleanStock = Math.round(item.stock).toLocaleString();
                 let cleanMin = Math.round(item.min).toLocaleString();
 
-                // 📌 แยก Key ตามชื่อ Line และ Part No. (ใครไลน์มันอย่างแท้จริง)
                 let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
                 let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
                 let isProducing = localStorage.getItem(storageKey) === 'true';
@@ -6869,27 +6874,14 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
-        // 📌 ฟังก์ชันบันทึกสถานะแยกตาม Line ใคร Line มัน
+        // 📌 ฟังก์ชันกดคลิกแล้วเรนเดอร์อัปเดตหน้าจอทันทีตาม Line ปัจจุบันโดยไม่ต้องกดสลับไปไหน
         window.toggleLineProducingStatus = function(lineName, partNo) {
             let key = `producing_${lineName}_${partNo}`;
             let currentVal = localStorage.getItem(key) === 'true';
             localStorage.setItem(key, !currentVal);
             
-            // ดึงค่าปัจจุบันที่กำลังเลือกดู Line อยู่มารีเฟรช
-            let activeLineBtn = document.querySelector('.btn-group .active, .btn.btn-primary, button[style*="background"]');
-            // หรือเรียกใช้ผ่านฟังก์ชันเรนเดอร์โดยอ้างอิงจาก Line ที่เปิดอยู่
-            if (typeof window.renderZeroStockPartsByLine === 'function') {
-                // เช็คจากหัวข้อปัจจุบันใน container
-                let titleEl = document.querySelector('#zeroStockListContainer h6');
-                let currentLine = 'ALL';
-                if (titleEl && titleEl.textContent.includes('ไลน์:')) {
-                    let parts = titleEl.textContent.split('ไลน์:');
-                    if (parts[1]) currentLine = parts[1].split('(')[0].trim();
-                }
-                window.renderZeroStockPartsByLine(currentLine);
-            } else {
-                location.reload();
-            }
+            // สั่งวาดหน้าจอใหม่ทันทีด้วย Line ปัจจุบันที่ค้างอยู่
+            renderWidget(currentActiveLine);
         };
 
         window.renderZeroStockPartsByLine = renderWidget;
@@ -6898,8 +6890,8 @@ document.addEventListener('keypress', function(e) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 500);
-                setTimeout(() => renderWidget('ALL'), 1500);
+                setTimeout(() => renderWidget(currentActiveLine), 500);
+                setTimeout(() => renderWidget(currentActiveLine), 1500);
                 return res;
             };
             window._patchedLoadCloud = true;
@@ -6909,7 +6901,7 @@ document.addEventListener('keypress', function(e) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
                 let res = originalRenderAll.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 300);
+                setTimeout(() => renderWidget(currentActiveLine), 300);
                 return res;
             };
             window._patchedRenderAll = true;
