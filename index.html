@@ -6677,7 +6677,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (คลิกปุ๊บเปลี่ยนสถานะทันทีแบบ Real-time)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (แก้ไขปัญหานับวันสะสมถูกต้องข้ามวัน)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -6697,7 +6697,6 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
-        // 📌 ตัวแปรจำสถานะ Line ปัจจุบันที่ผู้ใช้งานกำลังเลือกดูอยู่
         let currentActiveLine = 'ALL';
 
         function renderWidget(selectedLine = 'ALL') {
@@ -6720,7 +6719,10 @@ document.addEventListener('keypress', function(e) {
             }
 
             let lowStockList = [];
-            const todayStr = new Date().toISOString().split('T')[0];
+            
+            // 📌 ใช้เวลาปัจจุบันในรูปแบบวันที่ (YYYY-MM-DD โดยตัดเวลาทิ้งเพื่อเทียบวันตรงๆ)
+            const now = new Date();
+            const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
             masterDb.forEach(m => {
                 let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
@@ -6794,26 +6796,32 @@ document.addEventListener('keypress', function(e) {
                 const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
+                // 📌 คีย์สำหรับเก็บวันที่เริ่มขาดครั้งแรก (ล็อกไว้ไม่ให้เปลี่ยนจนกว่าจะหลุดพ้น Minimum)
                 let storageKey = `low_stock_since_${partNo}`;
                 let firstLowDate = localStorage.getItem(storageKey);
 
                 if (totalStock < minVal) {
+                    // ถ้ายังไม่เคยบันทึกวันแรก ให้เก็บบันทึกวันนี้ไว้เป็นจุดเริ่มต้น
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
-                    let diffTime = Math.abs(new Date(todayStr) - new Date(firstLowDate));
-                    let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    // คำนวณจำนวนวันที่ขาดเทียบกับวันแรกสุดที่บันทึกไว้จริง
+                    let startDate = new Date(firstLowDate);
+                    let currentDate = new Date(todayStr);
+                    let diffTime = currentDate - startDate;
+                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // วันแรกเริ่มที่ 1 วัน
 
                     lowStockList.push({
                         partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal,
-                        days: diffDays
+                        days: diffDays > 0 ? diffDays : 1
                     });
                 } else {
+                    // ถ้า Stock กลับมาปกติแล้ว ให้ล้างค่าวันที่เริ่มขาดทิ้ง
                     if (firstLowDate) {
                         localStorage.removeItem(storageKey);
                     }
@@ -6845,7 +6853,7 @@ document.addEventListener('keypress', function(e) {
                 let bgStyle = isProducing ? 'background-color: #0f2d1e !important; border-color: #198754 !important;' : 'background-color: #2b0c0c !important;';
                 let statusBadge = isProducing ? 
                     `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
-                    `<span class="badge bg-danger text-white ms-1 fw-bold"><i class="fas clock me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
+                    `<span class="badge bg-danger text-white ms-1 fw-bold"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
 
                 return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
                             <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
@@ -6874,13 +6882,11 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
-        // 📌 ฟังก์ชันกดคลิกแล้วเรนเดอร์อัปเดตหน้าจอทันทีตาม Line ปัจจุบันโดยไม่ต้องกดสลับไปไหน
         window.toggleLineProducingStatus = function(lineName, partNo) {
             let key = `producing_${lineName}_${partNo}`;
             let currentVal = localStorage.getItem(key) === 'true';
             localStorage.setItem(key, !currentVal);
             
-            // สั่งวาดหน้าจอใหม่ทันทีด้วย Line ปัจจุบันที่ค้างอยู่
             renderWidget(currentActiveLine);
         };
 
