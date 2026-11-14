@@ -6677,7 +6677,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (แก้ไขปัญหานับวันสะสมถูกต้องข้ามวัน)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมต่อสถานะ Cloud ซิงค์ทุกเครื่อง)
 (function() {
     let cachedLowStockList = [];
     let isInitialized = false;
@@ -6698,6 +6698,28 @@ document.addEventListener('keypress', function(e) {
         container.style.display = 'block';
 
         let currentActiveLine = 'ALL';
+
+        // ฟังก์ชันดึงสถานะจาก Cloud มาซิงค์เข้าเครื่องก่อนเรนเดอร์
+        function syncAndRender(selectedLine = 'ALL') {
+            if (selectedLine !== undefined && selectedLine !== null) {
+                currentActiveLine = selectedLine;
+            }
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(function(cloudStatusObj) {
+                        if (cloudStatusObj) {
+                            for (let key in cloudStatusObj) {
+                                localStorage.setItem(key, cloudStatusObj[key]);
+                            }
+                        }
+                        renderWidget(currentActiveLine);
+                    })
+                    .getAllCloudProducingStatus();
+            } else {
+                renderWidget(currentActiveLine);
+            }
+        }
 
         function renderWidget(selectedLine = 'ALL') {
             if (selectedLine !== undefined && selectedLine !== null) {
@@ -6720,7 +6742,6 @@ document.addEventListener('keypress', function(e) {
 
             let lowStockList = [];
             
-            // 📌 ใช้เวลาปัจจุบันในรูปแบบวันที่ (YYYY-MM-DD โดยตัดเวลาทิ้งเพื่อเทียบวันตรงๆ)
             const now = new Date();
             const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
@@ -6796,22 +6817,19 @@ document.addEventListener('keypress', function(e) {
                 const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
-                // 📌 คีย์สำหรับเก็บวันที่เริ่มขาดครั้งแรก (ล็อกไว้ไม่ให้เปลี่ยนจนกว่าจะหลุดพ้น Minimum)
                 let storageKey = `low_stock_since_${partNo}`;
                 let firstLowDate = localStorage.getItem(storageKey);
 
                 if (totalStock < minVal) {
-                    // ถ้ายังไม่เคยบันทึกวันแรก ให้เก็บบันทึกวันนี้ไว้เป็นจุดเริ่มต้น
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
-                    // คำนวณจำนวนวันที่ขาดเทียบกับวันแรกสุดที่บันทึกไว้จริง
                     let startDate = new Date(firstLowDate);
                     let currentDate = new Date(todayStr);
                     let diffTime = currentDate - startDate;
-                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // วันแรกเริ่มที่ 1 วัน
+                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
                     lowStockList.push({
                         partNo: rawPartNo,
@@ -6821,7 +6839,6 @@ document.addEventListener('keypress', function(e) {
                         days: diffDays > 0 ? diffDays : 1
                     });
                 } else {
-                    // ถ้า Stock กลับมาปกติแล้ว ให้ล้างค่าวันที่เริ่มขาดทิ้ง
                     if (firstLowDate) {
                         localStorage.removeItem(storageKey);
                     }
@@ -6882,7 +6899,7 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
-     // ฟังก์ชันเมื่อคลิกเปลี่ยนสถานะ -> บันทึกลง Cloud ทันทีเพื่อให้เครื่องอื่นเห็นตรงกัน
+        // ฟังก์ชันเมื่อคลิกเปลี่ยนสถานะ -> บันทึกลง Cloud ทันทีเพื่อให้เครื่องอื่นเห็นตรงกัน
         window.toggleLineProducingStatus = function(lineName, partNo) {
             let key = `producing_${lineName}_${partNo}`;
             let currentVal = localStorage.getItem(key) === 'true';
