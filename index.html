@@ -6882,22 +6882,33 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
+     // ฟังก์ชันเมื่อคลิกเปลี่ยนสถานะ -> บันทึกลง Cloud ทันทีเพื่อให้เครื่องอื่นเห็นตรงกัน
         window.toggleLineProducingStatus = function(lineName, partNo) {
             let key = `producing_${lineName}_${partNo}`;
             let currentVal = localStorage.getItem(key) === 'true';
-            localStorage.setItem(key, !currentVal);
+            let newVal = !currentVal;
+            
+            localStorage.setItem(key, newVal);
+            
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(function() {
+                        console.log("Cloud producing status updated.");
+                    })
+                    .setCloudProducingStatus(lineName, partNo, newVal);
+            }
             
             renderWidget(currentActiveLine);
         };
 
-        window.renderZeroStockPartsByLine = renderWidget;
+        window.renderZeroStockPartsByLine = syncAndRender;
 
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget(currentActiveLine), 500);
-                setTimeout(() => renderWidget(currentActiveLine), 1500);
+                setTimeout(() => syncAndRender(currentActiveLine), 500);
+                setTimeout(() => syncAndRender(currentActiveLine), 1500);
                 return res;
             };
             window._patchedLoadCloud = true;
@@ -6907,22 +6918,22 @@ document.addEventListener('keypress', function(e) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
                 let res = originalRenderAll.apply(this, args);
-                setTimeout(() => renderWidget(currentActiveLine), 300);
+                setTimeout(() => syncAndRender(currentActiveLine), 300);
                 return res;
             };
             window._patchedRenderAll = true;
         }
 
-        setTimeout(() => renderWidget('ALL'), 1000);
-        setTimeout(() => renderWidget('ALL'), 3000);
-        setTimeout(() => renderWidget('ALL'), 5000);
+        setTimeout(() => syncAndRender('ALL'), 1000);
+        setTimeout(() => syncAndRender('ALL'), 3000);
+        setTimeout(() => syncAndRender('ALL'), 5000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 400);
+                    setTimeout(() => syncAndRender(text), 400);
                 }
             }
         });
