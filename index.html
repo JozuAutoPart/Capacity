@@ -6677,8 +6677,11 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมต่อสถานะ Cloud ซิงค์ทุกเครื่อง)
+// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมต่อสถานะ Cloud ซิงค์ทุกเครื่องผ่าน Google Apps Script Web App)
 (function() {
+    // 🔗 ใช้ตัวแปร GOOGLE_SCRIPT_URL ที่มีอยู่ในโปรเจกต์ของพี่มิว
+    const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
+    
     let cachedLowStockList = [];
     let isInitialized = false;
 
@@ -6699,26 +6702,25 @@ document.addEventListener('keypress', function(e) {
 
         let currentActiveLine = 'ALL';
 
-        // ฟังก์ชันดึงสถานะจาก Cloud มาซิงค์เข้าเครื่องก่อนเรนเดอร์
+        // 🔄 ฟังก์ชันดึงสถานะจาก Cloud มาซิงค์เข้าเครื่องผ่าน fetch
         function syncAndRender(selectedLine = 'ALL') {
             if (selectedLine !== undefined && selectedLine !== null) {
                 currentActiveLine = selectedLine;
             }
 
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(function(cloudStatusObj) {
-                        if (cloudStatusObj) {
-                            for (let key in cloudStatusObj) {
-                                localStorage.setItem(key, cloudStatusObj[key]);
-                            }
-                        }
-                        renderWidget(currentActiveLine);
-                    })
-                    .getAllCloudProducingStatus();
-            } else {
-                renderWidget(currentActiveLine);
-            }
+            fetch(`${SCRIPT_URL}?action=getProducingStatus`)
+                .then(response => response.json())
+                .then(res => {
+                    const cloudStatusObj = res.data || {};
+                    for (let key in cloudStatusObj) {
+                        localStorage.setItem(key, cloudStatusObj[key]);
+                    }
+                    renderWidget(currentActiveLine);
+                })
+                .catch(err => {
+                    console.error("Failed to sync status from cloud:", err);
+                    renderWidget(currentActiveLine);
+                });
         }
 
         function renderWidget(selectedLine = 'ALL') {
@@ -6912,23 +6914,30 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
-        // ฟังก์ชันเมื่อคลิกเปลี่ยนสถานะ -> บันทึกลง Cloud ทันที
+        // 🚀 ฟังก์ชันเมื่อคลิกเปลี่ยนสถานะ -> ส่ง POST ข้อมูลขึ้นไปบันทึกบน Cloud ทันที
         window.toggleLineProducingStatus = function(lineName, partNo) {
             let key = `producing_${lineName}_${partNo}`;
             let currentVal = localStorage.getItem(key) === 'true';
             let newVal = !currentVal;
             
             localStorage.setItem(key, newVal);
-            
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(function() {
-                        console.log("Cloud producing status updated.");
-                    })
-                    .setCloudProducingStatus(lineName, partNo, newVal);
-            }
-            
             renderWidget(currentActiveLine);
+            
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "setStatus",
+                    lineName: lineName,
+                    partNo: partNo,
+                    status: newVal
+                })
+            }).then(() => {
+                console.log("Cloud producing status synced.");
+            }).catch(err => {
+                console.error("Error syncing status:", err);
+            });
         };
 
         window.renderZeroStockPartsByLine = syncAndRender;
