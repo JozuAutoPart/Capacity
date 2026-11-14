@@ -2005,7 +2005,7 @@ function renderPlans() {
 
         let diff = planQty - actualQty;
 
-        if (planQty > 0 && (actualQty >= planQty || (diff > 0 && (diff / planQty) <= 0.02))) {
+        if (planQty > 0 && (actualQty >= planQty || (diff > 0 && (diff / planQty) <= 0.03))) {
             return false; 
         }
 
