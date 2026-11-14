@@ -6699,25 +6699,28 @@ document.addEventListener('keypress', function(e) {
 
         let currentActiveLine = 'ALL';
 
-       function syncAndRender(selectedLine = 'ALL') {
+        // ฟังก์ชันดึงสถานะจาก Cloud มาซิงค์เข้าเครื่องก่อนเรนเดอร์
+        function syncAndRender(selectedLine = 'ALL') {
             if (selectedLine !== undefined && selectedLine !== null) {
                 currentActiveLine = selectedLine;
             }
 
-            fetch(`${WEB_APP_URL}?action=getProducingStatus`)
-                .then(response => response.json())
-                .then(res => {
-                    const cloudStatusObj = res.data || {};
-                    for (let key in cloudStatusObj) {
-                        localStorage.setItem(key, cloudStatusObj[key]);
-                    }
-                    renderWidget(currentActiveLine);
-                })
-                .catch(err => {
-                    console.error("Failed to sync status from cloud:", err);
-                    renderWidget(currentActiveLine);
-                });
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(function(cloudStatusObj) {
+                        if (cloudStatusObj) {
+                            for (let key in cloudStatusObj) {
+                                localStorage.setItem(key, cloudStatusObj[key]);
+                            }
+                        }
+                        renderWidget(currentActiveLine);
+                    })
+                    .getAllCloudProducingStatus();
+            } else {
+                renderWidget(currentActiveLine);
+            }
         }
+
         function renderWidget(selectedLine = 'ALL') {
             if (selectedLine !== undefined && selectedLine !== null) {
                 currentActiveLine = selectedLine;
