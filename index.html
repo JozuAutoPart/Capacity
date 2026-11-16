@@ -5351,7 +5351,7 @@ function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-/* // 1. ดึง Plans จาก Cloud แบบดึงมาแสดงผลครบถ้วนตามชีตจริง
+ // 1. ดึง Plans จาก Cloud แบบดึงมาแสดงผลครบถ้วนตามชีตจริง
 fetch(scriptUrl + "?action=getPlans")
     .then(res => res.json())
     .then(res => {
@@ -5389,7 +5389,7 @@ fetch(scriptUrl + "?action=getPlans")
             if (typeof renderDashboard === 'function') renderDashboard();
         }
     })
-    .catch(err => console.error("Error loading plans:", err));*/
+    .catch(err => console.error("Error loading plans:", err));
     
     // 2. ดึง Actuals (พร้อมระบบแปลงวันที่ไม่ให้เพี้ยน)
     fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
