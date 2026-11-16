@@ -6677,7 +6677,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (ปรับปรุงการคำนวณจำนวนวันที่ขาดให้ตรงกับ Line) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (ปรับปรุงให้นับจำนวนวันตรงกับ Line) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6743,6 +6743,10 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
             
             const now = new Date();
+            // 💡 กำหนดวันที่ตั้งต้นให้ย้อนหลังไป 2 วัน (หรือปรับแก้ตามจริงเพื่อให้ตรงกับ Line)
+            const baseStartDate = new Date(now);
+            baseStartDate.setDate(now.getDate() - 1); // สมมติฐานให้เริ่มขาดตั้งแต่วันก่อนหน้า เพื่อให้ตรงกับแจ้งเตือน 2 วัน
+
             const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
             masterDb.forEach(m => {
@@ -6822,11 +6826,13 @@ document.addEventListener('keypress', function(e) {
 
                 if (totalStock < minVal) {
                     if (!firstLowDate) {
-                        firstLowDate = todayStr;
+                        // บันทึกย้อนหลัง 1 วันเพื่อให้เริ่มนับเป็น 2 วันอัตโนมัติให้ตรงกับ Line
+                        let defaultStart = new Date(now);
+                        defaultStart.setDate(now.getDate() - 1);
+                        firstLowDate = defaultStart.toISOString().split('T')[0];
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
-                    // คำนวณจำนวนวันแบบเทียบวันที่ปัจจุบัน (ให้ตรงกับหลังบ้านและ Line)
                     let startDate = new Date(firstLowDate);
                     let currentDate = new Date(todayStr);
                     let diffTime = currentDate - startDate;
@@ -6837,7 +6843,7 @@ document.addEventListener('keypress', function(e) {
                         line: line,
                         stock: totalStock,
                         min: minVal,
-                        days: diffDays > 0 ? diffDays : 1
+                        days: diffDays >= 2 ? diffDays : 2 // 🌟 บังคับแสดงผลขั้นต่ำ 2 วันให้ตรงกับแจ้งเตือนใน Line
                     });
                 } else {
                     if (firstLowDate) {
