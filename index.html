@@ -5351,45 +5351,50 @@ function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
- // 1. ดึง Plans จาก Cloud แบบดึงมาแสดงผลครบถ้วนตามชีตจริง
-fetch(scriptUrl + "?action=getPlans")
-    .then(res => res.json())
-    .then(res => {
-        if (res.status === "success" && res.data) {
-            let cloudPlans = res.data.map(p => ({
-                id: p.id || Date.now(),
-                Start: p.Start || p['Start'] || p['วันที่เริ่มต้น'] || '',
-                Finish: p.Finish || p['Finish'] || p['วันที่สิ้นสุด'] || '',
-                Line: p.Line || p['Line'] || p['line'] || '',
-                "Part No.": p["Part No."] || p.partNo || p['partNo'] || '',
-                "Lot No.": p["Lot No."] || p.lotNo || p['lotNo'] || '',
-                "Plan Qty": Number(p["Plan Qty"] !== undefined ? p["Plan Qty"] : (p.planQty || p['ยอดแผน'] || 0))
-            }));
+// 1. ดึง Plans จาก Cloud แบบผสานข้อมูล (ใช้ Local เป็นหลัก ป้องกันแผนหาย)
+    fetch(scriptUrl + "?action=getPlans")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                let cloudPlans = res.data.map(p => ({
+                    id: p.id || Date.now(),
+                    Start: p.Start || p['Start'] || p['วันที่เริ่มต้น'] || '',
+                    Finish: p.Finish || p['Finish'] || p['วันที่สิ้นสุด'] || '',
+                    Line: p.Line || p['Line'] || p['line'] || '',
+                    "Part No.": p["Part No."] || p.partNo || p['partNo'] || '',
+                    "Lot No.": p["Lot No."] || p.lotNo || p['lotNo'] || '',
+                    "Plan Qty": Number(p["Plan Qty"] !== undefined ? p["Plan Qty"] : (p.planQty || p['ยอดแผน'] || 0))
+                }));
 
-            // 🌟 ให้ใช้ข้อมูลจาก Cloud เป็นหลักเพื่อให้ตรงกับ Google Sheets (ซึ่งตอนนี้มี 19 แผน)
-            // พร้อมผสานข้อมูลในเครื่อง (Local) ที่ยังไม่ได้เซฟ เพื่อไม่ให้แผนใหม่หาย
-            let currentPlans = (typeof plans !== 'undefined' && Array.isArray(plans)) ? plans : [];
-            let cloudMap = new Map();
-            cloudPlans.forEach(cp => {
-                let key = `${cp["Part No."]}_${cp["Lot No."]}_${cp.Line}`;
-                cloudMap.set(key, cp);
-            });
+                // 🌟 ใช้ข้อมูลในเครื่อง (Local) ที่มี 15 แผนเป็นตัวตั้งต้นเสมอ
+                let currentPlans = (typeof plans !== 'undefined' && Array.isArray(plans) && plans.length > 0) ? plans : [];
+                
+                let localMap = new Map();
+                currentPlans.forEach(p => {
+                    let key = `${p["Part No."]}_${p["Lot No."]}_${p.Line}`;
+                    localMap.set(key, p);
+                });
 
-            // เติมแผนเฉพาะกิจในเครื่องที่ไม่ทับกับบน Cloud
-            currentPlans.forEach(localP => {
-                let key = `${localP["Part No."]}_${localP["Lot No."]}_${localP.Line}`;
-                if (!cloudMap.has(key)) {
-                    cloudPlans.push(localP);
+                // นำข้อมูลจาก Cloud มาเติมเฉพาะตัวที่ยังไม่มีในเครื่อง
+                cloudPlans.forEach(cp => {
+                    let key = `${cp["Part No."]}_${cp["Lot No."]}_${cp.Line}`;
+                    if (!localMap.has(key)) {
+                        currentPlans.push(cp);
+                    }
+                });
+
+                // ถ้าในเครื่องมีมากกว่า ให้ยึดชุดในเครื่องเป็นหลักทันทีเพื่อไม่ให้ลดเหลือ 7 แผน
+                if (currentPlans.length >= cloudPlans.length) {
+                    plans = currentPlans;
+                } else {
+                    plans = cloudPlans;
                 }
-            });
 
-            plans = cloudPlans;
-
-            if (typeof renderPlans === 'function') renderPlans();
-            if (typeof renderDashboard === 'function') renderDashboard();
-        }
-    })
-    .catch(err => console.error("Error loading plans:", err));
+                if (typeof renderPlans === 'function') renderPlans();
+                if (typeof renderDashboard === 'function') renderDashboard();
+            }
+        })
+        .catch(err => console.error("Error loading plans:", err));
     
     // 2. ดึง Actuals (พร้อมระบบแปลงวันที่ไม่ให้เพี้ยน)
     fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
