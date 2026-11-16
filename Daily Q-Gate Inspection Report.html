@@ -173,139 +173,266 @@
         </div>
     </div>
 
-  <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const paramDate = urlParams.get('date') || '';
-            const paramInspector = urlParams.get('inspector') || '';
+  <!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>ใบรายงานการตรวจสอบ Q-GATE ประจำวัน - Daily Q-Gate Inspection Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Sarabun', sans-serif; color: #333; }
+        .report-container { max-width: 900px; margin: 30px auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        .header-title { text-align: center; margin-bottom: 30px; }
+        .table th, .table td { vertical-align: middle; font-size: 14px; }
+        @media print {
+            body { background: #fff; }
+            .report-container { box-shadow: none; margin: 0; padding: 20px; width: 100%; max-width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
 
-            let displayDate = paramDate;
-            let targetDate = String(paramDate).trim().substring(0, 10);
+<div class="container report-container">
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end mb-4 no-print">
+        <button onclick="window.print()" class="btn btn-primary"><i class="fas fa-print me-2"></i>สั่งพิมพ์ / PDF</button>
+    </div>
 
-            // แก้ไข: ใช้การตัดสตริงตรงๆ ป้องกันปัญหา Timezone บวกเพิ่ม 1 วัน
-            if (targetDate) {
-                displayDate = targetDate;
-            }
+    <!-- Header -->
+    <div class="row align-items-center mb-4">
+        <div class="col-auto">
+            <h4 class="fw-bold text-success mb-0">Jozu Auto Part Co., Ltd.</h4>
+        </div>
+        <div class="col text-end">
+            <h3 class="fw-bold mb-1">ใบรายงานการตรวจสอบ Q-GATE ประจำวัน</h3>
+            <p class="text-muted mb-0">Daily Q-Gate Inspection Report</p>
+        </div>
+    </div>
 
-            document.getElementById('lblDate').innerText = displayDate ? displayDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
-            document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
+    <div class="row mb-4 border-bottom pb-3">
+        <div class="col-6">
+            <strong>วันที่ตรวจสอบ:</strong> <span id="lblDate">-</span>
+        </div>
+        <div class="col-6 text-end">
+            <strong>ผู้ตรวจสอบ (Inspector):</strong> <span id="lblInspector">-</span>
+        </div>
+    </div>
 
-            let qgateData = [];
-            try {
-                let rawData = JSON.parse(
-                    localStorage.getItem('qgateReportData') || 
-                    localStorage.getItem('qgate') || 
-                    localStorage.getItem('qgate_logs') || 
-                    localStorage.getItem('qgateLogs') || '[]'
-                );
-                
+    <!-- Section 1: Inspection Log -->
+    <h5 class="fw-bold mb-3"><i class="fas fa-check-circle text-success me-2"></i>1. บันทึกผลการตรวจสอบชิ้นงาน (Inspection Log)</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered table-striped">
+            <thead class="table-light text-center">
+                <tr>
+                    <th style="width: 8%;">ลำดับ</th>
+                    <th style="width: 15%;">ช่วงเวลา</th>
+                    <th style="width: 20%;">Part No. (รหัสชิ้นงาน)</th>
+                    <th style="width: 10%;">จำนวนตรวจ</th>
+                    <th style="width: 12%;">ผ่าน (Pass)</th>
+                    <th style="width: 10%;">เสีย (NG)</th>
+                    <th style="width: 25%;">รายละเอียด / อาการเสีย</th>
+                </tr>
+            </thead>
+            <tbody id="tblInspectionBody">
+                <!-- Data injected via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Section 2: Non-Inspection / Downtime Log -->
+    <h5 class="fw-bold mb-3"><i class="fas fa-clock text-warning me-2"></i>2. บันทึกช่วงเวลากิจกรรมอื่นๆ (Non-Inspection / Downtime Log)</h5>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered">
+            <thead class="table-light text-center">
+                <tr>
+                    <th style="width: 8%;">ลำดับ</th>
+                    <th style="width: 22%;">ช่วงเวลา (เริ่ม - สิ้นสุด)</th>
+                    <th style="width: 25%;">ประเภทกิจกรรม</th>
+                    <th style="width: 30%;">รายละเอียดการปฏิบัติงาน / เหตุผล</th>
+                    <th style="width: 15%;">เวลาสะสม (นาที)</th>
+                </tr>
+            </thead>
+            <tbody id="tblOtherActivityBody">
+                <!-- Data injected via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Summary Box -->
+    <div class="row text-center border p-3 rounded mb-5 bg-light">
+        <div class="col-3 border-end">
+            <small class="text-muted d-block">ยอดตรวจรวมทั้งหมด</small>
+            <h4 class="fw-bold text-primary mb-0" id="sumTotal">0 ชิ้น</h4>
+        </div>
+        <div class="col-3 border-end">
+            <small class="text-muted d-block">จำนวนที่ผ่าน (Pass)</small>
+            <h4 class="fw-bold text-success mb-0" id="sumPass">0 ชิ้น</h4>
+        </div>
+        <div class="col-3 border-end">
+            <small class="text-muted d-block">จำนวนของเสีย (NG)</small>
+            <h4 class="fw-bold text-danger mb-0" id="sumNg">0 ชิ้น</h4>
+        </div>
+        <div class="col-3">
+            <small class="text-muted d-block">อัตราของเสีย (Defect Ratio)</small>
+            <h4 class="fw-bold text-dark mb-0" id="sumPpm">0 PPM</h4>
+        </div>
+    </div>
+
+    <!-- Signature Blocks -->
+    <div class="row text-center mt-5 pt-4">
+        <div class="col-4">
+            <p class="mb-4">(........................................................)</p>
+            <p class="fw-bold mb-1">ผู้บันทึกข้อมูล (Inspector)</p>
+            <p class="text-muted small">วันที่ ____/____/____</p>
+        </div>
+        <div class="col-4">
+            <p class="mb-4">(........................................................)</p>
+            <p class="fw-bold mb-1">หัวหน้างาน (Leader / Supervisor)</p>
+            <p class="text-muted small">วันที่ ____/____/____</p>
+        </div>
+        <div class="col-4">
+            <p class="mb-4">(........................................................)</p>
+            <p class="fw-bold mb-1">ผู้จัดการฝ่ายคุณภาพ (QA Manager)</p>
+            <p class="text-muted small">วันที่ ____/____/____</p>
+        </div>
+    </div>
+    
+    <div class="text-end mt-4 text-muted small">
+        J-F-QC-012 Rev.00 Ref.01-Nov-26
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramDate = urlParams.get('date') || '';
+        const paramInspector = urlParams.get('inspector') || '';
+
+        let displayDate = paramDate;
+        let targetDate = String(paramDate).trim().substring(0, 10);
+
+        if (targetDate) {
+            displayDate = targetDate;
+        }
+
+        document.getElementById('lblDate').innerText = displayDate ? displayDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
+        document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
+
+        let qgateData = [];
+        try {
+            let rawData = JSON.parse(
+                localStorage.getItem('qgateReportData') || 
+                localStorage.getItem('qgate') || 
+                localStorage.getItem('qgate_logs') || 
+                localStorage.getItem('qgateLogs') || '[]'
+            );
+            
+            qgateData = rawData.filter(q => {
+                let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
+                let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || '').trim();
+                let targetIns = String(paramInspector).trim();
+
+                let matchDate = !targetDate || qDate === targetDate;
+                let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
+
+                return matchDate && matchIns;
+            });
+
+            if (qgateData.length === 0 && targetDate !== "") {
                 qgateData = rawData.filter(q => {
-                    let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
-                    let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || '').trim();
-                    let targetIns = String(paramInspector).trim();
-
-                    let matchDate = !targetDate || qDate === targetDate;
-                    let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
-
-                    return matchDate && matchIns;
+                    let qDate = String(q.date || q.Date || '').trim().substring(0, 10);
+                    return qDate === targetDate;
                 });
-
-                if (qgateData.length === 0 && targetDate !== "") {
-                    qgateData = rawData.filter(q => {
-                        let qDate = String(q.date || q.Date || '').trim().substring(0, 10);
-                        return qDate === targetDate;
-                    });
-                }
-            } catch (e) {
-                qgateData = [];
             }
+        } catch (e) {
+            qgateData = [];
+        }
 
-            const tblInsp = document.getElementById('tblInspectionBody');
-            tblInsp.innerHTML = '';
+        const tblInsp = document.getElementById('tblInspectionBody');
+        tblInsp.innerHTML = '';
 
-            let totalQty = 0, totalPass = 0, totalNg = 0;
+        let totalQty = 0, totalPass = 0, totalNg = 0;
 
-            if (qgateData.length === 0) {
-                tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
-            } else {
-                qgateData.forEach((item, index) => {
-                    let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
-                    let ng = Number(item.ngQty || item.ng || item.ngCount || 0);
-                    let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
-                    let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
+        if (qgateData.length === 0) {
+            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
+        } else {
+            qgateData.forEach((item, index) => {
+                let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
+                let ng = Number(item.ngQty || item.ng || item.ngCount || 0);
+                let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
+                let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
-                    // 📌 ดึงข้อความอาการเสียจาก item หรืออาเรย์ตำแหน่งที่ 7 (Column H) โดยตรง
-                    let ngDetail = '-';
-                    
-                    if (Array.isArray(item) && item.length > 7 && item[7]) {
+                // 📌 ดึงข้อความอาการเสียจาก item หรืออาเรย์ตำแหน่งที่ 7 (Column H) โดยตรง
+                let ngDetail = '-';
+                if (Array.isArray(item)) {
+                    if (item.length > 7 && item[7] !== undefined && item[7] !== null && String(item[7]).trim() !== '') {
                         ngDetail = String(item[7]).trim();
-                    } else if (typeof item === 'object' && item !== null) {
-                        let rawVal = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || 
-                                     item['รายละเอียด / อาการเสีย'] || item['รายละเอียด'] || item['อาการเสีย'];
-                        if (rawVal) {
-                            ngDetail = String(rawVal).trim();
-                        }
                     }
-
-                    if (!ngDetail || ngDetail === '') {
-                        ngDetail = '-';
+                } else if (typeof item === 'object' && item !== null) {
+                    let rawVal = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || 
+                                 item['รายละเอียด / อาการเสีย'] || item['รายละเอียด'] || item['อาการเสีย'];
+                    if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
+                        ngDetail = String(rawVal).trim();
                     }
+                }
 
-                    totalQty += qty;
-                    totalPass += pass;
-                    totalNg += ng;
+                totalQty += qty;
+                totalPass += pass;
+                totalNg += ng;
 
-                    tblInsp.innerHTML += `
-                        <tr>
-                            <td class="text-center">${index + 1}</td>
-                            <td class="text-center">${timeRange}</td>
-                            <td><strong>${item.partNo || item['Part No.'] || '-'}</strong></td>
-                            <td class="text-end">${qty.toLocaleString()}</td>
-                            <td class="text-end text-success">${pass.toLocaleString()}</td>
-                            <td class="text-end text-danger">${ng.toLocaleString()}</td>
-                            <td>${ngDetail}</td>
-                        </tr>
-                    `;
-                });
-            }
+                tblInsp.innerHTML += `
+                    <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td class="text-center">${timeRange}</td>
+                        <td><strong>${item.partNo || item['Part No.'] || '-'}</strong></td>
+                        <td class="text-end">${qty.toLocaleString()}</td>
+                        <td class="text-end text-success">${pass.toLocaleString()}</td>
+                        <td class="text-end text-danger">${ng.toLocaleString()}</td>
+                        <td>${ngDetail}</td>
+                    </tr>
+                `;
+            });
+        }
 
-            let otherData = [];
-            try {
-                let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
-                otherData = rawOther.filter(o => {
-                    let oDate = String(o.date || '').trim().substring(0, 10);
-                    return !paramDate || oDate === targetDate;
-                });
-            } catch (e) {
-                otherData = [];
-            }
+        let otherData = [];
+        try {
+            let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
+            otherData = rawOther.filter(o => {
+                let oDate = String(o.date || '').trim().substring(0, 10);
+                return !paramDate || oDate === targetDate;
+            });
+        } catch (e) {
+            otherData = [];
+        }
 
-            const tblOther = document.getElementById('tblOtherActivityBody');
-            tblOther.innerHTML = '';
+        const tblOther = document.getElementById('tblOtherActivityBody');
+        tblOther.innerHTML = '';
 
-            if (otherData.length === 0) {
-                tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
-            } else {
-                otherData.forEach((o, index) => {
-                    tblOther.innerHTML += `
-                        <tr>
-                            <td class="text-center">${index + 1}</td>
-                            <td class="text-center">${o.startTime} - ${o.endTime}</td>
-                            <td><strong>${o.activityType || '-'}</strong></td>
-                            <td>${o.remark || '-'}</td>
-                            <td class="text-center">${o.durationMinutes || '-'} นาที</td>
-                        </tr>
-                    `;
-                });
-            }
+        if (otherData.length === 0) {
+            tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
+        } else {
+            otherData.forEach((o, index) => {
+                tblOther.innerHTML += `
+                    <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td class="text-center">${o.startTime} - ${o.endTime}</td>
+                        <td><strong>${o.activityType || '-'}</strong></td>
+                        <td>${o.remark || '-'}</td>
+                        <td class="text-center">${o.durationMinutes || '-'} นาที</td>
+                    </tr>
+                `;
+            });
+        }
 
-            document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
-            document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
-            document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
+        document.getElementById('sumTotal').innerText = totalQty.toLocaleString() + ' ชิ้น';
+        document.getElementById('sumPass').innerText = totalPass.toLocaleString() + ' ชิ้น';
+        document.getElementById('sumNg').innerText = totalNg.toLocaleString() + ' ชิ้น';
 
-            let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
-            document.getElementById('sumPpm').innerText = ppm.toLocaleString() + ' PPM';
-        });
-    </script>
+        let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
+        document.getElementById('sumPpm').innerText = ppm.toLocaleString() + ' PPM';
+    });
+</script>
 </body>
 </html>
