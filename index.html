@@ -822,61 +822,45 @@
                     </div>
                 </div>
 
-<!-- เปิดแถวหลักสำหรับจัดหน้าจอฝั่งขวา -->
-<div class="row">
-    
-  <div class="row">
-    <!-- ฝั่งซ้าย: ฟอร์มบันทึก Q-Gate (ใช้ col-md-4 หรือ col-md-5) -->
-    <div class="col-md-4">
-        <!-- ฟอร์มบันทึกของคุณพี่มิวตรงนี้ -->
-    </div>
-
-    <!-- ฝั่งขวา: พื้นที่ตารางประวัติ + กล่อง Safety Stock (ใช้ col-md-8 หรือ col-md-7 เพื่อดึงให้เต็มจอ) -->
-    <div class="col-md-8">
-        <div class="row">
-            <!-- ตารางประวัติ (กินพื้นที่ 9 ส่วน) -->
-            <div class="col-md-9">
-                <div class="card p-3 shadow-sm bg-dark text-white mb-3">
-                    <h5 class="fw-bold mb-3"><i class="fas fa-history text-warning me-2"></i>ประวัติตรวจ Q-Gate</h5>
-                    <div class="table-responsive" style="max-height: 720px; overflow-y: auto; overflow-x: auto;">
-                        <table class="table table-dark table-hover align-middle m-0" style="font-size: 12px;">
-                            <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
-                                <tr>
-                                    <th>วันที่ตรวจ</th>
-                                    <th>เวลา</th>
-                                    <th>พนักงาน</th>
-                                    <th>Part No.</th>
-                                    <th>ยอดตรวจ</th>
-                                    <th>NG</th>
-                                    <th>ผ่าน (Pass)</th>
-                                    <th>รายละเอียด / อาการเสีย</th>
-                                </tr>
-                            </thead>
-                            <tbody id="qgateHistoryTableBody"></tbody>
-                        </table>
-                    </div>
+                <!-- ตารางประวัติ -->
+                <div class="table-responsive" style="max-height: 720px; overflow-y: auto; overflow-x: auto;">
+                    <table class="table table-dark table-hover align-middle m-0" style="font-size: 12px;">
+                        <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
+                            <tr>
+                                <th>วันที่ตรวจ</th>
+                                <th>เวลา</th>
+                                <th>พนักงาน</th>
+                                <th>Part No.</th>
+                                <th>ยอดตรวจ</th>
+                                <th>NG</th>
+                                <th>ผ่าน (Pass)</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qgateHistoryTableBody"></tbody>
+                    </table>
                 </div>
             </div>
+        </div>
 
-            <!-- กล่อง Safety Stock (กินพื้นที่ 3 ส่วน ชิดขวา) -->
-            <div class="col-md-3">
-                <div class="card p-3 shadow-sm border-danger bg-dark text-white">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="m-0 text-danger fw-bold" style="font-size: 13px;">
-                            <i class="fas fa-exclamation-triangle me-1"></i> ต่ำกว่า Safety Stock FG
-                        </h6>
-                    </div>
-                    <div class="table-responsive" style="max-height: 780px; overflow-y: auto;">
-                        <table class="table table-dark table-sm align-middle m-0" style="font-size: 12px;">
-                            <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
-                                <tr>
-                                    <th>Part No.</th>
-                                    <th class="text-end">เลือก</th>
-                                </tr>
-                            </thead>
-                            <tbody id="qgateSafetyStockTableBody"></tbody>
-                        </table>
-                    </div>
+        <!-- 3. ฝั่งขวา: รายการ Part No. ที่ต่ำกว่า Safety Stock FG -->
+        <div class="col-md-3">
+            <div class="card p-3 shadow-sm border-danger bg-dark text-white">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="m-0 text-danger fw-bold" style="font-size: 13px;">
+                        <i class="fas fa-exclamation-triangle me-1"></i> ต่ำกว่า Safety Stock FG
+                    </h6>
+                </div>
+                <div class="table-responsive" style="max-height: 780px; overflow-y: auto;">
+                    <table class="table table-dark table-sm align-middle m-0" style="font-size: 12px;">
+                        <thead style="position: sticky; top: 0; z-index: 1; background-color: #212529;">
+                            <tr>
+                                <th>Part No.</th>
+                                <th class="text-end">เลือก</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qgateSafetyStockTableBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -3480,9 +3464,6 @@ function renderQGate() {
                     }
                 }
 
-                // 📌 ดึงข้อความอาการเสียมาแสดง
-                let ngDetailText = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item['รายละเอียด / อาการเสีย'] || '-';
-
                 historyBody.innerHTML += `
                     <tr>
                         <td>${displayDate}</td>
@@ -3492,9 +3473,8 @@ function renderQGate() {
                         <td>${(item.totalQty || 0).toLocaleString()}</td>
                         <td class="text-danger">${(item.ngQty || 0).toLocaleString()}</td>
                         <td class="text-success fw-bold">${(item.passQty || 0).toLocaleString()}</td>
-                        <td>
-                            <span>${ngDetailText}</span>
-                            <button class="btn btn-outline-danger btn-sm py-0 px-2 float-end" onclick="deleteQGateItem(${item.id || 0})" title="ลบรายการนี้">
+                        <td class="text-center">
+                            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteQGateItem(${item.id || 0})" title="ลบรายการนี้">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </td>
@@ -3504,6 +3484,7 @@ function renderQGate() {
         }
     }
 }
+
 // 📌 ฟังก์ชันบันทึกข้อมูล Q-Gate (พร้อมดึงรายละเอียดของเสียจาก Checkboxes)
 function submitQGateTransaction(e) {
     e.preventDefault();
