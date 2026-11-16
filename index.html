@@ -6677,9 +6677,8 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมต่อสถานะ Cloud ซิงค์ทุกเครื่องผ่าน Google Apps Script Web App)
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (ปรับปรุงการคำนวณจำนวนวันที่ขาดให้ตรงกับ Line) ---
 (function() {
-    // 🔗 ใช้ตัวแปร GOOGLE_SCRIPT_URL ที่มีอยู่ในโปรเจกต์ของพี่มิว
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
     let cachedLowStockList = [];
@@ -6702,7 +6701,6 @@ document.addEventListener('keypress', function(e) {
 
         let currentActiveLine = 'ALL';
 
-        // 🔄 ฟังก์ชันดึงสถานะจาก Cloud มาซิงค์เข้าเครื่องผ่าน fetch
         function syncAndRender(selectedLine = 'ALL') {
             if (selectedLine !== undefined && selectedLine !== null) {
                 currentActiveLine = selectedLine;
@@ -6828,6 +6826,7 @@ document.addEventListener('keypress', function(e) {
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
+                    // คำนวณจำนวนวันแบบเทียบวันที่ปัจจุบัน (ให้ตรงกับหลังบ้านและ Line)
                     let startDate = new Date(firstLowDate);
                     let currentDate = new Date(todayStr);
                     let diffTime = currentDate - startDate;
@@ -6869,7 +6868,6 @@ document.addEventListener('keypress', function(e) {
                 let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
                 let isProducing = localStorage.getItem(storageKey) === 'true';
 
-                // กำหนดสีพื้นหลังตามสถานะและจำนวนวันที่ขาด (1 วัน=เหลือง, 2 วัน=ส้ม, >=3 วัน=แดง)
                 let bgStyle = '';
                 if (isProducing) {
                     bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
@@ -6914,7 +6912,6 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
-        // 🚀 ฟังก์ชันเมื่อคลิกเปลี่ยนสถานะ -> ส่ง POST ข้อมูลขึ้นไปบันทึกบน Cloud ทันที
         window.toggleLineProducingStatus = function(lineName, partNo) {
             let key = `producing_${lineName}_${partNo}`;
             let currentVal = localStorage.getItem(key) === 'true';
