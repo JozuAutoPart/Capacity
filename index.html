@@ -1930,10 +1930,9 @@ let datasets = machines.map((mach, idx) => {
         });
     });
 }
-        // --- TAB 3: PLANNING ---
-      // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
+    // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
 function submitPlan(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
     const plan = {
         id: Date.now(),
@@ -1945,7 +1944,6 @@ function submitPlan(e) {
         "Plan Qty": Number(document.getElementById('planQty').value)
     };
 
-    // ส่งข้อมูลไปบันทึกที่ Google Sheets ผ่าน Apps Script
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     fetch(scriptUrl, {
         method: 'POST',
@@ -1977,11 +1975,10 @@ function renderPlans() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // ดึงค่าจากช่องค้นหา
     const searchEl = document.getElementById('planSearchInput');
     const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
-   let activePlans = plans.filter(plan => {
+    let activePlans = plans.filter(plan => {
         const planPartNo = String(plan["Part No."] || "").trim();
         const planLotNo = String(plan["Lot No."] || "").trim();
         let planQty = Number(plan["Plan Qty"]) || 0;
@@ -2020,12 +2017,12 @@ function renderPlans() {
         return true;
     })
     .sort((a, b) => {
-        // 🔄 เพิ่มการเรียงวันที่จาก ใหม่ -> เก่า
         let dateA = new Date(a["Start"] || a.Start || 0);
         let dateB = new Date(b["Start"] || b.Start || 0);
         return dateB - dateA;
     })
-    .slice(0, 15); // 👈 เปลี่ยนจาก .slice(0, 100) มาเป็น .slice(0, 20) ตรงนี้
+    .slice(0, 15);
+
     if (!activePlans || activePlans.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต (หรือผลิตครบหมดแล้ว)</td></tr>`;
         return;
@@ -2059,6 +2056,7 @@ function renderPlans() {
         tbody.appendChild(tr);
     });
 }
+
 function deletePlan(id) {
     if(confirm('ต้องการลบแผนการผลิตรายการนี้ใช่หรือไม่?')) {
         plans = plans.filter(p => p.id !== id);
@@ -2067,39 +2065,44 @@ function deletePlan(id) {
         alert("ลบแผนสำเร็จ");
     }
 }
-    // โหลดข้อมูล Master Parts จาก Cloud
-    function initMasterData() {
-        fetch(`${GOOGLE_SCRIPT_URL}?action=getMasterParts`)
-            .then(res => res.json())
-            .then(res => {
-                if (res.status === 'success' && res.data) {
-                    localStorage.setItem('masterPartsDatabase', JSON.stringify(res.data));
-                    populatePlanPartNoDropdown();
-                    calculatePlanFromWeight();
-                }
-            })
-            .catch(err => console.error("Error syncing master parts:", err));
-    }
 
-    // ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown
-    function populatePlanPartNoDropdown() {
-        const select = document.getElementById('planPartNo');
-        if (!select) return;
+// โหลดข้อมูล Master Parts จาก Cloud
+function initMasterData() {
+    const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
+    if (!scriptUrl) return;
 
-        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-        if (masterData.length === 0) return;
-
-        const currentValue = select.value;
-        let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
-        masterData.forEach(m => {
-            const pNo = m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '';
-            if (pNo) {
-                optionsHtml += `<option value="${pNo}">${pNo}</option>`;
+    fetch(`${scriptUrl}?action=getMasterParts`)
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === 'success' && res.data) {
+                localStorage.setItem('masterPartsDatabase', JSON.stringify(res.data));
+                populatePlanPartNoDropdown();
+                calculatePlanFromWeight();
             }
-        });
-        select.innerHTML = optionsHtml;
-        if (currentValue) select.value = currentValue;
-    }
+        })
+        .catch(err => console.error("Error syncing master parts:", err));
+}
+
+// ฟังก์ชันเติมข้อมูล Part No. ลงใน Dropdown
+function populatePlanPartNoDropdown() {
+    const select = document.getElementById('planPartNo');
+    if (!select) return;
+
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    if (masterData.length === 0) return;
+
+    const currentValue = select.value;
+    let optionsHtml = '<option value="">-- เลือก Part No. --</option>';
+    masterData.forEach(m => {
+        const pNo = m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '';
+        if (pNo) {
+            optionsHtml += `<option value="${pNo}">${pNo}</option>`;
+        }
+    });
+    select.innerHTML = optionsHtml;
+    if (currentValue) select.value = currentValue;
+}
+
 function autoSetFinishDate() {
     const startDateInput = document.getElementById('planDate');
     const finishDateInput = document.getElementById('planFinishDate');
@@ -2109,10 +2112,8 @@ function autoSetFinishDate() {
     const startDateVal = startDateInput.value;
     if (startDateVal) {
         let date = new Date(startDateVal);
-        // บวกเพิ่มไปอีก 3 วัน
         date.setDate(date.getDate() + 5);
 
-        // แปลงกลับเป็นรูปแบบ YYYY-MM-DD
         let year = date.getFullYear();
         let month = String(date.getMonth() + 1).padStart(2, '0');
         let day = String(date.getDate()).padStart(2, '0');
@@ -2121,8 +2122,77 @@ function autoSetFinishDate() {
     }
 }
 
-// ให้ทำงานทันทีเมื่อเปิดหน้าเว็บ เพื่อเซ็ตค่าเริ่มต้นและบวก 3 วันทันที
-document.addEventListener("DOMContentLoaded", function() {
+// ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น
+function calculatePlanFromWeight() {
+    const partNoSelect = document.getElementById('planPartNo');
+    const inputElement = document.getElementById('planWeightKg');
+    const planQtyInput = document.getElementById('planQty');
+    const tagBadge = document.getElementById('tagCountBadge');
+
+    if (!partNoSelect || !inputElement || !planQtyInput) return;
+
+    const partNoVal = String(partNoSelect.value).trim().toUpperCase();
+    const inputVal = parseFloat(inputElement.value) || 0;
+
+    if (!partNoVal) return;
+
+    const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
+    
+    const matchedMaster = masterData.find(m => {
+        const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
+        return pNo === partNoVal;
+    });
+
+    if (!matchedMaster) {
+        if (tagBadge) tagBadge.innerHTML = `<span class="text-warning">⏳ กำลังโหลดข้อมูลพาร์ทจากระบบ...</span>`;
+        return;
+    }
+
+    let weightPerPiece = 0;
+    for (let key in matchedMaster) {
+        if (key.toLowerCase().includes('weight') || key.toLowerCase().includes('น้ำหนัก')) {
+            let val = parseFloat(matchedMaster[key]);
+            if (!isNaN(val) && val > 0) {
+                weightPerPiece = val;
+                break;
+            }
+        }
+    }
+
+    let piecePerSheet = 0;
+    for (let key in matchedMaster) {
+        if (key.toLowerCase().includes('sheet') || key.toLowerCase().includes('piece') || key.toLowerCase().includes('แผ่น')) {
+            let val = parseFloat(matchedMaster[key]);
+            if (!isNaN(val) && val > 0) {
+                piecePerSheet = val;
+                break;
+            }
+        }
+    }
+
+    const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
+
+    let calculatedPcs = 0;
+    let calculationText = '';
+
+    if (piecePerSheet > 0 && weightPerPiece === 0) {
+        calculatedPcs = Math.round(inputVal * piecePerSheet);
+        calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
+    } else {
+        calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
+        calculationText = `น้ำหนัก (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
+    }
+
+    let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
+
+    planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
+    if (tagBadge) {
+        tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
+    }
+}
+
+// 🌟 รวม Event DOMContentLoaded ไว้ที่จุดเดียวเพื่อความเป็นระเบียบและไม่ซ้ำซ้อน
+document.addEventListener("DOMContentLoaded", () => {
     const startDateInput = document.getElementById('planDate');
     if (startDateInput && !startDateInput.value) {
         const today = new Date();
@@ -2132,81 +2202,8 @@ document.addEventListener("DOMContentLoaded", function() {
         startDateInput.value = `${year}-${month}-${day}`;
     }
     autoSetFinishDate();
+    initMasterData();
 });
-    // ฟังก์ชันคำนวณยอดแผนผลิตจากน้ำหนักหรือจำนวนแผ่น (ค้นหาคีย์ฉลาดขึ้นรองรับทุกรูปแบบ)
-    function calculatePlanFromWeight() {
-        const partNoSelect = document.getElementById('planPartNo');
-        const inputElement = document.getElementById('planWeightKg');
-        const planQtyInput = document.getElementById('planQty');
-        const tagBadge = document.getElementById('tagCountBadge');
-
-        if (!partNoSelect || !inputElement || !planQtyInput) return;
-
-        const partNoVal = String(partNoSelect.value).trim().toUpperCase();
-        const inputVal = parseFloat(inputElement.value) || 0;
-
-        if (!partNoVal) return;
-
-        const masterData = JSON.parse(localStorage.getItem('masterPartsDatabase') || '[]');
-        
-        const matchedMaster = masterData.find(m => {
-            const pNo = String(m.partNo || m['partNo'] || m['Part No.'] || m['PARTNO'] || '').trim().toUpperCase();
-            return pNo === partNoVal;
-        });
-
-        if (!matchedMaster) {
-            if (tagBadge) tagBadge.innerHTML = `<span class="text-warning">⏳ กำลังโหลดข้อมูลพาร์ทจากระบบ...</span>`;
-            return;
-        }
-
-        // ค้นหาน้ำหนักต่อชิ้น (รองรับทั้งภาษาอังกฤษและไทย)
-        let weightPerPiece = 0;
-        for (let key in matchedMaster) {
-            if (key.toLowerCase().includes('weight') || key.toLowerCase().includes('น้ำหนัก')) {
-                let val = parseFloat(matchedMaster[key]);
-                if (!isNaN(val) && val > 0) {
-                    weightPerPiece = val;
-                    break;
-                }
-            }
-        }
-
-        let piecePerSheet = 0;
-        for (let key in matchedMaster) {
-            if (key.toLowerCase().includes('sheet') || key.toLowerCase().includes('piece') || key.toLowerCase().includes('แผ่น')) {
-                let val = parseFloat(matchedMaster[key]);
-                if (!isNaN(val) && val > 0) {
-                    piecePerSheet = val;
-                    break;
-                }
-            }
-        }
-
-        const pcsPerTag = parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) > 0 ? parseInt(matchedMaster.qty || matchedMaster['จำนวน'] || matchedMaster['TagQty'] || 50) : 50;
-
-        let calculatedPcs = 0;
-        let calculationText = '';
-
-        if (piecePerSheet > 0 && weightPerPiece === 0) {
-            calculatedPcs = Math.round(inputVal * piecePerSheet);
-            calculationText = `แผ่น (${inputVal} แผ่น × ${piecePerSheet} ชิ้น/แผ่น)`;
-        } else {
-            calculatedPcs = weightPerPiece > 0 ? Math.round(inputVal / weightPerPiece) : Math.round(inputVal);
-            calculationText = `น้ำหนัก (${inputVal} KG ÷ ${weightPerPiece} KG/ชิ้น)`;
-        }
-
-        let tagCount = pcsPerTag > 0 ? Math.ceil(calculatedPcs / pcsPerTag) : 1;
-
-        planQtyInput.value = inputVal > 0 ? calculatedPcs : '';
-        if (tagBadge) {
-            tagBadge.innerHTML = `📋 คำนวณจาก: ${calculationText}<br>👉 ต้องใช้ Tag: <b>${tagCount}</b> ใบ (อิง ${pcsPerTag} ชิ้น/ใบ)`;
-        }
-    }
-
-    // โหลดข้อมูลทันทีเมื่อเปิดหน้าเว็บ
-    document.addEventListener("DOMContentLoaded", () => {
-        initMasterData();
-    });
 
 // ==========================================
 // ==========================================
@@ -2706,26 +2703,6 @@ function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    // 1. ดึง Plans
-    fetch(scriptUrl + "?action=getPlans")
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                plans = res.data.map(p => ({
-                    id: p.id || Date.now(),
-                    Start: p.Start || p['Start'] || p['วันที่เริ่มต้น'] || '',
-                    Finish: p.Finish || p['Finish'] || p['วันที่สิ้นสุด'] || '',
-                    Line: p.Line || p['Line'] || p['line'] || '',
-                    "Part No.": p["Part No."] || p.partNo || p['partNo'] || '',
-                    "Lot No.": p["Lot No."] || p.lotNo || p['lotNo'] || '',
-                    "Plan Qty": Number(p["Plan Qty"] !== undefined ? p["Plan Qty"] : (p.planQty || p['ยอดแผน'] || 0))
-                }));
-
-                if (typeof renderPlans === 'function') renderPlans();
-                if (typeof renderDashboard === 'function') renderDashboard();
-            }
-        })
-        .catch(err => console.error("Error loading plans:", err));
 
   // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
 fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
