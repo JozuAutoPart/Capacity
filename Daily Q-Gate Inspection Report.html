@@ -305,6 +305,9 @@
 </div>
 
 <script>
+    // กำหนด URL ของ Google Apps Script (ตัวเดียวกับหน้าหลัก)
+    const GOOGLE_SCRIPT_URL = typeof window.GOOGLE_SCRIPT_URL !== 'undefined' ? window.GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbwXJ50a6JqG.../exec";
+
     document.addEventListener("DOMContentLoaded", function() {
         const urlParams = new URLSearchParams(window.location.search);
         const paramDate = urlParams.get('date') || '';
@@ -320,34 +323,56 @@
         document.getElementById('lblDate').innerText = displayDate ? displayDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
         document.getElementById('lblInspector').innerText = paramInspector || 'พนักงานทั้งหมด';
 
-        let qgateData = [];
+        // โหลดข้อมูล (ดึงจาก LocalStorage ก่อน และดึงจาก Google Sheets ทับเพื่อความสดใหม่)
+        loadAndRenderReport(targetDate, paramInspector);
+    });
+
+    function loadAndRenderReport(targetDate, paramInspector) {
+        let rawData = [];
         try {
-            let rawData = JSON.parse(
+            rawData = JSON.parse(
                 localStorage.getItem('qgateReportData') || 
                 localStorage.getItem('qgate') || 
                 localStorage.getItem('qgate_logs') || 
                 localStorage.getItem('qgateLogs') || '[]'
             );
-            
-            qgateData = rawData.filter(q => {
-                let qDate = String(q.date || q.Date || q.inspectionDate || '').trim().substring(0, 10);
-                let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || '').trim();
-                let targetIns = String(paramInspector).trim();
-
-                let matchDate = !targetDate || qDate === targetDate;
-                let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
-
-                return matchDate && matchIns;
-            });
-
-            if (qgateData.length === 0 && targetDate !== "") {
-                qgateData = rawData.filter(q => {
-                    let qDate = String(q.date || q.Date || '').trim().substring(0, 10);
-                    return qDate === targetDate;
-                });
-            }
         } catch (e) {
-            qgateData = [];
+            rawData = [];
+        }
+
+        // เรนเดอร์ข้อมูลจากแคชในเครื่องก่อนทันที
+        processAndRender(rawData, targetDate, paramInspector);
+
+        // ดึงข้อมูลสดจาก Google Sheets มาอัปเดตทับ
+        if (typeof GOOGLE_SCRIPT_URL !== 'undefined' && GOOGLE_SCRIPT_URL) {
+            fetch(GOOGLE_SCRIPT_URL + "?action=getQgate")
+                .then(res => res.json())
+                .then(cloudData => {
+                    if (Array.isArray(cloudData) && cloudData.length > 0) {
+                        processAndRender(cloudData, targetDate, paramInspector);
+                    }
+                })
+                .catch(err => console.log("Using local cache data:", err));
+        }
+    }
+
+    function processAndRender(rawData, targetDate, paramInspector) {
+        let qgateData = rawData.filter(q => {
+            let qDate = String(q.date || q.Date || q.inspectionDate || (Array.isArray(q) ? q[0] : '') || '').trim().substring(0, 10);
+            let qIns = String(q.inspector || q.opName || q.OP || q.empId || q.userId || q.employeeId || (Array.isArray(q) ? q[2] : '') || '').trim();
+            let targetIns = String(paramInspector).trim();
+
+            let matchDate = !targetDate || qDate === targetDate;
+            let matchIns = !targetIns || (qIns !== "" && qIns.toLowerCase() === targetIns.toLowerCase());
+
+            return matchDate && matchIns;
+        });
+
+        if (qgateData.length === 0 && targetDate !== "") {
+            qgateData = rawData.filter(q => {
+                let qDate = String(q.date || q.Date || (Array.isArray(q) ? q[0] : '') || '').trim().substring(0, 10);
+                return qDate === targetDate;
+            });
         }
 
         const tblInsp = document.getElementById('tblInspectionBody');
@@ -356,24 +381,26 @@
         let totalQty = 0, totalPass = 0, totalNg = 0;
 
         if (qgateData.length === 0) {
-            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข (วันที่: ${paramDate}, พนักงาน: ${paramInspector})</td></tr>`;
+            tblInsp.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบข้อมูลการตรวจสอบตามเงื่อนไข</td></tr>`;
         } else {
             qgateData.forEach((item, index) => {
-                let qty = Number(item.totalQty || item.qty || item['Check Qty'] || 0);
-                let ng = Number(item.ngQty || item.ng || item.ngCount || 0);
-                let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
-                let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
+                let qty = Number(item.totalQty || item.qty || item['Check Qty'] || (Array.isArray(item) ? item[4] : 0));
+                let ng = Number(item.ngQty || item.ng || item.ngCount || (Array.isArray(item) ? item[5] : 0));
+                let pass = Number(item.passQty || item.pass || (qty - ng) || (Array.isArray(item) ? item[6] : (qty - ng)));
+                
+                let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : null) || item.time || (Array.isArray(item) ? item[1] : '-');
+                let partNo = item.partNo || item['Part No.'] || (Array.isArray(item) ? item[3] : '-');
 
-                // 📌 ดึงข้อความอาการเสียจาก item หรืออาเรย์ตำแหน่งที่ 7 (Column H) โดยตรง
+                // 📌 ดึงรายละเอียดอาการเสียรองรับทั้ง Object (ngDetail) และ Array Index 7 (Column H)
                 let ngDetail = '-';
                 if (Array.isArray(item)) {
-                    if (item.length > 7 && item[7] !== undefined && item[7] !== null && String(item[7]).trim() !== '') {
+                    if (item.length > 7 && item[7] !== undefined && item[7] !== null && String(item[7]).trim() !== '' && String(item[7]).trim() !== '-') {
                         ngDetail = String(item[7]).trim();
                     }
                 } else if (typeof item === 'object' && item !== null) {
                     let rawVal = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || 
-                                 item['รายละเอียด / อาการเสีย'] || item['รายละเอียด'] || item['อาการเสีย'];
-                    if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
+                                 item['รายละเอียด / อาการเสีย'] || item['รายละเอียด'] || item['อาการเสีย'] || item[7];
+                    if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '' && String(rawVal).trim() !== '-') {
                         ngDetail = String(rawVal).trim();
                     }
                 }
@@ -386,7 +413,7 @@
                     <tr>
                         <td class="text-center">${index + 1}</td>
                         <td class="text-center">${timeRange}</td>
-                        <td><strong>${item.partNo || item['Part No.'] || '-'}</strong></td>
+                        <td><strong>${partNo}</strong></td>
                         <td class="text-end">${qty.toLocaleString()}</td>
                         <td class="text-end text-success">${pass.toLocaleString()}</td>
                         <td class="text-end text-danger">${ng.toLocaleString()}</td>
@@ -396,12 +423,13 @@
             });
         }
 
+        // กิจกรรมอื่นๆ (Non-Inspection)
         let otherData = [];
         try {
             let rawOther = JSON.parse(localStorage.getItem('qgate_other_logs') || '[]');
             otherData = rawOther.filter(o => {
-                let oDate = String(o.date || '').trim().substring(0, 10);
-                return !paramDate || oDate === targetDate;
+                let oDate = String(o.date || (Array.isArray(o) ? o[0] : '') || '').trim().substring(0, 10);
+                return !targetDate || oDate === targetDate;
             });
         } catch (e) {
             otherData = [];
@@ -414,13 +442,18 @@
             tblOther.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ไม่มีการบันทึกกิจกรรมอื่นในช่วงเวลานี้</td></tr>';
         } else {
             otherData.forEach((o, index) => {
+                let oTime = (o.startTime && o.endTime) ? `${o.startTime} - ${o.endTime}` : (o.time || (Array.isArray(o) ? o[1] : '-'));
+                let oType = o.activityType || (Array.isArray(o) ? o[2] : '-');
+                let oRemark = o.remark || (Array.isArray(o) ? o[3] : '-');
+                let oDuration = o.durationMinutes || (Array.isArray(o) ? o[4] : '-');
+
                 tblOther.innerHTML += `
                     <tr>
                         <td class="text-center">${index + 1}</td>
-                        <td class="text-center">${o.startTime} - ${o.endTime}</td>
-                        <td><strong>${o.activityType || '-'}</strong></td>
-                        <td>${o.remark || '-'}</td>
-                        <td class="text-center">${o.durationMinutes || '-'} นาที</td>
+                        <td class="text-center">${oTime}</td>
+                        <td><strong>${oType}</strong></td>
+                        <td>${oRemark}</td>
+                        <td class="text-center">${oDuration} นาที</td>
                     </tr>
                 `;
             });
@@ -432,7 +465,7 @@
 
         let ppm = totalQty > 0 ? Math.round((totalNg / totalQty) * 1000000) : 0;
         document.getElementById('sumPpm').innerText = ppm.toLocaleString() + ' PPM';
-    });
+    }
 </script>
 </body>
 </html>
