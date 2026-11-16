@@ -2702,7 +2702,43 @@ function submitActual(e) {
 function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
+    
+// 1. ดึง Plans จาก Cloud
+    fetch(scriptUrl + "?action=getPlans")
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === "success" && res.data) {
+                let cloudPlans = res.data.map(p => ({
+                    id: p.id || Date.now(),
+                    Start: p.Start || p['Start'] || p['วันที่เริ่มต้น'] || '',
+                    Finish: p.Finish || p['Finish'] || p['วันที่สิ้นสุด'] || '',
+                    Line: p.Line || p['Line'] || p['line'] || '',
+                    "Part No.": p["Part No."] || p.partNo || p['partNo'] || '',
+                    "Lot No.": p["Lot No."] || p.lotNo || p['lotNo'] || '',
+                    "Plan Qty": Number(p["Plan Qty"] !== undefined ? p["Plan Qty"] : (p.planQty || p['ยอดแผน'] || 0))
+                }));
 
+                // 🌟 ป้องกันแผนหาย: นำแผนในเครื่อง (Local) มารวมกับ Cloud เสมอ
+                if (typeof plans !== 'undefined' && Array.isArray(plans) && plans.length > 0) {
+                    let cloudMap = new Set(cloudPlans.map(cp => `${cp["Part No."]}_${cp["Lot No."]}_${cp.Line}`));
+                    
+                    plans.forEach(localP => {
+                        let key = `${localP["Part No."]}_${localP["Lot No."]}_${localP.Line}`;
+                        // ถ้าแผนไหนในเครื่องยังไม่มีบน Cloud ให้ดึงติดมือมารวมด้วย
+                        if (!cloudMap.has(key)) {
+                            cloudPlans.push(localP);
+                        }
+                    });
+                }
+
+                plans = cloudPlans;
+
+                if (typeof renderPlans === 'function') renderPlans();
+                if (typeof renderDashboard === 'function') renderDashboard();
+            }
+        })
+        .catch(err => console.error("Error loading plans:", err));
+}
 
   // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
 fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
