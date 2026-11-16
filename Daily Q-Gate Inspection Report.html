@@ -173,25 +173,18 @@
         </div>
     </div>
 
-    <script>
+  <script>
         document.addEventListener("DOMContentLoaded", function() {
             const urlParams = new URLSearchParams(window.location.search);
             const paramDate = urlParams.get('date') || '';
             const paramInspector = urlParams.get('inspector') || '';
 
             let displayDate = paramDate;
-            let targetDate = String(paramDate).trim();
+            let targetDate = String(paramDate).trim().substring(0, 10);
 
-            if (paramDate) {
-                let parts = targetDate.split('T')[0].split('-');
-                if (parts.length === 3) {
-                    let d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                    d.setDate(d.getDate() + 1);
-                    let y = d.getFullYear();
-                    let m = String(d.getMonth() + 1).padStart(2, '0');
-                    let day = String(d.getDate()).padStart(2, '0');
-                    displayDate = `${y}-${m}-${day}`;
-                }
+            // แก้ไข: ใช้การตัดสตริงตรงๆ ป้องกันปัญหา Timezone บวกเพิ่ม 1 วัน
+            if (targetDate) {
+                displayDate = targetDate;
             }
 
             document.getElementById('lblDate').innerText = displayDate ? displayDate.split('-').reverse().join('/') : 'ทุกวันที่ (แสดงทั้งหมด)';
@@ -241,28 +234,22 @@
                     let pass = Number(item.passQty || item.pass || (qty - ng) || 0);
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
-                   // 📌 ดึงเฉพาะคอลัมน์ H หรือฟิลด์อาการเสียตรงๆ เท่านั้น (ห้ามดึงตัวเลขหรือเวลามาแสดง)
-                   // ดึงข้อความอาการเสียจาก item หรืออาเรย์ตำแหน่งที่ 7 โดยตรง
-            let ngDetail = '-';
-            
-            // 1. ลองดึงจากตำแหน่ง Index 7 ในแถวอาเรย์ (คอลัมน์ H ใน Google Sheets)
-            if (Array.isArray(item) && item.length > 7 && item[7]) {
-                ngDetail = String(item[7]).trim();
-            } 
-            // 2. ถ้าไม่ใช่อาเรย์ ลองดึงจาก Key ชื่อฟิลด์ต่างๆ
-            else if (typeof item === 'object' && item !== null) {
-                let rawVal = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || 
-                             item['รายละเอียด / อาการเสีย'] || item['รายละเอียด'] || item['อาการเสีย'];
-                if (rawVal) {
-                    ngDetail = String(rawVal).trim();
-                }
-            }
+                    // 📌 ดึงข้อความอาการเสียจาก item หรืออาเรย์ตำแหน่งที่ 7 (Column H) โดยตรง
+                    let ngDetail = '-';
+                    
+                    if (Array.isArray(item) && item.length > 7 && item[7]) {
+                        ngDetail = String(item[7]).trim();
+                    } else if (typeof item === 'object' && item !== null) {
+                        let rawVal = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || 
+                                     item['รายละเอียด / อาการเสีย'] || item['รายละเอียด'] || item['อาการเสีย'];
+                        if (rawVal) {
+                            ngDetail = String(rawVal).trim();
+                        }
+                    }
 
-            // ถ้าเคลียร์ค่าแล้วยังว่างเปล่า ให้ใส่เครื่องหมายขีด
-            if (!ngDetail || ngDetail === '') {
-                ngDetail = '-';
-            }
-
+                    if (!ngDetail || ngDetail === '') {
+                        ngDetail = '-';
+                    }
 
                     totalQty += qty;
                     totalPass += pass;
