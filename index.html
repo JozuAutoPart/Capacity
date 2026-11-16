@@ -5351,7 +5351,7 @@ function loadAllDataFromCloud() {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) return;
 
-    // 1. ดึง Plans (พร้อมระบบ Merge ป้องกันแผนหาย)
+  // 1. ดึง Plans จาก Cloud (แบบป้องกันข้อมูลหาย / Merge ข้อมูล)
     fetch(scriptUrl + "?action=getPlans")
         .then(res => res.json())
         .then(res => {
@@ -5366,7 +5366,7 @@ function loadAllDataFromCloud() {
                     "Plan Qty": Number(p["Plan Qty"] !== undefined ? p["Plan Qty"] : (p.planQty || p['ยอดแผน'] || 0))
                 }));
 
-                // 🌟 ใช้ข้อมูลในเครื่อง (Local) เป็นฐานหลัก แล้วเติมของจาก Cloud เข้ามาไม่ให้แผนหาย
+                // 🌟 ใช้ข้อมูลในเครื่อง (Local) เป็นตัวตั้งหลัก แล้วดึงของจาก Cloud มาเติม
                 let currentPlans = (typeof plans !== 'undefined' && Array.isArray(plans) && plans.length > 0) ? plans : [];
                 let localMap = new Map();
                 currentPlans.forEach(p => {
@@ -5388,7 +5388,7 @@ function loadAllDataFromCloud() {
             }
         })
         .catch(err => console.error("Error loading plans:", err));
-
+    
     // 2. ดึง Actuals (พร้อมระบบแปลงวันที่ไม่ให้เพี้ยน)
     fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
         .then(res => res.json())
