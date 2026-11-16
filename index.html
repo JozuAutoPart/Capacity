@@ -1931,6 +1931,8 @@ let datasets = machines.map((mach, idx) => {
     });
 }
     // --- TAB 3: PLANNING (การวางแผนการผลิต) ---
+let selectedPlanLine = 'ALL';
+
 function submitPlan(e) {
     if (e) e.preventDefault();
     
@@ -1953,10 +1955,11 @@ function submitPlan(e) {
     .then(result => {
         if(result.status === "success") {
             plans.push(plan);
+            localStorage.setItem('productionPlans', JSON.stringify(plans));
             document.getElementById('planForm').reset();
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('planDate').value = today;
-            document.getElementById('planFinishDate').value = today;
+            autoSetFinishDate();
             renderPlans();
             if (typeof renderDashboard === 'function') renderDashboard();
             alert("บันทึกข้อมูลสำเร็จ!");
@@ -1970,6 +1973,11 @@ function submitPlan(e) {
     });
 }
 
+window.filterPlanningByLine = function(line) {
+    selectedPlanLine = line;
+    renderPlans();
+};
+
 function renderPlans() {
     const tbody = document.getElementById('planTableBody');
     if (!tbody) return;
@@ -1978,19 +1986,23 @@ function renderPlans() {
     const searchEl = document.getElementById('planSearchInput');
     const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
-    let activePlans = plans.filter(plan => {
-        const planPartNo = String(plan["Part No."] || "").trim();
-        const planLotNo = String(plan["Lot No."] || "").trim();
+    // 1. กรองเฉพาะแผนที่ "ยังผลิตไม่จบ" (Actual < Plan)
+    let unfinishedPlans = plans.filter(plan => {
+        const planPartNo = String(plan["Part No."] || "").trim().toUpperCase();
+        const planLotNo = String(plan["Lot No."] || "").trim().toUpperCase();
+        const planLine = String(plan.Line || "").trim().toUpperCase();
         let planQty = Number(plan["Plan Qty"]) || 0;
 
         let actualQty = 0;
         if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
             actuals.forEach(a => {
-                const aPartNo = String(a.partNo || a['Part No.'] || "").trim();
-                const aLotNo = String(a.lotNo || a['Lot No.'] || "").trim();
+                const aPartNo = String(a.partNo || a['Part No.'] || "").trim().toUpperCase();
+                const aLotNo = String(a.lotNo || a['Lot No.'] || "").trim().toUpperCase();
+                const aLine = String(a.line || a['Line'] || a['Line/MC'] || "").trim().toUpperCase();
                 const aQty = Number(a.qty || a['OK Qty'] || 0);
 
-                if (aPartNo === planPartNo) {
+                // เช็ก Part No. และ Line ให้ตรงกัน (ถ้าแผนมีระบุ Lot ให้เช็ก Lot ด้วย)
+                if (aPartNo === planPartNo && (!planLine || !aLine || aLine.includes(planLine) || planLine.includes(aLine))) {
                     if (planLotNo && planLotNo !== '-') {
                         if (aLotNo === planLotNo) actualQty += aQty;
                     } else {
@@ -2000,35 +2012,75 @@ function renderPlans() {
             });
         }
 
-        let diff = planQty - actualQty;
-
-        if (planQty > 0 && (actualQty >= planQty || (diff > 0 && (diff / planQty) <= 0.03))) {
+        // เงื่อนไข: ถ้าผลิตครบหรือเกินแผนแล้ว (actualQty >= planQty) ให้ซ่อนออกจากตาราง
+        if (planQty > 0 && actualQty >= planQty) {
             return false; 
         }
 
-        if (query) {
-            const pNo = planPartNo.toLowerCase();
-            const lNo = planLotNo.toLowerCase();
-            if (!pNo.includes(query) && !lNo.includes(query)) {
-                return false; 
-            }
+        return true;
+    });
+
+    // 2. นับจำนวนงานที่ค้างผลิตแยกตาม Line เพื่ออัปเดตปุ่ม Filter ด้านบน
+    const planTable = tbody.closest('table');
+    if (planTable) {
+        let filterBar = document.getElementById('planningLineFilterBar');
+        if (!filterBar) {
+            filterBar = document.createElement('div');
+            filterBar.id = 'planningLineFilterBar';
+            filterBar.className = 'd-flex flex-wrap gap-2 mb-3 align-items-center';
+            planTable.parentElement.insertBefore(filterBar, planTable);
         }
 
+        const lineCounts = { 'ALL': unfinishedPlans.length };
+        unfinishedPlans.forEach(p => {
+            const l = String(p.Line || '').trim();
+            if (l) lineCounts[l] = (lineCounts[l] || 0) + 1;
+        });
+
+        const defaultLines = ['ALL', 'Line A', 'Line Q', 'Line C1', 'Line C2', 'Line C3'];
+        const allLines = Array.from(new Set([...defaultLines, ...Object.keys(lineCounts)]));
+
+        filterBar.innerHTML = allLines.map(line => {
+            const count = lineCounts[line] || 0;
+            const isActive = (selectedPlanLine.toUpperCase() === line.toUpperCase());
+            const btnClass = isActive ? 'btn-primary fw-bold shadow-sm' : 'btn-outline-secondary text-white';
+            const badgeClass = isActive ? 'bg-warning text-dark' : 'bg-dark text-info';
+            
+            return `<button type="button" class="btn btn-sm ${btnClass}" onclick="window.filterPlanningByLine('${line}')">
+                        ${line} <span class="badge ${badgeClass} ms-1">${count}</span>
+                    </button>`;
+        }).join('');
+    }
+
+    // 3. กรองตามปุ่ม Line ที่เลือก และ ช่องค้นหา (Search)
+    let displayPlans = unfinishedPlans.filter(plan => {
+        const lineText = String(plan.Line || '').trim();
+        if (selectedPlanLine !== 'ALL' && lineText.toUpperCase() !== selectedPlanLine.toUpperCase()) {
+            return false;
+        }
+
+        if (query) {
+            const pNo = String(plan["Part No."] || "").toLowerCase();
+            const lNo = String(plan["Lot No."] || "").toLowerCase();
+            if (!pNo.includes(query) && !lNo.includes(query)) {
+                return false;
+            }
+        }
         return true;
     })
     .sort((a, b) => {
         let dateA = new Date(a["Start"] || a.Start || 0);
         let dateB = new Date(b["Start"] || b.Start || 0);
         return dateB - dateA;
-    })
-    .slice(0, 15);
+    });
 
-    if (!activePlans || activePlans.length === 0) {
+    // 4. แสดงผลลงตาราง
+    if (!displayPlans || displayPlans.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">ไม่พบข้อมูลแผนการผลิต (หรือผลิตครบหมดแล้ว)</td></tr>`;
         return;
     }
 
-    activePlans.forEach(plan => {
+    displayPlans.forEach(plan => {
         const tr = document.createElement('tr');
         
         const partNo = plan["Part No."] || '';
@@ -2038,8 +2090,8 @@ function renderPlans() {
         const planId = plan.id !== undefined ? plan.id : '';
 
         tr.innerHTML = `
-            <td>${plan.Start ? plan.Start.split('T')[0] : ''}</td>
-            <td>${plan.Finish ? plan.Finish.split('T')[0] : ''}</td>
+            <td>${plan.Start ? String(plan.Start).split('T')[0] : ''}</td>
+            <td>${plan.Finish ? String(plan.Finish).split('T')[0] : ''}</td>
             <td><span class="badge bg-secondary">${line}</span></td>
             <td class="fw-bold text-info">${partNo}</td>
             <td>${lotNo}</td>
@@ -2059,7 +2111,8 @@ function renderPlans() {
 
 function deletePlan(id) {
     if(confirm('ต้องการลบแผนการผลิตรายการนี้ใช่หรือไม่?')) {
-        plans = plans.filter(p => p.id !== id);
+        plans = plans.filter(p => String(p.id) !== String(id));
+        localStorage.setItem('productionPlans', JSON.stringify(plans));
         renderPlans();
         if (typeof renderDashboard === 'function') renderDashboard();
         alert("ลบแผนสำเร็จ");
@@ -2191,7 +2244,6 @@ function calculatePlanFromWeight() {
     }
 }
 
-// 🌟 รวม Event DOMContentLoaded ไว้ที่จุดเดียวเพื่อความเป็นระเบียบและไม่ซ้ำซ้อน
 document.addEventListener("DOMContentLoaded", () => {
     const startDateInput = document.getElementById('planDate');
     if (startDateInput && !startDateInput.value) {
@@ -2204,129 +2256,6 @@ document.addEventListener("DOMContentLoaded", () => {
     autoSetFinishDate();
     initMasterData();
 });
-
-    // ระบบจัดการหน้า Planning: แยกปุ่มกดตาม Line + นับจำนวนงาน + ลบแผนอัตโนมัติเมื่อผลิตครบตามเป้า
-(function() {
-    let selectedPlanLine = 'ALL';
-
-    function initPlanningEnhancement() {
-        // ค้นหาตารางในหน้า Planning (หาจากหัวตารางที่มีคำว่า Plan Qty และ Lot No.)
-        const tables = document.querySelectorAll('table');
-        let planTable = null;
-        tables.forEach(t => {
-            if (t.textContent.includes('Plan Qty') && t.textContent.includes('Lot No.')) {
-                planTable = t;
-            }
-        });
-
-        if (!planTable) return;
-
-        // 1. สร้างแถบปุ่มเลือก Line เหนือตาราง (ถ้ายังไม่มี)
-        let filterBar = document.getElementById('planningLineFilterBar');
-        if (!filterBar) {
-            filterBar = document.createElement('div');
-            filterBar.id = 'planningLineFilterBar';
-            filterBar.className = 'd-flex flex-wrap gap-2 mb-3 align-items-center';
-            planTable.parentElement.insertBefore(filterBar, planTable);
-        }
-
-        // 2. ฟังก์ชันอัปเดตปุ่มตัวเลขและกรองรายการในตาราง + ซ่อนแผนที่ผลิตจบแล้ว
-        function updatePlanningView() {
-            const tbody = planTable.querySelector('tbody');
-            if (!tbody) return;
-
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            const lineCounts = { 'ALL': 0 };
-            const actualData = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals : [];
-
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 6) return;
-
-                // ดึงข้อมูลจากคอลัมน์ในตาราง: [0]Start, [1]Finish, [2]Line, [3]Part No., [4]Lot No., [5]Plan Qty
-                const lineText = cells[2].textContent.trim();
-                const partNo = cells[3].textContent.trim().toUpperCase();
-                const lotNo = cells[4].textContent.trim().toUpperCase();
-                const planQty = Number(cells[5].textContent.replace(/,/g, '').trim()) || 0;
-
-                // เช็กยอดผลิตจริง (Actual) ที่ตรงกับ Part No. และ Lot No. นี้
-                const producedQty = actualData.filter(a => {
-                    const aPart = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
-                    const aLot = String(a.lotNo || a['Lot No.'] || a.lot || '').trim().toUpperCase();
-                    // ถ้าในหน้าบันทึกยอดผลิตมีการระบุ Lot ให้เทียบทั้ง Part และ Lot แต่ถ้าไม่ระบุ Lot ให้เทียบ Part
-                    return aLot ? (aPart === partNo && aLot === lotNo) : (aPart === partNo);
-                }).reduce((sum, a) => {
-                    const qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                    return sum + (isNaN(qty) ? 0 : qty);
-                }, 0);
-
-                // เงื่อนไข: ถ้าผลิตจบแล้ว (ยอดผลิต >= แผนผลิต) ให้ซ่อน/ลบออกจากรายการอัตโนมัติ
-                const isCompleted = (planQty > 0 && producedQty >= planQty);
-
-                if (isCompleted) {
-                    row.style.display = 'none';
-                    row.dataset.planCompleted = 'true';
-                    return; // ไม่นับรวมในจำนวนแผนที่ค้างผลิต
-                } else {
-                    row.dataset.planCompleted = 'false';
-                }
-
-                // นับจำนวนแผนที่ยังค้างอยู่แยกตาม Line
-                lineCounts['ALL'] = (lineCounts['ALL'] || 0) + 1;
-                if (lineText) {
-                    lineCounts[lineText] = (lineCounts[lineText] || 0) + 1;
-                }
-
-                // แสดงหรือซ่อนแถวตามปุ่ม Line ที่เลือกกดอยู่
-                if (selectedPlanLine === 'ALL' || lineText.toUpperCase() === selectedPlanLine.toUpperCase()) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            // สร้างปุ่ม Line พร้อมตัวเลขจำนวนแผน (เช่น Line A (5))
-            const defaultLines = ['ALL', 'Line A', 'Line Q', 'Line C1', 'Line C2', 'Line C3'];
-            const allLines = Array.from(new Set([...defaultLines, ...Object.keys(lineCounts)]));
-
-            filterBar.innerHTML = allLines.map(line => {
-                const count = lineCounts[line] || 0;
-                const isActive = (selectedPlanLine.toUpperCase() === line.toUpperCase());
-                const btnClass = isActive ? 'btn-primary fw-bold shadow-sm' : 'btn-outline-secondary text-white';
-                const badgeClass = isActive ? 'bg-warning text-dark' : 'bg-dark text-info';
-                
-                return `<button type="button" class="btn btn-sm ${btnClass}" onclick="window.filterPlanningByLine('${line}')">
-                            ${line} <span class="badge ${badgeClass} ms-1">${count}</span>
-                        </button>`;
-            }).join('');
-        }
-
-        // ฟังก์ชันเมื่อกดปุ่มเลือก Line
-        window.filterPlanningByLine = function(line) {
-            selectedPlanLine = line;
-            updatePlanningView();
-        };
-
-        // คอยตรวจจับเวลาตารางมีการเพิ่มแผนใหม่หรือโหลดข้อมูลจาก Cloud มาอัปเดต
-        const observer = new MutationObserver(() => {
-            updatePlanningView();
-        });
-        const tbody = planTable.querySelector('tbody');
-        if (tbody) {
-            observer.observe(tbody, { childList: true });
-        }
-
-        // รันอัปเดตครั้งแรกและซิงค์ทุกๆ 2 วินาทีเผื่อมีการบันทึกยอดผลิตเข้ามาใหม่
-        updatePlanningView();
-        setInterval(updatePlanningView, 2000);
-    }
-
-    if (document.readyState === 'complete') {
-        initPlanningEnhancement();
-    } else {
-        window.addEventListener('load', initPlanningEnhancement);
-    }
-})();
 // ==========================================
 // ==========================================
 // --- TAB 4: ACTUAL PRODUCTION ---
