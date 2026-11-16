@@ -242,27 +242,27 @@
                     let timeRange = item.timeRange || ((item.startTime && item.endTime) ? `${item.startTime} - ${item.endTime}` : (item.time || '-'));
 
                    // 📌 ดึงเฉพาะคอลัมน์ H หรือฟิลด์อาการเสียตรงๆ เท่านั้น (ห้ามดึงตัวเลขหรือเวลามาแสดง)
-                    let ngDetail = '-';
-                    if (item) {
-                        let rawDetail = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || item['รายละเอียด / อาการเสีย'] || item.columnH || item.col_7;
-                        
-                        if (!rawDetail && Array.isArray(item)) {
-                            rawDetail = item[7];
-                        } else if (!rawDetail && typeof item === 'object') {
-                            let keys = Object.keys(item);
-                            if (keys.length > 7) {
-                                rawDetail = item[keys[7]];
-                            }
-                        }
+                   // ดึงข้อความอาการเสียจาก item หรืออาเรย์ตำแหน่งที่ 7 โดยตรง
+            let ngDetail = '-';
+            
+            // 1. ลองดึงจากตำแหน่ง Index 7 ในแถวอาเรย์ (คอลัมน์ H ใน Google Sheets)
+            if (Array.isArray(item) && item.length > 7 && item[7]) {
+                ngDetail = String(item[7]).trim();
+            } 
+            // 2. ถ้าไม่ใช่อาเรย์ ลองดึงจาก Key ชื่อฟิลด์ต่างๆ
+            else if (typeof item === 'object' && item !== null) {
+                let rawVal = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item.defect || 
+                             item['รายละเอียด / อาการเสีย'] || item['รายละเอียด'] || item['อาการเสีย'];
+                if (rawVal) {
+                    ngDetail = String(rawVal).trim();
+                }
+            }
 
-                        if (rawDetail !== undefined && rawDetail !== null) {
-                            let valStr = String(rawDetail).trim();
-                            // เงื่อนไขเข้มงวด: ต้องไม่ใช่ค่าว่าง, ไม่ใช่ขีด, ห้ามมีโคลัน (:), และต้องไม่ใช่ตัวเลขล้วนๆ
-                            if (valStr !== '' && valStr !== '-' && !valStr.includes(':') && isNaN(valStr)) {
-                                ngDetail = valStr;
-                            }
-                        }
-                    }
+            // ถ้าเคลียร์ค่าแล้วยังว่างเปล่า ให้ใส่เครื่องหมายขีด
+            if (!ngDetail || ngDetail === '') {
+                ngDetail = '-';
+            }
+
 
                     totalQty += qty;
                     totalPass += pass;
