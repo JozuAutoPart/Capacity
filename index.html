@@ -834,7 +834,7 @@
                                 <th>ยอดตรวจ</th>
                                 <th>NG</th>
                                 <th>ผ่าน (Pass)</th>
-                                <th class="text-center">จัดการ</th>
+                                <th class="text-center">รายละเอียด / อาการเสีย</th>
                             </tr>
                         </thead>
                         <tbody id="qgateHistoryTableBody"></tbody>
@@ -3464,6 +3464,9 @@ function renderQGate() {
                     }
                 }
 
+                // 📌 ดึงข้อความอาการเสียมาแสดง
+                let ngDetailText = item.ngDetail || item.ng_detail || item.ngReason || item.remark || item['รายละเอียด / อาการเสีย'] || '-';
+
                 historyBody.innerHTML += `
                     <tr>
                         <td>${displayDate}</td>
@@ -3473,8 +3476,9 @@ function renderQGate() {
                         <td>${(item.totalQty || 0).toLocaleString()}</td>
                         <td class="text-danger">${(item.ngQty || 0).toLocaleString()}</td>
                         <td class="text-success fw-bold">${(item.passQty || 0).toLocaleString()}</td>
-                        <td class="text-center">
-                            <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteQGateItem(${item.id || 0})" title="ลบรายการนี้">
+                        <td>
+                            <span>${ngDetailText}</span>
+                            <button class="btn btn-outline-danger btn-sm py-0 px-2 float-end" onclick="deleteQGateItem(${item.id || 0})" title="ลบรายการนี้">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </td>
