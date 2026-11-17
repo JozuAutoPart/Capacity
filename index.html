@@ -6776,8 +6776,8 @@ document.addEventListener('keypress', function(e) {
                 let firstLowDate = localStorage.getItem(storageKey);
 
                 if (totalStock < minVal) {
-                    // 🌟 เช็กอย่างเข้มงวด: ถ้ายังไม่มีค่าใน Storage จริงๆ ถึงจะใช้วันนี้ 
-                    // แต่ถ้ามีค่าอยู่แล้ว (ไม่ว่าจะวันที่เท่าไหร่ หรือเราแก้เทสไว้) ห้ามเซฟทับเด็ดขาด!
+                    // 🌟 ล็อกเด็ดขาด: ถ้าไม่มีใน Storage ให้ใช้ค่าปัจจุบันเป็นจุดตั้งต้นครั้งแรกสุดเท่านั้น 
+                    // ถ้ามีอยู่แล้ว (ที่เราไปแก้เปลี่ยนวันใน Storage) จะดึงค่านั้นมาใช้คำนวณตรงๆ โดยไม่เขียนทับอีกเลย
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
