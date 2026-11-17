@@ -6809,6 +6809,39 @@ document.addEventListener('keypress', function(e) {
             displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
         }
 
+(function() {
+    function initLowStockWidget() {
+        const targetContainerId = 'lowStockWidgetContainer';
+        let container = document.getElementById(targetContainerId);
+        
+        if (!container) {
+            container = document.createElement('div');
+            container.id = targetContainerId;
+            const mainContent = document.querySelector('.container-fluid') || document.body;
+            mainContent.insertBefore(container, mainContent.firstChild);
+        }
+
+        let currentActiveLine = 'ALL';
+
+        function syncAndRender(selectedLine) {
+            currentActiveLine = selectedLine || 'ALL';
+            if (typeof window.getLowStockParts === 'function') {
+                window.getLowStockParts().then(parts => {
+                    displayWidget(parts, currentActiveLine);
+                }).catch(err => {
+                    console.error("Error fetching low stock parts:", err);
+                });
+            } else if (typeof lowStockPartsList !== 'undefined') {
+                displayWidget(lowStockPartsList, currentActiveLine);
+            } else {
+                let parts = [];
+                if (typeof inventoryData !== 'undefined') {
+                    parts = inventoryData.filter(x => (Number(x.stock) || 0) < (Number(x.min) || 0));
+                }
+                displayWidget(parts, currentActiveLine);
+            }
+        }
+
         function displayWidget(list, selectedLine) {
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
@@ -6873,7 +6906,7 @@ document.addEventListener('keypress', function(e) {
             let newVal = !currentVal;
             
             localStorage.setItem(key, newVal);
-            renderWidget(currentActiveLine);
+            syncAndRender(currentActiveLine);
             
             fetch(SCRIPT_URL, {
                 method: "POST",
