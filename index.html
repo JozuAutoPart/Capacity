@@ -6809,46 +6809,11 @@ document.addEventListener('keypress', function(e) {
             displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
         }
 
-(function() {
-    function initLowStockWidget() {
-        const targetContainerId = 'lowStockWidgetContainer';
-        let container = document.getElementById(targetContainerId);
-        
-        if (!container) {
-            container = document.createElement('div');
-            container.id = targetContainerId;
-            const mainContent = document.querySelector('.container-fluid') || document.body;
-            mainContent.insertBefore(container, mainContent.firstChild);
-        }
-
-        let currentActiveLine = 'ALL';
-
-        function syncAndRender(selectedLine) {
-            currentActiveLine = selectedLine || 'ALL';
-            if (typeof window.getLowStockParts === 'function') {
-                window.getLowStockParts().then(parts => {
-                    displayWidget(parts, currentActiveLine);
-                }).catch(err => {
-                    console.error("Error fetching low stock parts:", err);
-                });
-            } else if (typeof lowStockPartsList !== 'undefined') {
-                displayWidget(lowStockPartsList, currentActiveLine);
-            } else {
-                let parts = [];
-                if (typeof inventoryData !== 'undefined') {
-                    parts = inventoryData.filter(x => (Number(x.stock) || 0) < (Number(x.min) || 0));
-                }
-                displayWidget(parts, currentActiveLine);
-            }
-        }
-
         function displayWidget(list, selectedLine) {
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
                 ? list 
                 : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
-
-            let todayStr = new Date().toISOString().split('T')[0]; // วันที่ปัจจุบัน (YYYY-MM-DD)
 
             let badgesHtml = filteredParts.map(item => {
                 let cleanStock = Math.round(item.stock).toLocaleString();
@@ -6858,26 +6823,13 @@ document.addEventListener('keypress', function(e) {
                 let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
                 let isProducing = localStorage.getItem(storageKey) === 'true';
 
-                // 📌 คำนวณจำนวนวันที่ขาดสะสมจริง (นับสะสมเพิ่มขึ้นเรื่อยๆ ทุกวันจนกว่าจะเคลียร์)
-                let shortageStartKey = `shortage_start_${lineKeyClean}_${item.partNo}`;
-                let startDate = localStorage.getItem(shortageStartKey);
-
-                if (!startDate) {
-                    startDate = todayStr;
-                    localStorage.setItem(shortageStartKey, startDate);
-                }
-
-                let diffTime = new Date(todayStr) - new Date(startDate);
-                let calculatedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                if (calculatedDays < 1) calculatedDays = 1;
-
                 let bgStyle = '';
                 if (isProducing) {
                     bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
                 } else {
-                    if (calculatedDays === 1) {
+                    if (item.days === 1) {
                         bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
-                    } else if (calculatedDays === 2) {
+                    } else if (item.days === 2) {
                         bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
                     } else {
                         bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
@@ -6886,7 +6838,7 @@ document.addEventListener('keypress', function(e) {
 
                 let statusBadge = isProducing ? 
                     `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
-                    `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${calculatedDays} วัน</span>`;
+                    `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
 
                 return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
                             <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
@@ -6921,7 +6873,7 @@ document.addEventListener('keypress', function(e) {
             let newVal = !currentVal;
             
             localStorage.setItem(key, newVal);
-            syncAndRender(currentActiveLine);
+            renderWidget(currentActiveLine);
             
             fetch(SCRIPT_URL, {
                 method: "POST",
