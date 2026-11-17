@@ -6808,83 +6808,84 @@ document.addEventListener('keypress', function(e) {
 
             displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
         }
-
 // 📌 ฟังก์ชันแสดง Widget รายการ Part No. ที่ต่ำกว่า Minimum (พร้อมระบบนับวันขาดสะสม)
-function displayWidget(list, selectedLine) {
-    const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
-    const filteredParts = (currentLine === 'ALL') 
-        ? list 
-        : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
+(function() {
+    function displayWidget(list, selectedLine) {
+        const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
+        const filteredParts = (currentLine === 'ALL') 
+            ? list 
+            : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
-    let todayStr = new Date().toISOString().split('T')[0]; // วันที่ปัจจุบัน (YYYY-MM-DD)
+        let todayStr = new Date().toISOString().split('T')[0];
 
-    let badgesHtml = filteredParts.map(item => {
-        let cleanStock = Math.round(item.stock).toLocaleString();
-        let cleanMin = Math.round(item.min).toLocaleString();
+        let badgesHtml = filteredParts.map(item => {
+            let cleanStock = Math.round(item.stock).toLocaleString();
+            let cleanMin = Math.round(item.min).toLocaleString();
 
-        let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
-        let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
-        let isProducing = localStorage.getItem(storageKey) === 'true';
+            let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
+            let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
+            let isProducing = localStorage.getItem(storageKey) === 'true';
 
-        // 📌 คำนวณจำนวนวันที่ขาดสะสมจริง
-        let shortageStartKey = `shortage_start_${lineKeyClean}_${item.partNo}`;
-        let startDate = localStorage.getItem(shortageStartKey);
+            let shortageStartKey = `shortage_start_${lineKeyClean}_${item.partNo}`;
+            let startDate = localStorage.getItem(shortageStartKey);
 
-        if (!startDate) {
-            startDate = todayStr;
-            localStorage.setItem(shortageStartKey, startDate);
-        }
-
-        let diffTime = new Date(todayStr) - new Date(startDate);
-        let calculatedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        if (calculatedDays < 1) calculatedDays = 1;
-
-        let bgStyle = '';
-        if (isProducing) {
-            bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
-        } else {
-            if (calculatedDays === 1) {
-                bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
-            } else if (calculatedDays === 2) {
-                bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
-            } else {
-                bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
+            if (!startDate) {
+                startDate = todayStr;
+                localStorage.setItem(shortageStartKey, startDate);
             }
+
+            let diffTime = new Date(todayStr) - new Date(startDate);
+            let calculatedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            if (calculatedDays < 1) calculatedDays = 1;
+
+            let bgStyle = '';
+            if (isProducing) {
+                bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
+            } else {
+                if (calculatedDays === 1) {
+                    bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
+                } else if (calculatedDays === 2) {
+                    bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
+                } else {
+                    bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
+                }
+            }
+
+            let statusBadge = isProducing ? 
+                `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
+                `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${calculatedDays} วัน</span>`;
+
+            return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
+                        <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
+                        <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
+                        <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
+                        ${statusBadge}
+                        <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
+                    </span>`;
+        }).join('');
+
+        if (filteredParts.length === 0) {
+            badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
         }
 
-        let statusBadge = isProducing ? 
-            `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
-            `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${calculatedDays} วัน</span>`;
-
-        return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
-                    <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
-                    <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
-                    <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                    ${statusBadge}
-                    <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
-                </span>`;
-    }).join('');
-
-    if (filteredParts.length === 0) {
-        badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
-    }
-
-    const container = document.getElementById('lowStockWidgetContainer') || document.getElementById('zeroStockContainer');
-    if (container) {
-        container.innerHTML = `
-            <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                <h6 class="text-danger fw-bold mb-2">
-                    <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
-                    <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
-                    <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. ของแต่ละ Line เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
-                </h6>
-                <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
-                    ${badgesHtml}
+        const container = document.getElementById('lowStockWidgetContainer') || document.getElementById('zeroStockContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                    <h6 class="text-danger fw-bold mb-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
+                        <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
+                        <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. ของแต่ละ Line เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
+                    </h6>
+                    <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
+                        ${badgesHtml}
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
-}
+    window.renderZeroStockPartsByLine = displayWidget;
+})();
         function updateClock() {
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
