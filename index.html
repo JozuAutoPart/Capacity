@@ -6777,10 +6777,9 @@ document.addEventListener('keypress', function(e) {
 
                 if (totalStock < minVal) {
                     if (!firstLowDate) {
-                        // บันทึกวันที่เริ่มต้นเป็น "วันนี้" ตามจริง (เริ่มนับ 1 วันในวันแรกที่ขาด)
-                        firstLowDate = todayStr;
-                        localStorage.setItem(storageKey, firstLowDate);
-                    }
+    firstLowDate = todayStr;
+    localStorage.setItem(storageKey, firstLowDate); // ตรงนี้แหละครับที่พอกด F5 แล้วมันบังคับเซฟทับตลอด
+}
                     
                     let startDate = new Date(firstLowDate);
                     let currentDate = new Date(todayStr);
