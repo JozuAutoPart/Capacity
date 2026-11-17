@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (ล็อกวันย้อนหลังถาวร ไม่ให้รีเซ็ตตอน F5) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (ตัดการเขียนทับอัตโนมัติ ล็อกวันย้อนหลังถาวร) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6776,14 +6776,11 @@ document.addEventListener('keypress', function(e) {
                 let firstLowDate = localStorage.getItem(storageKey);
 
                 if (totalStock < minVal) {
-                    // 🌟 ล็อกเด็ดขาด: ถ้าไม่มีใน Storage ให้ใช้ค่าปัจจุบันเป็นจุดตั้งต้นครั้งแรกสุดเท่านั้น 
-                    // ถ้ามีอยู่แล้ว (ที่เราไปแก้เปลี่ยนวันใน Storage) จะดึงค่านั้นมาใช้คำนวณตรงๆ โดยไม่เขียนทับอีกเลย
-                    if (!firstLowDate) {
-                        firstLowDate = todayStr;
-                        localStorage.setItem(storageKey, firstLowDate);
-                    }
+                    // 🌟 ตัดคำสั่ง setItem อัตโนมัติออก ป้องกันการเขียนทับค่าที่เราแก้
+                    // ถ้าใน Storage ไม่มีค่า ให้ใช้วันปัจจุบันแสดงผลชั่วคราว แต่ถ้าเราไปแก้ใน Storage ไว้ จะดึงค่านั้นมาคำนวณทันที
+                    let effectiveDate = firstLowDate ? firstLowDate : todayStr;
                     
-                    let startDate = new Date(firstLowDate);
+                    let startDate = new Date(effectiveDate);
                     let currentDate = new Date(todayStr);
                     let diffTime = currentDate - startDate;
                     let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
