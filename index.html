@@ -6808,68 +6808,51 @@ document.addEventListener('keypress', function(e) {
 
             displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
         }
-// 📌 ฟังก์ชันแสดง Widget รายการ Part No. ที่ต่ำกว่า Minimum (พร้อมระบบนับวันขาดสะสม)
-(function() {
-    function displayWidget(list, selectedLine) {
-        const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
-        const filteredParts = (currentLine === 'ALL') 
-            ? list 
-            : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
-        let todayStr = new Date().toISOString().split('T')[0];
+        function displayWidget(list, selectedLine) {
+            const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
+            const filteredParts = (currentLine === 'ALL') 
+                ? list 
+                : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
-        let badgesHtml = filteredParts.map(item => {
-            let cleanStock = Math.round(item.stock).toLocaleString();
-            let cleanMin = Math.round(item.min).toLocaleString();
+            let badgesHtml = filteredParts.map(item => {
+                let cleanStock = Math.round(item.stock).toLocaleString();
+                let cleanMin = Math.round(item.min).toLocaleString();
 
-            let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
-            let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
-            let isProducing = localStorage.getItem(storageKey) === 'true';
+                let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
+                let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
+                let isProducing = localStorage.getItem(storageKey) === 'true';
 
-            let shortageStartKey = `shortage_start_${lineKeyClean}_${item.partNo}`;
-            let startDate = localStorage.getItem(shortageStartKey);
-
-            if (!startDate) {
-                startDate = todayStr;
-                localStorage.setItem(shortageStartKey, startDate);
-            }
-
-            let diffTime = new Date(todayStr) - new Date(startDate);
-            let calculatedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            if (calculatedDays < 1) calculatedDays = 1;
-
-            let bgStyle = '';
-            if (isProducing) {
-                bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
-            } else {
-                if (calculatedDays === 1) {
-                    bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
-                } else if (calculatedDays === 2) {
-                    bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
+                let bgStyle = '';
+                if (isProducing) {
+                    bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
                 } else {
-                    bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
+                    if (item.days === 1) {
+                        bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
+                    } else if (item.days === 2) {
+                        bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
+                    } else {
+                        bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
+                    }
                 }
+
+                let statusBadge = isProducing ? 
+                    `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
+                    `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
+
+                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
+                            <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
+                            <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
+                            <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
+                            ${statusBadge}
+                            <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
+                        </span>`;
+            }).join('');
+
+            if (filteredParts.length === 0) {
+                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
             }
 
-            let statusBadge = isProducing ? 
-                `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
-                `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${calculatedDays} วัน</span>`;
-
-            return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
-                        <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
-                        <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
-                        <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                        ${statusBadge}
-                        <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
-                    </span>`;
-        }).join('');
-
-        if (filteredParts.length === 0) {
-            badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
-        }
-
-        const container = document.getElementById('lowStockWidgetContainer') || document.getElementById('zeroStockContainer');
-        if (container) {
             container.innerHTML = `
                 <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                     <h6 class="text-danger fw-bold mb-2">
@@ -6883,8 +6866,76 @@ document.addEventListener('keypress', function(e) {
                 </div>
             `;
         }
+
+        window.toggleLineProducingStatus = function(lineName, partNo) {
+            let key = `producing_${lineName}_${partNo}`;
+            let currentVal = localStorage.getItem(key) === 'true';
+            let newVal = !currentVal;
+            
+            localStorage.setItem(key, newVal);
+            renderWidget(currentActiveLine);
+            
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "setStatus",
+                    lineName: lineName,
+                    partNo: partNo,
+                    status: newVal
+                })
+            }).then(() => {
+                console.log("Cloud producing status synced.");
+            }).catch(err => {
+                console.error("Error syncing status:", err);
+            });
+        };
+
+        window.renderZeroStockPartsByLine = syncAndRender;
+
+        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
+            let originalLoad = window.loadAllDataFromCloud;
+            window.loadAllDataFromCloud = async function(...args) {
+                let res = await originalLoad.apply(this, args);
+                setTimeout(() => syncAndRender(currentActiveLine), 500);
+                setTimeout(() => syncAndRender(currentActiveLine), 1500);
+                return res;
+            };
+            window._patchedLoadCloud = true;
+        }
+
+        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
+            let originalRenderAll = window.renderAll;
+            window.renderAll = function(...args) {
+                let res = originalRenderAll.apply(this, args);
+                setTimeout(() => syncAndRender(currentActiveLine), 300);
+                return res;
+            };
+            window._patchedRenderAll = true;
+        }
+
+        setTimeout(() => syncAndRender('ALL'), 1000);
+        setTimeout(() => syncAndRender('ALL'), 3000);
+        setTimeout(() => syncAndRender('ALL'), 5000);
+
+        document.addEventListener('click', function(e) {
+            let btn = e.target.closest('button') || e.target;
+            if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
+                let text = btn.textContent.trim();
+                if (text === 'ALL' || text.startsWith('Line')) {
+                    setTimeout(() => syncAndRender(text), 400);
+                }
+            }
+        });
     }
-    window.renderZeroStockPartsByLine = displayWidget;
+
+    if (document.readyState === 'complete') {
+        initLowStockWidget();
+    } else {
+        window.addEventListener('load', initLowStockWidget);
+        setTimeout(initLowStockWidget, 1000);
+    }
 })();
         function updateClock() {
     const now = new Date();
