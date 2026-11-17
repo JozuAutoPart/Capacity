@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (นับจำนวนวันตามจริงแบบเรียลไทม์) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (ล็อกวันย้อนหลังถาวร รองรับการแก้เทสไม่ให้ดีดกลับ) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6776,8 +6776,8 @@ document.addEventListener('keypress', function(e) {
                 let firstLowDate = localStorage.getItem(storageKey);
 
                 if (totalStock < minVal) {
+                    // ถ้ายังไม่มีใน Storage ให้สร้างด้วยวันนี้ครั้งแรกสุด แต่ถ้ามีอยู่แล้ว (ที่เราแก้เทสไว้) ห้ามเซฟทับเด็ดขาด
                     if (!firstLowDate) {
-                        // บันทึกวันที่เริ่มต้นเป็น "วันนี้" ตามจริง (เริ่มนับ 1 วันในวันแรกที่ขาด)
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
@@ -6792,7 +6792,7 @@ document.addEventListener('keypress', function(e) {
                         line: line,
                         stock: totalStock,
                         min: minVal,
-                        days: diffDays > 0 ? diffDays : 1 // 🌟 นับจำนวนวันตามจริงที่ขาด (วันแรก = 1, ข้ามวัน = 2, 3...)
+                        days: diffDays > 0 ? diffDays : 1
                     });
                 } else {
                     if (firstLowDate) {
