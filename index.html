@@ -6777,7 +6777,6 @@ document.addEventListener('keypress', function(e) {
 
                 if (totalStock < minVal) {
                     if (!firstLowDate) {
-                        // บันทึกวันที่เริ่มต้นเป็น "วันนี้" ตามจริง (เริ่มนับ 1 วันในวันแรกที่ขาด)
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
@@ -6792,7 +6791,7 @@ document.addEventListener('keypress', function(e) {
                         line: line,
                         stock: totalStock,
                         min: minVal,
-                        days: diffDays > 0 ? diffDays : 1 // 🌟 นับจำนวนวันตามจริงที่ขาด (วันแรก = 1, ข้ามวัน = 2, 3...)
+                        days: diffDays > 0 ? diffDays : 1
                     });
                 } else {
                     if (firstLowDate) {
