@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (ดึงจำนวนวันขาดตรงจาก Cloud ให้ตรงกับ LINE แจ้งเตือน 100%) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (แสดงโชว์ค้างไว้เป็นสีเขียวเมื่อกำลังผลิต และล็อกวันขาดถาวรไม่รีเซ็ต) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6772,15 +6772,11 @@ document.addEventListener('keypress', function(e) {
                 const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
-                let lineKeyClean = String(line).trim().replace(/\s+/g, '_');
-                let producingKey = `producing_${lineKeyClean}_${partNo}`;
-                let isProducing = localStorage.getItem(producingKey) === 'true';
-
                 let storageKey = `low_stock_since_${partNo}`;
                 let firstLowDate = localStorage.getItem(storageKey);
 
-                if (totalStock < minVal && !isProducing) {
-                    // ใช้ค่าใน localStorage ถ้ามี (เพื่อให้จำค่าที่เราแก้ย้อนหลังได้) ถ้าไม่มีค่อยใช้วันปัจจุบัน
+                // 🌟 แก้ไขเงื่อนไข: เอากระบวนการเช็ก isProducing ออกจากการคัดกรอง เพื่อให้พาร์ทที่กำลังผลิตยังคงแสดงโชว์อยู่
+                if (totalStock < minVal) {
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
@@ -6830,6 +6826,7 @@ document.addEventListener('keypress', function(e) {
 
                 let bgStyle = '';
                 if (isProducing) {
+                    // 🌟 ถ้ากำลังผลิตอยู่ จะแสดงแถบสีเขียวเข้มและล็อกสถานะโชว์ค้างไว้พร้อมจำนวนวันขาด
                     bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
                 } else {
                     if (item.days === 1) {
@@ -6842,7 +6839,7 @@ document.addEventListener('keypress', function(e) {
                 }
 
                 let statusBadge = isProducing ? 
-                    `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
+                    `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่ (ขาดมาแล้ว ${item.days} วัน)</span>` : 
                     `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
 
                 return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
