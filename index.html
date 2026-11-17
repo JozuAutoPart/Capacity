@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (แสดงโชว์ค้างไว้เป็นสีเขียวเมื่อกำลังผลิต และล็อกวันขาดถาวรไม่รีเซ็ต) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (ซ่อนจำนวนวันเมื่ออยู่ในสถานะกำลังผลิต) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6775,7 +6775,6 @@ document.addEventListener('keypress', function(e) {
                 let storageKey = `low_stock_since_${partNo}`;
                 let firstLowDate = localStorage.getItem(storageKey);
 
-                // 🌟 แก้ไขเงื่อนไข: เอากระบวนการเช็ก isProducing ออกจากการคัดกรอง เพื่อให้พาร์ทที่กำลังผลิตยังคงแสดงโชว์อยู่
                 if (totalStock < minVal) {
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
@@ -6826,7 +6825,6 @@ document.addEventListener('keypress', function(e) {
 
                 let bgStyle = '';
                 if (isProducing) {
-                    // 🌟 ถ้ากำลังผลิตอยู่ จะแสดงแถบสีเขียวเข้มและล็อกสถานะโชว์ค้างไว้พร้อมจำนวนวันขาด
                     bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
                 } else {
                     if (item.days === 1) {
@@ -6838,8 +6836,9 @@ document.addEventListener('keypress', function(e) {
                     }
                 }
 
+                // 🌟 ปรับตรงนี้: ถ้ากำลังผลิต แสดงแค่ "กำลังผลิตอยู่" (ตัดจำนวนวันออก) แต่ถ้าไม่ได้ผลิต แสดง "ขาดมาแล้ว X วัน"
                 let statusBadge = isProducing ? 
-                    `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่ (ขาดมาแล้ว ${item.days} วัน)</span>` : 
+                    `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
                     `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
 
                 return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
