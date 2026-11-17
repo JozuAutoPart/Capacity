@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (ซ่อนจำนวนวันเมื่ออยู่ในสถานะกำลังผลิต) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (ปรับปรุงความเร็ว ตอบสนองทันที) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6661,18 +6661,27 @@ document.addEventListener('keypress', function(e) {
                 currentActiveLine = selectedLine;
             }
 
+            // ทำการเรนเดอร์จาก Local ก่อนทันทีเพื่อความไว
+            renderWidget(currentActiveLine);
+
+            // ดึงข้อมูลสถานะจากคลาวด์เบื้องหลังแบบเงียบๆ
             fetch(`${SCRIPT_URL}?action=getProducingStatus`)
                 .then(response => response.json())
                 .then(res => {
                     const cloudStatusObj = res.data || {};
+                    let hasChanged = false;
                     for (let key in cloudStatusObj) {
-                        localStorage.setItem(key, cloudStatusObj[key]);
+                        if (localStorage.getItem(key) !== String(cloudStatusObj[key])) {
+                            localStorage.setItem(key, cloudStatusObj[key]);
+                            hasChanged = true;
+                        }
                     }
-                    renderWidget(currentActiveLine);
+                    if (hasChanged) {
+                        renderWidget(currentActiveLine);
+                    }
                 })
                 .catch(err => {
                     console.error("Failed to sync status from cloud:", err);
-                    renderWidget(currentActiveLine);
                 });
         }
 
@@ -6836,7 +6845,6 @@ document.addEventListener('keypress', function(e) {
                     }
                 }
 
-                // 🌟 ปรับตรงนี้: ถ้ากำลังผลิต แสดงแค่ "กำลังผลิตอยู่" (ตัดจำนวนวันออก) แต่ถ้าไม่ได้ผลิต แสดง "ขาดมาแล้ว X วัน"
                 let statusBadge = isProducing ? 
                     `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
                     `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
@@ -6873,9 +6881,11 @@ document.addEventListener('keypress', function(e) {
             let currentVal = localStorage.getItem(key) === 'true';
             let newVal = !currentVal;
             
+            // บันทึกและเรนเดอร์หน้าจอทันทีแบบรวดเร็ว (Optimistic UI)
             localStorage.setItem(key, newVal);
             renderWidget(currentActiveLine);
             
+            // ส่งข้อมูลไปบันทึกที่คลาวด์เบื้องหลัง
             fetch(SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -6886,8 +6896,6 @@ document.addEventListener('keypress', function(e) {
                     partNo: partNo,
                     status: newVal
                 })
-            }).then(() => {
-                console.log("Cloud producing status synced.");
             }).catch(err => {
                 console.error("Error syncing status:", err);
             });
@@ -6899,8 +6907,7 @@ document.addEventListener('keypress', function(e) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => syncAndRender(currentActiveLine), 500);
-                setTimeout(() => syncAndRender(currentActiveLine), 1500);
+                setTimeout(() => syncAndRender(currentActiveLine), 300);
                 return res;
             };
             window._patchedLoadCloud = true;
@@ -6910,22 +6917,21 @@ document.addEventListener('keypress', function(e) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
                 let res = originalRenderAll.apply(this, args);
-                setTimeout(() => syncAndRender(currentActiveLine), 300);
+                setTimeout(() => syncAndRender(currentActiveLine), 200);
                 return res;
             };
             window._patchedRenderAll = true;
         }
 
-        setTimeout(() => syncAndRender('ALL'), 1000);
-        setTimeout(() => syncAndRender('ALL'), 3000);
-        setTimeout(() => syncAndRender('ALL'), 5000);
+        // โหลดข้อมูลรอบแรกทันทีเมื่อเปิดหน้าเว็บ
+        setTimeout(() => syncAndRender('ALL'), 500);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => syncAndRender(text), 400);
+                    setTimeout(() => syncAndRender(text), 200);
                 }
             }
         });
@@ -6935,7 +6941,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1000);
+        setTimeout(initLowStockWidget, 500);
     }
 })();
         function updateClock() {
