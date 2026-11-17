@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (นับจำนวนวันตามจริงแบบเรียลไทม์) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (นับจำนวนวันตามจริงแบบเรียลไทม์และคงค่าวันย้อนหลัง) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6776,6 +6776,7 @@ document.addEventListener('keypress', function(e) {
                 let firstLowDate = localStorage.getItem(storageKey);
 
                 if (totalStock < minVal) {
+                    // ถ้ายังไม่มีวันเริ่มต้น ค่อยบันทึกด้วยวันที่ปัจจุบัน แต่ถ้ามีอยู่แล้ว (หรือเราแก้เทสไว้) ห้ามเขียนทับ!
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
