@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (ล็อกวันย้อนหลังถาวร รองรับการแก้เทสไม่ให้ดีดกลับ) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (เชื่อมโยงการนับวันให้ตรงกับ Google Apps Script) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6661,6 +6661,7 @@ document.addEventListener('keypress', function(e) {
                 currentActiveLine = selectedLine;
             }
 
+            // ดึงสถานะการผลิตและข้อมูลวันขาดจาก Cloud (เพื่อให้ตรงกับ Apps Script)
             fetch(`${SCRIPT_URL}?action=getProducingStatus`)
                 .then(response => response.json())
                 .then(res => {
@@ -6772,11 +6773,15 @@ document.addEventListener('keypress', function(e) {
                 const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
+                let lineKeyClean = String(line).trim().replace(/\s+/g, '_');
+                let producingKey = `producing_${lineKeyClean}_${partNo}`;
+                let isProducing = localStorage.getItem(producingKey) === 'true';
+
                 let storageKey = `low_stock_since_${partNo}`;
                 let firstLowDate = localStorage.getItem(storageKey);
 
-                if (totalStock < minVal) {
-                    // ถ้ายังไม่มีใน Storage ให้สร้างด้วยวันนี้ครั้งแรกสุด แต่ถ้ามีอยู่แล้ว (ที่เราแก้เทสไว้) ห้ามเซฟทับเด็ดขาด
+                // เงื่อนไขคำนวณตาม Apps Script: ต่ำกว่า Min และไม่ได้กำลังผลิตอยู่
+                if (totalStock < minVal && !isProducing) {
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
@@ -6786,13 +6791,14 @@ document.addEventListener('keypress', function(e) {
                     let currentDate = new Date(todayStr);
                     let diffTime = currentDate - startDate;
                     let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    let daysShort = diffDays > 0 ? diffDays : 1;
 
                     lowStockList.push({
                         partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal,
-                        days: diffDays > 0 ? diffDays : 1
+                        days: daysShort
                     });
                 } else {
                     if (firstLowDate) {
