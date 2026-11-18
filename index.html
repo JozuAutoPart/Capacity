@@ -6677,13 +6677,9 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมต่อสถานะ Cloud ซิงค์ทุกเครื่องผ่าน Google Apps Script Web App)
+// --- ระบบ Low Stock (แบบแยกส่วนสมบูรณ์ ไม่แตะตัวแปรคำนวณหน้าหลัก) ---
 (function() {
-    // 🔗 ใช้ตัวแปร GOOGLE_SCRIPT_URL ที่มีอยู่ในโปรเจกต์ของพี่มิว
-    const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
-    
     let cachedLowStockList = [];
-    let isInitialized = false;
 
     function initLowStockWidget() {
         let container = document.getElementById('zeroStockListContainer');
@@ -6700,159 +6696,87 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
-        let currentActiveLine = 'ALL';
-
-        // 🔄 ฟังก์ชันดึงสถานะจาก Cloud มาซิงค์เข้าเครื่องผ่าน fetch
-        function syncAndRender(selectedLine = 'ALL') {
-            if (selectedLine !== undefined && selectedLine !== null) {
-                currentActiveLine = selectedLine;
-            }
-
-            fetch(`${SCRIPT_URL}?action=getProducingStatus`)
-                .then(response => response.json())
-                .then(res => {
-                    const cloudStatusObj = res.data || {};
-                    for (let key in cloudStatusObj) {
-                        localStorage.setItem(key, cloudStatusObj[key]);
-                    }
-                    renderWidget(currentActiveLine);
-                })
-                .catch(err => {
-                    console.error("Failed to sync status from cloud:", err);
-                    renderWidget(currentActiveLine);
-                });
-        }
-
         function renderWidget(selectedLine = 'ALL') {
-            if (selectedLine !== undefined && selectedLine !== null) {
-                currentActiveLine = selectedLine;
-            }
-            
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
-            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
+            if (masterDb.length === 0) {
                 if (cachedLowStockList.length > 0) {
-                    displayWidget(cachedLowStockList, currentActiveLine);
+                    displayWidget(cachedLowStockList, selectedLine);
                 } else {
                     container.innerHTML = `
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังโหลดข้อมูล Low Stock...</h6>
                         </div>`;
                 }
+                setTimeout(() => renderWidget(selectedLine), 1500);
                 return;
             }
 
             let lowStockList = [];
-            
             const now = new Date();
+            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
             masterDb.forEach(m => {
                 let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-                if (!rawPartNo) return;
-
-                const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
-                if (hasProcessSuffix) return;
+                if (!rawPartNo || /\s\d+\/\d+$/.test(rawPartNo)) return;
 
                 let partNo = rawPartNo.toUpperCase();
-
-                let line = 'ALL';
-                let minVal = 0;
-
-                const keys = Object.keys(m);
-                for (let i = 0; i < keys.length; i++) {
-                    let k = keys[i];
-                    let lk = k.toLowerCase().trim();
-                    let val = String(m[k]).replace(/,/g, '').trim();
-
-                    if (lk === 'line' || lk.includes('line')) {
-                        if (m[k]) line = m[k];
-                    }
-                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
-                        let v = Number(val);
-                        if (!isNaN(v) && v > 0) {
-                            minVal = v;
-                        }
-                    }
-                }
+                let line = m['Line'] || m.line || 'ALL';
+                let minVal = Number(m['Minimum'] || m['min'] || Object.values(m)[11] || 0);
 
                 if (minVal <= 0) return;
 
-                const totalIn = actuals.filter(a => {
-                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, a) => {
-                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                // ดึงข้อมูลอาเรย์ผ่าน window แบบระมัดระวังที่สุด
+                const aList = window.actuals || [];
+                const wList = window.wipOuts || [];
+                const qList = window.qgate || [];
+                const dList = window.deliveries || [];
 
-                const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : []).filter(w => {
-                    let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, w) => {
-                    let val = Number(w.qty || w['Qty'] || 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                const totalIn = aList.filter(a => String(a.partNo || a['Part No.'] || '').trim().toUpperCase() === partNo)
+                    .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
 
-                const totalTransferred = qgate.filter(q => {
-                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, q) => {
-                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                const totalWipOut = wList.filter(w => String(w.partNo || w['Part No.'] || '').trim().toUpperCase() === partNo)
+                    .reduce((sum, w) => sum + Number(w.qty || w['Qty'] || 0), 0);
+
+                const totalTransferred = qList.filter(q => String(q.partNo || q['Part No.'] || '').trim().toUpperCase() === partNo)
+                    .reduce((sum, q) => sum + Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0)))), 0);
 
                 const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
-
-                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
-                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, d) => {
-                    let val = Number(d.qty || d['Qty'] || 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                const totalDelivered = dList.filter(d => String(d.partNo || d['Part No.'] || '').trim().toUpperCase() === partNo)
+                    .reduce((sum, d) => sum + Number(d.qty || d['Qty'] || 0), 0);
 
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
-                const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
-                const totalStock = currentwip + currentFg;
+                const currentStock = Math.max(0, (totalIn - effectiveWipOut) + adjustWip) + Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
 
                 let storageKey = `low_stock_since_${partNo}`;
                 let firstLowDate = localStorage.getItem(storageKey);
 
-                if (totalStock < minVal) {
+                if (currentStock < minVal) {
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
-                    let startDate = new Date(firstLowDate);
-                    let currentDate = new Date(todayStr);
-                    let diffTime = currentDate - startDate;
-                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    let parts = firstLowDate.split('-').map(Number);
+                    let diffDays = Math.floor((todayMidnight - new Date(parts[0], parts[1] - 1, parts[2])) / (1000 * 60 * 60 * 24)) + 1;
 
                     lowStockList.push({
                         partNo: rawPartNo,
                         line: line,
-                        stock: totalStock,
+                        stock: currentStock,
                         min: minVal,
                         days: diffDays > 0 ? diffDays : 1
                     });
-                } else {
-                    if (firstLowDate) {
-                        localStorage.removeItem(storageKey);
-                    }
+                } else if (firstLowDate) {
+                    localStorage.removeItem(storageKey);
                 }
             });
 
-            if (lowStockList.length > 0 || isInitialized) {
-                cachedLowStockList = lowStockList;
-                isInitialized = true;
-            }
-
-            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
+            cachedLowStockList = lowStockList;
+            displayWidget(lowStockList, selectedLine);
         }
 
         function displayWidget(list, selectedLine) {
@@ -6862,42 +6786,30 @@ document.addEventListener('keypress', function(e) {
                 : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
-                let cleanStock = Math.round(item.stock).toLocaleString();
-                let cleanMin = Math.round(item.min).toLocaleString();
-
                 let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
-                let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
-                let isProducing = localStorage.getItem(storageKey) === 'true';
+                let isProd = localStorage.getItem(`producing_${lineKeyClean}_${item.partNo}`) === 'true';
+                
+                let bgStyle = isProd ? 
+                    'background-color: #0f2d1e !important; border-color: #198754 !important;' : 
+                    (item.days === 1 ? 'background-color: #332701 !important; border-color: #ffc107 !important;' : 
+                    (item.days === 2 ? 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;' : 
+                    'background-color: #2b0c0c !important; border-color: #dc3545 !important;'));
 
-                // กำหนดสีพื้นหลังตามสถานะและจำนวนวันที่ขาด (1 วัน=เหลือง, 2 วัน=ส้ม, >=3 วัน=แดง)
-                let bgStyle = '';
-                if (isProducing) {
-                    bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
-                } else {
-                    if (item.days === 1) {
-                        bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
-                    } else if (item.days === 2) {
-                        bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
-                    } else {
-                        bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
-                    }
-                }
-
-                let statusBadge = isProducing ? 
+                let statusBadge = isProd ? 
                     `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
                     `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
 
-                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
-                            <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
-                            <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
+                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
+                            <i class="fas fa-box me-1 ${isProd ? 'text-success' : 'text-danger'}"></i>
+                            <b class="${isProd ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
                             ${statusBadge}
-                            <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock: ${Math.round(item.stock).toLocaleString()} / Min: ${Math.round(item.min).toLocaleString()}</span>
                         </span>`;
             }).join('');
 
             if (filteredParts.length === 0) {
-                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
+                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
             }
 
             container.innerHTML = `
@@ -6905,7 +6817,7 @@ document.addEventListener('keypress', function(e) {
                     <h6 class="text-danger fw-bold mb-2">
                         <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                         <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
-                        <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. ของแต่ละ Line เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
+                        <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
                         ${badgesHtml}
@@ -6914,65 +6826,24 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
-        // 🚀 ฟังก์ชันเมื่อคลิกเปลี่ยนสถานะ -> ส่ง POST ข้อมูลขึ้นไปบันทึกบน Cloud ทันที
         window.toggleLineProducingStatus = function(lineName, partNo) {
             let key = `producing_${lineName}_${partNo}`;
-            let currentVal = localStorage.getItem(key) === 'true';
-            let newVal = !currentVal;
-            
+            let newVal = !(localStorage.getItem(key) === 'true');
             localStorage.setItem(key, newVal);
-            renderWidget(currentActiveLine);
-            
-            fetch(SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    action: "setStatus",
-                    lineName: lineName,
-                    partNo: partNo,
-                    status: newVal
-                })
-            }).then(() => {
-                console.log("Cloud producing status synced.");
-            }).catch(err => {
-                console.error("Error syncing status:", err);
-            });
+            renderWidget('ALL');
         };
 
-        window.renderZeroStockPartsByLine = syncAndRender;
+        window.renderZeroStockPartsByLine = renderWidget;
 
-        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
-            let originalLoad = window.loadAllDataFromCloud;
-            window.loadAllDataFromCloud = async function(...args) {
-                let res = await originalLoad.apply(this, args);
-                setTimeout(() => syncAndRender(currentActiveLine), 500);
-                setTimeout(() => syncAndRender(currentActiveLine), 1500);
-                return res;
-            };
-            window._patchedLoadCloud = true;
-        }
-
-        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
-            let originalRenderAll = window.renderAll;
-            window.renderAll = function(...args) {
-                let res = originalRenderAll.apply(this, args);
-                setTimeout(() => syncAndRender(currentActiveLine), 300);
-                return res;
-            };
-            window._patchedRenderAll = true;
-        }
-
-        setTimeout(() => syncAndRender('ALL'), 1000);
-        setTimeout(() => syncAndRender('ALL'), 3000);
-        setTimeout(() => syncAndRender('ALL'), 5000);
+        // รอหน่วงเวลาให้หน้าเว็บหลักโหลดและเรนเดอร์ตัวเองเสร็จสิ้นแบบ 100% ค่อยรัน Widget
+        setTimeout(() => renderWidget('ALL'), 3000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => syncAndRender(text), 400);
+                    setTimeout(() => renderWidget(text), 400);
                 }
             }
         });
@@ -6982,7 +6853,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1000);
+        setTimeout(initLowStockWidget, 3000);
     }
 })();
         function updateClock() {
