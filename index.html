@@ -1382,6 +1382,7 @@ if (dashDiffBalanceEl) {
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
     const currentMonthIndex = new Date().getMonth(); // เดือนปัจจุบัน (พฤศจิกายน = 10)
+    const currentYear = new Date().getFullYear();    // ปีปัจจุบัน (2026)
 
     let monthlyProdArr = new Array(12).fill(0);
     let monthlyNgArr = new Array(12).fill(0);
@@ -1394,7 +1395,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
             .map(p => String(p["Part No."] || p.partNo || '').toLowerCase().trim());
     }
 
-    // 2. กรองยอดผลิตรายเดือนแบบยืดหยุ่น (ไม่ตัดข้อมูลทิ้ง ป้องกันยอดเป็น 0)
+    // 2. กรองยอดผลิตรายเดือน (กรองเฉพาะปี 2026 และวันที่ถูกต้องเท่านั้น)
     const filteredActuals = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals.filter(a => {
         if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
         let alineRaw = a["Line/MC"] || a.line || a.Line || '';
@@ -1407,30 +1408,32 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
 
         let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
-        let monthIndex = currentMonthIndex; // ค่าเริ่มต้นเป็นเดือนปัจจุบัน
+        if (!dateVal) return; // ❌ ถ้าไม่มีวันที่ ข้ามทันที ห้ามเทกองรวม
 
-        if (dateVal) {
-            let d = null;
-            if (typeof dateVal === 'string' && dateVal.includes('/')) {
-                let parts = dateVal.split('/');
-                if (parts.length === 3) {
-                    let year = parts[2];
-                    if (Number(year) > 2500) year = Number(year) - 543;
-                    d = new Date(`${year}-${parts[1]}-${parts[0]}`);
-                }
-            } else {
-                d = new Date(dateVal);
+        let d = null;
+        if (typeof dateVal === 'string' && dateVal.includes('/')) {
+            let parts = dateVal.split('/');
+            if (parts.length === 3) {
+                let day = parts[0];
+                let month = parts[1];
+                let year = parts[2];
+                if (Number(year) > 2500) year = Number(year) - 543; // แปลง พ.ศ. เป็น ค.ศ.
+                d = new Date(`${year}-${month}-${day}`);
             }
-            if (d && !isNaN(d.getTime())) {
-                monthIndex = d.getMonth();
-            }
+        } else {
+            d = new Date(dateVal);
         }
 
+        // ❌ ถ้าแปลงวันที่ไม่ได้ หรือไม่ใช่ปี 2026 ให้ข้ามทันที
+        if (!d || isNaN(d.getTime())) return;
+        if (d.getFullYear() !== currentYear) return;
+
+        let monthIndex = d.getMonth();
         let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
         monthlyProdArr[monthIndex] += Number(rawQty) || 0;
     });
 
-    // 3. กรองยอดของเสีย (Q-Gate)
+    // 3. กรองยอดของเสีย (Q-Gate) เฉพาะปี 2026
     const filteredQGate = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate.filter(q => {
         let qPart = String(q.partNo || q['Part No.'] || q.PartNo || '').toLowerCase().trim();
         if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
@@ -1447,11 +1450,12 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
 
     filteredQGate.forEach(q => {
         let dateVal = q["Date"] || q.date || q.Timestamp || q.timestamp || '';
-        let monthIndex = currentMonthIndex;
-        if (dateVal) {
-            let d = new Date(dateVal);
-            if (!isNaN(d.getTime())) monthIndex = d.getMonth();
-        }
+        if (!dateVal) return;
+
+        let d = new Date(dateVal);
+        if (isNaN(d.getTime()) || d.getFullYear() !== currentYear) return;
+
+        let monthIndex = d.getMonth();
         let rawNg = q.ngQty !== undefined ? q.ngQty : 
                    (q['NG Qty'] !== undefined ? q['NG Qty'] : 
                    (q.ng !== undefined ? q.ng : 
