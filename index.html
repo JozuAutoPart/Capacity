@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (ปรับปรุงความเร็ว ตอบสนองทันที) ---
+// --- ระบบ Low Stock ตัวเสถียร (กู้ยอดผลิตรวมกลับมาปกติ) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6661,10 +6661,8 @@ document.addEventListener('keypress', function(e) {
                 currentActiveLine = selectedLine;
             }
 
-            // ทำการเรนเดอร์จาก Local ก่อนทันทีเพื่อความไว
             renderWidget(currentActiveLine);
 
-            // ดึงข้อมูลสถานะจากคลาวด์เบื้องหลังแบบเงียบๆ
             fetch(`${SCRIPT_URL}?action=getProducingStatus`)
                 .then(response => response.json())
                 .then(res => {
@@ -6881,11 +6879,9 @@ document.addEventListener('keypress', function(e) {
             let currentVal = localStorage.getItem(key) === 'true';
             let newVal = !currentVal;
             
-            // บันทึกและเรนเดอร์หน้าจอทันทีแบบรวดเร็ว (Optimistic UI)
             localStorage.setItem(key, newVal);
             renderWidget(currentActiveLine);
             
-            // ส่งข้อมูลไปบันทึกที่คลาวด์เบื้องหลัง
             fetch(SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -6923,7 +6919,6 @@ document.addEventListener('keypress', function(e) {
             window._patchedRenderAll = true;
         }
 
-        // โหลดข้อมูลรอบแรกทันทีเมื่อเปิดหน้าเว็บ
         setTimeout(() => syncAndRender('ALL'), 500);
 
         document.addEventListener('click', function(e) {
