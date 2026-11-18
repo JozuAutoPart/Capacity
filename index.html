@@ -1382,94 +1382,89 @@ if (dashDiffBalanceEl) {
 
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
-    const currentMonthIndex = 10; // เดือนพฤศจิกายน (เดือนที่ 10 ของอาเรย์ 0-11)
-    const currentYear = 2026;
+    const currentMonthIndex = new Date().getMonth(); // เดือนปัจจุบัน (ต.ค.)
 
     let monthlyProdArr = new Array(12).fill(0);
     let monthlyNgArr = new Array(12).fill(0);
 
-    // 1. ตรวจสอบว่าหน้าเว็บกำลังเลือก Line ไหนอยู่ (ALL, Line A, Line Q, ฯลฯ)
-    let selectedLine = (typeof currentFilterLine !== 'undefined') ? currentFilterLine : 'ALL';
+    // 1. ดึงรายชื่อ Part No. ทั้งหมดที่อยู่ใน Line ที่กำลังเลือกอยู่ตอนนี้จาก plans
+    let activePartsInLine = [];
+    if (typeof currentFilterLine !== 'undefined' && currentFilterLine !== 'ALL') {
+        activePartsInLine = plans
+            .filter(p => String(p.Line || p.line || '').trim() === String(currentFilterLine).trim())
+            .map(p => String(p["Part No."] || p.partNo || '').toLowerCase().trim());
+    }
 
-    // 2. กรองข้อมูล Actuals เฉพาะ Line ที่เลือกจริงๆ
+    // 2. กรองยอดผลิตรายเดือนเฉพาะ Line ที่เลือก
     const filteredActuals = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals.filter(a => {
-        if (selectedLine === 'ALL') return true;
+        if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
         let alineRaw = a["Line/MC"] || a.line || a.Line || '';
         let aline = String(String(alineRaw).split('/')[0] || '').trim();
-        return aline.toLowerCase() === String(selectedLine).trim().toLowerCase();
+        return aline === String(currentFilterLine).trim();
     }) : [];
 
-    let currentMonthProd = 0;
-
-    filteredActuals.forEach(a => {
+   filteredActuals.forEach(a => {
         let aPart = String(a["Part No."] || a.partNo || '').trim();
         if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
 
-        let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
-        let val = Number(rawQty) || 0;
-        if (val <= 0) return;
-
         let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
-        let mIdx = currentMonthIndex; // ค่าเริ่มต้นบังคับลงเดือนปัจจุบัน
+        
+        // ❌ ถ้าไม่มีฟิลด์วันที่ ให้ข้ามทันที (ป้องกันไม่ให้ไปกองรวมที่เดือนปัจจุบัน)
+        if (!dateVal) return; 
 
-        if (dateVal) {
-            let d = new Date(dateVal);
-            if (!isNaN(d.getTime())) {
-                if (d.getFullYear() === currentYear) {
-                    mIdx = d.getMonth();
-                }
-            }
-        }
+        let d = new Date(dateVal);
+        // ❌ ถ้าแปลงวันที่ไม่สำเร็จ ให้ข้ามทันที
+        if (isNaN(d.getTime())) return; 
 
-        monthlyProdArr[mIdx] += val;
-        if (mIdx === currentMonthIndex) {
-            currentMonthProd += val;
-        }
+        let monthIndex = d.getMonth();
+        let itemYear = d.getFullYear();
+        let currentYear = new Date().getFullYear();
+
+        // (แนะนำ) เช็คเพิ่มด้วยว่าเป็นปีปัจจุบันไหม ถ้าเป็นปีเก่า (เช่น ปีที่แล้ว) ให้ข้ามด้วย เพื่อไม่ให้ยอดปีเก่ามารบกวน
+        if (itemYear !== currentYear) return;
+
+        let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
+        monthlyProdArr[monthIndex] += Number(rawQty) || 0;
     });
 
-    // 3. กรองยอดของเสีย (Q-Gate) เฉพาะ Line ที่เลือก
+    // 3. กรองยอดของเสีย (Q-Gate) โดยเช็คจากพาร์ทที่อยู่ใน Line นั้นๆ (แก้ปัญหาข้อมูล Line ใน qgate เป็นค่าว่าง)
     const filteredQGate = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate.filter(q => {
-        if (selectedLine === 'ALL') return true;
+        let qPart = String(q.partNo || q['Part No.'] || q.PartNo || '').toLowerCase().trim();
+        
+        if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
+        
+        // เช็คว่าพาร์ทนี้อยู่ในรายชื่อพาร์ทของ Line ที่เลือกไหม หรือชื่อ Line ใน qgate ตรงกันไหม
         let qLineRaw = q.line || q['Line/MC'] || q.Line || '';
         let qLine = String(qLineRaw).split('/')[0].toLowerCase().trim();
-        let targetLine = String(selectedLine).toLowerCase().trim();
-        return qLine === targetLine || qLine.includes(targetLine);
+        let targetLine = String(currentFilterLine).toLowerCase().trim();
+
+        let lineMatch = (qLine === targetLine || qLine.includes(targetLine));
+        let partMatch = activePartsInLine.includes(qPart);
+
+        return lineMatch || partMatch;
     }) : [];
 
-    let currentMonthNg = 0;
     filteredQGate.forEach(q => {
+        let dateVal = q["Date"] || q.date || q.Timestamp || q.timestamp || '';
+        let monthIndex = currentMonthIndex;
+        if (dateVal) {
+            let d = new Date(dateVal);
+            if (!isNaN(d.getTime())) monthIndex = d.getMonth();
+        }
         let rawNg = q.ngQty !== undefined ? q.ngQty : 
                    (q['NG Qty'] !== undefined ? q['NG Qty'] : 
                    (q.ng !== undefined ? q.ng : 
                    (q.NG !== undefined ? q.NG : (q.qtyNg || 0))));
-        let val = Number(rawNg) || 0;
-        if (val <= 0) return;
-
-        let dateVal = q["Date"] || q.date || q.Timestamp || q.timestamp || '';
-        let mIdx = currentMonthIndex;
-
-        if (dateVal) {
-            let d = new Date(dateVal);
-            if (!isNaN(d.getTime())) {
-                if (d.getFullYear() === currentYear) {
-                    mIdx = d.getMonth();
-                }
-            }
-        }
-
-        monthlyNgArr[mIdx] += val;
-        if (mIdx === currentMonthIndex) {
-            currentMonthNg += val;
-        }
+        monthlyNgArr[monthIndex] += Number(rawNg) || 0;
     });
 
-    // อัปเดตยอดประจำเดือนพฤศจิกายนลงอาเรย์กราฟให้ตรงกับการ์ด
-    monthlyProdArr[currentMonthIndex] = currentMonthProd;
-    monthlyNgArr[currentMonthIndex] = currentMonthNg;
+   // 4. ดึงยอดเฉพาะ "เดือนปัจจุบัน" ตาม Line ที่เลือกมาแสดงในการ์ดขวามือ (บังคับใช้ข้อมูลของเดือนปัจจุบันตรงๆ หากยังไม่มีการสแกน ให้เป็น 0 ทันที)
+let currentMonthProd = monthlyProdArr[currentMonthIndex] || 0;
+let currentMonthNg = monthlyNgArr[currentMonthIndex] || 0;
 
     const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
 
-    // 4. อัปเดตตัวเลขการ์ดสรุปทางขวามือ
+    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
@@ -1499,7 +1494,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
     if (!canvasEl) return;
     const ctx = canvasEl.getContext('2d');
 
-    if (typeof ppmChartInstance !== 'undefined' && ppmChartInstance) {
+    if (ppmChartInstance) {
         ppmChartInstance.destroy();
     }
 
@@ -6637,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (ปรับปรุงความเร็ว ตอบสนองทันที) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (นับจำนวนวันตามจริงแบบเรียลไทม์) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6666,27 +6661,18 @@ document.addEventListener('keypress', function(e) {
                 currentActiveLine = selectedLine;
             }
 
-            // ทำการเรนเดอร์จาก Local ก่อนทันทีเพื่อความไว
-            renderWidget(currentActiveLine);
-
-            // ดึงข้อมูลสถานะจากคลาวด์เบื้องหลังแบบเงียบๆ
             fetch(`${SCRIPT_URL}?action=getProducingStatus`)
                 .then(response => response.json())
                 .then(res => {
                     const cloudStatusObj = res.data || {};
-                    let hasChanged = false;
                     for (let key in cloudStatusObj) {
-                        if (localStorage.getItem(key) !== String(cloudStatusObj[key])) {
-                            localStorage.setItem(key, cloudStatusObj[key]);
-                            hasChanged = true;
-                        }
+                        localStorage.setItem(key, cloudStatusObj[key]);
                     }
-                    if (hasChanged) {
-                        renderWidget(currentActiveLine);
-                    }
+                    renderWidget(currentActiveLine);
                 })
                 .catch(err => {
                     console.error("Failed to sync status from cloud:", err);
+                    renderWidget(currentActiveLine);
                 });
         }
 
@@ -6791,6 +6777,7 @@ document.addEventListener('keypress', function(e) {
 
                 if (totalStock < minVal) {
                     if (!firstLowDate) {
+                        // บันทึกวันที่เริ่มต้นเป็น "วันนี้" ตามจริง (เริ่มนับ 1 วันในวันแรกที่ขาด)
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
@@ -6799,14 +6786,13 @@ document.addEventListener('keypress', function(e) {
                     let currentDate = new Date(todayStr);
                     let diffTime = currentDate - startDate;
                     let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                    let daysShort = diffDays > 0 ? diffDays : 1;
 
                     lowStockList.push({
                         partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal,
-                        days: daysShort
+                        days: diffDays > 0 ? diffDays : 1 // 🌟 นับจำนวนวันตามจริงที่ขาด (วันแรก = 1, ข้ามวัน = 2, 3...)
                     });
                 } else {
                     if (firstLowDate) {
@@ -6886,11 +6872,9 @@ document.addEventListener('keypress', function(e) {
             let currentVal = localStorage.getItem(key) === 'true';
             let newVal = !currentVal;
             
-            // บันทึกและเรนเดอร์หน้าจอทันทีแบบรวดเร็ว (Optimistic UI)
             localStorage.setItem(key, newVal);
             renderWidget(currentActiveLine);
             
-            // ส่งข้อมูลไปบันทึกที่คลาวด์เบื้องหลัง
             fetch(SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -6901,6 +6885,8 @@ document.addEventListener('keypress', function(e) {
                     partNo: partNo,
                     status: newVal
                 })
+            }).then(() => {
+                console.log("Cloud producing status synced.");
             }).catch(err => {
                 console.error("Error syncing status:", err);
             });
@@ -6912,7 +6898,8 @@ document.addEventListener('keypress', function(e) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => syncAndRender(currentActiveLine), 300);
+                setTimeout(() => syncAndRender(currentActiveLine), 500);
+                setTimeout(() => syncAndRender(currentActiveLine), 1500);
                 return res;
             };
             window._patchedLoadCloud = true;
@@ -6922,21 +6909,22 @@ document.addEventListener('keypress', function(e) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
                 let res = originalRenderAll.apply(this, args);
-                setTimeout(() => syncAndRender(currentActiveLine), 200);
+                setTimeout(() => syncAndRender(currentActiveLine), 300);
                 return res;
             };
             window._patchedRenderAll = true;
         }
 
-        // โหลดข้อมูลรอบแรกทันทีเมื่อเปิดหน้าเว็บ
-        setTimeout(() => syncAndRender('ALL'), 500);
+        setTimeout(() => syncAndRender('ALL'), 1000);
+        setTimeout(() => syncAndRender('ALL'), 3000);
+        setTimeout(() => syncAndRender('ALL'), 5000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => syncAndRender(text), 200);
+                    setTimeout(() => syncAndRender(text), 400);
                 }
             }
         });
@@ -6946,7 +6934,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 500);
+        setTimeout(initLowStockWidget, 1000);
     }
 })();
         function updateClock() {
