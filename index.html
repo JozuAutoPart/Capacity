@@ -6638,7 +6638,175 @@ document.addEventListener('keypress', function(e) {
     let cachedLowStockList = [];
     let isInitialized = false;
 
-   function initLowStockWidget
+    function initLowStockWidget() {
+        let container = document.getElementById('zeroStockListContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'zeroStockListContainer';
+            container.className = 'col-12 mt-3 mb-4';
+
+            const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
+            if (mainContent) {
+                const firstRow = mainContent.querySelector('.row') || mainContent.firstChild;
+                mainContent.insertBefore(container, firstRow);
+            }
+        }
+        container.style.display = 'block';
+
+        let currentActiveLine = 'ALL';
+
+        function syncAndRender(selectedLine = 'ALL') {
+            if (selectedLine !== undefined && selectedLine !== null) {
+                currentActiveLine = selectedLine;
+            }
+
+            fetch(`${SCRIPT_URL}?action=getProducingStatus`)
+                .then(response => response.json())
+                .then(res => {
+                    const cloudStatusObj = res.data || {};
+                    for (let key in cloudStatusObj) {
+                        localStorage.setItem(key, cloudStatusObj[key]);
+                    }
+                    renderWidget(currentActiveLine);
+                })
+                .catch(err => {
+                    console.error("Failed to sync status from cloud:", err);
+                    renderWidget(currentActiveLine);
+                });
+        }
+
+        function renderWidget(selectedLine = 'ALL') {
+            if (selectedLine !== undefined && selectedLine !== null) {
+                currentActiveLine = selectedLine;
+            }
+            
+            const masterDb = window.masterPartsDatabase || window.masterParts || [];
+            
+            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
+                if (cachedLowStockList.length > 0) {
+                    displayWidget(cachedLowStockList, currentActiveLine);
+                } else {
+                    container.innerHTML = `
+                        <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
+                        </div>`;
+                }
+                return;
+            }
+
+            let lowStockList = [];
+            
+            const now = new Date();
+            const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+            masterDb.forEach(m => {
+                let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
+                if (!rawPartNo) return;
+
+                const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
+                if (hasProcessSuffix) return;
+
+                let partNo = rawPartNo.toUpperCase();
+
+                let line = 'ALL';
+                let minVal = 0;
+
+                const keys = Object.keys(m);
+                for (let i = 0; i < keys.length; i++) {
+                    let k = keys[i];
+                    let lk = k.toLowerCase().trim();
+                    let val = String(m[k]).replace(/,/g, '').trim();
+
+                    if (lk === 'line' || lk.includes('line')) {
+                        if (m[k]) line = m[k];
+                    }
+                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
+                        let v = Number(val);
+                        if (!isNaN(v) && v > 0) {
+                            minVal = v;
+                        }
+                    }
+                }
+
+                if (minVal <= 0) return;
+
+                const totalIn = actuals.filter(a => {
+                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, a) => {
+                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : []).filter(w => {
+                    let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, w) => {
+                    let val = Number(w.qty || w['Qty'] || 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const totalTransferred = qgate.filter(q => {
+                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, q) => {
+                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
+
+                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
+                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, d) => {
+                    let val = Number(d.qty || d['Qty'] || 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
+                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
+
+                const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
+                const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
+                const totalStock = currentwip + currentFg;
+
+                let storageKey = `low_stock_since_${partNo}`;
+                let firstLowDate = localStorage.getItem(storageKey);
+
+                if (totalStock < minVal) {
+                    if (!firstLowDate) {
+                        firstLowDate = todayStr;
+                        localStorage.setItem(storageKey, firstLowDate);
+                    }
+                    
+                    // คำนวณจำนวนวันแบบเทียบวันที่ปัจจุบัน (ให้ตรงกับหลังบ้านและ Line)
+                    let startDate = new Date(firstLowDate);
+                    let currentDate = new Date(todayStr);
+                    let diffTime = currentDate - startDate;
+                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                    lowStockList.push({
+                        partNo: rawPartNo,
+                        line: line,
+                        stock: totalStock,
+                        min: minVal,
+                        days: diffDays > 0 ? diffDays : 1
+                    });
+                } else {
+                    if (firstLowDate) {
+                        localStorage.removeItem(storageKey);
+                    }
+                }
+            });
+
+            if (lowStockList.length > 0 || isInitialized) {
+                cachedLowStockList = lowStockList;
+                isInitialized = true;
+            }
+
+            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
+        }
 
         function displayWidget(list, selectedLine) {
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
