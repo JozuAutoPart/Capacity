@@ -6677,244 +6677,151 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบ Low Stock (เวอร์ชันแก้ปัญหายอดผลิตเป็น 0 แบบสมบูรณ์) ---
+// --- ระบบ Low Stock (ห่อหุ้มตัวแปรแยกอิสระ 100% ไม่ชนกับหน้าหลัก) ---
 (function() {
-    let cachedLowStockList = [];
+    let _cachedLowStock = [];
 
-    function initLowStockWidget() {
-        let container = document.getElementById('zeroStockListContainer');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'zeroStockListContainer';
-            container.className = 'col-12 mt-3 mb-4';
+    function bootLowStock() {
+        let el = document.getElementById('zeroStockListContainer');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'zeroStockListContainer';
+            el.className = 'col-12 mt-3 mb-4';
 
-            const mainContent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
-            if (mainContent) {
-                const firstRow = mainContent.querySelector('.row') || mainContent.firstChild;
-                mainContent.insertBefore(container, firstRow);
+            const parent = document.querySelector('.container-fluid') || document.querySelector('main') || document.body;
+            if (parent) {
+                parent.insertBefore(el, parent.firstChild);
             }
         }
-        container.style.display = 'block';
+        el.style.display = 'block';
 
-        function renderWidget(selectedLine = 'ALL') {
-            const masterDb = window.masterPartsDatabase || window.masterParts || [];
+        function drawWidget(targetLine = 'ALL') {
+            const dbRef = window.masterPartsDatabase || window.masterParts || [];
             
-            // ถ้าระบบหลักยังโหลดข้อมูลไม่เสร็จ ให้แสดงสถานะรอ โดยไม่ไปแตะต้องหรือเรียกตัวแปรพังๆ
-            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
-                if (cachedLowStockList.length > 0) {
-                    displayWidget(cachedLowStockList, selectedLine);
-                } else {
-                    container.innerHTML = `
-                        <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
-                        </div>`;
-                }
-                // เช็กซ้ำเรื่อยๆ จนกว่าข้อมูลหลักจะพร้อม โดยไม่ไปขัดขวางการเรนเดอร์หน้าหลัก
-                setTimeout(() => renderWidget(selectedLine), 1000);
+            // รอให้หน้าเว็บหลักโหลดข้อมูลเสร็จก่อน ค่อยทำงานเงียบๆ
+            if (dbRef.length === 0 || typeof window.actuals === 'undefined') {
+                setTimeout(() => drawWidget(targetLine), 1000);
                 return;
             }
 
-            let lowStockList = [];
-            
-            const now = new Date();
-            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            let resultList = [];
+            const dtNow = new Date();
+            const todayKey = dtNow.getFullYear() + '-' + String(dtNow.getMonth() + 1).padStart(2, '0') + '-' + String(dtNow.getDate()).padStart(2, '0');
 
-            masterDb.forEach(m => {
-                let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-                if (!rawPartNo) return;
+            dbRef.forEach(row => {
+                let pNoRaw = String(row['Part No.'] || row.partNo || row.PARTNO || '').trim();
+                if (!pNoRaw || /\s\d+\/\d+$/.test(pNoRaw)) return;
 
-                const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
-                if (hasProcessSuffix) return;
-
-                let partNo = rawPartNo.toUpperCase();
-
-                let line = 'ALL';
-                let minVal = 0;
-
-                const keys = Object.keys(m);
-                for (let i = 0; i < keys.length; i++) {
-                    let k = keys[i];
-                    let lk = k.toLowerCase().trim();
-                    let val = String(m[k]).replace(/,/g, '').trim();
-
-                    if (lk === 'line' || lk.includes('line')) {
-                        if (m[k]) line = m[k];
-                    }
-                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
-                        let v = Number(val);
-                        if (!isNaN(v) && v > 0) {
-                            minVal = v;
-                        }
-                    }
-                }
+                let pNoUp = pNoRaw.toUpperCase();
+                let lineName = row['Line'] || row.line || 'ALL';
+                let minVal = Number(row['Minimum'] || row['min'] || Object.values(row)[11] || 0);
 
                 if (minVal <= 0) return;
 
-                const totalIn = actuals.filter(a => {
-                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, a) => {
-                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                const actArr = window.actuals || [];
+                const qgArr = window.qgate || [];
+                const wipArr = window.wipOuts || [];
+                const delArr = window.deliveries || [];
 
-                const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : []).filter(w => {
-                    let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, w) => {
-                    let val = Number(w.qty || w['Qty'] || 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                let inQty = actArr.filter(a => String(a.partNo || a['Part No.'] || '').trim().toUpperCase() === pNoUp)
+                    .reduce((s, a) => s + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
 
-                const totalTransferred = qgate.filter(q => {
-                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, q) => {
-                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                let wipOutQty = wipArr.filter(w => String(w.partNo || w['Part No.'] || '').trim().toUpperCase() === pNoUp)
+                    .reduce((s, w) => s + Number(w.qty || w['Qty'] || 0), 0);
 
-                const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
+                let qgQty = qgArr.filter(q => String(q.partNo || q['Part No.'] || '').trim().toUpperCase() === pNoUp)
+                    .reduce((s, q) => s + Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0)))), 0);
 
-                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
-                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
-                    return p === partNo;
-                }).reduce((sum, d) => {
-                    let val = Number(d.qty || d['Qty'] || 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
+                let effWip = wipOutQty > 0 ? wipOutQty : qgQty;
+                let delQty = delArr.filter(d => String(d.partNo || d['Part No.'] || '').trim().toUpperCase() === pNoUp)
+                    .reduce((s, d) => s + Number(d.qty || d['Qty'] || 0), 0);
 
-                const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
-                const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
+                let adjW = parseInt(localStorage.getItem(`stock_adjust_WIP_${pNoRaw}`) || localStorage.getItem(`stock_adjust_WIP_${pNoUp}`) || 0);
+                let adjF = parseInt(localStorage.getItem(`stock_adjust_FG_${pNoRaw}`) || localStorage.getItem(`stock_adjust_FG_${pNoUp}`) || 0);
 
-                const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
-                const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
-                const totalStock = currentwip + currentFg;
+                let curWip = Math.max(0, (inQty - effWip) + adjW);
+                let curFg = Math.max(0, (qgQty - delQty) + adjF);
+                let totalStk = curWip + curFg;
 
-                let storageKey = `low_stock_since_${partNo}`;
-                let firstLowDate = localStorage.getItem(storageKey);
+                let dateKey = `low_stock_since_${pNoUp}`;
+                let firstDate = localStorage.getItem(dateKey);
 
-                if (totalStock < minVal) {
-                    if (!firstLowDate) {
-                        firstLowDate = todayStr;
-                        localStorage.setItem(storageKey, firstLowDate);
+                if (totalStk < minVal) {
+                    if (!firstDate) {
+                        firstDate = todayKey;
+                        localStorage.setItem(dateKey, firstDate);
                     }
                     
-                    let parts = firstLowDate.split('-').map(Number);
-                    let startDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                    let diffTime = todayMidnight - startDate;
-                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                    let daysShort = diffDays > 0 ? diffDays : 1;
+                    let pParts = firstDate.split('-').map(Number);
+                    let daysDiff = Math.floor((new Date(dtNow.getFullYear(), dtNow.getMonth(), dtNow.getDate()) - new Date(pParts[0], pParts[1] - 1, pParts[2])) / (1000 * 60 * 60 * 24)) + 1;
 
-                    lowStockList.push({
-                        partNo: rawPartNo,
-                        line: line,
-                        stock: totalStock,
+                    resultList.push({
+                        partNo: pNoRaw,
+                        line: lineName,
+                        stock: totalStk,
                         min: minVal,
-                        days: daysShort
+                        days: daysDiff > 0 ? daysDiff : 1
                     });
-                } else {
-                    if (firstLowDate) {
-                        localStorage.removeItem(storageKey);
-                    }
+                } else if (firstDate) {
+                    localStorage.removeItem(dateKey);
                 }
             });
 
-            cachedLowStockList = lowStockList;
-            displayWidget(lowStockList, selectedLine);
+            _cachedLowStock = resultList;
+            renderHTML(resultList, targetLine);
         }
 
-        function displayWidget(list, selectedLine) {
-            const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
-            const filteredParts = (currentLine === 'ALL') 
-                ? list 
-                : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
+        function renderHTML(listData, activeLine) {
+            let lineFilter = (!activeLine || activeLine === 'ALL') ? 'ALL' : String(activeLine).trim().toUpperCase();
+            let filtered = (lineFilter === 'ALL') ? listData : listData.filter(x => String(x.line).trim().toUpperCase() === lineFilter);
 
-            let badgesHtml = filteredParts.map(item => {
-                let cleanStock = Math.round(item.stock).toLocaleString();
-                let cleanMin = Math.round(item.min).toLocaleString();
+            let htmlBadges = filtered.map(item => {
+                let cleanLineKey = String(item.line).trim().replace(/\s+/g, '_');
+                let isProdActive = localStorage.getItem(`producing_${cleanLineKey}_${item.partNo}`) === 'true';
+                
+                let styleBg = isProdActive ? 
+                    'background-color: #0f2d1e !important; border-color: #198754 !important;' : 
+                    'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
 
-                let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
-                let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
-                let isProducing = localStorage.getItem(storageKey) === 'true';
-
-                let bgStyle = '';
-                if (isProducing) {
-                    bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
-                } else {
-                    if (item.days === 1) {
-                        bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
-                    } else if (item.days === 2) {
-                        bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
-                    } else {
-                        bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
-                    }
-                }
-
-                let statusBadge = isProducing ? 
-                    `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
-                    `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
-
-                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
-                            <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
-                            <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
-                            <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            ${statusBadge}
-                            <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
+                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${styleBg}" onclick="toggleWidgetStatus('${cleanLineKey}', '${item.partNo}')">
+                            <b class="${isProdActive ? 'text-success' : 'text-warning'}">${item.partNo}</b> 
+                            <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span>
+                            <span class="badge ${isProdActive ? 'bg-success text-white' : 'bg-dark text-white border'} ms-1">${isProdActive ? 'กำลังผลิตอยู่' : 'ขาดมาแล้ว ' + item.days + ' วัน'}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock: ${Math.round(item.stock).toLocaleString()} / Min: ${Math.round(item.min).toLocaleString()}</span>
                         </span>`;
             }).join('');
 
-            if (filteredParts.length === 0) {
-                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
-            }
-
-            container.innerHTML = `
+            el.innerHTML = `
                 <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
                     <h6 class="text-danger fw-bold mb-2">
-                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
-                        <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
-                        <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. ของแต่ละ Line เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
+                        <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock ต่ำกว่า Minimum 
+                        <span class="badge bg-danger text-white ms-2">${filtered.length} รายการ</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
-                        ${badgesHtml}
+                        ${htmlBadges || '<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มีรายการต่ำกว่า Minimum</span>'}
                     </div>
                 </div>
             `;
         }
 
-        window.toggleLineProducingStatus = function(lineName, partNo) {
-            let key = `producing_${lineName}_${partNo}`;
-            let currentVal = localStorage.getItem(key) === 'true';
-            let newVal = !currentVal;
-            
-            localStorage.setItem(key, newVal);
-            renderWidget(currentActiveLine);
+        window.toggleWidgetStatus = function(lineName, partNo) {
+            let keyName = `producing_${lineName}_${partNo}`;
+            let nextVal = !(localStorage.getItem(keyName) === 'true');
+            localStorage.setItem(keyName, nextVal);
+            drawWidget('ALL');
         };
 
-        window.renderZeroStockPartsByLine = renderWidget;
+        window.renderZeroStockPartsByLine = drawWidget;
 
-        // **จุดสำคัญ:** เราจะไม่ไปแตะต้องหรือแพตช์ฟังก์ชัน loadAllDataFromCloud หรือ renderAll ของหน้าหลักเด็ดขาด 
-        // ปล่อยให้หน้าเว็บหลักโหลดและเรนเดอร์ยอดผลิตรวมของตัวเองให้เสร็จสมบูรณ์ 100% ก่อน 
-        // แล้วค่อยให้ Widget ของเราสั่งรันตัวเองทีหลังอย่างปลอดภัย
-        setTimeout(() => renderWidget('ALL'), 2000);
-
-        document.addEventListener('click', function(e) {
-            let btn = e.target.closest('button') || e.target;
-            if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
-                let text = btn.textContent.trim();
-                if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 400);
-                }
-            }
-        });
+        // หน่วงเวลาให้หน้าเว็บหลักโหลดและเรนเดอร์ยอดทุกอย่างเสร็จสิ้นก่อน ค่อยสั่งเรนเดอร์ Widget
+        setTimeout(() => drawWidget('ALL'), 3000);
     }
 
     if (document.readyState === 'complete') {
-        initLowStockWidget();
+        bootLowStock();
     } else {
-        window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 2000);
+        window.addEventListener('load', bootLowStock);
+        setTimeout(bootLowStock, 3000);
     }
 })();
         function updateClock() {
