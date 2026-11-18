@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบจัดการ Low Stock & Cross-Device Sync (นับจำนวนวันตามจริงแบบเรียลไทม์) ---
+// --- ระบบ Low Stock & Cross-Device Sync (แก้ไขการนับวันขาดสะสมให้แม่นยำ) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6661,18 +6661,25 @@ document.addEventListener('keypress', function(e) {
                 currentActiveLine = selectedLine;
             }
 
+            renderWidget(currentActiveLine);
+
             fetch(`${SCRIPT_URL}?action=getProducingStatus`)
                 .then(response => response.json())
                 .then(res => {
                     const cloudStatusObj = res.data || {};
+                    let hasChanged = false;
                     for (let key in cloudStatusObj) {
-                        localStorage.setItem(key, cloudStatusObj[key]);
+                        if (localStorage.getItem(key) !== String(cloudStatusObj[key])) {
+                            localStorage.setItem(key, cloudStatusObj[key]);
+                            hasChanged = true;
+                        }
                     }
-                    renderWidget(currentActiveLine);
+                    if (hasChanged) {
+                        renderWidget(currentActiveLine);
+                    }
                 })
                 .catch(err => {
                     console.error("Failed to sync status from cloud:", err);
-                    renderWidget(currentActiveLine);
                 });
         }
 
@@ -6698,6 +6705,8 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
             
             const now = new Date();
+            // เซ็ตเวลาปัจจุบันให้เป็นเที่ยงคืนเพื่อคำนวณวันขาดได้อย่างแม่นยำ
+            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
             masterDb.forEach(m => {
@@ -6777,22 +6786,23 @@ document.addEventListener('keypress', function(e) {
 
                 if (totalStock < minVal) {
                     if (!firstLowDate) {
-                        // บันทึกวันที่เริ่มต้นเป็น "วันนี้" ตามจริง (เริ่มนับ 1 วันในวันแรกที่ขาด)
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
-                    let startDate = new Date(firstLowDate);
-                    let currentDate = new Date(todayStr);
-                    let diffTime = currentDate - startDate;
+                    // คำนวณวันขาดสะสมด้วยการเทียบวันที่แบบเที่ยงคืนตรงๆ
+                    let parts = firstLowDate.split('-').map(Number);
+                    let startDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    let diffTime = todayMidnight - startDate;
                     let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    let daysShort = diffDays > 0 ? diffDays : 1;
 
                     lowStockList.push({
                         partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
                         min: minVal,
-                        days: diffDays > 0 ? diffDays : 1 // 🌟 นับจำนวนวันตามจริงที่ขาด (วันแรก = 1, ข้ามวัน = 2, 3...)
+                        days: daysShort
                     });
                 } else {
                     if (firstLowDate) {
@@ -6809,46 +6819,11 @@ document.addEventListener('keypress', function(e) {
             displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
         }
 
-(function() {
-    function initLowStockWidget() {
-        const targetContainerId = 'lowStockWidgetContainer';
-        let container = document.getElementById(targetContainerId);
-        
-        if (!container) {
-            container = document.createElement('div');
-            container.id = targetContainerId;
-            const mainContent = document.querySelector('.container-fluid') || document.body;
-            mainContent.insertBefore(container, mainContent.firstChild);
-        }
-
-        let currentActiveLine = 'ALL';
-
-        function syncAndRender(selectedLine) {
-            currentActiveLine = selectedLine || 'ALL';
-            if (typeof window.getLowStockParts === 'function') {
-                window.getLowStockParts().then(parts => {
-                    displayWidget(parts, currentActiveLine);
-                }).catch(err => {
-                    console.error("Error fetching low stock parts:", err);
-                });
-            } else if (typeof lowStockPartsList !== 'undefined') {
-                displayWidget(lowStockPartsList, currentActiveLine);
-            } else {
-                let parts = [];
-                if (typeof inventoryData !== 'undefined') {
-                    parts = inventoryData.filter(x => (Number(x.stock) || 0) < (Number(x.min) || 0));
-                }
-                displayWidget(parts, currentActiveLine);
-            }
-        }
-
         function displayWidget(list, selectedLine) {
             const currentLine = (!selectedLine || selectedLine === 'ALL') ? 'ALL' : String(selectedLine).trim().toUpperCase();
             const filteredParts = (currentLine === 'ALL') 
                 ? list 
                 : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
-
-            let todayStr = new Date().toISOString().split('T')[0]; // วันที่ปัจจุบัน (YYYY-MM-DD)
 
             let badgesHtml = filteredParts.map(item => {
                 let cleanStock = Math.round(item.stock).toLocaleString();
@@ -6858,26 +6833,13 @@ document.addEventListener('keypress', function(e) {
                 let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
                 let isProducing = localStorage.getItem(storageKey) === 'true';
 
-                // 📌 คำนวณจำนวนวันที่ขาดสะสมจริง (นับสะสมเพิ่มขึ้นเรื่อยๆ ทุกวันจนกว่าจะเคลียร์)
-                let shortageStartKey = `shortage_start_${lineKeyClean}_${item.partNo}`;
-                let startDate = localStorage.getItem(shortageStartKey);
-
-                if (!startDate) {
-                    startDate = todayStr;
-                    localStorage.setItem(shortageStartKey, startDate);
-                }
-
-                let diffTime = new Date(todayStr) - new Date(startDate);
-                let calculatedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                if (calculatedDays < 1) calculatedDays = 1;
-
                 let bgStyle = '';
                 if (isProducing) {
                     bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
                 } else {
-                    if (calculatedDays === 1) {
+                    if (item.days === 1) {
                         bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
-                    } else if (calculatedDays === 2) {
+                    } else if (item.days === 2) {
                         bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
                     } else {
                         bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
@@ -6886,7 +6848,7 @@ document.addEventListener('keypress', function(e) {
 
                 let statusBadge = isProducing ? 
                     `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
-                    `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${calculatedDays} วัน</span>`;
+                    `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
 
                 return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
                             <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
@@ -6921,7 +6883,7 @@ document.addEventListener('keypress', function(e) {
             let newVal = !currentVal;
             
             localStorage.setItem(key, newVal);
-            syncAndRender(currentActiveLine);
+            renderWidget(currentActiveLine);
             
             fetch(SCRIPT_URL, {
                 method: "POST",
@@ -6933,8 +6895,6 @@ document.addEventListener('keypress', function(e) {
                     partNo: partNo,
                     status: newVal
                 })
-            }).then(() => {
-                console.log("Cloud producing status synced.");
             }).catch(err => {
                 console.error("Error syncing status:", err);
             });
@@ -6946,8 +6906,7 @@ document.addEventListener('keypress', function(e) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => syncAndRender(currentActiveLine), 500);
-                setTimeout(() => syncAndRender(currentActiveLine), 1500);
+                setTimeout(() => syncAndRender(currentActiveLine), 300);
                 return res;
             };
             window._patchedLoadCloud = true;
@@ -6957,22 +6916,20 @@ document.addEventListener('keypress', function(e) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
                 let res = originalRenderAll.apply(this, args);
-                setTimeout(() => syncAndRender(currentActiveLine), 300);
+                setTimeout(() => syncAndRender(currentActiveLine), 200);
                 return res;
             };
             window._patchedRenderAll = true;
         }
 
-        setTimeout(() => syncAndRender('ALL'), 1000);
-        setTimeout(() => syncAndRender('ALL'), 3000);
-        setTimeout(() => syncAndRender('ALL'), 5000);
+        setTimeout(() => syncAndRender('ALL'), 500);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => syncAndRender(text), 400);
+                    setTimeout(() => syncAndRender(text), 200);
                 }
             }
         });
@@ -6982,7 +6939,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1000);
+        setTimeout(initLowStockWidget, 500);
     }
 })();
         function updateClock() {
