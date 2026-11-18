@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบ Low Stock แยกอิสระ ปลอดภัย ไม่กวนข้อมูลหลัก ---
+// --- ระบบ Low Stock (แก้ไขให้รอข้อมูลหลักโหลดเสร็จก่อนเรนเดอร์ ป้องกันยอดผลิตเป็น 0) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6662,11 +6662,12 @@ document.addEventListener('keypress', function(e) {
             
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
-            // ถ้าระบบหลักยังโหลดข้อมูลไม่เสร็จ ให้รอแล้วเช็คซ้ำอัตโนมัติ
-            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
+            // เช็กว่าข้อมูลหลัก (Master, Actuals, Q-Gate) โหลดมาหรือยัง 
+            // ถ้ายังไม่มา ให้หน่วงเวลาเช็คซ้ำโดยไม่ไปแตะต้องฟังก์ชันหลักของหน้าเว็บ
+            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined' || actuals.length === 0) {
                 container.innerHTML = `
                     <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูลหลัก (Dashboard)...</h6>
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอข้อมูลการผลิตหลัก (Dashboard)...</h6>
                     </div>`;
                 setTimeout(() => renderWidget(currentActiveLine), 1000);
                 return;
@@ -6867,10 +6868,10 @@ document.addEventListener('keypress', function(e) {
             renderWidget(selectedLine);
         };
 
-        // สั่งรันเรนเดอร์ Widget หน่วงเวลาเล็กน้อยเพื่อให้หน้าเว็บหลักโหลดเสร็จก่อนสมบูรณ์
-        setTimeout(() => renderWidget('ALL'), 1500);
+        // เริ่มต้นทำงานโดยรอให้หน้าเว็บหลักโหลดข้อมูลเสร็จก่อน
+        setTimeout(() => renderWidget('ALL'), 1000);
 
-        // ดักฟังคลิกปุ่มเปลี่ยนไลน์โดยไม่ไปกวนระบบหลัก
+        // ดักฟังคลิกปุ่มเลือกไลน์
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
