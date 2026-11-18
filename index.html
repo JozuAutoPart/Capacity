@@ -6677,7 +6677,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบ Low Stock (แบบปลอดภัยสูงสุด ไม่กระทบยอดผลิตรวมของหน้าหลัก) ---
+// --- ระบบ Low Stock (เวอร์ชันปลอดภัยสุด ป้องกันตัวแปรชนกับระบบหลัก) ---
 (function() {
     let cachedLowStockList = [];
 
@@ -6697,18 +6697,17 @@ document.addEventListener('keypress', function(e) {
         container.style.display = 'block';
 
         function renderWidget(selectedLine = 'ALL') {
+            // ป้องกัน Error โดยเช็กจาก window หรือตัวแปรที่มีในระบบ
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
+            const rawActuals = (typeof actuals !== 'undefined') ? actuals : (window.actuals || []);
+            const rawQgate = (typeof qgate !== 'undefined') ? qgate : (window.qgate || []);
             
-            // รอจนกว่าระบบหลักจะโหลดตัวแปร actuals และ masterDb เสร็จสมบูรณ์
-            if (masterDb.length === 0 || typeof window.actuals === 'undefined') {
-                if (cachedLowStockList.length > 0) {
-                    displayWidget(cachedLowStockList, selectedLine);
-                } else {
-                    container.innerHTML = `
-                        <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอโหลดข้อมูล Low Stock...</h6>
-                        </div>`;
-                }
+            // ถ้าระบบหลักยังไม่พร้อม ให้ขึ้นข้อความรอโดยไม่ไปกวนระบบหลัก
+            if (masterDb.length === 0) {
+                container.innerHTML = `
+                    <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังโหลดข้อมูล Low Stock...</h6>
+                    </div>`;
                 setTimeout(() => renderWidget(selectedLine), 1000);
                 return;
             }
@@ -6749,8 +6748,7 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // ดึงข้อมูลผ่าน window.actuals โดยตรงเพื่อป้องกันการชนตัวแปร
-                const totalIn = (window.actuals || []).filter(a => {
+                const totalIn = rawActuals.filter(a => {
                     let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, a) => {
@@ -6758,7 +6756,7 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                const totalWipOut = (window.wipOuts || []).filter(w => {
+                const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : (window.wipOuts || [])).filter(w => {
                     let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, w) => {
@@ -6766,7 +6764,7 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                const totalTransferred = (window.qgate || []).filter(q => {
+                const totalTransferred = rawQgate.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, q) => {
@@ -6776,7 +6774,7 @@ document.addEventListener('keypress', function(e) {
 
                 const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
 
-                const totalDelivered = (window.deliveries || []).filter(d => {
+                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : (window.deliveries || [])).filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
                 }).reduce((sum, d) => {
@@ -6884,7 +6882,7 @@ document.addEventListener('keypress', function(e) {
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        // หน่วงเวลาให้หน้าเว็บหลักโหลดข้อมูลและเรนเดอร์ยอดผลิตรวมเสร็จก่อน 100% ค่อยเริ่มทำงาน
+        // รอให้หน้าเว็บหลักโหลดข้อมูลและเรนเดอร์ยอดผลิตรวมเสร็จสิ้นก่อน 2 วินาที ค่อยรัน Widget
         setTimeout(() => renderWidget('ALL'), 2000);
 
         document.addEventListener('click', function(e) {
