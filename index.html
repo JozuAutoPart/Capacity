@@ -497,7 +497,7 @@
         </div>
     </div>
 </div>
-    <!-- TAB 4: ACTUAL PRODUCTION -->
+ <!-- TAB 4: ACTUAL PRODUCTION -->
 <div class="tab-pane fade" id="tab-actual">
     <div class="row g-3">
         <div class="col-md-4">
@@ -549,59 +549,60 @@
                         </div>
                     </div>
 
-                    <!-- ช่องเลือกชื่อพนักงานแบบ Dropdown (เปลี่ยนจาก Input Text) -->
+                    <!-- ช่องเลือก/พิมพ์ชื่อพนักงาน (เปลี่ยนเป็น Input + Datalist ให้พิมพ์ได้) -->
                     <div class="mb-2">
                         <label class="form-label small">ชื่อ / รหัสพนักงาน</label>
-                        <select id="actualOperator" class="form-select form-select-sm" required>
-                            <option value="">-- กรุณาเลือก Line ก่อน --</option>
-                    </select>
-                  </div>
+                        <input type="text" id="actualOperator" class="form-control form-control-sm" list="actualOperatorOptions" placeholder="-- เลือกหรือพิมพ์ชื่อพนักงาน --" required autocomplete="off">
+                        <datalist id="actualOperatorOptions">
+                            <!-- รายชื่อพนักงานจะถูกเติมอัตโนมัติจาก JavaScript -->
+                        </datalist>
+                    </div>
 
                     <div class="mb-2">
                         <label class="form-label small text-warning"><i class="fas fa-barcode me-1"></i> Scan Barcode Part No.</label>
                         <input type="text" id="actualBarcodeScanner" class="form-control form-control-sm bg-dark text-white border-warning" placeholder="คลิกยิงบาร์โค้ดที่นี่เพื่อเลือกพาร์ท..." autocomplete="off">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-info fw-bold">Part No. (เลือกจากแผน)</label>
                         <select id="actualPartNo" class="form-select form-select-sm" onchange="onActualPartChange()" disabled required>
                             <option value="">-- กรุณาสแกนบาร์โค้ด Part No. --</option>
-                    </select>
-                  </div>
+                        </select>
+                    </div>
                     <!-- ช่องแสดงค่า CT (วินาที) แบบ Auto -->
                     <div class="mb-2">
                         <label class="form-label small text-warning fw-bold"><i class="fas fa-stopwatch me-1"></i> Cycle Time (CT วินาทีต่อชิ้น)</label>
                         <input type="text" id="actualCt" class="form-control form-control-sm bg-dark text-warning fw-bold" readonly placeholder="ดึงอัตโนมัติ">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">Process (ระบุถ้ามี เช่น 1/3, 2/3)</label>
                         <input type="text" id="actualProcess" class="form-control form-control-sm" placeholder="เว้นว่างถ้าเป็นขั้นตอนสุดท้าย">
-                  </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small">Lot No.</label>
                         <input type="text" id="actualLotNo" class="form-control form-control-sm" readonly placeholder="ดึงอัตโนมัติ">
-                  </div>
+                    </div>
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-success">ยอดผลิตดี (OK Qty -> เพิ่มเข้า WIP)</label>
                             <input type="number" id="actualQty" class="form-control form-control-sm border-success" placeholder="0" min="1" required>
-                      </div>
-                      <div class="col-6">
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small text-danger">งานเสีย (NG Qty)</label>
-                          <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                            <input type="number" id="actualNgQty" class="form-control form-control-sm border-danger" value="0" min="0">
+                        </div>
                     </div>
-                  </div>
 
                     <!-- ส่วนบันทึกช่วงเวลา Downtime (เวลาเริ่ม-จบที่หยุด) -->
                     <div class="row g-2 mb-2">
                         <div class="col-6">
                             <label class="form-label small text-warning">เวลาเริ่มหยุด (From)</label>
-                          <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
-                      </div>
-                      <div class="col-6">
+                            <input type="time" id="actualDtStart" class="form-control form-control-sm bg-dark text-white border-warning">
+                        </div>
+                        <div class="col-6">
                             <label class="form-label small text-warning">เวลาจบที่หยุด (To)</label>
-                          <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
-                      </div>
-                  </div>
+                            <input type="time" id="actualDtEnd" class="form-control form-control-sm bg-dark text-white border-warning">
+                        </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label small text-warning">รหัสสาเหตุ (Downtime Code)</label>
                       <select id="actualDowntimeCode" class="form-select form-select-sm bg-dark text-white border-warning">
@@ -731,16 +732,16 @@
                             <i class="fas fa-exclamation-circle me-1"></i> รายละเอียดของเสีย (NG Detail)
                         </label>
                         <div class="row g-1 text-light" style="font-size: 11px;">
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Scrap Mark" id="ng1"><label class="form-check-label" for="ng1">Scrap Mark</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Rust" id="ng2"><label class="form-check-label" for="ng2">Rust</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Deform" id="ng3"><label class="form-check-label" for="ng3">Deform</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Scratch" id="ng4"><label class="form-check-label" for="ng4">Scratch</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Dimension" id="ng5"><label class="form-check-label" for="ng5">Dimension</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nick/Over" id="ng6"><label class="form-check-label" for="ng6">Nick/Over</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Spatter" id="ng7"><label class="form-check-label" for="ng7">Spatter</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nut Off" id="ng8"><label class="form-check-label" for="ng8">Nut Off</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Missing" id="ng9"><label class="form-check-label" for="ng9">Missing</label></div></div>
-                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nut Mis-Spec" id="ng10"><label class="form-check-label" for="ng10">Nut Mis-Spec</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Scrap Mark" id="ng1"><label class="form-check-label" for="ng1">Scrap Mark(ทับเศษ)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Rust" id="ng2"><label class="form-check-label" for="ng2">Rust(สนิม)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Deform" id="ng3"><label class="form-check-label" for="ng3">Deform(เสียรูป)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Scratch" id="ng4"><label class="form-check-label" for="ng4">Scratch(ขีดข่วน)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Dimension" id="ng5"><label class="form-check-label" for="ng5">Dimension(ขนาด)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nick/Over" id="ng6"><label class="form-check-label" for="ng6">Nick/Over(แหว่ง/เกิน)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Spatter" id="ng7"><label class="form-check-label" for="ng7">Spatter(เม็ดไฟ)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nut Off" id="ng8"><label class="form-check-label" for="ng8">Nut Off(เยื้องศูนย์)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Missing" id="ng9"><label class="form-check-label" for="ng9">Missing(ขาดหาย)</label></div></div>
+                            <div class="col-6"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Nut Mis-Spec" id="ng10"><label class="form-check-label" for="ng10">Nut Mis-Spec(ผิดขนาด)</label></div></div>
                             <div class="col-12"><div class="form-check"><input class="form-check-input ng-checkbox" type="checkbox" value="Other" id="ng11"><label class="form-check-label" for="ng11">Other (อื่นๆ)</label></div></div>
                         </div>
                     </div>
@@ -1203,8 +1204,8 @@
         console.error("Error loading data from cloud:", error);
     }
 }
-        let PM_LIMIT = 40000; // ค่า Default หาก Part No. นั้นไม่ได้ระบุ PM Limit ใน MasterParts
-        const MC_MAX_CAPACITY = 50000;
+        let PM_LIMIT = 100000; // ค่า Default หาก Part No. นั้นไม่ได้ระบุ PM Limit ใน MasterParts
+        const MC_MAX_CAPACITY = 100000;
 
         // Initialization
         document.addEventListener('DOMContentLoaded', () => {
@@ -1402,16 +1403,25 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         return aline === String(currentFilterLine).trim();
     }) : [];
 
-    filteredActuals.forEach(a => {
+   filteredActuals.forEach(a => {
         let aPart = String(a["Part No."] || a.partNo || '').trim();
         if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
 
         let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
-        let monthIndex = currentMonthIndex;
-        if (dateVal) {
-            let d = new Date(dateVal);
-            if (!isNaN(d.getTime())) monthIndex = d.getMonth();
-        }
+        
+        // ❌ ถ้าไม่มีฟิลด์วันที่ ให้ข้ามทันที (ป้องกันไม่ให้ไปกองรวมที่เดือนปัจจุบัน)
+        if (!dateVal) return; 
+
+        let d = new Date(dateVal);
+        // ❌ ถ้าแปลงวันที่ไม่สำเร็จ ให้ข้ามทันที
+        if (isNaN(d.getTime())) return; 
+
+        let monthIndex = d.getMonth();
+        let itemYear = d.getFullYear();
+        let currentYear = new Date().getFullYear();
+
+        // (แนะนำ) เช็คเพิ่มด้วยว่าเป็นปีปัจจุบันไหม ถ้าเป็นปีเก่า (เช่น ปีที่แล้ว) ให้ข้ามด้วย เพื่อไม่ให้ยอดปีเก่ามารบกวน
+        if (itemYear !== currentYear) return;
 
         let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
         monthlyProdArr[monthIndex] += Number(rawQty) || 0;
@@ -1448,9 +1458,9 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         monthlyNgArr[monthIndex] += Number(rawNg) || 0;
     });
 
-    // 4. ดึงยอดเฉพาะ "เดือนปัจจุบัน" ตาม Line ที่เลือกมาแสดงในการ์ดขวามือ
-    let currentMonthProd = monthlyProdArr[currentMonthIndex] > 0 ? monthlyProdArr[currentMonthIndex] : totalProduction;
-    let currentMonthNg = monthlyNgArr[currentMonthIndex]; // ยอดของเสียที่กรองตามพาร์ท/ไลน์แล้ว
+   // 4. ดึงยอดเฉพาะ "เดือนปัจจุบัน" ตาม Line ที่เลือกมาแสดงในการ์ดขวามือ (บังคับใช้ข้อมูลของเดือนปัจจุบันตรงๆ หากยังไม่มีการสแกน ให้เป็น 0 ทันที)
+let currentMonthProd = monthlyProdArr[currentMonthIndex] || 0;
+let currentMonthNg = monthlyNgArr[currentMonthIndex] || 0;
 
     const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
 
@@ -1557,15 +1567,23 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
         }
     });
 }
-// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (รองรับดึงยอด Balance ยกมาข้ามเดือนอัตโนมัติ)
+// 📌 ฟังก์ชันสร้างตารางเมทริกซ์รายวัน TH Parts (รองรับดึงยอด Balance ยกมาข้ามเดือนอัตโนมัติ และอัปเดตเดือนปัจจุบันอัตโนมัติ)
 function renderThMasterPlan() {
     try {
         const tbody = document.getElementById('thMasterPlanTableBody');
         const headerRow = document.getElementById('thTableHeader');
         if (!tbody || !headerRow) return;
 
-        // 1. ดึงเดือนที่เลือก (เช่น '2026-10')
+        // 1. ดึงเดือนที่เลือก หากยังไม่ได้เลือก ให้เซ็ตค่าเริ่มต้นเป็นเดือนปัจจุบัน (YYYY-MM) อัตโนมัติ
         const monthSelect = document.getElementById('thMonthSelect');
+        
+        if (monthSelect && !monthSelect.value) {
+            const nowInit = new Date();
+            const initY = nowInit.getFullYear();
+            const initM = String(nowInit.getMonth() + 1).padStart(2, '0');
+            monthSelect.value = `${initY}-${initM}`;
+        }
+
         const selectedYearMonth = monthSelect ? monthSelect.value : '2026-10';
         const parts = selectedYearMonth.split('-');
         let year = parseInt(parts[0]) || 2026;
@@ -1598,7 +1616,7 @@ function renderThMasterPlan() {
             "J0804-17621-Z4H-3100",
             "J1901-17622-Z4H-9100",
             "J1701-17625-K59K-T110-Y1",
-            "J1201-17628-K20-9010-Y1",
+            "J1201-17628-K20-A110-Y1",
             "J1201-17623-K20-A110-Y1",
             "12213-Z3V-0001",
             "J1301-17625-KEV-9000-H1",
@@ -1987,7 +2005,7 @@ function renderPlans() {
 
         let diff = planQty - actualQty;
 
-        if (planQty > 0 && (actualQty >= planQty || (diff > 0 && (diff / planQty) <= 0.02))) {
+        if (planQty > 0 && (actualQty >= planQty || (diff > 0 && (diff / planQty) <= 0.03))) {
             return false; 
         }
 
@@ -2280,7 +2298,7 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
             masterData = masterBarcodes;
         }
 
-        // ค้นหาใน Master Barcode แบบ Exact Match (ป้องกันพาร์ทที่ขึ้นต้นคล้ายกันสลับกัน)
+        // ค้นหาใน Master Barcode แบบ Exact Match
         let matchedPartNo = "";
         let foundMaster = masterData.find(item => {
             let vals = Object.values(item);
@@ -2297,27 +2315,33 @@ document.getElementById('actualBarcodeScanner')?.addEventListener('keypress', fu
             matchedPartNo = searchCode || rawBarcode;
         }
 
+        // 📌 จุดสำคัญ: สั่งโหลดและอัปเดตแผนการผลิตของไลน์ปัจจุบันให้เรียบร้อยก่อนค้นหา
+        if (typeof checkAndLoadPlans === 'function') {
+            checkAndLoadPlans();
+        }
+
         // นำ Part No. ไปเลือกใน Dropdown ของแผนการผลิต
         const selectPart = document.getElementById('actualPartNo');
         let foundIndex = -1;
 
         if (selectPart) {
+            selectPart.disabled = false; // ปลดล็อกชั่วคราวเพื่อให้ระบบเลือกค่าได้
+
             for (let i = 0; i < selectPart.options.length; i++) {
                 const optVal = selectPart.options[i].value.trim().toUpperCase();
                 const optTxt = selectPart.options[i].text.trim().toUpperCase();
                 
-                if (optVal === matchedPartNo.toUpperCase() || optTxt.startsWith(matchedPartNo.toUpperCase())) {
+                // 🔍 ปรับเงื่อนไขให้ยืดหยุ่นขึ้น (เช็กทั้งค่าตรงกัน หรือข้อความมีรหัสพาร์ทนี้อยู่)
+                if (optVal === matchedPartNo.toUpperCase() || optTxt.includes(matchedPartNo.toUpperCase())) {
                     foundIndex = i;
                     break;
                 }
             }
 
-            selectPart.disabled = false;
-
             if (foundIndex !== -1) {
                 selectPart.selectedIndex = foundIndex;
             } else {
-                // กรณีไม่พบในแผน ให้เพิ่มเป็นตัวเลือก (นอกแผน)
+                // กรณีไม่พบในแผนจริงๆ ค่อยขึ้น (นอกแผน)
                 const newOpt = document.createElement('option');
                 newOpt.value = matchedPartNo;
                 newOpt.innerText = matchedPartNo + " (นอกแผน)";
@@ -2349,7 +2373,6 @@ function timeToMinutes(timeStr) {
     return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
 }
 
-// ฟังก์ชันตรวจสอบและโหลดแผนการผลิต (กรองตัวที่ผลิตครบตามแผนออกแล้ว)
 function checkAndLoadPlans() {
     const lineSelect = document.getElementById('actualLine');
     if (!lineSelect) return;
@@ -2361,8 +2384,14 @@ function checkAndLoadPlans() {
 
     if (typeof plans === 'undefined' || !Array.isArray(plans)) return;
 
-    // กรองแผนเฉพาะ Line ที่เลือก
-    const linePlans = plans.filter(p => String(p.Line || p.line || '').trim() === String(line).trim());
+    // 🛠️ ปรับแก้ใหม่: กรองเฉพาะ Line ที่เลือก (ตัด / ออกเพื่อให้เทียบชื่อ Line ตรงกันเป๊ะ)
+    const linePlans = plans.filter(p => {
+        let pLineRaw = p.Line || p.line || '';
+        let pLine = String(pLineRaw).split('/')[0].trim();
+        let targetLine = String(line).split('/')[0].trim();
+        return pLine === targetLine;
+    });
+
     const alertBox = document.getElementById('actualAlert');
 
     if (linePlans.length === 0) {
@@ -2385,7 +2414,8 @@ function checkAndLoadPlans() {
                 let aLine = String(aLineRaw).split('/')[0].trim();
                 let aPart = String(a["Part No."] || a.partNo || '').trim();
                 let aLot = String(a["Lot No."] || a.lotNo || '').trim();
-                return aLine === line && aPart === planPart && aLot === planLot;
+                let targetLine = String(line).split('/')[0].trim();
+                return aLine === targetLine && aPart === planPart && aLot === planLot;
             }) : [];
 
             const totalActualOk = actMatched.reduce((sum, a) => {
@@ -2393,12 +2423,11 @@ function checkAndLoadPlans() {
                 return sum + (isNaN(val) ? 0 : val);
             }, 0);
 
-            // คำนวณหายอดคงเหลือและสัดส่วน
+            // คำนวณหายอดคงเหลือ
             const diff = planQty - totalActualOk;
-            const ratio = planQty > 0 ? (diff / planQty) : 0;
 
-            // เงื่อนไข: ต้องผลิตยังไม่ครบ (diff > 0) และสัดส่วนที่เหลือต้องมากกว่า 2% ถึงจะเอามาแสดงใน Dropdown
-            if (diff > 0 && ratio > 0.02) {
+            // 📌 ดึงแผนทั้งหมดใน Line นี้ที่ยังผลิตไม่ครบขึ้นมาแสดงทันทีโดยไม่มีคำว่า (นอกแผน)
+            if (diff > 0) {
                 const opt = document.createElement('option');
                 opt.value = planPart;
                 opt.dataset.lot = planLot;
@@ -2411,37 +2440,44 @@ function checkAndLoadPlans() {
     // กำหนดสถานะ disabled ตามการปลดล็อก
     selectPart.disabled = !isManualUnlocked;
 }
-
 // 📌 กำหนดรายชื่อพนักงานแยกตาม Line (พี่มิวสามารถปรับแก้หรือเพิ่มชื่อพนักงานได้ตามจริงตรงนี้ครับ)
 const lineOperatorsMap = {
     "Line A": ["ทอง ใจดี", "รัตนาภรณ์ แสนปาน", "Nang Shan Khit", "Myint Shwe Aye", "Htint Aung Lin"],
-    "Line Q": ["บุญมา ภูมิประพันธ์", "สิทธิชัย เมืองโคตร", "นันท์ภัส อินคำ", "ชุติกาญณ์ บัวยิ้ม", "ประนอม ขุมทอง", "เบ็ญจมาศ วงค์สิงห์", "สุกัญญา นาแถมนาค", "Kyaw Hteet Aung","Myo Min Chay", "Zaw Naing Tun", "Shine Wai Aung", "Aung Tay Zay Linn", "Nyi Win Naung"],
-    "Line C1": ["จักรพันธ์ ฉลาบคำ", "วิกานดา บุตรทอง", "รัตนา แสงเจริญ", "สุริสา จันทร์สวน", "ชุมพู แก้วแบน", "Oo Myo Than", "Nwe Ni Win", "Maung Htel Aung", "Yu Wai Wai Hteet","ภัทรภรณ์ ผิดสด", "Myint Win Chay", "จันจิรา นาสมคิด", "ปาณิสรา โคตรสขึง","วันดี แซ่ฉั่น"],
-    "Line C2": ["ปรีชา มะปรางค์", "กัลยา จังอินทร์", "Thant Zin Aung", "อรดี ตุนาหงัน", "Nyan Lin Soe", "Myo Min Chay", "Zaw Naing Tun", "Shine Wai Aung", "Aung Tay Zay Linn", "Nyi Win Naung"],
-    "Line C3": ["ภัทรภรณ์ ผิดสด", "Myint Win Chay", "จันจิรา นาสมคิด", "ปาณิสรา โคตรสขึง", "Maung Htel Aung","รัตนา แสงเจริญ","วันดี แซ่ฉั่น","ประนอม ขุมทอง", "เบ็ญจมาศ วงค์สิงห์", "สุกัญญา นาแถมนาค",],
+    "Line Q": ["บุญมา ภูมิประพันธ์", "สิทธิชัย เมืองโคตร", "นันท์ภัส อินคำ", "ชุติกาญณ์ บัวยิ้ม", "ประนอม ขุมทอง", "เบ็ญจมาศ วงค์สิงห์", "สุกัญญา นาแถมนาค", "Kyaw Hteet Aung","Myo Min Chay", "Zaw Naing Tun", "Shine Wai Aung", "Aung Tay Zay Linn"],
+    "Line C1": ["จักรพันธ์ ฉลาบคำ", "วิกานดา บุตรทอง", "รัตนา แสงเจริญ", "สุริสา จันทร์สวน", "ชุมพู แก้วแบน", "Oo Myo Than", "Nwe Ni Win", "Maung Htel Aung", "Yu Wai Wai Hteet","ภัทรภรณ์ ผิดสด", "Myint Win Chay", "จันจิรา นาสมคิด","วันดี แซ่ฉั่น"],
+    "Line C2": ["ปรีชา มะปรางค์", "กัลยา จังอินทร์", "Thant Zin Aung", "อรดี ตุนาหงัน", "Nyan Lin Soe", "Myo Min Chay", "Zaw Naing Tun", "Shine Wai Aung", "Aung Tay Zay Linn"],
+    "Line C3": ["ภัทรภรณ์ ผิดสด", "Myint Win Chay", "จันจิรา นาสมคิด", "Maung Htel Aung","รัตนา แสงเจริญ","วันดี แซ่ฉั่น","ประนอม ขุมทอง", "เบ็ญจมาศ วงค์สิงห์", "สุกัญญา นาแถมนาค",],
 };
 
-// 📌 ฟังก์ชันเมื่อเปลี่ยน Line เครื่องจักร จะอัปเดตรายชื่อพนักงานใน Dropdown อัตโนมัติ
+// 📌 ฟังก์ชันเมื่อเปลี่ยน Line เครื่องจักร จะอัปเดตรายชื่อพนักงานและโหลดแผนของไลน์นั้นอัตโนมัติ
 function onActualLineChange() {
-    const lineSelect = document.getElementById('actualLine');
-    const operatorSelect = document.getElementById('actualOperator');
-    const selectedLine = lineSelect ? lineSelect.value : '';
-
-    // ล้างรายชื่อพนักงานเดิมออกก่อน
-    operatorSelect.innerHTML = '<option value="">-- กรุณาเลือกพนักงาน --</option>';
-
-    if (selectedLine && lineOperatorsMap[selectedLine]) {
-        lineOperatorsMap[selectedLine].forEach(opName => {
-            let opt = document.createElement('option');
-            opt.value = opName;
-            opt.textContent = opName;
-            operatorSelect.appendChild(opt);
+    const lineSel = document.getElementById('actualLine').value;
+    const opDatalist = document.getElementById('actualOperatorOptions');
+    const opInput = document.getElementById('actualOperator');
+    
+    if (!opDatalist) return;
+    opDatalist.innerHTML = '';
+    
+    // ดึงรายชื่อจาก lineOperatorsMap ตาม Line ที่เลือก
+    let operators = (typeof lineOperatorsMap !== 'undefined' && lineOperatorsMap[lineSel]) ? lineOperatorsMap[lineSel] : [];
+    
+    // ถ้าไม่ได้เลือก Line เฉพาะ ให้ดึงรายชื่อทั้งหมดมารวมกัน
+    if (!lineSel && typeof lineOperatorsMap !== 'undefined') {
+        operators = [];
+        Object.values(lineOperatorsMap).forEach(list => {
+            list.forEach(name => {
+                if (!operators.includes(name)) operators.push(name);
+            });
         });
-    } else {
-        operatorSelect.innerHTML = '<option value="">-- กรุณาเลือก Line ก่อน --</option>';
     }
 
-    // เรียกฟังก์ชันตรวจสอบและโหลดแผนงานเดิม (ถ้ามีในระบบของพี่มิว)
+    operators.forEach(name => {
+        let opt = document.createElement('option');
+        opt.value = name;
+        opDatalist.appendChild(opt);
+    });
+
+    // 📌 เพิ่มบรรทัดนี้: พอกดเปลี่ยน Line ปุ๊บ ให้สั่งโหลดแผนและพาร์ทของไลน์นั้นทันที
     if (typeof checkAndLoadPlans === 'function') {
         checkAndLoadPlans();
     }
@@ -2503,13 +2539,30 @@ function onActualPartChange() {
     }
 }
 // ฟังก์ชันบันทึกข้อมูลการผลิต (submitActual)
+// ฟังก์ชันบันทึกข้อมูลการผลิต (submitActual)
 function submitActual(e) {
     e.preventDefault();
+    
+    // 📌 ป้องกันการกดซ้ำ: ล็อกปุ่มทันทีที่กดส่ง
+    const submitBtn = document.getElementById('btnSubmitActual');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> กำลังบันทึก...';
+    }
+
+    // ฟังก์ชันช่วยคืนค่าสถานะปุ่มเดิม
+    const resetButton = () => {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> ยืนยันบันทึกยอดผลิต';
+        }
+    };
     
     // 1. ดึงค่า Part No. หลัก และ Process
     const basePartNo = document.getElementById('actualPartNo').value;
     if (!basePartNo) {
         alert("⚠️ กรุณาสแกนบาร์โค้ดเลือก Part No. ก่อนทำการบันทึก");
+        resetButton(); // คืนค่าปุ่มเมื่อติด alert
         return;
     }
 
@@ -2588,6 +2641,7 @@ function submitActual(e) {
     const scriptUrl = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : '';
     if (!scriptUrl) {
         alert("ไม่พบ GOOGLE_SCRIPT_URL");
+        resetButton(); // คืนค่าปุ่ม
         return;
     }
 
@@ -2597,6 +2651,7 @@ function submitActual(e) {
     })
     .then(response => response.json())
     .then(result => {
+        resetButton(); // คืนค่าปุ่มเมื่อทำงานเสร็จ
         if (result.status === "success") {
             if (typeof actuals !== 'undefined' && Array.isArray(actuals)) {
                 actuals.unshift(actual);
@@ -2638,6 +2693,7 @@ function submitActual(e) {
         }
     })
     .catch(error => {
+        resetButton(); // คืนค่าปุ่มเมื่อเกิดข้อผิดพลาด
         console.error('Error:', error);
         alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     });
@@ -2671,94 +2727,85 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-    // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
-    fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                actuals = res.data.map(a => {
-                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
-                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+  // 2. ดึง Actuals (พร้อมระบบแปลงวันที่และจัดการรูปแบบข้อมูลไม่ให้เพี้ยน)
+fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
+    .then(res => res.json())
+    .then(res => {
+        if (res.status === "success" && res.data) {
+            actuals = res.data.map(a => {
+                // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
+                const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+                
+                // 📌 ทำความสะอาดและแปลงรูปแบบวันที่จาก Google Sheets ให้เป็น YYYY-MM-DD เสมอ (ป้องกันวันเพี้ยน)
+                let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
+                let cleanDate = '';
+                
+                if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
+                    let dStr = String(rawDate).trim();
                     
-                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่จาก Google Sheets ให้เป็น YYYY-MM-DD เสมอ
-                    let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
-                    let cleanDate = '';
-                    
-                    if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
-                        let dStr = String(rawDate).trim();
-                        
-                        // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
-                        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
-                            let utcDays = Math.floor(Number(rawDate) - 25569);
-                            let utcValue = utcDays * 86400;
-                            let dateInfo = new Date(utcValue * 1000);
-                            cleanDate = dateInfo.toISOString().split('T')[0];
-                        } 
-                        // ถ้ามีเครื่องหมายสแลช (/) เช่น DD/MM/YYYY หรือ MM/DD/YYYY
-                        else if (dStr.includes('/')) {
-                            let parts = dStr.split('/');
-                            if (parts.length === 3) {
-                                if (Number(parts[0]) > 12) {
-                                    // รูปแบบ DD/MM/YYYY
-                                    cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                                } else {
-                                    // รูปแบบ MM/DD/YYYY หรือมาตรฐาน
-                                    cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
-                                }
+                    if (dStr.includes('T')) {
+                        cleanDate = dStr.split('T')[0];
+                    } else if (dStr.includes('-') && dStr.length >= 10) {
+                        cleanDate = dStr.substring(0, 10);
+                    } else if (dStr.includes('/')) {
+                        let parts = dStr.split('/');
+                        if (parts.length === 3) {
+                            if (Number(parts[0]) > 12) {
+                                // รูปแบบ DD/MM/YYYY -> YYYY-MM-DD
+                                cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                             } else {
-                                cleanDate = dStr.substring(0, 10);
+                                // รูปแบบ MM/DD/YYYY
+                                cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
                             }
-                        } 
-                        // ถ้ามีตัว T (ISO String)
-                        else if (dStr.includes('T')) {
-                            cleanDate = dStr.split('T')[0];
-                        } 
-                        else {
-                            let parsedDate = new Date(dStr);
-                            if (!isNaN(parsedDate.getTime())) {
-                                const localD = new Date(parsedDate.getTime() - (parsedDate.getTimezoneOffset() * 60000));
-                                cleanDate = localD.toISOString().split('T')[0];
-                            } else {
-                                cleanDate = dStr.substring(0, 10);
-                            }
+                        } else {
+                            cleanDate = dStr.substring(0, 10);
                         }
+                    } else if (!isNaN(rawDate) && Number(rawDate) > 30000) {
+                        // ถ้าเป็น Serial Number ของ Google Sheets
+                        let utcDays = Math.floor(Number(rawDate) - 25569);
+                        let utcValue = utcDays * 86400;
+                        let dateInfo = new Date(utcValue * 1000);
+                        cleanDate = dateInfo.toISOString().split('T')[0];
+                    } else {
+                        cleanDate = dStr.substring(0, 10);
                     }
+                }
+                
+                return {
+                    id: a.id || Date.now(),
+                    date: cleanDate, // 👈 ใช้งานวันที่ที่จัดรูปแบบเรียบร้อยแล้ว (ไม่เพี้ยน Timezone)
+                    operator: a.operator || a['OP Name'] || a.opName || '',
+                    line: a.line || a.Line || a['Line/MC'] || '',
+                    mcNo: a.mcNo || a['Machine No.'] || '',
+                    partNo: a.partNo || a['Part No.'] || '',
+                    lotNo: a.lotNo || a['Lot No.'] || '',
+                    qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                    ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
                     
-                    return {
-                        id: a.id || Date.now(),
-                        date: cleanDate, // 👈 ใช้งานวันที่ที่จัดรูปแบบเรียบร้อยแล้ว
-                        operator: a.operator || a['OP Name'] || a.opName || '',
-                        line: a.line || a.Line || a['Line/MC'] || '',
-                        mcNo: a.mcNo || a['Machine No.'] || '',
-                        partNo: a.partNo || a['Part No.'] || '',
-                        lotNo: a.lotNo || a['Lot No.'] || '',
-                        qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
-                        ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
-                        
-                        // ฟิลด์เวลาทำงาน
-                        "เวลาทำงาน": timeVal,
-                        timework: timeVal,
-                        TimeWork: timeVal,
-                        timeRange: timeVal,
-                        
-                        remark: a.remark || a.Remark || '-',
-                        dtStart: a.dtStart || a['DtStart'] || '',
-                        dtEnd: a.dtEnd || a['DtEnd'] || '',
-                        downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
-                        downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
-                        ct: Number(a.ct || a['CT'] || 6)
-                    };
-                });
+                    // ฟิลด์เวลาทำงาน
+                    "เวลาทำงาน": timeVal,
+                    timework: timeVal,
+                    TimeWork: timeVal,
+                    timeRange: timeVal,
+                    
+                    remark: a.remark || a.Remark || '-',
+                    dtStart: a.dtStart || a['DtStart'] || '',
+                    dtEnd: a.dtEnd || a['DtEnd'] || '',
+                    downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
+                    downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
+                    ct: Number(a.ct || a['CT'] || 6)
+                };
+            });
 
-                renderActuals();
-                renderDashboard();
-                if (typeof renderCapacity === 'function') { renderCapacity(); }
-                if (typeof renderStock === 'function') renderStock();
-                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-                if (typeof renderDiePM === 'function') renderDiePM();
-            }
-        })
-        .catch(err => console.error("Error loading actuals:", err));
+            renderActuals();
+            renderDashboard();
+            if (typeof renderCapacity === 'function') { renderCapacity(); }
+            if (typeof renderStock === 'function') renderStock();
+            if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+            if (typeof renderDiePM === 'function') renderDiePM();
+        }
+    })
+    .catch(err => console.error("Error loading actuals:", err));
 }
 
 // ==========================================
@@ -2769,18 +2816,25 @@ function renderActuals() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    // 📌 ดึงค่าจากช่องกรองวันที่ของตารางประวัติ (filterReportDate)
+    const dateInputEl = document.getElementById('filterReportDate') || document.getElementById('filterDate');
+    let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
+    
+    // ถ้ายังไม่ได้เลือก ให้กำหนดค่าเริ่มต้นเป็นวันที่ 2026-10-28 ตามข้อมูลล่าสุด
+    if (!filterDate && dateInputEl) {
+        filterDate = '2026-10-28';
+        dateInputEl.value = filterDate;
+    }
+
+    let filterOperator = document.getElementById('filterOperator')?.value || '';
+
     if (typeof actuals === 'undefined' || !actuals || actuals.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">ยังไม่มีประวัติการบันทึกการผลิต</td></tr>`;
         if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
         return;
     }
 
-    // 📌 ดึงค่าจากช่องกรองวันที่และพนักงานด้านบนตาราง
-    const dateInputEl = document.getElementById('filterDate') || document.querySelector('input[type="date"]');
-    let filterDate = dateInputEl ? String(dateInputEl.value).trim().substring(0, 10) : '';
-    let filterOperator = document.getElementById('filterOperator')?.value || '';
-
-    // 📌 กรองข้อมูลตามวันที่และพนักงาน (เทียบชื่อแบบยืดหยุ่น ป้องกันปัญหาช่องว่างและตัวพิมพ์)
+    // 📌 กรองข้อมูลตามวันที่และพนักงาน (เทียบข้อความวันที่ YYYY-MM-DD แบบตรงตัว)
     const filteredActuals = actuals.filter(a => {
         let rawDate = a.date || a['Date'] || '';
         let itemDate = '';
@@ -2808,14 +2862,13 @@ function renderActuals() {
         return;
     }
 
+    // 📌 จัดเรียงข้อมูลตามเวลาทำงานจากเช้าไปเย็น (Start Time)
     const sortedActuals = [...filteredActuals].sort((a, b) => {
-        let rawA = a.date || a['Date'] || '';
-        let rawB = b.date || b['Date'] || '';
-        
-        let dateA = new Date(parseDateString(rawA));
-        let dateB = new Date(parseDateString(rawB));
-        
-        return dateB - dateA; 
+        let timeA = String(a['เวลาทำงาน'] || a.timeWork || a.timeRange || '');
+        let timeB = String(b['เวลาทำงาน'] || b.timeWork || b.timeRange || '');
+        let startA = timeA.split('-')[0].trim();
+        let startB = timeB.split('-')[0].trim();
+        return startA.localeCompare(startB);
     });
 
     const displayActuals = sortedActuals.slice(0, 100);
@@ -2826,13 +2879,8 @@ function renderActuals() {
         let displayDate = '';
         let rawDate = a.date || a['Date'] || '';
         if (rawDate) {
-            const d = new Date(rawDate);
-            if (!isNaN(d.getTime())) {
-                const localD = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
-                displayDate = localD.toISOString().split('T')[0];
-            } else {
-                displayDate = String(rawDate).substring(0, 10);
-            }
+            let dStr = String(rawDate).trim();
+            displayDate = dStr.includes('T') ? dStr.split('T')[0] : dStr.substring(0, 10);
         }
 
         const opval = a.operator || a['OP Name'] || '-';
@@ -3164,6 +3212,13 @@ function exportFilteredProductionReport() {
         alert('ไม่พบข้อมูลการผลิตของวันที่ ' + (selectedDate || 'ทั้งหมด') + (selectedOperator ? ' (พนักงาน: ' + selectedOperator + ')' : '') + ' สำหรับพิมพ์รายงาน');
         return;
     }
+
+    // 📌 จัดเรียงข้อมูลในรายงานตามเวลาเริ่มต้น (Start Time) จากเช้า -> เย็น เสมอ (08:00 มาก่อน 15:00)
+    reportData.sort((a, b) => {
+        let startA = a.startTime || '';
+        let startB = b.startTime || '';
+        return startA.localeCompare(startB);
+    });
 
     localStorage.setItem('productionReportData', JSON.stringify(reportData));
     localStorage.setItem('productionReportOperator', selectedOperator || 'ทุกพนักงาน');
@@ -4723,7 +4778,7 @@ function renderDiePM() {
 
     // ฟังก์ชันค้นหา PM Limit จาก MasterParts โดยเช็คจากคอลัมน์ R (index 17) หรือชื่อคีย์ PM Limit
     const getPmLimitForPart = (pNo) => {
-        if (!pNo) return 40000;
+        if (!pNo) return 100000;
         
         let targetClean = cleanP(pNo);
         let foundMaster = null;
@@ -4763,7 +4818,7 @@ function renderDiePM() {
             if (limitVal > 0) return limitVal;
         }
 
-        return (typeof PM_LIMIT !== 'undefined' && PM_LIMIT > 0) ? PM_LIMIT : 40000;
+        return (typeof PM_LIMIT !== 'undefined' && PM_LIMIT > 0) ? PM_LIMIT : 100000;
     };
 
     const strokeMap = {};
@@ -5429,79 +5484,96 @@ function loadAllDataFromCloud() {
         })
         .catch(err => console.error("Error loading plans:", err));
 
-   // 2. ดึง Actuals
-    fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
-        .then(res => res.json())
-        .then(res => {
-            if (res.status === "success" && res.data) {
-                actuals = res.data.map(a => {
-                    // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
-                    const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+// 2. ดึง Actuals
+fetch(scriptUrl + "?action=getActuals&t=" + new Date().getTime())
+    .then(res => res.json())
+    .then(res => {
+        if (res.status === "success" && res.data) {
+            actuals = res.data.map(a => {
+                // ดึงค่าเวลาจากทุกชื่อคีย์ที่เป็นไปได้
+                const timeVal = a['เวลาทำงาน'] || a.timework || a.TimeWork || a.timeRange || a['Start'] || '-';
+                
+                // 📌 ทำความสะอาดและแปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ (ป้องกันวันเพี้ยนจาก Timezone)
+                let rawDate = a.date || a.Date || a['Date'] || a['วันที่'] || '';
+                let cleanDate = '';
+                
+                if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
+                    let dStr = String(rawDate).trim();
                     
-                    // 📌 ทำความสะอาดและแปลงรูปแบบวันที่ให้เป็น YYYY-MM-DD เสมอ
-                    let rawDate = a.date || a.Date || '';
-                    let cleanDate = '';
-                    
-                    if (rawDate !== null && rawDate !== undefined && rawDate !== '') {
-                        let dStr = String(rawDate).trim();
-                        
-                        // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
-                        if (!isNaN(rawDate) && Number(rawDate) > 30000) {
-                            let utcDays = Math.floor(Number(rawDate) - 25569);
-                            let utcValue = utcDays * 86400;
-                            let dateInfo = new Date(utcValue * 1000);
-                            cleanDate = dateInfo.toISOString().split('T')[0];
-                        } 
-                        // ถ้ามีตัว T
-                        else if (dStr.includes('T')) {
-                            cleanDate = dStr.split('T')[0];
-                        } 
-                        else {
-                            let parsedDate = new Date(dStr);
-                            if (!isNaN(parsedDate.getTime())) {
-                                const localD = new Date(parsedDate.getTime() - (parsedDate.getTimezoneOffset() * 60000));
-                                cleanDate = localD.toISOString().split('T')[0];
+                    // ถ้ามีเครื่องหมาย T (ISO Format) ตัดเอาเฉพาะพาร์ทวันที่ด้านหน้าตรงๆ
+                    if (dStr.includes('T')) {
+                        cleanDate = dStr.split('T')[0];
+                    } 
+                    // ถ้ามีรูปแบบขีด - และความยาวพอดี (เช่น YYYY-MM-DD) ใช้ตรงๆ ได้เลย
+                    else if (dStr.includes('-') && dStr.length >= 10) {
+                        cleanDate = dStr.substring(0, 10);
+                    } 
+                    // ถ้ามีเครื่องหมายสแลช (/)
+                    else if (dStr.includes('/')) {
+                        let parts = dStr.split('/');
+                        if (parts.length === 3) {
+                            if (Number(parts[0]) > 12) {
+                                // รูปแบบ DD/MM/YYYY -> YYYY-MM-DD
+                                cleanDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                             } else {
-                                cleanDate = dStr.substring(0, 10);
+                                // รูปแบบ MM/DD/YYYY -> YYYY-MM-DD
+                                cleanDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
                             }
+                        } else {
+                            cleanDate = dStr.substring(0, 10);
                         }
+                    } 
+                    // ถ้าเป็น Serial Number ของ Google Sheets (ตัวเลขเช่น 45930)
+                    else if (!isNaN(rawDate) && Number(rawDate) > 30000) {
+                        let utcDays = Math.floor(Number(rawDate) - 25569);
+                        let utcValue = utcDays * 86400;
+                        let dateInfo = new Date(utcValue * 1000);
+                        // ดึงค่า UTC Date ตรงๆ เพื่อไม่ให้เวลาท้องถิ่นมาหักลบวันเพี้ยน
+                        let y = dateInfo.getUTCFullYear();
+                        let m = String(dateInfo.getUTCMonth() + 1).padStart(2, '0');
+                        let d = String(dateInfo.getUTCDate()).padStart(2, '0');
+                        cleanDate = `${y}-${m}-${d}`;
+                    } 
+                    else {
+                        cleanDate = dStr.substring(0, 10);
                     }
+                }
+                
+                return {
+                    id: a.id || Date.now(),
+                    date: cleanDate, // 👈 ใช้งานวันที่ที่แปลงและจัดรูปแบบเรียบร้อยแล้ว (ไม่เพี้ยนแน่นอน)
+                    operator: a.operator || a['OP Name'] || a.opName || '',
+                    line: a.line || a.Line || a['Line/MC'] || '',
+                    mcNo: a.mcNo || a['Machine No.'] || '',
+                    partNo: a.partNo || a['Part No.'] || '',
+                    lotNo: a.lotNo || a['Lot No.'] || '',
+                    qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
+                    ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
                     
-                    return {
-                        id: a.id || Date.now(),
-                        date: cleanDate, // 👈 ใช้งานวันที่ที่แปลงและจัดรูปแบบเรียบร้อยแล้ว
-                        operator: a.operator || a['OP Name'] || a.opName || '',
-                        line: a.line || a.Line || a['Line/MC'] || '',
-                        mcNo: a.mcNo || a['Machine No.'] || '',
-                        partNo: a.partNo || a['Part No.'] || '',
-                        lotNo: a.lotNo || a['Lot No.'] || '',
-                        qty: Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)),
-                        ngQty: Number(a.ngQty !== undefined ? a.ngQty : (a['NG Qty'] || 0)),
-                        
-                        // ฟิลด์เวลาทำงาน
-                        "เวลาทำงาน": timeVal,
-                        timework: timeVal,
-                        TimeWork: timeVal,
-                        timeRange: timeVal,
-                        
-                        remark: a.remark || a.Remark || '-',
-                        dtStart: a.dtStart || a['DtStart'] || '',
-                        dtEnd: a.dtEnd || a['DtEnd'] || '',
-                        downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
-                        downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
-                        ct: Number(a.ct || a['CT'] || 6)
-                    };
-                });
+                    // ฟิลด์เวลาทำงาน
+                    "เวลาทำงาน": timeVal,
+                    timework: timeVal,
+                    TimeWork: timeVal,
+                    timeRange: timeVal,
+                    
+                    remark: a.remark || a.Remark || '-',
+                    dtStart: a.dtStart || a['DtStart'] || '',
+                    dtEnd: a.dtEnd || a['DtEnd'] || '',
+                    downtimeMins: Number(a.downtimeMins || a['Downtime Mins'] || 0),
+                    downtimeCode: a.downtimeCode || a['Downtime Code'] || '',
+                    ct: Number(a.ct || a['CT'] || 6)
+                };
+            });
 
-                renderActuals();
-                renderDashboard();
-                if (typeof renderCapacity === 'function') { renderCapacity(); }
-                if (typeof renderStock === 'function') renderStock();
-                if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
-                if (typeof renderDiePM === 'function') renderDiePM();
-            }
-        })
-        .catch(err => console.error("Error loading actuals:", err));
+            renderActuals();
+            renderDashboard();
+            if (typeof renderCapacity === 'function') { renderCapacity(); }
+            if (typeof renderStock === 'function') renderStock();
+            if (typeof checkAndLoadWipForQGate === 'function') checkAndLoadWipForQGate();
+            if (typeof renderDiePM === 'function') renderDiePM();
+        }
+    })
+    .catch(err => console.error("Error loading actuals:", err));
     // 3. ดึง Q-Gate Inspection (เพิ่มเข้ามาใหม่ เพื่อไม่ให้ข้อมูลหายตอน F5)
     fetch(scriptUrl + "?action=getQgate")
         .then(res => res.json())
@@ -6605,8 +6677,10 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// ฟังก์ชันคำนวณและแสดงรายชื่อ Part No. ที่ Stock ต่ำกว่า Minimum (เชื่อมโยงสูตรสต็อกตรงกับหน้า Stock WIP & FG)
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (ปรับปรุงการคำนวณจำนวนวันที่ขาดให้ตรงกับ Line) ---
 (function() {
+    const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
+    
     let cachedLowStockList = [];
     let isInitialized = false;
 
@@ -6625,12 +6699,38 @@ document.addEventListener('keypress', function(e) {
         }
         container.style.display = 'block';
 
+        let currentActiveLine = 'ALL';
+
+        function syncAndRender(selectedLine = 'ALL') {
+            if (selectedLine !== undefined && selectedLine !== null) {
+                currentActiveLine = selectedLine;
+            }
+
+            fetch(`${SCRIPT_URL}?action=getProducingStatus`)
+                .then(response => response.json())
+                .then(res => {
+                    const cloudStatusObj = res.data || {};
+                    for (let key in cloudStatusObj) {
+                        localStorage.setItem(key, cloudStatusObj[key]);
+                    }
+                    renderWidget(currentActiveLine);
+                })
+                .catch(err => {
+                    console.error("Failed to sync status from cloud:", err);
+                    renderWidget(currentActiveLine);
+                });
+        }
+
         function renderWidget(selectedLine = 'ALL') {
+            if (selectedLine !== undefined && selectedLine !== null) {
+                currentActiveLine = selectedLine;
+            }
+            
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
             if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 if (cachedLowStockList.length > 0) {
-                    displayWidget(cachedLowStockList, selectedLine);
+                    displayWidget(cachedLowStockList, currentActiveLine);
                 } else {
                     container.innerHTML = `
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
@@ -6641,6 +6741,9 @@ document.addEventListener('keypress', function(e) {
             }
 
             let lowStockList = [];
+            
+            const now = new Date();
+            const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
             masterDb.forEach(m => {
                 let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
@@ -6673,7 +6776,6 @@ document.addEventListener('keypress', function(e) {
 
                 if (minVal <= 0) return;
 
-                // 1. คำนวณยอดผลิตเข้า (Actuals)
                 const totalIn = actuals.filter(a => {
                     let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6682,7 +6784,6 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 2. คำนวณยอดตัดออกไป FG / ผ่านตรวจสอบ (WIP Out / Q-Gate Passed)
                 const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : []).filter(w => {
                     let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6691,7 +6792,6 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // ถ้าไม่มี wipOuts แยก ให้ใช้ qgate แทน
                 const totalTransferred = qgate.filter(q => {
                     let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6702,7 +6802,6 @@ document.addEventListener('keypress', function(e) {
 
                 const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
 
-                // 3. คำนวณยอดส่งมอบ (Deliveries)
                 const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
                     let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
                     return p === partNo;
@@ -6711,22 +6810,39 @@ document.addEventListener('keypress', function(e) {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // 4. Manual Adjustment
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                // 5. คำนวณยอดคงเหลือ WIP และ FG ตามสูตรมาตรฐานเดียวกับหน้า Stock WIP & FG
                 const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
                 const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
                 const totalStock = currentwip + currentFg;
 
+                let storageKey = `low_stock_since_${partNo}`;
+                let firstLowDate = localStorage.getItem(storageKey);
+
                 if (totalStock < minVal) {
+                    if (!firstLowDate) {
+                        firstLowDate = todayStr;
+                        localStorage.setItem(storageKey, firstLowDate);
+                    }
+                    
+                    // คำนวณจำนวนวันแบบเทียบวันที่ปัจจุบัน (ให้ตรงกับหลังบ้านและ Line)
+                    let startDate = new Date(firstLowDate);
+                    let currentDate = new Date(todayStr);
+                    let diffTime = currentDate - startDate;
+                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
                     lowStockList.push({
                         partNo: rawPartNo,
                         line: line,
                         stock: totalStock,
-                        min: minVal
+                        min: minVal,
+                        days: diffDays > 0 ? diffDays : 1
                     });
+                } else {
+                    if (firstLowDate) {
+                        localStorage.removeItem(storageKey);
+                    }
                 }
             });
 
@@ -6735,7 +6851,7 @@ document.addEventListener('keypress', function(e) {
                 isInitialized = true;
             }
 
-            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, selectedLine);
+            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
         }
 
         function displayWidget(list, selectedLine) {
@@ -6745,14 +6861,36 @@ document.addEventListener('keypress', function(e) {
                 : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
-                // 📌 ตัดจุดทศนิยมออกด้วย Math.round() ให้เหลือแต่จำนวนเต็ม
                 let cleanStock = Math.round(item.stock).toLocaleString();
                 let cleanMin = Math.round(item.min).toLocaleString();
 
-                return `<span class="badge bg-secondary border border-danger m-1 p-2" style="font-size: 13px; background-color: #2b0c0c !important;">
-                            <i class="fas fa-box me-1 text-danger"></i><b class="text-warning" style="font-size: 14px;">${item.partNo}</b> 
+                let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
+                let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
+                let isProducing = localStorage.getItem(storageKey) === 'true';
+
+                let bgStyle = '';
+                if (isProducing) {
+                    bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
+                } else {
+                    if (item.days === 1) {
+                        bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
+                    } else if (item.days === 2) {
+                        bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
+                    } else {
+                        bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
+                    }
+                }
+
+                let statusBadge = isProducing ? 
+                    `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
+                    `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
+
+                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
+                            <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
+                            <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
-                            <span class="badge bg-light text-dark ms-1">Stock(WIP+FG): ${cleanStock} / Min: ${cleanMin}</span>
+                            ${statusBadge}
+                            <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
                         </span>`;
             }).join('');
 
@@ -6765,6 +6903,7 @@ document.addEventListener('keypress', function(e) {
                     <h6 class="text-danger fw-bold mb-2">
                         <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                         <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
+                        <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. ของแต่ละ Line เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
                         ${badgesHtml}
@@ -6773,14 +6912,39 @@ document.addEventListener('keypress', function(e) {
             `;
         }
 
-        window.renderZeroStockPartsByLine = renderWidget;
+        window.toggleLineProducingStatus = function(lineName, partNo) {
+            let key = `producing_${lineName}_${partNo}`;
+            let currentVal = localStorage.getItem(key) === 'true';
+            let newVal = !currentVal;
+            
+            localStorage.setItem(key, newVal);
+            renderWidget(currentActiveLine);
+            
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "setStatus",
+                    lineName: lineName,
+                    partNo: partNo,
+                    status: newVal
+                })
+            }).then(() => {
+                console.log("Cloud producing status synced.");
+            }).catch(err => {
+                console.error("Error syncing status:", err);
+            });
+        };
+
+        window.renderZeroStockPartsByLine = syncAndRender;
 
         if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
             let originalLoad = window.loadAllDataFromCloud;
             window.loadAllDataFromCloud = async function(...args) {
                 let res = await originalLoad.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 500);
-                setTimeout(() => renderWidget('ALL'), 1500);
+                setTimeout(() => syncAndRender(currentActiveLine), 500);
+                setTimeout(() => syncAndRender(currentActiveLine), 1500);
                 return res;
             };
             window._patchedLoadCloud = true;
@@ -6790,22 +6954,22 @@ document.addEventListener('keypress', function(e) {
             let originalRenderAll = window.renderAll;
             window.renderAll = function(...args) {
                 let res = originalRenderAll.apply(this, args);
-                setTimeout(() => renderWidget('ALL'), 300);
+                setTimeout(() => syncAndRender(currentActiveLine), 300);
                 return res;
             };
             window._patchedRenderAll = true;
         }
 
-        setTimeout(() => renderWidget('ALL'), 1000);
-        setTimeout(() => renderWidget('ALL'), 3000);
-        setTimeout(() => renderWidget('ALL'), 5000);
+        setTimeout(() => syncAndRender('ALL'), 1000);
+        setTimeout(() => syncAndRender('ALL'), 3000);
+        setTimeout(() => syncAndRender('ALL'), 5000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 400);
+                    setTimeout(() => syncAndRender(text), 400);
                 }
             }
         });
@@ -7069,6 +7233,130 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+ 
+// ระบบจัดการหน้า Planning: แยกปุ่มกดตาม Line + นับจำนวนงาน + ลบแผนอัตโนมัติเมื่อผลิตครบตามเป้า
+(function() {
+    let selectedPlanLine = 'ALL';
+
+    function initPlanningEnhancement() {
+        // ค้นหาตารางในหน้า Planning (หาจากหัวตารางที่มีคำว่า Plan Qty และ Lot No.)
+        const tables = document.querySelectorAll('table');
+        let planTable = null;
+        tables.forEach(t => {
+            if (t.textContent.includes('Plan Qty') && t.textContent.includes('Lot No.')) {
+                planTable = t;
+            }
+        });
+
+        if (!planTable) return;
+
+        // 1. สร้างแถบปุ่มเลือก Line เหนือตาราง (ถ้ายังไม่มี)
+        let filterBar = document.getElementById('planningLineFilterBar');
+        if (!filterBar) {
+            filterBar = document.createElement('div');
+            filterBar.id = 'planningLineFilterBar';
+            filterBar.className = 'd-flex flex-wrap gap-2 mb-3 align-items-center';
+            planTable.parentElement.insertBefore(filterBar, planTable);
+        }
+
+        // 2. ฟังก์ชันอัปเดตปุ่มตัวเลขและกรองรายการในตาราง + ซ่อนแผนที่ผลิตจบแล้ว
+        function updatePlanningView() {
+            const tbody = planTable.querySelector('tbody');
+            if (!tbody) return;
+
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const lineCounts = { 'ALL': 0 };
+            const actualData = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals : [];
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 6) return;
+
+                // ดึงข้อมูลจากคอลัมน์ในตาราง: [0]Start, [1]Finish, [2]Line, [3]Part No., [4]Lot No., [5]Plan Qty
+                const lineText = cells[2].textContent.trim();
+                const partNo = cells[3].textContent.trim().toUpperCase();
+                const lotNo = cells[4].textContent.trim().toUpperCase();
+                const planQty = Number(cells[5].textContent.replace(/,/g, '').trim()) || 0;
+
+                // เช็กยอดผลิตจริง (Actual) ที่ตรงกับ Part No. และ Lot No. นี้
+                const producedQty = actualData.filter(a => {
+                    const aPart = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
+                    const aLot = String(a.lotNo || a['Lot No.'] || a.lot || '').trim().toUpperCase();
+                    // ถ้าในหน้าบันทึกยอดผลิตมีการระบุ Lot ให้เทียบทั้ง Part และ Lot แต่ถ้าไม่ระบุ Lot ให้เทียบ Part
+                    return aLot ? (aPart === partNo && aLot === lotNo) : (aPart === partNo);
+                }).reduce((sum, a) => {
+                    const qty = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    return sum + (isNaN(qty) ? 0 : qty);
+                }, 0);
+
+                // เงื่อนไข: ถ้าผลิตจบแล้ว (ยอดผลิต >= แผนผลิต) ให้ซ่อน/ลบออกจากรายการอัตโนมัติ
+                const isCompleted = (planQty > 0 && producedQty >= planQty);
+
+                if (isCompleted) {
+                    row.style.display = 'none';
+                    row.dataset.planCompleted = 'true';
+                    return; // ไม่นับรวมในจำนวนแผนที่ค้างผลิต
+                } else {
+                    row.dataset.planCompleted = 'false';
+                }
+
+                // นับจำนวนแผนที่ยังค้างอยู่แยกตาม Line
+                lineCounts['ALL'] = (lineCounts['ALL'] || 0) + 1;
+                if (lineText) {
+                    lineCounts[lineText] = (lineCounts[lineText] || 0) + 1;
+                }
+
+                // แสดงหรือซ่อนแถวตามปุ่ม Line ที่เลือกกดอยู่
+                if (selectedPlanLine === 'ALL' || lineText.toUpperCase() === selectedPlanLine.toUpperCase()) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // สร้างปุ่ม Line พร้อมตัวเลขจำนวนแผน (เช่น Line A (5))
+            const defaultLines = ['ALL', 'Line A', 'Line Q', 'Line C1', 'Line C2', 'Line C3'];
+            const allLines = Array.from(new Set([...defaultLines, ...Object.keys(lineCounts)]));
+
+            filterBar.innerHTML = allLines.map(line => {
+                const count = lineCounts[line] || 0;
+                const isActive = (selectedPlanLine.toUpperCase() === line.toUpperCase());
+                const btnClass = isActive ? 'btn-primary fw-bold shadow-sm' : 'btn-outline-secondary text-white';
+                const badgeClass = isActive ? 'bg-warning text-dark' : 'bg-dark text-info';
+                
+                return `<button type="button" class="btn btn-sm ${btnClass}" onclick="window.filterPlanningByLine('${line}')">
+                            ${line} <span class="badge ${badgeClass} ms-1">${count}</span>
+                        </button>`;
+            }).join('');
+        }
+
+        // ฟังก์ชันเมื่อกดปุ่มเลือก Line
+        window.filterPlanningByLine = function(line) {
+            selectedPlanLine = line;
+            updatePlanningView();
+        };
+
+        // คอยตรวจจับเวลาตารางมีการเพิ่มแผนใหม่หรือโหลดข้อมูลจาก Cloud มาอัปเดต
+        const observer = new MutationObserver(() => {
+            updatePlanningView();
+        });
+        const tbody = planTable.querySelector('tbody');
+        if (tbody) {
+            observer.observe(tbody, { childList: true });
+        }
+
+        // รันอัปเดตครั้งแรกและซิงค์ทุกๆ 2 วินาทีเผื่อมีการบันทึกยอดผลิตเข้ามาใหม่
+        updatePlanningView();
+        setInterval(updatePlanningView, 2000);
+    }
+
+    if (document.readyState === 'complete') {
+        initPlanningEnhancement();
+    } else {
+        window.addEventListener('load', initPlanningEnhancement);
+    }
+})();
+
 </script>
 </body>
 </html>
