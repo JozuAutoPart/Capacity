@@ -1382,89 +1382,94 @@ if (dashDiffBalanceEl) {
 
 function renderDashboardPpmChart(totalProduction, totalNg) {
     const targetPpm = 250;
-    const currentMonthIndex = new Date().getMonth(); // เดือนปัจจุบัน (พฤศจิกายน = 10)
+    const currentMonthIndex = 10; // เดือนพฤศจิกายน (เดือนที่ 10 ของอาเรย์ 0-11)
+    const currentYear = 2026;
 
     let monthlyProdArr = new Array(12).fill(0);
     let monthlyNgArr = new Array(12).fill(0);
 
-    // 1. ดึงรายชื่อ Part No. ทั้งหมดที่อยู่ใน Line ที่กำลังเลือกอยู่ตอนนี้จาก plans
-    let activePartsInLine = [];
-    if (typeof currentFilterLine !== 'undefined' && currentFilterLine !== 'ALL') {
-        activePartsInLine = plans
-            .filter(p => String(p.Line || p.line || '').trim() === String(currentFilterLine).trim())
-            .map(p => String(p["Part No."] || p.partNo || '').toLowerCase().trim());
-    }
+    // 1. ตรวจสอบว่าหน้าเว็บกำลังเลือก Line ไหนอยู่ (ALL, Line A, Line Q, ฯลฯ)
+    let selectedLine = (typeof currentFilterLine !== 'undefined') ? currentFilterLine : 'ALL';
 
-    // 2. กรองยอดผลิตรายเดือนเฉพาะ Line ที่เลือก
+    // 2. กรองข้อมูล Actuals เฉพาะ Line ที่เลือกจริงๆ
     const filteredActuals = (typeof actuals !== 'undefined' && Array.isArray(actuals)) ? actuals.filter(a => {
-        if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
+        if (selectedLine === 'ALL') return true;
         let alineRaw = a["Line/MC"] || a.line || a.Line || '';
         let aline = String(String(alineRaw).split('/')[0] || '').trim();
-        return aline === String(currentFilterLine).trim();
+        return aline.toLowerCase() === String(selectedLine).trim().toLowerCase();
     }) : [];
+
+    let currentMonthProd = 0;
 
     filteredActuals.forEach(a => {
         let aPart = String(a["Part No."] || a.partNo || '').trim();
         if (aPart.includes('/')) return; // ข้ามกระบวนการย่อย
 
         let rawQty = a["OK Qty"] !== undefined ? a["OK Qty"] : (a.qty !== undefined ? a.qty : a.OKQty);
-        let qtyVal = Number(rawQty) || 0;
-        if (qtyVal <= 0) return;
+        let val = Number(rawQty) || 0;
+        if (val <= 0) return;
 
         let dateVal = a["Date"] || a.date || a.Timestamp || a.timestamp || '';
-        let monthIndex = currentMonthIndex; // ค่าเริ่มต้นให้นับเข้าเดือนปัจจุบัน เพื่อป้องกันยอดหายเป็น 0
+        let mIdx = currentMonthIndex; // ค่าเริ่มต้นบังคับลงเดือนปัจจุบัน
 
         if (dateVal) {
             let d = new Date(dateVal);
             if (!isNaN(d.getTime())) {
-                monthIndex = d.getMonth();
+                if (d.getFullYear() === currentYear) {
+                    mIdx = d.getMonth();
+                }
             }
         }
-        monthlyProdArr[monthIndex] += qtyVal;
+
+        monthlyProdArr[mIdx] += val;
+        if (mIdx === currentMonthIndex) {
+            currentMonthProd += val;
+        }
     });
 
-    // 3. กรองยอดของเสีย (Q-Gate)
+    // 3. กรองยอดของเสีย (Q-Gate) เฉพาะ Line ที่เลือก
     const filteredQGate = (typeof qgate !== 'undefined' && Array.isArray(qgate)) ? qgate.filter(q => {
-        let qPart = String(q.partNo || q['Part No.'].partNo || q.PartNo || '').toLowerCase().trim();
-        if (typeof currentFilterLine === 'undefined' || currentFilterLine === 'ALL') return true;
-        
+        if (selectedLine === 'ALL') return true;
         let qLineRaw = q.line || q['Line/MC'] || q.Line || '';
         let qLine = String(qLineRaw).split('/')[0].toLowerCase().trim();
-        let targetLine = String(currentFilterLine).toLowerCase().trim();
-
-        let lineMatch = (qLine === targetLine || qLine.includes(targetLine));
-        let partMatch = activePartsInLine.includes(qPart);
-
-        return lineMatch || partMatch;
+        let targetLine = String(selectedLine).toLowerCase().trim();
+        return qLine === targetLine || qLine.includes(targetLine);
     }) : [];
 
+    let currentMonthNg = 0;
     filteredQGate.forEach(q => {
         let rawNg = q.ngQty !== undefined ? q.ngQty : 
                    (q['NG Qty'] !== undefined ? q['NG Qty'] : 
                    (q.ng !== undefined ? q.ng : 
                    (q.NG !== undefined ? q.NG : (q.qtyNg || 0))));
-        let ngVal = Number(rawNg) || 0;
-        if (ngVal <= 0) return;
+        let val = Number(rawNg) || 0;
+        if (val <= 0) return;
 
         let dateVal = q["Date"] || q.date || q.Timestamp || q.timestamp || '';
-        let monthIndex = currentMonthIndex;
+        let mIdx = currentMonthIndex;
 
         if (dateVal) {
             let d = new Date(dateVal);
             if (!isNaN(d.getTime())) {
-                monthIndex = d.getMonth();
+                if (d.getFullYear() === currentYear) {
+                    mIdx = d.getMonth();
+                }
             }
         }
-        monthlyNgArr[monthIndex] += ngVal;
+
+        monthlyNgArr[mIdx] += val;
+        if (mIdx === currentMonthIndex) {
+            currentMonthNg += val;
+        }
     });
 
-    // 4. ดึงยอดเฉพาะเดือนปัจจุบันมาแสดงในการ์ดขวามือ
-    let currentMonthProd = monthlyProdArr[currentMonthIndex] || 0;
-    let currentMonthNg = monthlyNgArr[currentMonthIndex] || 0;
+    // อัปเดตยอดประจำเดือนพฤศจิกายนลงอาเรย์กราฟให้ตรงกับการ์ด
+    monthlyProdArr[currentMonthIndex] = currentMonthProd;
+    monthlyNgArr[currentMonthIndex] = currentMonthNg;
 
     const actualPpm = currentMonthProd > 0 ? Math.round((currentMonthNg / currentMonthProd) * 1_000_000) : 0;
 
-    // อัปเดตตัวเลขการ์ดสรุปทางขวามือ
+    // 4. อัปเดตตัวเลขการ์ดสรุปทางขวามือ
     const lblTotalProd = document.getElementById('lblTotalProd');
     const lblTotalNg = document.getElementById('lblTotalNg');
     const lblPpm = document.getElementById('lblActualPpm');
@@ -1507,7 +1512,7 @@ function renderDashboardPpmChart(totalProduction, totalNg) {
             labels: months,
             datasets: [
                 {
-                    label: 'Ppm รายเดือน',
+                    label: 'PPM รายเดือน',
                     data: monthlyPpm,
                     backgroundColor: '#38bdf8',
                     borderColor: '#38bdf8',
