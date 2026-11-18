@@ -6677,7 +6677,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบ Low Stock (แบบแยกส่วนสมบูรณ์ ไม่แตะตัวแปรคำนวณหน้าหลัก) ---
+// --- ระบบ Low Stock (เวอร์ชันแก้ปัญหายอดผลิตเป็น 0 แบบสมบูรณ์) ---
 (function() {
     let cachedLowStockList = [];
 
@@ -6699,79 +6699,125 @@ document.addEventListener('keypress', function(e) {
         function renderWidget(selectedLine = 'ALL') {
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
-            if (masterDb.length === 0) {
+            // ถ้าระบบหลักยังโหลดข้อมูลไม่เสร็จ ให้แสดงสถานะรอ โดยไม่ไปแตะต้องหรือเรียกตัวแปรพังๆ
+            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
                 if (cachedLowStockList.length > 0) {
                     displayWidget(cachedLowStockList, selectedLine);
                 } else {
                     container.innerHTML = `
                         <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังโหลดข้อมูล Low Stock...</h6>
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
                         </div>`;
                 }
-                setTimeout(() => renderWidget(selectedLine), 1500);
+                // เช็กซ้ำเรื่อยๆ จนกว่าข้อมูลหลักจะพร้อม โดยไม่ไปขัดขวางการเรนเดอร์หน้าหลัก
+                setTimeout(() => renderWidget(selectedLine), 1000);
                 return;
             }
 
             let lowStockList = [];
+            
             const now = new Date();
             const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
             masterDb.forEach(m => {
                 let rawPartNo = String(m['Part No.'] || m.partNo || m.PARTNO || '').trim();
-                if (!rawPartNo || /\s\d+\/\d+$/.test(rawPartNo)) return;
+                if (!rawPartNo) return;
+
+                const hasProcessSuffix = /\s\d+\/\d+$/.test(rawPartNo);
+                if (hasProcessSuffix) return;
 
                 let partNo = rawPartNo.toUpperCase();
-                let line = m['Line'] || m.line || 'ALL';
-                let minVal = Number(m['Minimum'] || m['min'] || Object.values(m)[11] || 0);
+
+                let line = 'ALL';
+                let minVal = 0;
+
+                const keys = Object.keys(m);
+                for (let i = 0; i < keys.length; i++) {
+                    let k = keys[i];
+                    let lk = k.toLowerCase().trim();
+                    let val = String(m[k]).replace(/,/g, '').trim();
+
+                    if (lk === 'line' || lk.includes('line')) {
+                        if (m[k]) line = m[k];
+                    }
+                    if (lk === 'minimum' || lk === 'min' || lk.includes('minimum') || i === 11) {
+                        let v = Number(val);
+                        if (!isNaN(v) && v > 0) {
+                            minVal = v;
+                        }
+                    }
+                }
 
                 if (minVal <= 0) return;
 
-                // ดึงข้อมูลอาเรย์ผ่าน window แบบระมัดระวังที่สุด
-                const aList = window.actuals || [];
-                const wList = window.wipOuts || [];
-                const qList = window.qgate || [];
-                const dList = window.deliveries || [];
+                const totalIn = actuals.filter(a => {
+                    let p = String(a.partNo || a['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, a) => {
+                    let val = Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
-                const totalIn = aList.filter(a => String(a.partNo || a['Part No.'] || '').trim().toUpperCase() === partNo)
-                    .reduce((sum, a) => sum + Number(a.qty !== undefined ? a.qty : (a['OK Qty'] || 0)), 0);
+                const totalWipOut = (typeof wipOuts !== 'undefined' ? wipOuts : []).filter(w => {
+                    let p = String(w.partNo || w['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, w) => {
+                    let val = Number(w.qty || w['Qty'] || 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
-                const totalWipOut = wList.filter(w => String(w.partNo || w['Part No.'] || '').trim().toUpperCase() === partNo)
-                    .reduce((sum, w) => sum + Number(w.qty || w['Qty'] || 0), 0);
-
-                const totalTransferred = qList.filter(q => String(q.partNo || q['Part No.'] || '').trim().toUpperCase() === partNo)
-                    .reduce((sum, q) => sum + Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0)))), 0);
+                const totalTransferred = qgate.filter(q => {
+                    let p = String(q.partNo || q['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, q) => {
+                    let val = Number(q.totalQty !== undefined ? q.totalQty : (q['ยอดตรวจทั้งหมด'] || (Number(q.passQty || q['Pass Qty'] || 0) + Number(q.ngQty || q['NG Qty'] || 0))));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
                 const effectiveWipOut = totalWipOut > 0 ? totalWipOut : totalTransferred;
-                const totalDelivered = dList.filter(d => String(d.partNo || d['Part No.'] || '').trim().toUpperCase() === partNo)
-                    .reduce((sum, d) => sum + Number(d.qty || d['Qty'] || 0), 0);
+
+                const totalDelivered = (typeof deliveries !== 'undefined' ? deliveries : []).filter(d => {
+                    let p = String(d.partNo || d['Part No.'] || '').trim().toUpperCase();
+                    return p === partNo;
+                }).reduce((sum, d) => {
+                    let val = Number(d.qty || d['Qty'] || 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
 
                 const adjustWip = parseInt(localStorage.getItem(`stock_adjust_WIP_${rawPartNo}`) || localStorage.getItem(`stock_adjust_WIP_${partNo}`) || 0);
                 const adjustFg = parseInt(localStorage.getItem(`stock_adjust_FG_${rawPartNo}`) || localStorage.getItem(`stock_adjust_FG_${partNo}`) || 0);
 
-                const currentStock = Math.max(0, (totalIn - effectiveWipOut) + adjustWip) + Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
+                const currentwip = Math.max(0, (totalIn - effectiveWipOut) + adjustWip);
+                const currentFg = Math.max(0, (totalTransferred - totalDelivered) + adjustFg);
+                const totalStock = currentwip + currentFg;
 
                 let storageKey = `low_stock_since_${partNo}`;
                 let firstLowDate = localStorage.getItem(storageKey);
 
-                if (currentStock < minVal) {
+                if (totalStock < minVal) {
                     if (!firstLowDate) {
                         firstLowDate = todayStr;
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
                     let parts = firstLowDate.split('-').map(Number);
-                    let diffDays = Math.floor((todayMidnight - new Date(parts[0], parts[1] - 1, parts[2])) / (1000 * 60 * 60 * 24)) + 1;
+                    let startDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    let diffTime = todayMidnight - startDate;
+                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    let daysShort = diffDays > 0 ? diffDays : 1;
 
                     lowStockList.push({
                         partNo: rawPartNo,
                         line: line,
-                        stock: currentStock,
+                        stock: totalStock,
                         min: minVal,
-                        days: diffDays > 0 ? diffDays : 1
+                        days: daysShort
                     });
-                } else if (firstLowDate) {
-                    localStorage.removeItem(storageKey);
+                } else {
+                    if (firstLowDate) {
+                        localStorage.removeItem(storageKey);
+                    }
                 }
             });
 
@@ -6786,30 +6832,41 @@ document.addEventListener('keypress', function(e) {
                 : list.filter(x => String(x.line).trim().toUpperCase() === currentLine);
 
             let badgesHtml = filteredParts.map(item => {
-                let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
-                let isProd = localStorage.getItem(`producing_${lineKeyClean}_${item.partNo}`) === 'true';
-                
-                let bgStyle = isProd ? 
-                    'background-color: #0f2d1e !important; border-color: #198754 !important;' : 
-                    (item.days === 1 ? 'background-color: #332701 !important; border-color: #ffc107 !important;' : 
-                    (item.days === 2 ? 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;' : 
-                    'background-color: #2b0c0c !important; border-color: #dc3545 !important;'));
+                let cleanStock = Math.round(item.stock).toLocaleString();
+                let cleanMin = Math.round(item.min).toLocaleString();
 
-                let statusBadge = isProd ? 
+                let lineKeyClean = String(item.line).trim().replace(/\s+/g, '_');
+                let storageKey = `producing_${lineKeyClean}_${item.partNo}`;
+                let isProducing = localStorage.getItem(storageKey) === 'true';
+
+                let bgStyle = '';
+                if (isProducing) {
+                    bgStyle = 'background-color: #0f2d1e !important; border-color: #198754 !important;';
+                } else {
+                    if (item.days === 1) {
+                        bgStyle = 'background-color: #332701 !important; border-color: #ffc107 !important;';
+                    } else if (item.days === 2) {
+                        bgStyle = 'background-color: #3d1f00 !important; border-color: #fd7e14 !important;';
+                    } else {
+                        bgStyle = 'background-color: #2b0c0c !important; border-color: #dc3545 !important;';
+                    }
+                }
+
+                let statusBadge = isProducing ? 
                     `<span class="badge bg-success text-white ms-1"><i class="fas fa-check-circle me-1"></i> กำลังผลิตอยู่</span>` : 
                     `<span class="badge bg-dark text-white ms-1 fw-bold border border-secondary"><i class="fas fa-exclamation-circle me-1"></i> ขาดมาแล้ว ${item.days} วัน</span>`;
 
-                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
-                            <i class="fas fa-box me-1 ${isProd ? 'text-success' : 'text-danger'}"></i>
-                            <b class="${isProd ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
+                return `<span class="badge border m-1 p-2" style="font-size: 13px; cursor: pointer; ${bgStyle}" title="คลิกเพื่อสลับสถานะ กำลังผลิตของ ${item.line}" onclick="toggleLineProducingStatus('${lineKeyClean}', '${item.partNo}')">
+                            <i class="fas fa-box me-1 ${isProducing ? 'text-success' : 'text-danger'}"></i>
+                            <b class="${isProducing ? 'text-success text-decoration-underline' : 'text-warning'}" style="font-size: 14px;">${item.partNo}</b> 
                             <span class="badge bg-dark text-info ms-1">Line: ${item.line}</span> 
                             ${statusBadge}
-                            <span class="badge bg-light text-dark ms-1">Stock: ${Math.round(item.stock).toLocaleString()} / Min: ${Math.round(item.min).toLocaleString()}</span>
+                            <span class="badge bg-light text-dark ms-1">Stock: ${cleanStock} / Min: ${cleanMin}</span>
                         </span>`;
             }).join('');
 
             if (filteredParts.length === 0) {
-                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
+                badgesHtml = `<span class="text-success small"><i class="fas fa-check-circle me-1"></i> ยอดเยี่ยม! ไม่มี Part No. ที่มี Stock (WIP+FG) ต่ำกว่า Minimum ในไลน์นี้ (${selectedLine})</span>`;
             }
 
             container.innerHTML = `
@@ -6817,7 +6874,7 @@ document.addEventListener('keypress', function(e) {
                     <h6 class="text-danger fw-bold mb-2">
                         <i class="fas fa-exclamation-triangle me-2"></i> รายชื่อ Part No. ที่มี Stock (WIP + FG) ต่ำกว่า Minimum (ไลน์: ${selectedLine}) 
                         <span class="badge bg-danger text-white ms-2">${filteredParts.length} รายการ</span>
-                        <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
+                        <span class="small text-muted float-end" style="font-size: 11px; font-weight: normal;"><i class="fas fa-info-circle"></i> คลิกที่ชื่อ Part No. ของแต่ละ Line เพื่อเปลี่ยนสถานะเป็น "กำลังผลิต"</span>
                     </h6>
                     <div class="d-flex flex-wrap" style="max-height: 180px; overflow-y: auto;">
                         ${badgesHtml}
@@ -6828,15 +6885,19 @@ document.addEventListener('keypress', function(e) {
 
         window.toggleLineProducingStatus = function(lineName, partNo) {
             let key = `producing_${lineName}_${partNo}`;
-            let newVal = !(localStorage.getItem(key) === 'true');
+            let currentVal = localStorage.getItem(key) === 'true';
+            let newVal = !currentVal;
+            
             localStorage.setItem(key, newVal);
-            renderWidget('ALL');
+            renderWidget(currentActiveLine);
         };
 
         window.renderZeroStockPartsByLine = renderWidget;
 
-        // รอหน่วงเวลาให้หน้าเว็บหลักโหลดและเรนเดอร์ตัวเองเสร็จสิ้นแบบ 100% ค่อยรัน Widget
-        setTimeout(() => renderWidget('ALL'), 3000);
+        // **จุดสำคัญ:** เราจะไม่ไปแตะต้องหรือแพตช์ฟังก์ชัน loadAllDataFromCloud หรือ renderAll ของหน้าหลักเด็ดขาด 
+        // ปล่อยให้หน้าเว็บหลักโหลดและเรนเดอร์ยอดผลิตรวมของตัวเองให้เสร็จสมบูรณ์ 100% ก่อน 
+        // แล้วค่อยให้ Widget ของเราสั่งรันตัวเองทีหลังอย่างปลอดภัย
+        setTimeout(() => renderWidget('ALL'), 2000);
 
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
@@ -6853,7 +6914,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 3000);
+        setTimeout(initLowStockWidget, 2000);
     }
 })();
         function updateClock() {
