@@ -6632,7 +6632,7 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบ Low Stock & Cross-Device Sync (แก้ไขการนับวันขาดสะสมให้แม่นยำ) ---
+// --- ระบบจัดการ Low Stock & Cross-Device Sync (ปรับปรุงความเร็ว ตอบสนองทันที) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
@@ -6661,8 +6661,10 @@ document.addEventListener('keypress', function(e) {
                 currentActiveLine = selectedLine;
             }
 
+            // ทำการเรนเดอร์จาก Local ก่อนทันทีเพื่อความไว
             renderWidget(currentActiveLine);
 
+            // ดึงข้อมูลสถานะจากคลาวด์เบื้องหลังแบบเงียบๆ
             fetch(`${SCRIPT_URL}?action=getProducingStatus`)
                 .then(response => response.json())
                 .then(res => {
@@ -6705,8 +6707,6 @@ document.addEventListener('keypress', function(e) {
             let lowStockList = [];
             
             const now = new Date();
-            // เซ็ตเวลาปัจจุบันให้เป็นเที่ยงคืนเพื่อคำนวณวันขาดได้อย่างแม่นยำ
-            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
             masterDb.forEach(m => {
@@ -6790,10 +6790,9 @@ document.addEventListener('keypress', function(e) {
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
-                    // คำนวณวันขาดสะสมด้วยการเทียบวันที่แบบเที่ยงคืนตรงๆ
-                    let parts = firstLowDate.split('-').map(Number);
-                    let startDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                    let diffTime = todayMidnight - startDate;
+                    let startDate = new Date(firstLowDate);
+                    let currentDate = new Date(todayStr);
+                    let diffTime = currentDate - startDate;
                     let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
                     let daysShort = diffDays > 0 ? diffDays : 1;
 
@@ -6882,9 +6881,11 @@ document.addEventListener('keypress', function(e) {
             let currentVal = localStorage.getItem(key) === 'true';
             let newVal = !currentVal;
             
+            // บันทึกและเรนเดอร์หน้าจอทันทีแบบรวดเร็ว (Optimistic UI)
             localStorage.setItem(key, newVal);
             renderWidget(currentActiveLine);
             
+            // ส่งข้อมูลไปบันทึกที่คลาวด์เบื้องหลัง
             fetch(SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -6922,6 +6923,7 @@ document.addEventListener('keypress', function(e) {
             window._patchedRenderAll = true;
         }
 
+        // โหลดข้อมูลรอบแรกทันทีเมื่อเปิดหน้าเว็บ
         setTimeout(() => syncAndRender('ALL'), 500);
 
         document.addEventListener('click', function(e) {
