@@ -6677,11 +6677,12 @@ document.addEventListener('keypress', function(e) {
     }
 });
 
-// --- ระบบ Low Stock (แก้ไขให้รอข้อมูลหลักโหลดเสร็จก่อนเรนเดอร์ ป้องกันยอดผลิตเป็น 0) ---
+// --- ระบบ Low Stock ตัวดั้งเดิมที่เสถียร (ยอดผลิตขึ้นปกติ + นับวันขาดสะสม) ---
 (function() {
     const SCRIPT_URL = typeof GOOGLE_SCRIPT_URL !== 'undefined' ? GOOGLE_SCRIPT_URL : "https://script.google.com/macros/s/AKfycbxHwVVqZYGrRFGv5FlEY_InHpYv0SuSpyCr3nCiQq9mV_VefXCQqdItSHTdDjr8znA/exec";
     
     let cachedLowStockList = [];
+    let isInitialized = false;
 
     function initLowStockWidget() {
         let container = document.getElementById('zeroStockListContainer');
@@ -6700,6 +6701,33 @@ document.addEventListener('keypress', function(e) {
 
         let currentActiveLine = 'ALL';
 
+        function syncAndRender(selectedLine = 'ALL') {
+            if (selectedLine !== undefined && selectedLine !== null) {
+                currentActiveLine = selectedLine;
+            }
+
+            renderWidget(currentActiveLine);
+
+            fetch(`${SCRIPT_URL}?action=getProducingStatus`)
+                .then(response => response.json())
+                .then(res => {
+                    const cloudStatusObj = res.data || {};
+                    let hasChanged = false;
+                    for (let key in cloudStatusObj) {
+                        if (localStorage.getItem(key) !== String(cloudStatusObj[key])) {
+                            localStorage.setItem(key, cloudStatusObj[key]);
+                            hasChanged = true;
+                        }
+                    }
+                    if (hasChanged) {
+                        renderWidget(currentActiveLine);
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to sync status from cloud:", err);
+                });
+        }
+
         function renderWidget(selectedLine = 'ALL') {
             if (selectedLine !== undefined && selectedLine !== null) {
                 currentActiveLine = selectedLine;
@@ -6707,20 +6735,22 @@ document.addEventListener('keypress', function(e) {
             
             const masterDb = window.masterPartsDatabase || window.masterParts || [];
             
-            // เช็กว่าข้อมูลหลัก (Master, Actuals, Q-Gate) โหลดมาหรือยัง 
-            // ถ้ายังไม่มา ให้หน่วงเวลาเช็คซ้ำโดยไม่ไปแตะต้องฟังก์ชันหลักของหน้าเว็บ
-            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined' || actuals.length === 0) {
-                container.innerHTML = `
-                    <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
-                        <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังรอข้อมูลการผลิตหลัก (Dashboard)...</h6>
-                    </div>`;
-                setTimeout(() => renderWidget(currentActiveLine), 1000);
+            if (masterDb.length === 0 || typeof actuals === 'undefined' || typeof qgate === 'undefined') {
+                if (cachedLowStockList.length > 0) {
+                    displayWidget(cachedLowStockList, currentActiveLine);
+                } else {
+                    container.innerHTML = `
+                        <div class="card bg-dark text-white p-3 border-danger shadow mb-3">
+                            <h6 class="text-warning"><i class="fas fa-spinner fa-spin me-2"></i> กำลังซิงค์ข้อมูล Low Stock (WIP + FG)...</h6>
+                        </div>`;
+                }
                 return;
             }
 
             let lowStockList = [];
             
             const now = new Date();
+            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
 
             masterDb.forEach(m => {
@@ -6804,9 +6834,9 @@ document.addEventListener('keypress', function(e) {
                         localStorage.setItem(storageKey, firstLowDate);
                     }
                     
-                    let startDate = new Date(firstLowDate);
-                    let currentDate = new Date(todayStr);
-                    let diffTime = currentDate - startDate;
+                    let parts = firstLowDate.split('-').map(Number);
+                    let startDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    let diffTime = todayMidnight - startDate;
                     let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
                     let daysShort = diffDays > 0 ? diffDays : 1;
 
@@ -6824,8 +6854,12 @@ document.addEventListener('keypress', function(e) {
                 }
             });
 
-            cachedLowStockList = lowStockList;
-            displayWidget(lowStockList, currentActiveLine);
+            if (lowStockList.length > 0 || isInitialized) {
+                cachedLowStockList = lowStockList;
+                isInitialized = true;
+            }
+
+            displayWidget(cachedLowStockList.length > 0 ? cachedLowStockList : lowStockList, currentActiveLine);
         }
 
         function displayWidget(list, selectedLine) {
@@ -6909,20 +6943,36 @@ document.addEventListener('keypress', function(e) {
             });
         };
 
-        window.renderZeroStockPartsByLine = function(selectedLine) {
-            renderWidget(selectedLine);
-        };
+        window.renderZeroStockPartsByLine = syncAndRender;
 
-        // เริ่มต้นทำงานโดยรอให้หน้าเว็บหลักโหลดข้อมูลเสร็จก่อน
-        setTimeout(() => renderWidget('ALL'), 1000);
+        if (typeof window.loadAllDataFromCloud === 'function' && !window._patchedLoadCloud) {
+            let originalLoad = window.loadAllDataFromCloud;
+            window.loadAllDataFromCloud = async function(...args) {
+                let res = await originalLoad.apply(this, args);
+                setTimeout(() => syncAndRender(currentActiveLine), 300);
+                return res;
+            };
+            window._patchedLoadCloud = true;
+        }
 
-        // ดักฟังคลิกปุ่มเลือกไลน์
+        if (typeof window.renderAll === 'function' && !window._patchedRenderAll) {
+            let originalRenderAll = window.renderAll;
+            window.renderAll = function(...args) {
+                let res = originalRenderAll.apply(this, args);
+                setTimeout(() => syncAndRender(currentActiveLine), 200);
+                return res;
+            };
+            window._patchedRenderAll = true;
+        }
+
+        setTimeout(() => syncAndRender('ALL'), 500);
+
         document.addEventListener('click', function(e) {
             let btn = e.target.closest('button') || e.target;
             if (btn && (btn.tagName === 'BUTTON' || btn.classList.contains('btn'))) {
                 let text = btn.textContent.trim();
                 if (text === 'ALL' || text.startsWith('Line')) {
-                    setTimeout(() => renderWidget(text), 300);
+                    setTimeout(() => syncAndRender(text), 200);
                 }
             }
         });
@@ -6932,7 +6982,7 @@ document.addEventListener('keypress', function(e) {
         initLowStockWidget();
     } else {
         window.addEventListener('load', initLowStockWidget);
-        setTimeout(initLowStockWidget, 1000);
+        setTimeout(initLowStockWidget, 500);
     }
 })();
         function updateClock() {
