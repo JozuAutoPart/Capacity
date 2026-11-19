@@ -580,8 +580,14 @@
                 tagCard.className = 'tag-card';
                 tagCard.innerHTML = `
                     <table class="tag-table">
+                        <colgroup>
+                            <col style="width: 16%;">
+                            <col style="width: 54%;">
+                            <col style="width: 8%;">
+                            <col style="width: 22%;">
+                        </colgroup>
                         <tr>
-                            <td style="width: 22%; font-size: 14px; height: 20px;">Part No.</td>
+                            <td style="font-size: 14px; height: 20px;">Part No.</td>
                             <td colspan="3" class="part-no-text">${data.partNo}</td>
                         </tr>
                         <tr>
@@ -590,9 +596,9 @@
                         </tr>
                         <tr>
                             <td style="font-size: 14px; height: 20px;">Q'ty</td>
-                            <td class="qty-text" style="width: 30%;">${currentQty.toLocaleString()} <span style="font-size: 12px; font-weight: normal;">Pcs.</span></td>
-                            <td style="width: 20%; font-size: 11px;">Stamp Mark</td>
-                            <td style="width: 28%;"></td>
+                            <td class="qty-text">${currentQty.toLocaleString()} <span style="font-size: 12px; font-weight: normal;">Pcs.</span></td>
+                            <td style="font-size: 11px;">Stamp Mark</td>
+                            <td></td>
                         </tr>
                         <tr>
                             <td style="font-size: 10px; height: 18px;">Production Data/Lot No.:</td>
@@ -623,16 +629,16 @@
                         </tr>
 
                         <tr style="height: 26px;">
-                            <td class="logo-stem" style="width: 18%; text-align: center; vertical-align: middle; padding: 0;">
-                                <img src="${logoSrc}" alt="${companyName}" style="max-height: 22px; max-width: 52px; object-fit: contain; display: block; margin: 0 auto;">
+                            <td class="logo-stem" style="text-align: center; vertical-align: middle; padding: 0;">
+                                <img src="${logoSrc}" alt="${companyName}" style="max-height: 22px; max-width: 48px; object-fit: contain; display: block; margin: 0 auto;">
                             </td>
-                            <td class="barcode-container" style="width: 44%;">
+                            <td class="barcode-container">
                                 <svg id="barcode_stam_${i}"></svg>
                             </td>
-                            <td style="width: 11%; text-align: center; vertical-align: middle; padding: 0;">
-                                <img src="Jozu.png" alt="Jozu" style="max-height: 20px; max-width: 36px; object-fit: contain; display: block; margin: 0 auto;">
+                            <td style="text-align: center; vertical-align: middle; padding: 0;">
+                                <img src="Jozu.png" alt="Jozu" style="max-height: 20px; max-width: 26px; object-fit: contain; display: block; margin: 0 auto;">
                             </td>
-                            <td class="barcode-container" style="width: 27%;">
+                            <td class="barcode-container">
                                 <svg id="barcode_part_${i}"></svg>
                             </td>
                         </tr>
