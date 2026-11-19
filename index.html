@@ -7256,21 +7256,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
  
-document.addEventListener('DOMContentLoaded', () => {
-    const dateEl = document.getElementById('filterReportDate') || document.getElementById('filterDate');
-    const opEl = document.getElementById('filterOperator');
 
-    if (dateEl) {
-        dateEl.addEventListener('change', () => {
-            if (typeof renderActuals === 'function') renderActuals();
-        });
-    }
-    if (opEl) {
-        opEl.addEventListener('change', () => {
-            if (typeof renderActuals === 'function') renderActuals();
-        });
-    }
-});
 
 </script>
 </body>
