@@ -597,15 +597,9 @@
                 const tagCard = document.createElement('div');
                 tagCard.className = 'tag-card';
                 tagCard.innerHTML = `
-                    <table class="tag-table">
-                        <colgroup>
-                            <col style="width: 16%;">
-                            <col style="width: 54%;">
-                            <col style="width: 8%;">
-                            <col style="width: 22%;">
-                        </colgroup>
+                   <table class="tag-table">
                         <tr>
-                            <td style="font-size: 14px; height: 20px;">Part No.</td>
+                            <td style="width: 22%; font-size: 14px; height: 20px;">Part No.</td>
                             <td colspan="3" class="part-no-text">${data.partNo}</td>
                         </tr>
                         <tr>
@@ -614,9 +608,9 @@
                         </tr>
                         <tr>
                             <td style="font-size: 14px; height: 20px;">Q'ty</td>
-                            <td class="qty-text">${currentQty.toLocaleString()} <span style="font-size: 12px; font-weight: normal;">Pcs.</span></td>
-                            <td style="font-size: 11px;">Stamp Mark</td>
-                            <td></td>
+                            <td class="qty-text" style="width: 30%;">${currentQty.toLocaleString()} <span style="font-size: 12px; font-weight: normal;">Pcs.</span></td>
+                            <td style="width: 20%; font-size: 11px;">Stamp Mark</td>
+                            <td style="width: 28%;"></td>
                         </tr>
                         <tr>
                             <td style="font-size: 10px; height: 18px;">Production Data/Lot No.:</td>
@@ -647,17 +641,29 @@
                         </tr>
 
                         <tr style="height: 26px;">
-                            <td class="logo-stem" style="text-align: center; vertical-align: middle; padding: 0;">
-                                <img src="${logoSrc}" alt="${companyName}" style="max-height: 22px; max-width: 48px; object-fit: contain; display: block; margin: 0 auto;">
-                            </td>
-                            <td class="barcode-container">
-                                <svg id="barcode_stam_${i}"></svg>
-                            </td>
-                            <td style="text-align: center; vertical-align: middle; padding: 0;">
-                                <img src="Jozu.png" alt="Jozu" style="max-height: 20px; max-width: 26px; object-fit: contain; display: block; margin: 0 auto;">
-                            </td>
-                            <td class="barcode-container">
-                                <svg id="barcode_part_${i}"></svg>
+                            <td colspan="4" style="padding: 0;">
+                                <table class="bottom-bar-table">
+                                    <colgroup>
+                                        <col style="width: 16%;">
+                                        <col style="width: 54%;">
+                                        <col style="width: 8%;">
+                                        <col style="width: 22%;">
+                                    </colgroup>
+                                    <tr>
+                                        <td class="logo-stem" style="text-align: center;">
+                                            <img src="${logoSrc}" alt="${companyName}" style="max-height: 22px; max-width: 48px; object-fit: contain; display: block; margin: 0 auto;">
+                                        </td>
+                                        <td class="barcode-container">
+                                            <svg id="barcode_stam_${i}"></svg>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <img src="Jozu.png" alt="Jozu" style="max-height: 20px; max-width: 26px; object-fit: contain; display: block; margin: 0 auto;">
+                                        </td>
+                                        <td class="barcode-container">
+                                            <svg id="barcode_part_${i}"></svg>
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                     </table>
