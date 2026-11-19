@@ -3110,8 +3110,21 @@ function exportFilteredProductionReport() {
     let selectedDate = document.getElementById('filterReportDate')?.value || '';
     let reportData = [];
 
-    // ช่วยแปลงวันที่ให้เป็น YYYY-MM-DD แบบปลอดภัย
-    function normalizeDateStr(raw) {
+    // ช่วยดึงและแปลงวันที่ให้เป็น YYYY-MM-DD แบบปลอดภัย (รองรับกรณี date ว่างแต่มีวันที่ใน id)
+    function normalizeDateStr(rawOrItem) {
+        let raw = '';
+        if (rawOrItem && typeof rawOrItem === 'object') {
+            raw = rawOrItem.date || rawOrItem['Date'] || '';
+            if (!raw && rawOrItem.id) {
+                let idStr = String(rawOrItem.id).trim();
+                if (/^\d{4}-\d{2}-\d{2}/.test(idStr)) {
+                    raw = idStr;
+                }
+            }
+        } else {
+            raw = rawOrItem;
+        }
+
         if (!raw) return '';
         if (typeof parseDateString === 'function') {
             let parsed = parseDateString(raw);
@@ -3120,7 +3133,14 @@ function exportFilteredProductionReport() {
             }
         }
         let s = String(raw).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
         if (s.includes('T')) return s.split('T')[0];
+
+        let dmyMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (dmyMatch) {
+            return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, '0')}-${dmyMatch[1].padStart(2, '0')}`;
+        }
+
         let d = new Date(s);
         if (!isNaN(d.getTime())) {
             return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -3128,14 +3148,18 @@ function exportFilteredProductionReport() {
         return s.substring(0, 10);
     }
 
+    let normalizedSelectedDate = normalizeDateStr(selectedDate);
+
     if (typeof actuals !== 'undefined' && Array.isArray(actuals) && actuals.length > 0) {
         actuals.forEach(item => {
             let opName = String(item.operator || item['OP Name'] || '').trim().toLowerCase();
-            let itemDate = normalizeDateStr(item.date || item['Date'] || '');
+            let itemDate = normalizeDateStr(item);
 
             // 🔍 เงื่อนไขกรอง: ถ้าเลือกพนักงานต้องตรง และถ้าเลือกวันที่ต้องตรง
-            if (selectedOperator && !opName.includes(selectedOperator.trim().toLowerCase())) return;
-            if (selectedDate && itemDate !== selectedDate) return;
+            let selOpLower = selectedOperator.trim().toLowerCase();
+            let isAllOp = !selectedOperator || selOpLower === '' || selOpLower.includes('ทุกพนักงาน') || selOpLower.includes('all');
+            if (!isAllOp && !opName.includes(selOpLower)) return;
+            if (normalizedSelectedDate && itemDate !== normalizedSelectedDate) return;
 
             let timeVal = String(item['เวลาทำงาน'] || item.timeWork || item.timeRange || '-');
             let startTime = "";
@@ -3189,7 +3213,7 @@ function exportFilteredProductionReport() {
     }
 
     if (reportData.length === 0) {
-        alert('ไม่พบข้อมูลการผลิตของวันที่ ' + (selectedDate || 'ทั้งหมด') + (selectedOperator ? ' (พนักงาน: ' + selectedOperator + ')' : '') + ' สำหรับพิมพ์รายงาน');
+        alert('ไม่พบข้อมูลการผลิตของวันที่ ' + (normalizedSelectedDate || selectedDate || 'ทั้งหมด') + (selectedOperator ? ' (พนักงาน: ' + selectedOperator + ')' : '') + ' สำหรับพิมพ์รายงาน');
         return;
     }
 
@@ -3202,7 +3226,7 @@ function exportFilteredProductionReport() {
 
     localStorage.setItem('productionReportData', JSON.stringify(reportData));
     localStorage.setItem('productionReportOperator', selectedOperator || 'ทุกพนักงาน');
-    localStorage.setItem('productionReportDate', selectedDate || '-');
+    localStorage.setItem('productionReportDate', normalizedSelectedDate || selectedDate || '-');
 
     window.open('print-production.html', '_blank');
 }
