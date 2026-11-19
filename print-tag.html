@@ -623,16 +623,16 @@
                         </tr>
 
                         <tr style="height: 26px;">
-                            <td class="logo-stem" style="text-align: center; vertical-align: middle; padding: 0;">
-                                <img src="${logoSrc}" alt="${companyName}" style="max-height: 22px; max-width: 55px; object-fit: contain; display: block; margin: 0 auto;">
+                            <td class="logo-stem" style="width: 18%; text-align: center; vertical-align: middle; padding: 0;">
+                                <img src="${logoSrc}" alt="${companyName}" style="max-height: 22px; max-width: 52px; object-fit: contain; display: block; margin: 0 auto;">
                             </td>
-                            <td class="barcode-container">
+                            <td class="barcode-container" style="width: 44%;">
                                 <svg id="barcode_stam_${i}"></svg>
                             </td>
-                            <td style="text-align: center; vertical-align: middle; padding: 0;">
-                                <img src="Jozu.png" alt="Jozu" style="max-height: 22px; max-width: 55px; object-fit: contain; display: block; margin: 0 auto;">
+                            <td style="width: 11%; text-align: center; vertical-align: middle; padding: 0;">
+                                <img src="Jozu.png" alt="Jozu" style="max-height: 20px; max-width: 36px; object-fit: contain; display: block; margin: 0 auto;">
                             </td>
-                            <td class="barcode-container">
+                            <td class="barcode-container" style="width: 27%;">
                                 <svg id="barcode_part_${i}"></svg>
                             </td>
                         </tr>
@@ -648,7 +648,7 @@
                             JsBarcode(stamSvg, stamCodeVal, {
                                 format: "CODE128",
                                 height: 20,
-                                width: 1.4,
+                                width: 1.5,
                                 displayValue: false,
                                 margin: 0
                             });
@@ -659,7 +659,7 @@
                             JsBarcode(partSvg, partNoVal, {
                                 format: "CODE128",
                                 height: 20,
-                                width: 1.0,
+                                width: 0.9,
                                 displayValue: false,
                                 margin: 0
                             });
