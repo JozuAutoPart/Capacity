@@ -102,11 +102,13 @@
 
         .barcode-container {
             text-align: center;
+            padding: 1px 2px !important;
         }
 
         .barcode-container svg {
             width: 100%;
             height: 20px;
+            display: block;
         }
     </style>
 </head>
@@ -501,10 +503,10 @@
             "LT-25RT-15U-TT ": { partName: "Chevalet Inferieur ", qty:250, code: "TTE005" }
         };
 
-       function getUrlParams() {
+      function getUrlParams() {
             const params = new URLSearchParams(window.location.search);
             const pNo = params.get('partNo') || '55366-KK020';
-            
+
             const cleanP = pNo.trim().toLowerCase();
             const foundKey = Object.keys(Masterparts).find(k => k.trim().toLowerCase() === cleanP);
             const master = Masterparts[foundKey] || {};
@@ -519,11 +521,11 @@
             };
         }
 
-function generateTags() {
+        function generateTags() {
             const data = getUrlParams();
             const stdPack = data.qty;
             const totalOrder = data.totalOrder;
-            
+
             // 📌 คำนวณจำนวนใบ Tag ทั้งหมด โดยปัดเศษขึ้นให้เป็นจำนวนเต็มเสมอ
             const totalTags = Math.ceil(totalOrder / stdPack);
 
@@ -535,13 +537,13 @@ function generateTags() {
 
             // กำหนดชื่อไฟล์รูปภาพโลโก้ของแต่ละลูกค้า
             const logoImages = {
-                "STEM": "stem-logo.png.jpg",    
-                "FTS": "fts-logo.png.jpg",     
-                "TMC": "tmc-logo.png.jpg",     
+                "STEM": "stem-logo.png.jpg",
+                "FTS": "fts-logo.png.jpg",
+                "TMC": "tmc-logo.png.jpg",
                 "MSFT": "msft-logo.png.jpg",
                 "TH": "Jozu.png",
                 "TSM": "Jozu.png",
-                "NTR": "Jozu.png",
+                "NTR": "Jozu.png"
             };
 
             for (let i = 1; i <= totalTags; i++) {
@@ -554,25 +556,25 @@ function generateTags() {
                 // 📌 บังคับให้ทุกใบ รวมถึงใบสุดท้าย (เศษ) แสดงยอดเท่ากับ Standard Pack เต็มจำนวน
                 let currentQty = stdPack;
 
-              // เช็ค Code เพื่อเลือกกลุ่มลูกค้าให้แม่นยำขึ้น
-    let tagCode = data.code ? String(data.code).trim().toUpperCase() : "STEM";
-    let companyName = "STEM"; 
+                // เช็ค Code เพื่อเลือกกลุ่มลูกค้าให้แม่นยำขึ้น
+                let tagCode = data.code ? String(data.code).trim().toUpperCase() : "STEM";
+                let companyName = "STEM";
 
-    if (tagCode.includes("TH") || tagCode.startsWith("TH")) {
-        companyName = "TH"; 
-    } else if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
-        companyName = "FTS";
-    } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
-        companyName = "TMC";
-    } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
-        companyName = "MSFT";
-     } else if (tagCode.includes("NTR") || tagCode.startsWith("N")) {
-        companyName = "NTR";
-    } else {
-        companyName = "STEM";
-    }
+                if (tagCode.includes("TH") || tagCode.startsWith("TH")) {
+                    companyName = "TH";
+                } else if (tagCode.includes("FTS") || tagCode.startsWith("F")) {
+                    companyName = "FTS";
+                } else if (tagCode.includes("TMC") || tagCode.startsWith("T")) {
+                    companyName = "TMC";
+                } else if (tagCode.includes("MSFT") || tagCode.startsWith("M")) {
+                    companyName = "MSFT";
+                } else if (tagCode.includes("NTR") || tagCode.startsWith("N")) {
+                    companyName = "NTR";
+                } else {
+                    companyName = "STEM";
+                }
 
-    let logoSrc = logoImages[companyName] || "Jozu.png";
+                let logoSrc = logoImages[companyName] || "Jozu.png";
 
                 const tagCard = document.createElement('div');
                 tagCard.className = 'tag-card';
@@ -624,8 +626,11 @@ function generateTags() {
                             <td class="logo-stem" style="text-align: center; vertical-align: middle; padding: 0;">
                                 <img src="${logoSrc}" alt="${companyName}" style="max-height: 22px; max-width: 55px; object-fit: contain; display: block; margin: 0 auto;">
                             </td>
-                            <td colspan="3" class="barcode-container">
-                                <svg id="barcode_${i}"></svg>
+                            <td colspan="2" class="barcode-container">
+                                <svg id="barcode_stam_${i}"></svg>
+                            </td>
+                            <td class="barcode-container">
+                                <svg id="barcode_part_${i}"></svg>
                             </td>
                         </tr>
                     </table>
@@ -633,20 +638,31 @@ function generateTags() {
 
                 currentContainer.appendChild(tagCard);
 
-                setTimeout(((index, partNoVal) => {
+                setTimeout(((index, stamCodeVal, partNoVal) => {
                     return () => {
-                        const svgElement = document.getElementById(`barcode_${index}`);
-                        if (svgElement) {
-                            JsBarcode(svgElement, partNoVal, {
+                        const stamSvg = document.getElementById(`barcode_stam_${index}`);
+                        if (stamSvg && stamCodeVal) {
+                            JsBarcode(stamSvg, stamCodeVal, {
                                 format: "CODE128",
                                 height: 20,
-                                width: 1.3,
+                                width: 1.4,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        }
+
+                        const partSvg = document.getElementById(`barcode_part_${index}`);
+                        if (partSvg && partNoVal) {
+                            JsBarcode(partSvg, partNoVal, {
+                                format: "CODE128",
+                                height: 20,
+                                width: 1.0,
                                 displayValue: false,
                                 margin: 0
                             });
                         }
                     };
-                })(i, data.partNo), 50);
+                })(i, data.code, data.partNo), 50);
             }
         }
 
