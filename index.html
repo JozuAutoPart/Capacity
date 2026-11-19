@@ -3107,6 +3107,7 @@ function exportFilteredProductionReport() {
     let selectedDate = document.getElementById('filterReportDate')?.value || '';
     let reportData = [];
 
+    // ช่วยดึงและแปลงวันที่ให้เป็น YYYY-MM-DD แบบปลอดภัย (รองรับกรณี date ว่างแต่มีวันที่ใน id)
     function normalizeDateStr(rawOrItem) {
         let raw = '';
         if (rawOrItem && typeof rawOrItem === 'object') {
@@ -3170,7 +3171,7 @@ function exportFilteredProductionReport() {
 
             let partNo = String(item.partNo || item['Part No.'] || '-');
             let cleanPart = partNo.split(' ')[0].trim().toUpperCase();
-
+            
             let ctVal = item.ct ? Number(item.ct) : 6;
             let masterList = [];
             try {
@@ -3213,35 +3214,6 @@ function exportFilteredProductionReport() {
         return;
     }
 
-    // 📌 จัดเรียงข้อมูลในรายงานตามเวลาเริ่มต้น (Start Time) จากเช้า -> เย็น เสมอ (08:00 มาก่อน 15:00)
-    reportData.sort((a, b) => {
-        let startA = a.startTime || '';
-        let startB = b.startTime || '';
-        return startA.localeCompare(startB);
-    });
-
-    localStorage.setItem('productionReportData', JSON.stringify(reportData));
-    localStorage.setItem('productionReportOperator', selectedOperator || 'ทุกพนักงาน');
-    localStorage.setItem('productionReportDate', normalizedSelectedDate || selectedDate || '-');
-
-    window.open('print-production.html', '_blank');
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const dateEl = document.getElementById('filterReportDate') || document.getElementById('filterDate');
-    const opEl = document.getElementById('filterOperator');
-
-    if (dateEl) {
-        dateEl.addEventListener('change', () => {
-            if (typeof renderActuals === 'function') renderActuals();
-        });
-    }
-    if (opEl) {
-        opEl.addEventListener('change', () => {
-            if (typeof renderActuals === 'function') renderActuals();
-        });
-    }
-});
     // 📌 จัดเรียงข้อมูลในรายงานตามเวลาเริ่มต้น (Start Time) จากเช้า -> เย็น เสมอ (08:00 มาก่อน 15:00)
     reportData.sort((a, b) => {
         let startA = a.startTime || '';
