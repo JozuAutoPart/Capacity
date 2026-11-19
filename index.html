@@ -2768,11 +2768,10 @@ function renderActuals() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // ช่วยดึงและแปลงวันที่ของแต่ละแถวให้เป็น YYYY-MM-DD (เผื่อกรณี date ว่างแต่มีวันที่ใน id)
     function resolveActualDate(item) {
         if (!item) return '';
-        let raw = item.date || item['Date'] || '';
-        if (!raw && item.id) {
+        let raw = typeof item === 'object' ? (item.date || item['Date'] || '') : item;
+        if (!raw && typeof item === 'object' && item.id) {
             let idStr = String(item.id).trim();
             if (/^\d{4}-\d{2}-\d{2}/.test(idStr)) {
                 raw = idStr;
@@ -2797,8 +2796,7 @@ function renderActuals() {
 
     // 📌 ดึงค่าจากช่องกรองวันที่ของตารางประวัติ (filterReportDate)
     const dateInputEl = document.getElementById('filterReportDate') || document.getElementById('filterDate');
-    let filterDate = dateInputEl ? resolveActualDate({ date: dateInputEl.value }) : '';
-
+    let filterDate = dateInputEl ? resolveActualDate(dateInputEl.value) : '';
     let filterOperator = document.getElementById('filterOperator')?.value || '';
 
     if (typeof actuals === 'undefined' || !actuals || actuals.length === 0) {
@@ -2880,7 +2878,6 @@ function renderActuals() {
 
     if (typeof updateOperatorDropdown === 'function') updateOperatorDropdown();
 }
-
 // ฟังก์ชันช่วยจัดรูปแบบวันที่
 function parseDateString(dateStr) {
     if (!dateStr) return "0000-00-00";
