@@ -3100,13 +3100,31 @@ function exportFilteredProductionReport() {
     let selectedDate = document.getElementById('filterReportDate')?.value || '';
     let reportData = [];
 
+    // ช่วยแปลงวันที่ให้เป็น YYYY-MM-DD แบบปลอดภัย
+    function normalizeDateStr(raw) {
+        if (!raw) return '';
+        if (typeof parseDateString === 'function') {
+            let parsed = parseDateString(raw);
+            if (parsed && /^\d{4}-\d{2}-\d{2}$/.test(String(parsed).trim())) {
+                return String(parsed).trim();
+            }
+        }
+        let s = String(raw).trim();
+        if (s.includes('T')) return s.split('T')[0];
+        let d = new Date(s);
+        if (!isNaN(d.getTime())) {
+            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        }
+        return s.substring(0, 10);
+    }
+
     if (typeof actuals !== 'undefined' && Array.isArray(actuals) && actuals.length > 0) {
         actuals.forEach(item => {
-            let opName = String(item.operator || item['OP Name'] || '');
-            let itemDate = parseDateString(item.date || item['Date'] || '');
+            let opName = String(item.operator || item['OP Name'] || '').trim().toLowerCase();
+            let itemDate = normalizeDateStr(item.date || item['Date'] || '');
 
             // 🔍 เงื่อนไขกรอง: ถ้าเลือกพนักงานต้องตรง และถ้าเลือกวันที่ต้องตรง
-            if (selectedOperator && !opName.includes(selectedOperator)) return;
+            if (selectedOperator && !opName.includes(selectedOperator.trim().toLowerCase())) return;
             if (selectedDate && itemDate !== selectedDate) return;
 
             let timeVal = String(item['เวลาทำงาน'] || item.timeWork || item.timeRange || '-');
