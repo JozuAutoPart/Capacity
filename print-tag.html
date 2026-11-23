@@ -521,7 +521,7 @@
             "LT-25RT-15U-TT ": { partName: "Chevalet Inferieur ", qty:250, code: "TTE005" }
         };
 
-      function getUrlParams() {
+    function getUrlParams() {
             const params = new URLSearchParams(window.location.search);
             const pNo = params.get('partNo') || '55366-KK020';
 
@@ -640,14 +640,14 @@
                             <td style="font-size: 9px;">by.</td>
                         </tr>
 
-                        <tr style="height: 26px;">
+                        <tr style="height: 28px;">
                             <td colspan="4" style="padding: 0;">
                                 <table class="bottom-bar-table">
                                     <colgroup>
                                         <col style="width: 16%;">
-                                        <col style="width: 54%;">
+                                        <col style="width: 52%;">
                                         <col style="width: 8%;">
-                                        <col style="width: 22%;">
+                                        <col style="width: 24%;">
                                     </colgroup>
                                     <tr>
                                         <td class="logo-stem" style="text-align: center;">
@@ -659,8 +659,8 @@
                                         <td style="text-align: center;">
                                             <img src="Jozu.png" alt="Jozu" style="max-height: 20px; max-width: 26px; object-fit: contain; display: block; margin: 0 auto;">
                                         </td>
-                                        <td class="barcode-container">
-                                            <svg id="barcode_part_${i}"></svg>
+                                        <td style="text-align: center; vertical-align: middle; padding: 1px;">
+                                            <div id="qr_part_${i}" style="display: flex; justify-content: center; align-items: center;"></div>
                                         </td>
                                     </tr>
                                 </table>
@@ -671,7 +671,7 @@
 
                 currentContainer.appendChild(tagCard);
 
-                setTimeout(((index, stamCodeVal, partNoVal) => {
+                setTimeout(((index, stamCodeVal, partNoVal, lotNoVal, qtyVal) => {
                     return () => {
                         const stamSvg = document.getElementById(`barcode_stam_${index}`);
                         if (stamSvg && stamCodeVal) {
@@ -684,18 +684,19 @@
                             });
                         }
 
-                        const partSvg = document.getElementById(`barcode_part_${index}`);
-                        if (partSvg && partNoVal) {
-                            JsBarcode(partSvg, partNoVal, {
-                                format: "CODE128",
-                                height: 20,
-                                width: 0.9,
-                                displayValue: false,
-                                margin: 0
+                        const qrBox = document.getElementById(`qr_part_${index}`);
+                        if (qrBox && partNoVal) {
+                            qrBox.innerHTML = '';
+                            const qrPayload = `${partNoVal}|${lotNoVal}|${qtyVal}`;
+                            new QRCode(qrBox, {
+                                text: qrPayload,
+                                width: 24,
+                                height: 24,
+                                correctLevel: QRCode.CorrectLevel.L
                             });
                         }
                     };
-                })(i, data.code, data.partNo), 50);
+                })(i, data.code, data.partNo, data.lotNo, currentQty), 50);
             }
         }
 
